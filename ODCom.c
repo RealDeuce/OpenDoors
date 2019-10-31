@@ -3217,8 +3217,8 @@ tODResult ODComGetBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize,
       case kComMethodStdIO:
 	    {
 		    for(*pnBytesRead=0;
-				*pnBytesRead<nSize && (ODComGetByte(hPort, (pbtBuffer+*pnBytesRead), FALSE)==kODRCSuccess);
-				*pnBytesRead++);
+				*pnBytesRead<nSize && (ODComGetByte(hPort, (char *)(pbtBuffer+*pnBytesRead), FALSE)==kODRCSuccess);
+				*pnBytesRead += 1);
 		}
 #endif
 
