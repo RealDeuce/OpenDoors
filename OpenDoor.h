@@ -114,6 +114,8 @@
 /* Include any other headers required by OpenDoor.h. */
 #ifdef ODPLAT_WIN32 
 #include "windows.h"
+#else
+#include "inttypes.h"
 #endif /* ODPLAT_WIN32 */
 
 /* For DLL versions, definitions of function or data that is exported from */
@@ -179,13 +181,13 @@
 /* Portable types that are the same size across all platforms */
 #ifndef ODPLAT_WIN32
 #ifndef BYTE
-typedef unsigned char      BYTE;                        /* Unsigned, 8 bits. */
+typedef uint8_t            BYTE;                        /* Unsigned, 8 bits. */
 #endif
 #ifndef WORD
-typedef unsigned short     WORD;                       /* Unsigned, 16 bits. */
+typedef uint16_t           WORD;                       /* Unsigned, 16 bits. */
 #endif
 #ifndef DWORD
-typedef unsigned long      DWORD;                      /* Unsigned, 32 bits. */
+typedef uint32_t           DWORD;                      /* Unsigned, 32 bits. */
 #endif
 #ifndef CHAR
 typedef char               CHAR;         /* Native character representation. */
@@ -194,10 +196,10 @@ typedef char               CHAR;         /* Native character representation. */
 #define WORD_DEFINED
 #endif /* !ODPLAT_WIN32 */
 
-typedef signed char        INT8;                          /* Signed, 8 bits. */
-typedef signed short int   INT16;                        /* Signed, 16 bits. */
+typedef int8_t             INT8;                          /* Signed, 8 bits. */
+typedef int16_t            INT16;                        /* Signed, 16 bits. */
 #ifndef ODPLAT_WIN32	/* avoid type redefinition from basetsd.h */
-typedef signed long int    INT32;                        /* Signed, 32 bits. */
+typedef int32_t            INT32;                        /* Signed, 32 bits. */
 #endif
 
 
