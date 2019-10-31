@@ -379,7 +379,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
          switch(btDoorSYSLock)
          {
             case 0:
-               fprintf(pfDropFile,"%lu\n",od_control.baud);
+               fprintf(pfDropFile,"%" PRIu32 "\n",od_control.baud);
                break;
             case 1:
                fprintf(pfDropFile,"N\n");
@@ -473,7 +473,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
             fprintf(pfDropFile,"%d\n",od_control.port+1);
          }
 
-         fprintf(pfDropFile,"%lu\n",od_control.baud);
+         fprintf(pfDropFile,"%" PRIu32 "\n",od_control.baud);
 
          fprintf(pfDropFile,"%d\n",od_control.user_timelimit);
 
@@ -497,7 +497,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
          fprintf(pfDropFile,"%s\n",od_control.user_name);
          fprintf(pfDropFile,"%s\n",od_control.user_password);
          fprintf(pfDropFile,"%s",apszDropFileInfo[0]);
-         fprintf(pfDropFile,"%lu\n",od_control.baud);
+         fprintf(pfDropFile,"%" PRIu32 "\n",od_control.baud);
          fprintf(pfDropFile,"%d\n",od_control.port+1);
          fprintf(pfDropFile,"%d\n",od_control.user_timelimit);
          fprintf(pfDropFile,"%s",apszDropFileInfo[13]);
@@ -597,7 +597,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
            }
            else
            {
-              fprintf(pfDropFile,"%lu\n",od_control.baud);
+              fprintf(pfDropFile,"%" PRIu32 "\n",od_control.baud);
            }
            fprintf(pfDropFile,"%d\n",od_control.port+1);
            fprintf(pfDropFile,"%s",apszDropFileInfo[6]);
@@ -627,8 +627,8 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
            fprintf(pfDropFile, "%s\n", od_control.user_birthday);
            fprintf(pfDropFile, "%d\n", od_control.od_node);
            fprintf(pfDropFile, "%d\n", od_control.port + 1);
-           fprintf(pfDropFile, "%lu\n", od_control.od_connect_speed);
-           fprintf(pfDropFile, "%lu\n", od_control.baud);
+           fprintf(pfDropFile, "%" PRIu32 "\n", od_control.od_connect_speed);
+           fprintf(pfDropFile, "%" PRIu32 "\n", od_control.baud);
            fprintf(pfDropFile, "%c\n", (od_control.od_com_flow_control
               == COM_RTSCTS_FLOW) ? 'Y' : 'N');
            fprintf(pfDropFile, "%c\n", od_control.user_error_free ? 'Y' : 'N');
