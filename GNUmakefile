@@ -37,7 +37,7 @@
 #                  bcc - For Borland C++
 #                   cl - For Microsoft compilers
 #
-CC	:=	gcc
+CC	?=	gcc
 #
 #------------------------------------------------------------------------------
 #
@@ -53,7 +53,7 @@ OBJDIR	:=	objs-$(OS)/
 LIBDIR	:=	libs-$(OS)/
 EXEDIR	:=	exe-$(OS)/
 
-LD	:=	gcc
+LD	?=	gcc
 
 ifdef DEBUG
  CFLAGS	+=	-g -DOD_DEBUG
@@ -68,16 +68,18 @@ endif
 #
 CFLAGS	+=	-fPIC
 LDFLAGS	+=	-fPIC
-CFLAGS	+=	-O2 -L${LIBDIR} -I../xpdev -Wall
+CFLAGS	+=	-O2 -I../xpdev
+LDFLAGS	+=	-L${LIBDIR}
 ifeq ($(OS),Darwin)
  CFLAGS		+=	-D__unix__
- LDFLAGS	+=	$(CFLAGS) -dynamiclib -single_module
+ LDFLAGS	+=	-dynamiclib -single_module
 else
- LDFLAGS	+=	$(CFLAGS) -shared
+ LDFLAGS	+=	-shared
 endif
 ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
  CFLAGS	+=	-DHAS_INTTYPES_H
 endif
+CFLAGS	+=	-Wall
 
 # /MTd /Zi - for debug
 #
@@ -113,7 +115,9 @@ endif
 #
 all: ${OBJDIR} ${LIBDIR} $(EXEDIR) ${LIBDIR}libODoors${SHLIB} \
     ${LIBDIR}libODoors${STATICLIB} $(EXEDIR)ex_chat $(EXEDIR)ex_diag \
-    $(EXEDIR)ex_hello $(EXEDIR)ex_music $(EXEDIR)ex_ski $(EXEDIR)ex_vote
+    $(EXEDIR)ex_hello $(EXEDIR)ex_music
+
+xpdev: $(EXEDIR)ex_ski $(EXEDIR)ex_vote
 #
 #------------------------------------------------------------------------------
 #
@@ -190,26 +194,29 @@ ${LIBDIR}libODoors${SHLIB} : ${OBJECTS}
 	ln -fs libODoors${SHLIB}.6.2 ${LIBDIR}libODoors${SHLIB}
 
 ${LIBDIR}libODoors${STATICLIB} : ${OBJECTS}
-	ar -r ${LIBDIR}libODoors${STATICLIB} ${OBJECTS}
+	ar -cr ${LIBDIR}libODoors${STATICLIB} ${OBJECTS}
 	ranlib ${LIBDIR}libODoors${STATICLIB}
 	
 ${EXEDIR}ex_chat: ex_chat.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(CFLAGS) ex_chat.c -o $@ -lODoors
+	$(CC) $(CFLAGS) $(LDFLAGS) ex_chat.c -o $@ -lODoors
 
 ${EXEDIR}ex_diag: ex_diag.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(CFLAGS) ex_diag.c -o $@ -lODoors
+	$(CC) $(CFLAGS) $(LDFLAGS) ex_diag.c -o $@ -lODoors
 
 ${EXEDIR}ex_hello: ex_hello.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(CFLAGS) ex_hello.c -o $@ -lODoors
+	$(CC) $(CFLAGS) $(LDFLAGS) ex_hello.c -o $@ -lODoors
 
 ${EXEDIR}ex_music: ex_music.c ${LIBDIR}libODoors${SHLIB}
-	$(CC) $(CFLAGS) ex_music.c -o $@ -lODoors
+	$(CC) $(CFLAGS) $(LDFLAGS) ex_music.c -o $@ -lODoors
 
 ${EXEDIR}ex_ski: ex_ski.c ${LIBDIR}libODoors${SHLIB}
 	$(CC) $(LDFLAGS) ex_ski.c -o $@ -lODoors -lxpdev
 
 ${EXEDIR}ex_vote: ex_vote.c ${LIBDIR}libODoors${SHLIB}
 	$(CC) $(CFLAGS) ex_vote.c ../xpdev/filewrap.c -o $@ -lODoors -DMULTINODE_AWARE
+
+clean:
+	rm -rf ${LIBDIR} ${EXEDIR} $(OBJDIR)
 
 #
 #------------------------------------------------------------------------------
