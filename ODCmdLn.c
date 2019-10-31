@@ -293,7 +293,7 @@ ODAPIDEF void ODCALL od_parse_cmd_line(INT nArgCount, char *papszArguments[])
             printf("AVALIABLE COMMAND LINE OPTIONS ");
             if(od_control.od_cmd_line_help != NULL)
             {
-               printf(od_control.od_cmd_line_help);
+               printf("%s", od_control.od_cmd_line_help);
             }
             else
             {

@@ -79,8 +79,7 @@ ODAPIDEF void ODCALL pdef_wildcat(BYTE btOperation)
 
          ODScrnSetAttribute(0x71);
          ODScrnSetCursorPos(1,24);
-         sprintf(szStatusText, "(%s), ", od_control.user_name,
-            od_control.user_location);
+         sprintf(szStatusText, "(%s), ", od_control.user_name);
          ODScrnPrintf("%34.34s", szStatusText);
          ODScrnSetCursorPos(43, 24);
          ODScrnPrintf("%lu", od_control.od_connect_speed);
