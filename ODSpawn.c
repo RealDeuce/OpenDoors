@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  *
  *        File: ODSpawn.c
@@ -147,8 +147,8 @@ static VECTOR vectab1[]=
 static VECTOR vectab2[(sizeof vectab1)/(sizeof vectab1[0])];
 
 /* Location function prototypes. */
-int _spawnvpe(int nModeFlag, char *pszPath, char *papszArgs[],
-   char *papszEnviron[]);
+int _spawnvpe(int nModeFlag, char *const pszPath, const char *const papszArgs[],
+   const char *const papszEnviron[]);
 int _spawnve(int nModeFlag, char *pszPath, char *papszArgs[],
    char * papszEnviron[]);
 static void savevect(void);
@@ -158,8 +158,8 @@ static void savevect(void);
 
 #ifdef ODPLAT_NIX
 /* Location function prototypes. */
-int _spawnvpe(int nModeFlag, char *pszPath, char *papszArgs[],
-   char *papszEnviron[]);
+int _spawnvpe(int nModeFlag, char *const pszPath, const char *const papszArgs[],
+   const char *const papszEnviron[]);
 #endif /* ODPLAT_NIX */
 
 /* ----------------------------------------------------------------------------
@@ -175,7 +175,7 @@ int _spawnvpe(int nModeFlag, char *pszPath, char *papszArgs[],
 ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
 {
 #ifdef ODPLAT_DOS
-   char *apszArgs[4];
+   char *const apszArgs[4];
    INT16 nReturnCode;
 
    /* Log function entry if running in trace mode. */
@@ -203,7 +203,7 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
 
 #ifdef ODPLAT_WIN32
    char *pch;
-   char *apszArgs[3];
+   const char *apszArgs[3];
    char szProgName[80];
 
    /* Build command and arguments list. */
@@ -226,7 +226,7 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
    }
 
    /* Now, call od_spawnvpe(). */
-   return(od_spawnvpe(P_WAIT, *apszArgs, apszArgs, NULL) != -1);
+   return(od_spawnvpe(P_WAIT, szProgName, apszArgs, NULL) != -1);
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
@@ -273,8 +273,8 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
  *     Return: -1 on failure or the spawned-to program's return value on
  *             success.
  */
-ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, char *pszPath,
-   char *papszArg[], char *papszEnv[])
+ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, char *const pszPath,
+   const char *const papszArg[], const char *const papszEnv[])
 {
    INT16 nToReturn;
    time_t nStartUnixTime;
@@ -459,8 +459,8 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, char *pszPath,
  *     Return: -1 on failure or the spawned-to program's return value on
  *             success.
  */
-int _spawnvpe(int nModeFlag, char *pszPath, char *papszArgs[],
-   char *papszEnviron[])
+int _spawnvpe(int nModeFlag, char *const pszPath, const char *const papszArgs[],
+   const char *const papszEnviron[])
 {
    char *e;
    char *p;
@@ -1059,12 +1059,11 @@ int _spawnve(int nModeFlag, char *pszPath, char *papszArgs[],
  *     Return: -1 on failure or the spawned-to program's return value on
  *             success.
  */
-int _spawnvpe(int nModeFlag, char *pszPath, char *papszArgs[],
-   char *papszEnviron[])
+int _spawnvpe(int nModeFlag, char *const pszPath, const char *const papszArgs[],
+   const char *const papszEnviron[])
 {
    pid_t	child;
    int		status;
-   pid_t	wret;
    struct sigaction act;
 
 
@@ -1087,11 +1086,11 @@ int _spawnvpe(int nModeFlag, char *pszPath, char *papszArgs[],
 
    if(!child)  {
       /* Do the exec stuff here */
-	  execve(pszPath,papszArgs,papszEnviron);
+	  execve(pszPath,(char *const *)papszArgs,(char *const *)papszEnviron);
 	  exit(-1); /* this should never happen! */
    }
    if(nModeFlag == P_WAIT)  {
-      wret=waitpid(child,&status,0);
+      waitpid(child,&status,0);
 	  if(WIFEXITED(status))  {
 	     return(WEXITSTATUS(status));
 	  }

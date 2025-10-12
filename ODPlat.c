@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  *
  *        File: ODPlat.c
@@ -320,7 +320,7 @@ tODResult ODThreadResume(tODThreadHandle hThread)
  *
  *             ThreadPriority - New priority to assign to the thread.
  *
- *     Return: kOCRCSuccess on success, or an error code on failure.
+ *     Return: kODRCSuccess on success, or an error code on failure.
  */
 tODResult ODThreadSetPriority(tODThreadHandle hThread,
    tODThreadPriority ThreadPriority)
@@ -350,6 +350,7 @@ tODResult ODThreadSetPriority(tODThreadHandle hThread,
          break;
       default:
          ASSERT(FALSE);
+         return kODRCInvalidCall;
    }
 
    /* Update the thread's priority. */

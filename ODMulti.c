@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  *
  *        File: ODMulti.c
@@ -69,6 +69,7 @@ typedef struct
    OD_PERSONALITY_PROC *pfPersonalityFunction;
 } tPersonalityInfo;
 
+#ifdef OD_TEXTMODE
 static tPersonalityInfo aPersonalityInfo[MAX_PERSONALITIES]=
 {
    {"STANDARD", 1, 23, pdef_opendoors},
@@ -77,10 +78,10 @@ static tPersonalityInfo aPersonalityInfo[MAX_PERSONALITIES]=
    {"PCBOARD", 1, 23, pdef_pcboard}
 };
 
-
 /* Private variables. */
 static INT nPersonalities = 5;
 static INT nCurrentPersonality = 255;
+#endif
 
 
 /* ----------------------------------------------------------------------------
@@ -95,7 +96,7 @@ static INT nCurrentPersonality = 255;
  */
 ODAPIDEF void ODCALL ODMPSEnable(void)
 {
-   pfSetPersonality = od_set_personality;
+   pfSetPersonality = &od_set_personality;
 }
 
 

@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  *
  *        File: ODList.c
@@ -466,7 +466,7 @@ static INT ODListFilenameSplit(const char *pszEntirePath, char *pszDrive,
 
    if((pchCurrentPos = strrchr(pchStart, '.')) == NULL)
    {
-      if(pchStart =='\0')
+      if(pchStart[0] =='\0')
       {
          pszExtension[0] = '\0';
          pszName[0] = '\0';
@@ -493,9 +493,7 @@ static INT ODListFilenameSplit(const char *pszEntirePath, char *pszDrive,
       strncpy(pszName, pchStart, btSize);
       pszName[btSize] = '\0';
 
-      btSize = strlen(pchCurrentPos);
-      if(btSize > 4) btSize = 4;
-      strncpy(pszExtension, pchCurrentPos, btSize);
+      strncpy(pszExtension, pchCurrentPos, 4);
       pszExtension[btSize]='\0';
    }
 

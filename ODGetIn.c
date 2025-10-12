@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  *
  *        File: ODGetIn.c
@@ -104,6 +104,15 @@ tODKeySequence aKeySequences[] =
    {"\033[21~", OD_KEY_F10, FALSE},
    {"\033[23~", OD_KEY_F11, FALSE},
    {"\033[24~", OD_KEY_F12, FALSE},
+
+   /* XTerm specific control sequences */
+   {"\033[15~", OD_KEY_F5, FALSE},
+
+   /* Old, deprecated XTerm specific control sequences */
+   {"\033[11~", OD_KEY_F1, FALSE},
+   {"\033[12~", OD_KEY_F2, FALSE},
+   {"\033[13~", OD_KEY_F3, FALSE},
+   {"\033[14~", OD_KEY_F4, FALSE},
 
    /* ANSI-specific control sequences. */
    {"\033[L", OD_KEY_HOME, FALSE},

@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *
  *
  *        File: ODScrn.c
@@ -328,7 +328,7 @@ LRESULT CALLBACK ODScrnWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
    ASSERT(hwnd != NULL);
 
-   hInstance = (HINSTANCE)GetWindowLong(hwnd, GWL_USERDATA);
+   hInstance = (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 
    switch(uMsg)
    {
@@ -353,7 +353,7 @@ LRESULT CALLBACK ODScrnWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
       {
          CREATESTRUCT *pCreateStruct = (CREATESTRUCT *)lParam;
          hInstance = (HINSTANCE)pCreateStruct->lpCreateParams;
-         SetWindowLong(hwnd, GWL_USERDATA, (LONG)hInstance);
+         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)hInstance);
          break;
       }
 
