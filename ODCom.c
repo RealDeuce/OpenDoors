@@ -62,6 +62,9 @@
 #include <ctype.h>
 #include <time.h>
 #include <limits.h>
+#ifdef __WATCOMC__
+#include <dos.h>
+#endif
 
 #include "OpenDoor.h"
 #ifdef ODPLAT_NIX
@@ -358,12 +361,16 @@ static BOOL bStopTrans;                 /* Flag set to stop transmitting. */
  */
 static void ODComSetVect(BYTE btVector, void (INTERRUPT far *pfISR)(void))
 {
+#ifdef __WATCOMC__
+   _dos_setvect(btVector, pfISR);
+#else
    ASM   push ds
    ASM   mov ah, 0x25
    ASM   mov al, btVector
    ASM   lds dx, pfISR
    ASM   int 0x21
    ASM   pop ds
+#endif
 }
 
 
@@ -380,6 +387,9 @@ static void ODComSetVect(BYTE btVector, void (INTERRUPT far *pfISR)(void))
  */
 static void (INTERRUPT far *ODComGetVect(BYTE btVector))(void)
 {
+#ifdef __WATCOMC__
+   return(_dos_getvect(btVector));
+#else
    void (INTERRUPT far *pfISR)(void);
 
    ASM   push es
@@ -391,6 +401,7 @@ static void (INTERRUPT far *ODComGetVect(BYTE btVector))(void)
    ASM   pop es
 
    return(pfISR);
+#endif
 }
 
 
@@ -1244,10 +1255,21 @@ tODResult ODComOpen(tPortHandle hPort)
       pPortInfo->Method == kComMethodUnspecified)
    {
       int nPort;
+#ifdef __WATCOMC__
+      union REGS Registers;
+#endif
 
       nPort = (int)pPortInfo->btPort;
       
       /* Attempt to open port with FOSSIL DRIVER. */
+#ifdef __WATCOMC__
+      Registers.h.ah = 4;
+      Registers.x.dx = nPort;
+      Registers.x.bx = 0;
+      int86(0x14, &Registers, &Registers);
+      if(Registers.x.ax != 6484)
+         goto no_fossil;
+#else
       ASM    push si
       ASM    push di
       ASM    mov ah, 4
@@ -1261,6 +1283,7 @@ tODResult ODComOpen(tPortHandle hPort)
       goto no_fossil;
 
 fossil:
+#endif
       pPortInfo->Method = kComMethodFOSSIL;
 
       /* Enable flow control, if applicable. */
@@ -2191,9 +2214,18 @@ tODResult ODComSetDTR(tPortHandle hPort, BOOL bHigh)
       case kComMethodFOSSIL:
       {
          int nPort;
+#ifdef __WATCOMC__
+         union REGS Registers;
+#endif
 
          nPort = pPortInfo->btPort;
-         
+
+#ifdef __WATCOMC__
+         Registers.h.al = bHigh ? 1 : 0;
+         Registers.h.ah = 6;
+         Registers.x.dx = nPort;
+         int86(0x14, &Registers, &Registers);
+#else
          ASM    cmp byte ptr bHigh, 0
          ASM    je lower
          ASM    mov al, 1
@@ -2206,6 +2238,7 @@ set_dtr:
          ASM    mov ah, 6
          ASM    mov dx, nPort
          ASM    int 20
+#endif
       }
 #endif /* INCLUDE_FOSSIL_COM */
 
@@ -2306,9 +2339,20 @@ tODResult ODComOutbound(tPortHandle hPort, int *pnOutboundWaiting)
       case kComMethodFOSSIL:
       {
          int nPort;
+#ifdef __WATCOMC__
+         union REGS Registers;
+#endif
 
          nPort = pPortInfo->btPort;
 
+#ifdef __WATCOMC__
+         Registers.h.ah = 3;
+         Registers.x.dx = nPort;
+         int86(0x14, &Registers, &Registers);
+         *pnOutboundWaiting = (Registers.h.ah & 0x40)
+            ? 0 : SIZE_NON_ZERO;
+         break;
+#else
          ASM    mov ah, 0x03
          ASM    mov dx, nPort
          ASM    int 20
@@ -2320,6 +2364,7 @@ tODResult ODComOutbound(tPortHandle hPort, int *pnOutboundWaiting)
 still_sending:
          *pnOutboundWaiting = SIZE_NON_ZERO;
          break;
+#endif
       }
 #endif /* INCLUDE_FOSSIL_COM */
 

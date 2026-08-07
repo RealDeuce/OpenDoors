@@ -63,11 +63,11 @@ add_library(opendoors_dos STATIC
     ${OPENDOORS_DOS_SOURCES}
     "${OPENDOORS_SWAP_OBJECT}")
 target_include_directories(opendoors_dos PUBLIC "${OPENDOORS_ROOT}")
-target_compile_options(opendoors_dos PRIVATE -ml -zq)
+target_compile_options(opendoors_dos PRIVATE -ml -zq -za99)
 set_target_properties(opendoors_dos PROPERTIES
     OUTPUT_NAME ODoorl
     PREFIX "")
 
 add_executable(dos_link_smoke "${OPENDOORS_ROOT}/tests/link_smoke.c")
-target_compile_options(dos_link_smoke PRIVATE -ml -zq)
+target_compile_options(dos_link_smoke PRIVATE -ml -zq -za99)
 target_link_libraries(dos_link_smoke PRIVATE opendoors_dos)
