@@ -67,8 +67,8 @@ cmake -S dos -B build/dos -G "Watcom WMake" \
 cmake --build build/dos
 ```
 
-This produces `ODoorl.lib`, links `dos_link_smoke.exe`, and builds
-`dos_runtime_smoke.exe`. The manual GitHub Actions workflow runs the latter
+This produces `ODoorl.lib`, links `dos_link_smoke.exe`, and builds the
+DOS-compatible `odtest.exe`. The manual GitHub Actions workflow runs the latter
 under DOSBox with a strict timeout, exercising the 16-bit calling convention
 and size-limit checks instead of merely linking them. It publishes the library,
 test executables, and emulator log as workflow artifacts.

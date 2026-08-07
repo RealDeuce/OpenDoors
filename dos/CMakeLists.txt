@@ -88,6 +88,7 @@ target_link_libraries(dos_link_smoke PRIVATE opendoors_dos)
 
 add_executable(dos_runtime_smoke
     "${OPENDOORS_ROOT}/tests/dos_runtime_smoke.c")
+set_target_properties(dos_runtime_smoke PROPERTIES OUTPUT_NAME odtest)
 target_compile_options(dos_runtime_smoke PRIVATE -ml -zq -za99)
 if(OPENDOORS_WARNINGS_AS_ERRORS)
     target_compile_options(dos_runtime_smoke PRIVATE -we)

@@ -86,11 +86,11 @@ jobs:
         run: |
           test -s build/dos/ODoorl.lib
           test -s build/dos/dos_link_smoke.exe
-          test -s build/dos/dos_runtime_smoke.exe
+          test -s build/dos/odtest.exe
           test "$(od -An -tx1 -N2 build/dos/dos_link_smoke.exe | tr -d ' ')" = '4d5a'
-          test "$(od -An -tx1 -N2 build/dos/dos_runtime_smoke.exe | tr -d ' ')" = '4d5a'
+          test "$(od -An -tx1 -N2 build/dos/odtest.exe | tr -d ' ')" = '4d5a'
           file build/dos/ODoorl.lib build/dos/dos_link_smoke.exe \
-            build/dos/dos_runtime_smoke.exe
+            build/dos/odtest.exe
 
       - name: Install DOSBox runtime
         run: |
@@ -108,7 +108,7 @@ jobs:
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos" \
               -c 'c:' \
-              -c 'dos_runtime_smoke.exe' \
+              -c 'odtest.exe' \
               -c 'exit' \
             2>&1 | tee build/dos/dosbox.log
           if ! test -s build/dos/DOSPASS.OK; then
@@ -124,7 +124,7 @@ jobs:
           path: |
             build/dos/ODoorl.lib
             build/dos/dos_link_smoke.exe
-            build/dos/dos_runtime_smoke.exe
+            build/dos/odtest.exe
             build/dos/DOSPASS.OK
             build/dos/DOSFAIL.TXT
             build/dos/dosbox.log
