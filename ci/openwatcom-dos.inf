@@ -1,5 +1,0 @@
-# Minimal Open Watcom installation for a Linux-hosted 16-bit DOS build.
-ml=true
-tools16=true
-lnx64host=true
-dostarg=true
