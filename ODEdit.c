@@ -2551,7 +2551,11 @@ static tODResult ODEditBufferMakeSpace(tEditInstance *pEditInstance,
       UINT unExtendLineBy = unColumn - unLineLength;
       unColumn -= unExtendLineBy;
       if(!ODSizeAdd((size_t)unNumChars, (size_t)unExtendLineBy,
-         &nSizeNeeded) || nSizeNeeded > (UINT)-1)
+         &nSizeNeeded)
+#ifndef ODPLAT_DOS
+         || nSizeNeeded > (UINT)-1
+#endif
+         )
       {
          od_control.od_error = ERR_LIMIT;
          return(kODRCSafeFailure);
@@ -2568,7 +2572,11 @@ static tODResult ODEditBufferMakeSpace(tEditInstance *pEditInstance,
       /* There is not currently sufficient room in the buffer for the new */
       /* characters, then attempt to grow the buffer to make more room.   */
       if(!ODSizeAdd((size_t)unBufferUsed, (size_t)unNumChars,
-         &nSizeNeeded) || nSizeNeeded > (UINT)-1)
+         &nSizeNeeded)
+#ifndef ODPLAT_DOS
+         || nSizeNeeded > (UINT)-1
+#endif
+         )
       {
          od_control.od_error = ERR_LIMIT;
          return(kODRCSafeFailure);
@@ -2634,7 +2642,11 @@ static tODResult ODEditTryToGrow(tEditInstance *pEditInstance,
       /* If the buffer is growable, then attempt to grow it using the */
       /* realloc function provided by the client application.         */
       if(!ODSizeAdd((size_t)pEditInstance->unBufferSize, BUFFER_GROW_SIZE,
-         &nGrownSize) || nGrownSize > (UINT)-1)
+         &nGrownSize)
+#ifndef ODPLAT_DOS
+         || nGrownSize > (UINT)-1
+#endif
+         )
          nGrownSize = unSizeNeeded;
       unNewBufferSize = MAX((UINT)nGrownSize, unSizeNeeded);
       pszNewBuffer = (char *)((*pEditInstance->pUserOptions->
