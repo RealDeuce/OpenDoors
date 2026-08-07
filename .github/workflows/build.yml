@@ -94,7 +94,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
               throw 'dumpbin /exports failed.'
           }
-          foreach ($symbol in @('od_init', 'od_printf', 'od_control')) {
+          foreach ($symbol in @(
+              'od_init',
+              'od_printf',
+              'od_control',
+              'od_save_screen_size',
+              'od_save_screen_ex',
+              'od_restore_screen_ex')) {
               if ($exports -notmatch "\b$symbol\b") {
                   throw "ODoors62.dll does not export $symbol."
               }
