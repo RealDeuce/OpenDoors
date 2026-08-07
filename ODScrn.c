@@ -66,6 +66,9 @@
 #include <time.h>
 
 #include "OpenDoor.h"
+#if defined(ODPLAT_DOS) && defined(__WATCOMC__)
+#include <dos.h>
+#endif
 #include "ODCore.h"
 #include "ODGen.h"
 #include "ODPlat.h"
@@ -1048,6 +1051,19 @@ tODResult ODScrnInitialize(void)
       {
          /* Determine address of DV screen buffer. */
          /* This doesn't check rows, bh = rows, bl = columns. */
+#ifdef __WATCOMC__
+         union REGS Registers;
+
+         Registers.x.ax = 0x2b02;
+         Registers.x.cx = 0x4445;
+         Registers.x.dx = 0x5351;
+         intdos(&Registers, &Registers);
+         if(Registers.x.bx == 0x1950)
+         {
+            wBufferSegment = Registers.x.dx;
+            pScrnBuffer = MK_FP(wBufferSegment, 0);
+         }
+#else
          ASM    mov ax, 0x2b02
          ASM    mov cx, 0x4445
          ASM    mov dx, 0x5351
@@ -1058,6 +1074,7 @@ tODResult ODScrnInitialize(void)
 
          (long)pScrnBuffer = ODDWordShiftLeft((long)wBufferSegment, 16);
    no_change: ;
+#endif
       }
    }
 #endif /* ODPLAT_DOS */
@@ -1273,6 +1290,20 @@ void ODScrnEnableCaret(BOOL bEnable)
    bCaretOn = bEnable;
 
    /* Execute the cursor on / off primitive. */
+#ifdef __WATCOMC__
+   {
+      union REGS Registers;
+
+      Registers.h.ah = 0x03;
+      Registers.h.bh = btDisplayPage;
+      int86(0x10, &Registers, &Registers);
+      Registers.h.ch &= 0x1f;
+      if(!bCaretOn)
+         Registers.h.ch |= 0x20;
+      Registers.h.ah = 0x01;
+      int86(0x10, &Registers, &Registers);
+   }
+#else
    ASM    push si
    ASM    push di
    ASM    mov ah, 0x03
@@ -1302,6 +1333,7 @@ set_cursor:
    ASM    int 0x10
    ASM    pop di
    ASM    pop si
+#endif
 
 
    if(bCaretOn)
@@ -2551,4 +2583,3 @@ void ODScrnRemoveMessage(void *pMessageInfo)
    ODScrnEnableCaret(TRUE);
 #endif /* !ODPLAT_WIN32 */
 }
-
