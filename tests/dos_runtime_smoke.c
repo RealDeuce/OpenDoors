@@ -11,7 +11,20 @@
 #include "ODSafe.h"
 #include "ODSwap.h"
 
-#define CHECK(condition) do { if(!(condition)) return(__LINE__); } while(0)
+static int Fail(int line)
+{
+   FILE *failure;
+
+   failure = fopen("DOSFAIL.TXT", "w");
+   if(failure != NULL)
+   {
+      fprintf(failure, "DOS runtime test failed at line %d\n", line);
+      fclose(failure);
+   }
+   return(line);
+}
+
+#define CHECK(condition) do { if(!(condition)) return(Fail(__LINE__)); } while(0)
 
 BYTE *ODComCP437ToUnicode(BYTE *buf, int *size);
 

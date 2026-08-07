@@ -103,6 +103,7 @@ jobs:
         run: |
           set -o pipefail
           rm -f build/dos/DOSPASS.OK
+          rm -f build/dos/DOSFAIL.TXT
           timeout --signal=TERM --kill-after=5s 30s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos" \
@@ -110,7 +111,10 @@ jobs:
               -c 'dos_runtime_smoke.exe' \
               -c 'exit' \
             2>&1 | tee build/dos/dosbox.log
-          test -s build/dos/DOSPASS.OK
+          if ! test -s build/dos/DOSPASS.OK; then
+            cat build/dos/DOSFAIL.TXT || true
+            exit 1
+          fi
 
       - name: Upload OpenDoors DOS outputs
         if: always()
@@ -122,4 +126,5 @@ jobs:
             build/dos/dos_link_smoke.exe
             build/dos/dos_runtime_smoke.exe
             build/dos/DOSPASS.OK
+            build/dos/DOSFAIL.TXT
             build/dos/dosbox.log
