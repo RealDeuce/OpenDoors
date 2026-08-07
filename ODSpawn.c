@@ -169,7 +169,7 @@ int _spawnvpe(int nModeFlag, char *const pszPath, const char *const papszArgs[],
 ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
 {
 #ifdef ODPLAT_DOS
-   char *const apszArgs[4];
+   const char *apszArgs[4];
    INT16 nReturnCode;
 
    /* Log function entry if running in trace mode. */
