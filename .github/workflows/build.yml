@@ -1,0 +1,124 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows ${{ matrix.architecture }} ${{ matrix.configuration }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x86, x64]
+        configuration: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        shell: pwsh
+        run: >-
+          .\build-msvc.ps1
+          -Architecture '${{ matrix.architecture }}'
+          -Configuration '${{ matrix.configuration }}'
+
+      - name: Test
+        shell: pwsh
+        run: >-
+          ctest
+          --test-dir 'build/msvc/${{ matrix.architecture }}'
+          -C '${{ matrix.configuration }}'
+          --output-on-failure
+
+      - name: Inspect DLL architecture and exports
+        shell: pwsh
+        run: |
+          $architecture = '${{ matrix.architecture }}'
+          $configuration = '${{ matrix.configuration }}'
+          $buildDirectory = Join-Path $PWD "build\msvc\$architecture"
+          $dll = Join-Path $buildDirectory "bin\$configuration\ODoors62.dll"
+          $libraryDirectory = Join-Path $buildDirectory "lib\$configuration"
+
+          foreach ($path in @(
+              $dll,
+              (Join-Path $libraryDirectory 'ODoorW.lib'),
+              (Join-Path $libraryDirectory 'ODoors-static.lib'))) {
+              if (-not (Test-Path -LiteralPath $path)) {
+                  throw "Expected build output was not found: $path"
+              }
+          }
+
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} `
+              'Microsoft Visual Studio\Installer\vswhere.exe'
+          $installation = & $vswhere -latest -products '*' `
+              -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+              -property installationPath
+          if (-not $installation) {
+              throw 'A Visual Studio C++ installation was not found.'
+          }
+
+          $targetDirectory = if ($architecture -eq 'x86') {
+              'Hostx64\x86'
+          } else {
+              'Hostx64\x64'
+          }
+          $dumpbin = Get-ChildItem -Path (Join-Path $installation `
+              "VC\Tools\MSVC\*\bin\$targetDirectory\dumpbin.exe") |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1
+          if (-not $dumpbin) {
+              throw 'dumpbin.exe was not found.'
+          }
+
+          $headers = & $dumpbin.FullName /headers $dll 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0) {
+              throw 'dumpbin /headers failed.'
+          }
+          $machinePattern = if ($architecture -eq 'x86') {
+              '14C machine \(x86\)'
+          } else {
+              '8664 machine \(x64\)'
+          }
+          if ($headers -notmatch $machinePattern) {
+              throw "ODoors62.dll does not contain the expected $architecture machine header."
+          }
+
+          $exports = & $dumpbin.FullName /exports $dll 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0) {
+              throw 'dumpbin /exports failed.'
+          }
+          foreach ($symbol in @('od_init', 'od_printf', 'od_control')) {
+              if ($exports -notmatch "\b$symbol\b") {
+                  throw "ODoors62.dll does not export $symbol."
+              }
+          }
+
+  unix:
+    name: ${{ matrix.os }} ${{ matrix.configuration }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        configuration: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: >-
+          cmake
+          -S .
+          -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
