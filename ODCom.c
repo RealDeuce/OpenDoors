@@ -74,7 +74,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #endif
-#ifndef ODPLAT_WIN32
+#ifdef ODPLAT_NIX
 #include <poll.h>
 #endif
 #include "ODCore.h"
