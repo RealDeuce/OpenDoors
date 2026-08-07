@@ -1046,7 +1046,8 @@ tODResult ODScrnInitialize(void)
       if(btDisplayPage!=0)
       {
          wBufferSegment += (SCREEN_BUFFER_SEGMENT_SIZE * btDisplayPage);
-         ((char ODFAR *)pScrnBuffer) += (SCREEN_BUFFER_SIZE * btDisplayPage);
+         pScrnBuffer = (char ODFAR *)pScrnBuffer
+            + (SCREEN_BUFFER_SIZE * btDisplayPage);
       }
 
       if(ODMultitasker == kMultitaskerDV)
