@@ -1,3 +1,20 @@
 exe-*
 libs-*
 objs-*
+
+# Out-of-tree build directories
+/build/
+
+# Generated binaries and intermediate files
+*.a
+*.aps
+*.dll
+*.dylib
+*.exe
+*.lib
+*.map
+*.obj
+*.pdb
+*.res
+*.so
+*.so.*
