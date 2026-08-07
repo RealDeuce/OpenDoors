@@ -1,0 +1,60 @@
+name: DOS Open Watcom experiment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  toolchain:
+    name: Verify Linux-hosted DOS toolchain
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download Open Watcom
+        env:
+          OPEN_WATCOM_URL: >-
+            https://github.com/open-watcom/open-watcom-v2/releases/download/2026-08-01-Build/open-watcom-2_0-c-linux-x64
+        run: |
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/open-watcom-installer" \
+            "$OPEN_WATCOM_URL"
+          chmod +x "$RUNNER_TEMP/open-watcom-installer"
+
+      - name: Install 16-bit DOS toolchain
+        run: |
+          "$RUNNER_TEMP/open-watcom-installer" \
+            -i -np -ns \
+            -f="$GITHUB_WORKSPACE/ci/openwatcom-dos.inf" \
+            -dDstDir="$RUNNER_TEMP/watcom"
+
+          echo "WATCOM=$RUNNER_TEMP/watcom" >> "$GITHUB_ENV"
+          echo "INCLUDE=$RUNNER_TEMP/watcom/h" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/watcom/binl64" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/watcom/binl" >> "$GITHUB_PATH"
+
+      - name: Verify DOS tools and target
+        run: |
+          set -x
+          test -x "$WATCOM/binl64/wcc"
+          test -x "$WATCOM/binl64/wcl"
+          test -x "$WATCOM/binl64/wasm"
+          test -x "$WATCOM/binl64/wlib"
+          test -x "$WATCOM/binl64/wlink"
+          test -x "$WATCOM/binl64/wmake"
+
+          printf '%s\n' \
+            '#include <stdio.h>' \
+            'int main(void) { puts("Open Watcom DOS toolchain works"); return 0; }' \
+            > "$RUNNER_TEMP/hello.c"
+
+          wcl -bt=dos -ml \
+            -fe="$RUNNER_TEMP/hello.exe" \
+            "$RUNNER_TEMP/hello.c"
+
+          test -s "$RUNNER_TEMP/hello.exe"
+          test "$(od -An -tx1 -N2 "$RUNNER_TEMP/hello.exe" | tr -d ' ')" = '4d5a'
+          file "$RUNNER_TEMP/hello.exe"
