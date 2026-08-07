@@ -26,10 +26,12 @@ jobs:
 
       - name: Install 16-bit DOS toolchain
         run: |
-          "$RUNNER_TEMP/open-watcom-installer" \
+          install_command="$RUNNER_TEMP/open-watcom-installer \
             -i -np -ns \
-            -f="$GITHUB_WORKSPACE/ci/openwatcom-dos.inf" \
-            -dDstDir="$RUNNER_TEMP/watcom"
+            -f=$GITHUB_WORKSPACE/ci/openwatcom-dos.inf \
+            -dDstDir=$RUNNER_TEMP/watcom"
+          TERM=vt100 script --quiet --return \
+            --command "$install_command" /dev/null
 
           echo "WATCOM=$RUNNER_TEMP/watcom" >> "$GITHUB_ENV"
           echo "INCLUDE=$RUNNER_TEMP/watcom/h" >> "$GITHUB_ENV"
