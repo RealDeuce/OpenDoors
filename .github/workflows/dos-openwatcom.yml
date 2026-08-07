@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   toolchain:
-    name: Verify Linux-hosted DOS toolchain
+    name: Build 16-bit DOS library
     runs-on: ubuntu-24.04
 
     steps:
@@ -80,3 +80,18 @@ jobs:
 
       - name: Build OpenDoors DOS library and link smoke test
         run: cmake --build build/dos
+
+      - name: Verify OpenDoors DOS outputs
+        run: |
+          test -s build/dos/ODoorl.lib
+          test -s build/dos/dos_link_smoke.exe
+          test "$(od -An -tx1 -N2 build/dos/dos_link_smoke.exe | tr -d ' ')" = '4d5a'
+          file build/dos/ODoorl.lib build/dos/dos_link_smoke.exe
+
+      - name: Upload OpenDoors DOS outputs
+        uses: actions/upload-artifact@v7
+        with:
+          name: opendoors-dos-openwatcom
+          path: |
+            build/dos/ODoorl.lib
+            build/dos/dos_link_smoke.exe

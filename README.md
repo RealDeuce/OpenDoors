@@ -53,6 +53,25 @@ If xpdev is unavailable, those two examples are skipped. The other examples,
 both libraries, and the tests still build. With MSVC, pass the same location
 as `-XpdevDirectory C:\path\to\xpdev`.
 
+## Open Watcom DOS builds
+
+The 16-bit DOS large-model build has its own CMake project under `dos/`,
+separate from the modern host builds. With Open Watcom 2.0 configured in the
+environment, build it with:
+
+```sh
+cmake -S dos -B build/dos -G "Watcom WMake" \
+  -D CMAKE_SYSTEM_NAME=DOS \
+  -D CMAKE_SYSTEM_PROCESSOR=I86 \
+  -D CMAKE_BUILD_TYPE=Release
+cmake --build build/dos
+```
+
+This produces `ODoorl.lib` and links `dos_link_smoke.exe` to verify that the
+library, including the assembly swap module, is usable. The GitHub Actions
+workflow named `DOS Open Watcom experiment` runs this build only when manually
+dispatched and publishes both files as a workflow artifact.
+
 ## Legacy builds
 
 The existing GNU make, Windows make, and DOS build files remain available for
