@@ -1682,7 +1682,7 @@ Done:
  *     Return: FALSE if file can be accessed or TRUE if file cannot be
  *             accessed.
  */
-BOOL ODFileAccessMode(char *pszFilename, int nAccessMode)
+BOOL ODFileAccessMode(const char *pszFilename, int nAccessMode)
 {
    FILE *pfFileToTest;
    char *pszModeString;

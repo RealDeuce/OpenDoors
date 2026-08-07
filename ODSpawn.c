@@ -141,7 +141,7 @@ static VECTOR vectab1[]=
 static VECTOR vectab2[(sizeof vectab1)/(sizeof vectab1[0])];
 
 /* Location function prototypes. */
-int _spawnvpe(int nModeFlag, char *const pszPath, const char *const papszArgs[],
+int _spawnvpe(int nModeFlag, const char *pszPath, const char *const papszArgs[],
    const char *const papszEnviron[]);
 int _spawnve(int nModeFlag, const char *pszPath,
    const char *const papszArgs[], const char *const papszEnviron[]);
@@ -152,7 +152,7 @@ static void savevect(void);
 
 #ifdef ODPLAT_NIX
 /* Location function prototypes. */
-int _spawnvpe(int nModeFlag, char *const pszPath, const char *const papszArgs[],
+int _spawnvpe(int nModeFlag, const char *pszPath, const char *const papszArgs[],
    const char *const papszEnviron[]);
 #endif /* ODPLAT_NIX */
 
@@ -267,7 +267,7 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
  *     Return: -1 on failure or the spawned-to program's return value on
  *             success.
  */
-ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, char *const pszPath,
+ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    const char *const papszArg[], const char *const papszEnv[])
 {
    INT16 nToReturn;
@@ -453,7 +453,7 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, char *const pszPath,
  *     Return: -1 on failure or the spawned-to program's return value on
  *             success.
  */
-int _spawnvpe(int nModeFlag, char *const pszPath, const char *const papszArgs[],
+int _spawnvpe(int nModeFlag, const char *pszPath, const char *const papszArgs[],
    const char *const papszEnviron[])
 {
    char *e;
@@ -993,8 +993,8 @@ static int doxspawn(const char *pszPath, const char *const papszArgs[],
 int _spawnve(int nModeFlag, const char *pszPath,
    const char *const papszArgs[], const char *const papszEnviron[])
 {
-    char *p;
-    char *s;
+    const char *p;
+    const char *s;
     int nReturnCode = -1;
     char buf[ 80 ];
 
@@ -1054,7 +1054,7 @@ int _spawnve(int nModeFlag, const char *pszPath,
  *     Return: -1 on failure or the spawned-to program's return value on
  *             success.
  */
-int _spawnvpe(int nModeFlag, char *const pszPath, const char *const papszArgs[],
+int _spawnvpe(int nModeFlag, const char *pszPath, const char *const papszArgs[],
    const char *const papszEnviron[])
 {
    pid_t	child;
