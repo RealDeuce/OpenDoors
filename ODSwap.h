@@ -44,7 +44,9 @@ typedef struct _vector
 } VECTOR;
 
 /* Global variables. */
+#ifndef __WATCOMC__
 extern char **environ;
+#endif
 
 /* Public functions. */
 int _chkems(char *, int *);
