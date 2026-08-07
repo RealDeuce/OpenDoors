@@ -3092,8 +3092,28 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
       case kComMethodFOSSIL:
       {
          int nPort;
+#ifdef __WATCOMC__
+         union REGS Registers;
+#endif
          nPort = pPortInfo->btPort;
 
+#ifdef __WATCOMC__
+         do
+         {
+            Registers.h.ah = 0x0b;
+            Registers.h.al = btToSend;
+            Registers.x.dx = nPort;
+            int86(0x14, &Registers, &Registers);
+            if(Registers.x.ax != 0)
+               break;
+
+            /* Call idle function, if any. */
+            if(pPortInfo->pfIdleCallback != NULL)
+            {
+               (*pPortInfo->pfIdleCallback)();
+            }
+         } while(TRUE);
+#else
 try_again:
          ASM    mov ah, 0x0b
          ASM    mov dx, nPort
@@ -3110,6 +3130,7 @@ try_again:
 
          goto try_again;
 keep_going:
+#endif
          break;
       }
 #endif /* INCLUDE_FOSSIL_COM */
