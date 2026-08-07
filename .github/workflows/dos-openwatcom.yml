@@ -14,12 +14,34 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Restore Open Watcom cache
+        id: watcom-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/watcom
+          key: open-watcom-${{ runner.os }}-${{ runner.arch }}-2.0-2026-08-01
+
       - name: Set up Open Watcom
+        if: steps.watcom-cache.outputs.cache-hit != 'true'
         uses: open-watcom/setup-watcom@v1
         with:
           version: '2.0'
           tag: 2026-08-01-Build
           target: dos
+          environment: false
+
+      - name: Save Open Watcom cache
+        if: steps.watcom-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/watcom
+          key: open-watcom-${{ runner.os }}-${{ runner.arch }}-2.0-2026-08-01
+
+      - name: Configure Open Watcom environment
+        run: |
+          echo "WATCOM=$HOME/watcom" >> "$GITHUB_ENV"
+          echo "INCLUDE=$HOME/watcom/h" >> "$GITHUB_ENV"
+          echo "$HOME/watcom/binl" >> "$GITHUB_PATH"
 
       - name: Verify DOS tools and target
         run: |
@@ -43,3 +65,18 @@ jobs:
           test -s "$RUNNER_TEMP/hello.exe"
           test "$(od -An -tx1 -N2 "$RUNNER_TEMP/hello.exe" | tr -d ' ')" = '4d5a'
           file "$RUNNER_TEMP/hello.exe"
+
+      - name: Configure OpenDoors DOS build
+        env:
+          CC: wcl
+        run: >-
+          cmake
+          -S dos
+          -B build/dos
+          -G 'Watcom WMake'
+          -D CMAKE_SYSTEM_NAME=DOS
+          -D CMAKE_SYSTEM_PROCESSOR=I86
+          -D CMAKE_BUILD_TYPE=Release
+
+      - name: Build OpenDoors DOS library and link smoke test
+        run: cmake --build build/dos
