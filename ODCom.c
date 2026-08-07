@@ -83,6 +83,7 @@
 #include "ODCore.h"
 #include "ODGen.h"
 #include "ODPlat.h"
+#include "ODSafe.h"
 #include "ODCom.h"
 #include "ODUtil.h"
 
@@ -500,7 +501,7 @@ static void ODComInternalResetRX(void)
  */
 static void INTERRUPT ODComInternalISR()
 {
-   char btIIR;
+   char btIIR = 0;
    BYTE btTemp;
 
    /* Loop until there are no more pending operations to perform with the */
@@ -2069,7 +2070,7 @@ tODResult ODComCarrier(tPortHandle hPort, BOOL *pbIsCarrier)
 #ifdef INCLUDE_FOSSIL_COM
       case kComMethodFOSSIL:
       {
-         int to_return;
+         int to_return = 0;
          int nPort;
 
          nPort = pPortInfo->btPort;
@@ -2089,7 +2090,7 @@ tODResult ODComCarrier(tPortHandle hPort, BOOL *pbIsCarrier)
 #ifdef INCLUDE_UART_COM
       case kComMethodUART:
       {
-         BYTE btMSR;
+         BYTE btMSR = 0;
 
          ASM mov dx, nModemStatusRegAddr
          ASM in al, dx
@@ -2727,7 +2728,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 #ifdef INCLUDE_FOSSIL_COM
       case kComMethodFOSSIL:
       {
-         BYTE btToReturn;
+         BYTE btToReturn = 0;
          int nInboundSize;
          int nPort;
 
@@ -2993,44 +2994,55 @@ const static DWORD cp437_unicode_table[128] = {
 	0x00B0, 0x2219, 0x00B7, 0x221A, 0x207F, 0x00B2, 0x25A0, 0x00A0
 };
 
-size_t ODComCP437ToUnicodeLen(void *buf, int sz)
+BOOL ODComCP437ToUnicodeLen(const BYTE *buf, int sz, size_t *length)
 {
-   BYTE *bb = buf;
    size_t pos;
    size_t ret = 0;
+   size_t increment;
 
-   for (pos = 0; pos < sz; pos++) {
-      if (bb[pos] < 128)
-         ret++;
+   if(buf == NULL || length == NULL || sz < 0)
+      return(FALSE);
+
+   for(pos = 0; pos < (size_t)sz; pos++) {
+      if(buf[pos] < 128)
+         increment = 1;
       else {
-         DWORD val = cp437_unicode_table[bb[pos] - 128];
+         DWORD val = cp437_unicode_table[buf[pos] - 128];
          if (val < 0x800)
-            ret += 2;
+            increment = 2;
          else if (val < 0x10000)
-            ret += 3;
+            increment = 3;
          else
-            ret += 4;
+            increment = 4;
       }
+      if(!ODSizeAdd(ret, increment, &ret))
+         return(FALSE);
    }
-   return ret;
+   *length = ret;
+   return(TRUE);
 }
 
 BYTE *ODComCP437ToUnicode(BYTE *buf, int *sz)
 {
-   size_t need = ODComCP437ToUnicodeLen(buf, *sz);
-   if (need > INT_MAX) {
+   size_t need;
+   BYTE *ret;
+   size_t outpos = 0;
+   size_t pos;
+   DWORD ch;
+
+   if(buf == NULL || sz == NULL || *sz < 0
+      || !ODComCP437ToUnicodeLen(buf, *sz, &need) || need > INT_MAX) {
       od_control.od_error = ERR_LIMIT;
       return NULL;
    }
-   BYTE *ret = malloc(need);
-   size_t outpos = 0;
+   ret = malloc(need == 0 ? 1 : need);
 
    if (ret == NULL) {
       od_control.od_error = ERR_MEMORY;
       return NULL;
    }
-   for (size_t pos = 0; pos < *sz; pos++) {
-      DWORD ch = buf[pos];
+   for(pos = 0; pos < (size_t)*sz; pos++) {
+      ch = buf[pos];
       if (ch >= 128)
          ch = cp437_unicode_table[ch - 128];
       if (ch < 128)
@@ -3051,7 +3063,7 @@ BYTE *ODComCP437ToUnicode(BYTE *buf, int *sz)
          ret[outpos++] = (ch & 0x3f) | 0x80;
       }
    }
-   *sz = need;
+   *sz = (int)need;
    return ret;
 }
 
@@ -3075,15 +3087,7 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
    VERIFY_CALL(pPortInfo->bIsOpen);
 
    if (od_control.od_cp437_to_utf8_out) {
-      int len = 1;
-      BYTE *uc = ODComCP437ToUnicode(&btToSend, &len);
-      if (uc == NULL)
-         return kODRCGeneralFailure;
-      else {
-         tODResult res = ODComSendBuffer(hPort, uc, len);
-         free(uc);
-         return res;
-      }
+      return ODComSendBuffer(hPort, &btToSend, 1);
    }
 
    switch(pPortInfo->Method)
@@ -3322,7 +3326,7 @@ tODResult ODComGetBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize,
 #ifdef INCLUDE_FOSSIL_COM
       case kComMethodFOSSIL:
       {
-         int nReceived;
+         int nReceived = 0;
          int nPort;
 
          nPort = pPortInfo->btPort;
@@ -3549,7 +3553,7 @@ tODResult ODComSendBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize)
 #ifdef INCLUDE_FOSSIL_COM
       case kComMethodFOSSIL:
       {
-         int nCount;
+         int nCount = 0;
          int nPort;
 
          nPort = pPortInfo->btPort;

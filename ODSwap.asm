@@ -374,10 +374,6 @@ msglen2         EQU     $-errmsg2
 ;
 
                 PUBLIC  __xspawn
-IFDEF WATCOM
-                PUBLIC  _xspawn_
-_xspawn_        LABEL   far
-ENDIF
 IFDEF LCODE
 __xspawn        PROC    far
 ELSE
@@ -883,10 +879,6 @@ safevect        ENDP
 ;
 
                 PUBLIC  __xsize
-IFDEF WATCOM
-                PUBLIC  _xsize_
-_xsize_         LABEL   far
-ENDIF
 IFDEF LCODE
 __xsize         PROC    far
 ELSE
@@ -987,10 +979,6 @@ __xsize         ENDP
 ;
 
                 PUBLIC  __chkems
-IFDEF WATCOM
-                PUBLIC  _chkems_
-_chkems_        LABEL   far
-ENDIF
 IFDEF LCODE
 __chkems        PROC    far
 ELSE
@@ -1092,10 +1080,6 @@ __chkems        ENDP
 ;
 
                 PUBLIC  __savemap
-IFDEF WATCOM
-                PUBLIC  _savemap_
-_savemap_       LABEL   far
-ENDIF
 IFDEF LCODE
 __savemap       PROC    far
 ELSE
@@ -1127,10 +1111,6 @@ __savemap       ENDP
 ;
 
                 PUBLIC  __restmap
-IFDEF WATCOM
-                PUBLIC  _restmap_
-_restmap_       LABEL   far
-ENDIF
 IFDEF LCODE
 __restmap       PROC    far
 ELSE
@@ -1163,10 +1143,6 @@ __restmap       ENDP
 ;
 
                 PUBLIC  __getems
-IFDEF WATCOM
-                PUBLIC  _getems_
-_getems_        LABEL   far
-ENDIF
 IFDEF LCODE
 __getems        PROC    far
 ELSE
@@ -1198,10 +1174,6 @@ __getems        ENDP
 ;
 
                 PUBLIC  __dskspace
-IFDEF WATCOM
-                PUBLIC  _dskspace_
-_dskspace_      LABEL   far
-ENDIF
 IFDEF LCODE
 __dskspace      PROC    far
 ELSE
@@ -1246,10 +1218,6 @@ __dskspace      ENDP
 ;
 
                 PUBLIC  __getrc
-IFDEF WATCOM
-                PUBLIC  _getrc_
-_getrc_         LABEL   far
-ENDIF
 IFDEF LCODE
 __getrc         PROC    far
 ELSE
@@ -1268,10 +1236,6 @@ __getrc         ENDP
 ;
 
                 PUBLIC  __create
-IFDEF WATCOM
-                PUBLIC  _create_
-_create_        LABEL   far
-ENDIF
 IFDEF LCODE
 __create        PROC    far
 ELSE
@@ -1323,10 +1287,6 @@ __create        ENDP
 
 
                 PUBLIC  __getcd
-IFDEF WATCOM
-                PUBLIC  _getcd_
-_getcd_         LABEL   far
-ENDIF
 IFDEF LCODE
 __getcd         PROC    far
 ELSE
@@ -1366,10 +1326,6 @@ __getcd         ENDP
 ;
 
                 PUBLIC  __getdrv
-IFDEF WATCOM
-                PUBLIC  _getdrv_
-_getdrv_        LABEL   far
-ENDIF
 IFDEF LCODE
 __getdrv        PROC    far
 ELSE
@@ -1391,10 +1347,6 @@ __getdrv        ENDP
 ;
 
                 PUBLIC  __getvect
-IFDEF WATCOM
-                PUBLIC  _getvect_
-_getvect_       LABEL   far
-ENDIF
 IFDEF LCODE
 __getvect       PROC    far
 ELSE
@@ -1434,10 +1386,6 @@ __getvect       ENDP
 ;
 
                 PUBLIC  __setvect
-IFDEF WATCOM
-                PUBLIC  _setvect_
-_setvect_       LABEL   far
-ENDIF
 IFDEF LCODE
 __setvect       PROC    far
 ELSE
@@ -1470,10 +1418,6 @@ __setvect       ENDP
 ;
 
                 PUBLIC  __setdrvcd
-IFDEF WATCOM
-                PUBLIC  _setdrvcd_
-_setdrvcd_      LABEL   far
-ENDIF
 IFDEF LCODE
 __setdrvcd      PROC    far
 ELSE

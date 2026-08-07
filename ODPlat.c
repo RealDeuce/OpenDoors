@@ -1564,7 +1564,8 @@ void ODDirChangeCurrent(char *pszPath)
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   chdir(pszPath);
+   if(chdir(pszPath) != 0)
+      return;
 #endif
 }
 
@@ -1600,7 +1601,11 @@ void ODDirGetCurrent(char *pszPath, INT nMaxPathChars)
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   getcwd(pszPath,nMaxPathChars);
+   if(getcwd(pszPath,nMaxPathChars) == NULL)
+   {
+      pszPath[0] = '\0';
+      return;
+   }
 #endif
 
    ASSERT((INT)strlen(pszPath) + 1 <= nMaxPathChars);

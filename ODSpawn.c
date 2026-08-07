@@ -143,8 +143,8 @@ static VECTOR vectab2[(sizeof vectab1)/(sizeof vectab1[0])];
 /* Location function prototypes. */
 int _spawnvpe(int nModeFlag, char *const pszPath, const char *const papszArgs[],
    const char *const papszEnviron[]);
-int _spawnve(int nModeFlag, char *pszPath, char *papszArgs[],
-   char * papszEnviron[]);
+int _spawnve(int nModeFlag, const char *pszPath,
+   const char *const papszArgs[], const char *const papszEnviron[]);
 static void savevect(void);
 
 
@@ -742,10 +742,10 @@ static int tempfile(char *file, int *handle)
  *
  *     Return: Environment length.
  */
-static int cmdenv(char **papszArgs, char **papszEnviron, char *command,
-   char **env, char **memory)
+static int cmdenv(const char *const papszArgs[],
+   const char *const papszEnviron[], char *command, char **env, char **memory)
 {
-    char **vp;
+    const char *const *vp;
     unsigned int elen = 0;         /* environment length */
     char *p;
     int cnt;
@@ -755,7 +755,7 @@ static int cmdenv(char **papszArgs, char **papszEnviron, char *command,
 
     if ( papszEnviron == NULL )
     {
-       char far *parent_env;
+       char far *parent_env = NULL;
        char far *env_ptr;
        int nul_count;
 
@@ -881,7 +881,8 @@ static int cmdenv(char **papszArgs, char **papszEnviron, char *command,
  *
  *     Return: 0 on success, or -1 on failure.
  */
-static int doxspawn(char *pszPath, char *papszArgs[], char *papszEnviron[])
+static int doxspawn(const char *pszPath, const char *const papszArgs[],
+   const char *const papszEnviron[])
 {
     int nReturnCode = 0;        /* assume do xspawn */
     int doswap = 0;            /* assume do swap */
@@ -946,7 +947,7 @@ static int doxspawn(char *pszPath, char *papszArgs[], char *papszEnviron[])
     if ( nReturnCode == 0 )
     {
     savevect();            /* save current vectors */
-    nReturnCode = _xspawn( pszPath, command, env, vectab1, doswap, elen, file,
+    nReturnCode = _xspawn( (char *)pszPath, command, env, vectab1, doswap, elen, file,
         handle );
     _setvect( vectab2 );           /* restore saved vectors */
         if ( nReturnCode == 0 )
@@ -989,8 +990,8 @@ static int doxspawn(char *pszPath, char *papszArgs[], char *papszEnviron[])
  *
  *     Return: void
  */
-int _spawnve(int nModeFlag, char *pszPath, char *papszArgs[],
-   char * papszEnviron[])
+int _spawnve(int nModeFlag, const char *pszPath,
+   const char *const papszArgs[], const char *const papszEnviron[])
 {
     char *p;
     char *s;
