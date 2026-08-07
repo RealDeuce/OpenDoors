@@ -1063,7 +1063,7 @@ tODResult ODScrnInitialize(void)
          if(Registers.x.bx == 0x1950)
          {
             wBufferSegment = Registers.x.dx;
-            pScrnBuffer = MK_FP(wBufferSegment, 0);
+            pScrnBuffer = (void ODFAR *)((unsigned long)wBufferSegment << 16);
          }
 #else
          ASM    mov ax, 0x2b02
