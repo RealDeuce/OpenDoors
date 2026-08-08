@@ -1,6 +1,6 @@
 @echo off
 set PATH=C:\TC\BIN
-set INCLUDE=C:\SRC;C:\TC\INCLUDE
+set INCLUDE=C:\SRC;C:\SRC\TRIO;C:\TC\INCLUDE
 set LIB=C:\OUT;C:\TC\LIB
 if exist C:\TCBUILD.LOG del C:\TCBUILD.LOG
 if exist C:\TCFAIL.TXT del C:\TCFAIL.TXT
