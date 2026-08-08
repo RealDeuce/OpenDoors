@@ -9,9 +9,17 @@ permissions:
   contents: read
 
 jobs:
+  version:
+    name: Version consistency
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 tools/check_version.py
+
   windows:
     name: Windows ${{ matrix.architecture }} ${{ matrix.configuration }}
-    runs-on: windows-latest
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +51,7 @@ jobs:
           $architecture = '${{ matrix.architecture }}'
           $configuration = '${{ matrix.configuration }}'
           $buildDirectory = Join-Path $PWD "build\msvc\$architecture"
-          $dll = Join-Path $buildDirectory "bin\$configuration\ODoors62.dll"
+          $dll = Join-Path $buildDirectory "bin\$configuration\ODoors63.dll"
           $libraryDirectory = Join-Path $buildDirectory "lib\$configuration"
 
           foreach ($path in @(
@@ -87,7 +95,7 @@ jobs:
               '8664 machine \(x64\)'
           }
           if ($headers -notmatch $machinePattern) {
-              throw "ODoors62.dll does not contain the expected $architecture machine header."
+              throw "ODoors63.dll does not contain the expected $architecture machine header."
           }
 
           $exports = & $dumpbin.FullName /exports $dll 2>&1 | Out-String
@@ -102,9 +110,85 @@ jobs:
               'od_save_screen_ex',
               'od_restore_screen_ex')) {
               if ($exports -notmatch "\b$symbol\b") {
-                  throw "ODoors62.dll does not export $symbol."
+                  throw "ODoors63.dll does not export $symbol."
               }
           }
+
+  mingw:
+    name: Windows ${{ matrix.msystem }} Release
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - msystem: MINGW32
+            architecture: i686
+          - msystem: MINGW64
+            architecture: x86_64
+          - msystem: UCRT64
+            architecture: x86_64
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          pacboy: >-
+            cmake:p
+            ninja:p
+            toolchain:p
+
+      - name: Configure
+        shell: msys2 {0}
+        run: >-
+          cmake
+          -S .
+          -B build/mingw
+          -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DOPENDOORS_WARNINGS_AS_ERRORS=ON
+
+      - name: Build and test
+        shell: msys2 {0}
+        run: |
+          cmake --build build/mingw --parallel
+          ctest --test-dir build/mingw --output-on-failure
+
+      - name: Install and inspect
+        shell: msys2 {0}
+        run: |
+          cmake --install build/mingw --prefix "$PWD/build/mingw-install"
+          test -s build/mingw-install/bin/ODoors63.dll
+          test -s build/mingw-install/lib/libODoorW.dll.a
+          test -s build/mingw-install/lib/libODoors-static.a
+          objdump -p build/mingw-install/bin/ODoors63.dll > build/mingw-objdump.txt
+          grep -q 'od_init' build/mingw-objdump.txt
+          grep -q 'od_control' build/mingw-objdump.txt
+          if grep -Eiq 'DLL Name: (msys-2\.0|libgcc|libstdc\+\+|libwinpthread).*\.dll' \
+              build/mingw-objdump.txt; then
+            echo 'Unexpected non-system runtime dependency:'
+            grep -Ei 'DLL Name:' build/mingw-objdump.txt
+            exit 1
+          fi
+
+      - name: Build installed-package consumers
+        shell: msys2 {0}
+        run: |
+          for variant in Shared Static; do
+            cmake \
+              -S tests/package_consumer \
+              -B "build/mingw-consumer-$variant" \
+              -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_PREFIX_PATH="$PWD/build/mingw-install" \
+              -DOPENDOORS_VARIANT="$variant"
+            cmake --build "build/mingw-consumer-$variant" --parallel
+            PATH="$PWD/build/mingw-install/bin:$PATH" \
+              ctest --test-dir "build/mingw-consumer-$variant" \
+                --output-on-failure
+          done
 
   unix:
     name: ${{ matrix.os }} ${{ matrix.configuration }}
@@ -191,7 +275,7 @@ jobs:
 
   package-windows:
     name: Installed package (Windows ${{ matrix.variant }})
-    runs-on: windows-latest
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
@@ -199,9 +283,18 @@ jobs:
           - variant: Shared
             build_shared: ON
             build_static: OFF
+            build_static_mt: OFF
+            runtime: MultiThreadedDLL
           - variant: Static
             build_shared: OFF
             build_static: ON
+            build_static_mt: OFF
+            runtime: MultiThreadedDLL
+          - variant: StaticMT
+            build_shared: OFF
+            build_static: ON
+            build_static_mt: ON
+            runtime: MultiThreadedDLL
 
     steps:
       - uses: actions/checkout@v7
@@ -215,8 +308,10 @@ jobs:
           -A x64
           -DOPENDOORS_BUILD_SHARED=${{ matrix.build_shared }}
           -DOPENDOORS_BUILD_STATIC=${{ matrix.build_static }}
+          -DOPENDOORS_BUILD_MSVC_STATIC_MT=${{ matrix.build_static_mt }}
           -DOPENDOORS_BUILD_EXAMPLES=OFF
           -DOPENDOORS_WARNINGS_AS_ERRORS=ON
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.runtime }}
 
       - name: Build and test selected variant
         shell: pwsh
@@ -247,12 +342,18 @@ jobs:
       - name: Build installed-package consumer
         shell: pwsh
         run: |
+          $runtime = if ('${{ matrix.variant }}' -eq 'StaticMT') {
+              'MultiThreaded'
+          } else {
+              'MultiThreadedDLL'
+          }
           cmake `
             -S tests/package_consumer `
             -B build/consumer `
             -A x64 `
             "-DCMAKE_PREFIX_PATH=$env:RUNNER_TEMP/opendoors-install" `
-            -DOPENDOORS_VARIANT=${{ matrix.variant }}
+            -DOPENDOORS_VARIANT=${{ matrix.variant }} `
+            "-DCMAKE_MSVC_RUNTIME_LIBRARY=$runtime"
           cmake --build build/consumer --config Release --parallel
           $env:PATH = "$env:RUNNER_TEMP\opendoors-install\bin;$env:PATH"
           ctest --test-dir build/consumer -C Release --output-on-failure

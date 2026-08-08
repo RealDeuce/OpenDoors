@@ -18,6 +18,11 @@ if(TARGET OpenDoors::Static)
     set(OpenDoors_Static_FOUND TRUE)
 endif()
 
+set(OpenDoors_StaticMT_FOUND FALSE)
+if(TARGET OpenDoors::StaticMT)
+    set(OpenDoors_StaticMT_FOUND TRUE)
+endif()
+
 foreach(_OpenDoors_component IN LISTS OpenDoors_FIND_COMPONENTS)
     if(NOT OpenDoors_${_OpenDoors_component}_FOUND)
         set(OpenDoors_NOT_FOUND_MESSAGE

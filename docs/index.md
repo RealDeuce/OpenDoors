@@ -5,7 +5,8 @@ It provides the connection handling, terminal output, keyboard input,
 configuration, status display, and door-information support that would otherwise
 need to be built into every program.
 
-This site documents the current OpenDoors 6.30 source tree. The function
+This site documents the current OpenDoors 6.30 (release 6.3.0) source tree.
+The [versioning guide](guides/versioning.md) explains the two notations. The function
 reference describes the interface declared by
 [`OpenDoor.h`](reference/api/index.md); DOS personality modules additionally
 use [`ODStat.h`](reference/personality/index.md). The accompanying guides explain how

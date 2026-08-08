@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(OpenDoors VERSION 6.30.0 LANGUAGES C)
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" OPENDOORS_VERSION
+    LIMIT_COUNT 1)
+project(OpenDoors VERSION "${OPENDOORS_VERSION}" LANGUAGES C)
 
 include(CTest)
 include(CheckIncludeFile)
@@ -10,6 +12,8 @@ include(GNUInstallDirs)
 
 option(OPENDOORS_BUILD_SHARED "Build the OpenDoors shared library" ON)
 option(OPENDOORS_BUILD_STATIC "Build the OpenDoors static library" ON)
+option(OPENDOORS_BUILD_MSVC_STATIC_MT
+    "Build an additional MSVC static library using the static CRT" OFF)
 option(OPENDOORS_BUILD_EXAMPLES "Build the OpenDoors example programs" ON)
 option(OPENDOORS_WARNINGS_AS_ERRORS
     "Treat OpenDoors compiler and linker warnings as errors" OFF)
@@ -88,6 +92,17 @@ if(NOT OPENDOORS_BUILD_SHARED AND NOT OPENDOORS_BUILD_STATIC)
         "At least one of OPENDOORS_BUILD_SHARED or OPENDOORS_BUILD_STATIC must be enabled")
 endif()
 
+if(OPENDOORS_BUILD_MSVC_STATIC_MT)
+    if(NOT MSVC)
+        message(FATAL_ERROR
+            "OPENDOORS_BUILD_MSVC_STATIC_MT is only supported with MSVC")
+    endif()
+    if(NOT OPENDOORS_BUILD_STATIC)
+        message(FATAL_ERROR
+            "OPENDOORS_BUILD_MSVC_STATIC_MT requires OPENDOORS_BUILD_STATIC")
+    endif()
+endif()
+
 check_include_file(inttypes.h OPENDOORS_HAVE_INTTYPES_H)
 check_symbol_exists(vsnprintf "stdio.h" OPENDOORS_HAVE_VSNPRINTF)
 if(NOT WIN32)
@@ -156,11 +171,24 @@ if(OPENDOORS_BUILD_STATIC)
     list(APPEND OPENDOORS_LIBRARY_TARGETS opendoors_static)
 endif()
 
+if(OPENDOORS_BUILD_MSVC_STATIC_MT)
+    add_library(opendoors_static_mt STATIC
+        ${OPENDOORS_SOURCES}
+        ${OPENDOORS_PUBLIC_HEADERS}
+        ${OPENDOORS_PRIVATE_HEADERS})
+    add_library(OpenDoors::StaticMT ALIAS opendoors_static_mt)
+    opendoors_configure_library(opendoors_static_mt)
+    set_target_properties(opendoors_static_mt PROPERTIES
+        EXPORT_NAME StaticMT
+        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    list(APPEND OPENDOORS_LIBRARY_TARGETS opendoors_static_mt)
+endif()
+
 if(WIN32)
     if(OPENDOORS_BUILD_SHARED)
         set_target_properties(opendoors_shared PROPERTIES
             PREFIX ""
-            RUNTIME_OUTPUT_NAME ODoors62
+            RUNTIME_OUTPUT_NAME ODoors63
             ARCHIVE_OUTPUT_NAME ODoorW)
 
         if(CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -176,6 +204,9 @@ if(WIN32)
             target_compile_definitions(opendoors_shared PRIVATE
                 OPENDOORS_USE_DEF_EXPORTS)
         endif()
+        if(MINGW)
+            target_link_options(opendoors_shared PRIVATE -static-libgcc)
+        endif()
     endif()
 
     if(OPENDOORS_BUILD_STATIC)
@@ -183,12 +214,17 @@ if(WIN32)
             ARCHIVE_OUTPUT_NAME ODoors-static)
         target_compile_definitions(opendoors_static PUBLIC OD_WIN32_STATIC)
     endif()
+    if(OPENDOORS_BUILD_MSVC_STATIC_MT)
+        set_target_properties(opendoors_static_mt PROPERTIES
+            ARCHIVE_OUTPUT_NAME ODoors-static-mt)
+        target_compile_definitions(opendoors_static_mt PUBLIC OD_WIN32_STATIC)
+    endif()
 else()
     if(OPENDOORS_BUILD_SHARED)
         set_target_properties(opendoors_shared PROPERTIES
             OUTPUT_NAME ODoors
             VERSION ${PROJECT_VERSION}
-            SOVERSION ${PROJECT_VERSION_MAJOR})
+            SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
     endif()
     if(OPENDOORS_BUILD_STATIC)
         set_target_properties(opendoors_static PROPERTIES OUTPUT_NAME ODoors)
@@ -223,7 +259,7 @@ configure_package_config_file(
 write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/OpenDoorsConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion)
+    COMPATIBILITY SameMinorVersion)
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/OpenDoorsConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/OpenDoorsConfigVersion.cmake"

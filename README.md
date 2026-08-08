@@ -21,6 +21,10 @@ mkdocs serve
 The original CP437 OpenDoors 6.00 manual is retained under `historic/` for
 historical reference.
 
+Release and package versions use `6.3.0` for the traditional OpenDoors
+version `6.30`. The [versioning guide](https://realdeuce.github.io/OpenDoors/guides/versioning/)
+documents the compatibility guarantees and the `OD_VERSION` encoding.
+
 ## CMake builds
 
 CMake 3.20 or newer can build the shared library, static library, examples,
@@ -38,13 +42,13 @@ Both library variants are built by default. Set `OPENDOORS_BUILD_SHARED` or
 remain enabled. An installed package can be consumed with:
 
 ```cmake
-find_package(OpenDoors 6.30 CONFIG REQUIRED COMPONENTS Shared)
+find_package(OpenDoors 6.3 CONFIG REQUIRED COMPONENTS Shared)
 target_link_libraries(mydoor PRIVATE OpenDoors::Shared)
 ```
 
 On Unix-like systems the libraries are `libODoors.so`/`libODoors.a` (or the
 macOS `.dylib` equivalent). With MSVC, the shared build produces
-`ODoors62.dll` and `ODoorW.lib`; the static build produces
+`ODoors63.dll` and `ODoorW.lib`; the static build produces
 `ODoors-static.lib`. `OpenDoors::Static` supplies
 [`OD_WIN32_STATIC`](https://realdeuce.github.io/OpenDoors/guides/building/)
 automatically; consumers linking the Windows static library without the CMake
@@ -52,6 +56,16 @@ target must define it themselves.
 The `OpenDoors::Shared` and `OpenDoors::Static` CMake targets are available
 both from `add_subdirectory()` and from the installed package when their
 corresponding variants were built.
+
+MSVC builds may also enable `OPENDOORS_BUILD_MSVC_STATIC_MT` to produce
+`ODoors-static-mt.lib` and the `OpenDoors::StaticMT` target. This additional
+library uses Microsoft's static C runtime; `OpenDoors::Static` continues to
+use the runtime selected for the main build.
+
+MinGW builds provide the same `OpenDoors::Shared` and `OpenDoors::Static`
+targets, but their import and static libraries are not interchangeable with
+MSVC libraries. Release SDKs identify their MINGW32, MINGW64, or UCRT64
+runtime explicitly.
 
 ## MSVC builds
 

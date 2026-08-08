@@ -2,6 +2,13 @@ name: Turbo C DOS experiment
 
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      asset_version:
+        description: Version text to use in a clean release SDK archive
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -169,6 +176,30 @@ jobs:
           test -s build/turboc/OUT/EX_HELLO.EXE
           test -s build/turboc/OUT/EX_MUSIC.EXE
           test -s build/turboc/OUT/LINKTEST.EXE
+
+      - name: Stage release SDK
+        if: inputs.asset_version != ''
+        env:
+          ASSET_VERSION: ${{ inputs.asset_version }}
+        run: |
+          name="OpenDoors-${ASSET_VERSION}-dos-turboc-2.01-large"
+          python3 tools/stage_release.py dos \
+            --library build/turboc/OUT/ODOORL.LIB \
+            --destination "build/release/$name" \
+            --platform DOS \
+            --architecture i8086-large \
+            --toolchain 'Turbo C 2.01 with Open Watcom WASM' \
+            --runtime 'Borland DOS large memory model'
+          cd build/release
+          cmake -E tar cf "$name.zip" --format=zip "$name"
+
+      - name: Upload release SDK
+        if: inputs.asset_version != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-dos-turboc
+          path: build/release/*.zip
+          if-no-files-found: error
 
       - name: Upload Turbo C diagnostics and OpenDoors outputs
         if: always()

@@ -96,7 +96,7 @@ LINKFLAGS=kernel32.lib user32.lib gdi32.lib advapi32.lib shell32.lib wsock32.lib
 	  /MAP\
 #          /DEBUG\
           /MACHINE:I386\
-          /DEF:$(SOURCEDIR)"OpenDoor.def" /OUT:$(LIBDIR)"ODoors62.dll"\
+          /DEF:$(SOURCEDIR)"OpenDoor.def" /OUT:$(LIBDIR)"ODoors63.dll"\
           /IMPLIB:$(LIBDIR)"ODoorW.lib" /SUBSYSTEM:windows,4.0
 #
 #------------------------------------------------------------------------------
@@ -120,7 +120,7 @@ LIBDIR=.\       # was ..\lib                          	   # concatentation
 # Define primary target.
 #
 TARGET=w
-all: $(LIBDIR)ODoors62.dll
+all: $(LIBDIR)ODoors63.dll
 #
 #------------------------------------------------------------------------------
 #
@@ -385,7 +385,7 @@ OBJECTS= $(OBJDIR)odauto$(TARGET).obj\
          $(OBJDIR)odwcat$(TARGET).obj\
          $(OBJDIR)odwin$(TARGET).obj\
          $(OBJDIR)ODoor$(TARGET).res
-$(LIBDIR)ODoors62.dll : $(DEF_FILE) $(OBJECTS)
+$(LIBDIR)ODoors63.dll : $(DEF_FILE) $(OBJECTS)
    $(LINK) @<<
    $(LINKFLAGS) $(OBJECTS)
 <<

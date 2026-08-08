@@ -5,15 +5,17 @@ project(OpenDoorsPackageConsumer LANGUAGES C CXX)
 include(CTest)
 
 set(OPENDOORS_VARIANT "Shared" CACHE STRING
-    "Installed OpenDoors target to test (Shared or Static)")
-set_property(CACHE OPENDOORS_VARIANT PROPERTY STRINGS Shared Static)
+    "Installed OpenDoors target to test (Shared, Static, or StaticMT)")
+set_property(CACHE OPENDOORS_VARIANT PROPERTY STRINGS Shared Static StaticMT)
 
 if(NOT OPENDOORS_VARIANT STREQUAL "Shared" AND
-        NOT OPENDOORS_VARIANT STREQUAL "Static")
-    message(FATAL_ERROR "OPENDOORS_VARIANT must be Shared or Static")
+        NOT OPENDOORS_VARIANT STREQUAL "Static" AND
+        NOT OPENDOORS_VARIANT STREQUAL "StaticMT")
+    message(FATAL_ERROR
+        "OPENDOORS_VARIANT must be Shared, Static, or StaticMT")
 endif()
 
-find_package(OpenDoors 6.30 CONFIG REQUIRED COMPONENTS ${OPENDOORS_VARIANT})
+find_package(OpenDoors 6.3 CONFIG REQUIRED COMPONENTS ${OPENDOORS_VARIANT})
 
 add_executable(opendoors_package_consumer
     ../link_smoke.c

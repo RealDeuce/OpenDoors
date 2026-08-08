@@ -43,6 +43,7 @@ nav:
       - DOS personalities: guides/personalities.md
       - Configuration and command lines: guides/configuration.md
       - Multi-node operation: guides/multinode.md
+      - Versioning and compatibility: guides/versioning.md
   - API reference:
       - Overview: reference/api/index.md
       - Text display:

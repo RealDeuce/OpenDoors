@@ -48,7 +48,7 @@ target_link_libraries(mydoor PRIVATE OpenDoors::Shared)
 An installed OpenDoors package provides the same target names:
 
 ```cmake
-find_package(OpenDoors 6.30 CONFIG REQUIRED COMPONENTS Shared)
+find_package(OpenDoors 6.3 CONFIG REQUIRED COMPONENTS Shared)
 target_link_libraries(mydoor PRIVATE OpenDoors::Shared)
 ```
 

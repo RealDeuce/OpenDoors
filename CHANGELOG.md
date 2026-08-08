@@ -1,0 +1,20 @@
+# Changelog
+
+OpenDoors release versions use dotted `major.minor.patch` notation. See the
+[versioning guide](docs/guides/versioning.md) for its relationship to the
+traditional OpenDoors notation.
+
+## 6.3.0 - Unreleased
+
+Traditional OpenDoors version: 6.30.
+
+- Added maintained CMake builds for shared and static libraries on current
+  Windows, macOS, and Unix-like systems.
+- Added installable CMake package targets and a two-header public SDK.
+- Added dynamically sized virtual screens and size-aware screen save and
+  restore functions without changing existing screen interfaces.
+- Added modern Markdown reference documentation and GitHub Pages publishing.
+- Restored and tested 16-bit DOS builds with Open Watcom and Turbo C 2.01.
+- Restored the documented DOS personality SDK and its standard personalities.
+- Added warning-clean compatibility paths for modern, Watcom, Turbo C,
+  Borland, and Microsoft compiler families.

@@ -3,7 +3,7 @@
 ;
 ; Keep every historical decorated and undecorated ordinal stable.  New
 ; exports must be appended after ordinal 125.
-LIBRARY ODOORS62
+LIBRARY ODOORS63
 VERSION 6.3
 EXPORTS
    ODConfigInit=_ODConfigInit@0 @1

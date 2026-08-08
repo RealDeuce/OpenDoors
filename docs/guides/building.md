@@ -24,7 +24,7 @@ cmake -S . -B build \
 
 On Unix-like systems this produces `libODoors.so` and `libODoors.a` (or the
 macOS dynamic-library equivalent). On Windows, the shared build produces
-`ODoors62.dll` and `ODoorW.lib`; the static build produces
+`ODoors63.dll` and `ODoorW.lib`; the static build produces
 `ODoors-static.lib`.
 
 The install step installs the selected libraries, [`OpenDoor.h`](../reference/api/index.md),
@@ -34,7 +34,7 @@ CMake project can request either installed
 variant:
 
 ```cmake
-find_package(OpenDoors 6.30 CONFIG REQUIRED COMPONENTS Static)
+find_package(OpenDoors 6.3 CONFIG REQUIRED COMPONENTS Static)
 target_link_libraries(mydoor PRIVATE OpenDoors::Static)
 ```
 
@@ -44,6 +44,13 @@ On Windows, `OpenDoors::Static` also supplies the required
 [`OD_WIN32_STATIC`](../reference/constants/general.md) definition. Projects
 which link `ODoors-static.lib` without the CMake target must define it
 themselves before including [`OpenDoor.h`](../reference/api/index.md).
+
+With MSVC, `OPENDOORS_BUILD_MSVC_STATIC_MT=ON` adds
+`OpenDoors::StaticMT` and `ODoors-static-mt.lib`, built with Microsoft's
+static C runtime. The option requires `OPENDOORS_BUILD_STATIC=ON` and is not
+available with other compilers. MinGW uses `OpenDoors::Shared` and
+`OpenDoors::Static`, but its `.dll.a` and `.a` libraries are distinct from
+MSVC's `.lib` files.
 
 The PowerShell wrapper selects an MSVC architecture and keeps each build tree
 separate:
