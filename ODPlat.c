@@ -64,7 +64,6 @@
 #endif
 #ifdef ODPLAT_DOS32
 #include <direct.h>
-#include "OD32DPMI.h"
 #endif
 #ifdef ODPLAT_NIX
 #include <sys/time.h>
@@ -1024,15 +1023,10 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 #endif /* ODPLAT_DOS */
 
 #ifdef ODPLAT_DOS32
-   if(Milliseconds == 0)
-   {
-      tOD32RealModeRegisters Registers;
-
-      memset(&Registers, 0, sizeof(Registers));
-      Registers.eax = 0x1680;
-      OD32DPMIRealModeInterrupt(0x2f, &Registers);
-   }
-   else
+   /* DPMI hosts disagree on whether simulating INT 2Fh/AX=1680h is safe;
+    * some terminate the client. A zero-duration sleep therefore returns
+    * without attempting a real-mode yield. */
+   if(Milliseconds != 0)
    {
       tODTimer SleepTimer;
 
