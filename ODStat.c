@@ -66,7 +66,7 @@ char szStatusText[80];
  *
  *     Return: void
  */
-void ODStatAddKey(WORD wKeyCode)
+void ODCALL ODStatAddKey(WORD wKeyCode)
 {
    if(od_control.od_num_keys < 16)
       od_control.od_hot_key[od_control.od_num_keys++] = wKeyCode;
@@ -83,7 +83,7 @@ void ODStatAddKey(WORD wKeyCode)
  *
  *     Return: void
  */
-void ODStatRemoveKey(WORD wKeyCode)
+void ODCALL ODStatRemoveKey(WORD wKeyCode)
 {
    INT nCount;
 
@@ -111,7 +111,7 @@ void ODStatRemoveKey(WORD wKeyCode)
  *
  *     Return: void
  */
-void ODStatGetUserAge(char *pszAge)
+void ODCALL ODStatGetUserAge(char *pszAge)
 {
    INT nAge;
    INT n;
@@ -172,10 +172,10 @@ void ODStatGetUserAge(char *pszAge)
  *
  *     Return: void
  */
-#ifdef ODPLAT_DOS
-void ODStatForceStatusUpdate(void)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+void ODCALL ODStatForceStatusUpdate(void)
 {
    bForceStatusUpdate = TRUE;
    od_kernel();
 }
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */

@@ -2468,7 +2468,7 @@ no_default:
  */
 void ODInitError(char *pszErrorText)
 {
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    printf("%s: %s\n", od_control.od_prog_name, pszErrorText);
    if(bParsedCmdLine)
    {

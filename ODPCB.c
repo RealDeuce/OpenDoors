@@ -58,7 +58,7 @@
  */
 ODAPIDEF void ODCALL pdef_pcboard(BYTE btOperation)
 {
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    static char szTemp[81];
    char *pchTemp;
    BYTE btInfoType = od_control.od_info_type;
@@ -197,7 +197,7 @@ ODAPIDEF void ODCALL pdef_pcboard(BYTE btOperation)
          od_control.od_last_hot = 0;
          break;
    }
-#else /* !ODPLAT_DOS */
+#else /* !ODPLAT_DOS && !ODPLAT_DOS32 */
    (void)btOperation;
-#endif /* !ODPLAT_DOS */
+#endif /* !ODPLAT_DOS && !ODPLAT_DOS32 */
 }

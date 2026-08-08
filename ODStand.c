@@ -55,7 +55,7 @@
  */
 ODAPIDEF void ODCALL pdef_opendoors(BYTE btOperation)
 {
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    static char abtGreyBlock[2] = {' ', 0x70};
 
    switch(btOperation)
@@ -216,7 +216,7 @@ ODAPIDEF void ODCALL pdef_opendoors(BYTE btOperation)
          od_control.od_page_statusline=-1;
          break;
    }
-#else /* !ODPLAT_DOS */
+#else /* !ODPLAT_DOS && !ODPLAT_DOS32 */
    (void)btOperation;
-#endif /* !ODPLAT_DOS */
+#endif /* !ODPLAT_DOS && !ODPLAT_DOS32 */
 }

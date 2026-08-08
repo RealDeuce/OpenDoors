@@ -58,8 +58,13 @@
 #include <string.h>
 
 #include "OpenDoor.h"
-#if defined(ODPLAT_DOS) && (defined(__WATCOMC__) || defined(__TURBOC__))
+#if (defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)) \
+   && (defined(__WATCOMC__) || defined(__TURBOC__))
 #include <dos.h>
+#endif
+#ifdef ODPLAT_DOS32
+#include <direct.h>
+#include "OD32DPMI.h"
 #endif
 #ifdef ODPLAT_NIX
 #include <sys/time.h>
@@ -757,6 +762,14 @@ void ODProcessExit(INT nExitCode)
 #define MILLISEC_PER_TICK 55           /* (approx. == 1000 / CLOCKS_PER_SEC) */
 #endif /* ODPLAT_DOS */
 
+#ifdef ODPLAT_DOS32
+#define OD_DOS32_TICKS_PER_DAY 0x001800b0UL
+static DWORD OD32BIOSClock(void)
+{
+   return(*(volatile DWORD *)0x0000046cUL);
+}
+#endif /* ODPLAT_DOS32 */
+
 /* ----------------------------------------------------------------------------
  * ODTimerStart()
  *
@@ -792,6 +805,11 @@ void ODTimerStart(tODTimer *pTimer, tODMilliSec Duration)
       MILLISEC_PER_TICK);
 #endif /* ODPLAT_DOS */
 
+#ifdef ODPLAT_DOS32
+   pTimer->Start = OD32BIOSClock();
+   pTimer->Duration = Duration / 55UL + (Duration % 55UL != 0);
+#endif /* ODPLAT_DOS32 */
+
 #ifdef ODPLAT_WIN32
    /* Store timer start time now. */
    pTimer->Start = GetTickCount();
@@ -824,6 +842,10 @@ BOOL ODTimerElapsed(tODTimer *pTimer)
    return(clock() > pTimer->Start + pTimer->Duration
       || clock() < pTimer->Start);
 #endif /* ODPLAT_DOS */
+
+#ifdef ODPLAT_DOS32
+   return(ODTimerLeft(pTimer) == 0);
+#endif /* ODPLAT_DOS32 */
 
 #ifdef ODPLAT_WIN32
    return(ODTimerLeft(pTimer)==0);
@@ -863,13 +885,24 @@ void ODTimerWaitForElapse(tODTimer *pTimer)
       od_sleep(0);
    }
 
-#else /* !ODPLAT_DOS */
+#elif defined(ODPLAT_DOS32)
+   for(;;)
+   {
+      tODMilliSec Now = OD32BIOSClock();
+      tODMilliSec Elapsed = Now >= pTimer->Start
+         ? Now - pTimer->Start
+         : OD_DOS32_TICKS_PER_DAY - pTimer->Start + Now;
+
+      if(Elapsed >= pTimer->Duration)
+         break;
+   }
+#else /* !ODPLAT_DOS && !ODPLAT_DOS32 */
    /* Under other platforms, timer resolution is high enough that we can */
    /* ask the OS to block this thread for the amount of time required    */
    /* for the timer to elapse.                                           */
 
    od_sleep(ODTimerLeft(pTimer));
-#endif /* !ODPLAT_DOS */
+#endif /* !ODPLAT_DOS && !ODPLAT_DOS32 */
 }
 
 
@@ -907,6 +940,17 @@ tODMilliSec ODTimerLeft(tODTimer *pTimer)
       Left = pTimer->Start + pTimer->Duration - Now;
 
       return(ODDWordMultiply(Left, MILLISEC_PER_TICK));
+   }
+#elif defined(ODPLAT_DOS32)
+   {
+      tODMilliSec Now = OD32BIOSClock();
+      tODMilliSec Elapsed = Now >= pTimer->Start
+         ? Now - pTimer->Start
+         : OD_DOS32_TICKS_PER_DAY - pTimer->Start + Now;
+
+      if(Elapsed >= pTimer->Duration)
+         return(0);
+      return((pTimer->Duration - Elapsed) * 55UL);
    }
 #elif defined(ODPLAT_NIX)
    gettimeofday(&tv,NULL);
@@ -979,6 +1023,24 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
    }
 #endif /* ODPLAT_DOS */
 
+#ifdef ODPLAT_DOS32
+   if(Milliseconds == 0)
+   {
+      tOD32RealModeRegisters Registers;
+
+      memset(&Registers, 0, sizeof(Registers));
+      Registers.eax = 0x1680;
+      OD32DPMIRealModeInterrupt(0x2f, &Registers);
+   }
+   else
+   {
+      tODTimer SleepTimer;
+
+      ODTimerStart(&SleepTimer, Milliseconds);
+      ODTimerWaitForElapse(&SleepTimer);
+   }
+#endif /* ODPLAT_DOS32 */
+
 #ifdef ODPLAT_WIN32
    Sleep(Milliseconds);
 #endif /* ODPLAT_WIN32 */
@@ -1008,7 +1070,7 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 /* ========================================================================= */
 
 /* Structure for directories entries returned by DOS. */
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 typedef struct
 {
    BYTE abtReserved[21];
@@ -1018,16 +1080,16 @@ typedef struct
    DWORD dwFileSize;
    char szFileName[13];
 } tDOSDirEntry;
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 
 /* Dir handle structure. */
 typedef struct
 {
    BOOL bEOF;
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    tDOSDirEntry FindBlock;
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 #ifdef ODPLAT_WIN32
    HANDLE hWindowsDir;
    WIN32_FIND_DATA WindowsDirEntry;
@@ -1042,14 +1104,14 @@ typedef struct
 
 
 /* Directory access private function prototypes. */
-#if defined(ODPLAT_DOS) || defined(ODPLAT_WIN32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 static time_t DOSToCTime(WORD wDate, WORD wTime);
 #endif
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 static INT ODDirDOSFindFirst(CONST char *pszPath, tDOSDirEntry *pBlock,
    WORD wAttributes);
 static INT ODDirDOSFindNext(tDOSDirEntry *pBlock);
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 #ifdef ODPLAT_WIN32
 static BOOL ODDirWinMatchesAttributes(tODDirInfo *pDirInfo);
 #endif /* ODPLAT_WIN32 */
@@ -1095,7 +1157,7 @@ tODResult ODDirOpen(CONST char *pszPath, WORD wAttributes, tODDirHandle *phDir)
    /* Initialize directory information structure. */
    pDirInfo->bEOF = FALSE;
 
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    /* Read the first matching directory entry structure. */
    if(ODDirDOSFindFirst(pszPath, &pDirInfo->FindBlock, wAttributes))
    {
@@ -1104,7 +1166,7 @@ tODResult ODDirOpen(CONST char *pszPath, WORD wAttributes, tODDirHandle *phDir)
       free(pDirInfo);
       return(kODRCNoMatch);
    }
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 #ifdef ODPLAT_WIN32
    /* Store a copy of the attributes passed to open function. */
@@ -1193,7 +1255,7 @@ tODResult ODDirRead(tODDirHandle hDir, tODDirEntry *pDirEntry)
       return(kODRCEndOfFile);
    }
 
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    /* Provide the caller with the information from the previously read */
    /* directory entry.                                                 */
 
@@ -1214,7 +1276,7 @@ tODResult ODDirRead(tODDirHandle hDir, tODDirEntry *pDirEntry)
    /* Read next directory entry, if any. */
    pDirInfo->bEOF = ODDirDOSFindNext(&pDirInfo->FindBlock);
 
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 #ifdef ODPLAT_WIN32
    /* Provide the caller with the information from the previously read */
@@ -1334,7 +1396,7 @@ void ODDirClose(tODDirHandle hDir)
 }
 
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_WIN32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 /* ----------------------------------------------------------------------------
  * DOSToCTime()                                        *** PRIVATE FUNCTION ***
  *
@@ -1378,7 +1440,7 @@ static time_t DOSToCTime(WORD wDate, WORD wTime)
 
 
 /* MS-DOS specific functions for directory access. */
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 
 /* ----------------------------------------------------------------------------
  * ODDirDOSFindFirst()                                 *** PRIVATE FUNCTION ***
@@ -1499,7 +1561,7 @@ after_result:
 #endif
 }
 
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 
 /* Win32 specific private functions for directory access. */
@@ -1574,6 +1636,12 @@ void ODDirChangeCurrent(char *pszPath)
    _setdrvcd(nDrive, (char *)pszPath);
 #endif /* ODPLAT_DOS */
 
+#ifdef ODPLAT_DOS32
+   if(pszPath[1] == ':')
+      _chdrive(toupper(pszPath[0]) - 'A' + 1);
+   chdir(pszPath);
+#endif /* ODPLAT_DOS32 */
+
 #ifdef ODPLAT_WIN32
    SetCurrentDirectory(pszPath);
 #endif /* ODPLAT_WIN32 */
@@ -1611,6 +1679,16 @@ void ODDirGetCurrent(char *pszPath, INT nMaxPathChars)
    _getcd(0, (char *)pszPath + 3);
 #endif /* ODPLAT_DOS */
 
+#ifdef ODPLAT_DOS32
+   if(nMaxPathChars < 4)
+   {
+      pszPath[0] = '\0';
+      return;
+   }
+   if(_getdcwd(0, pszPath, (size_t)nMaxPathChars) == NULL)
+      pszPath[0] = '\0';
+#endif /* ODPLAT_DOS32 */
+
 #ifdef ODPLAT_WIN32
    GetCurrentDirectory(nMaxPathChars, pszPath);
 #endif /* ODPLAT_WIN32 */
@@ -1642,6 +1720,9 @@ void ODDirGetCurrent(char *pszPath, INT nMaxPathChars)
  */
 tODResult ODFileDelete(CONST char *pszPath)
 {
+#ifdef ODPLAT_DOS32
+   return(remove(pszPath) == 0 ? kODRCSuccess : kODRCGeneralFailure);
+#endif
 #ifdef ODPLAT_DOS
    {
 #ifdef __WATCOMC__
@@ -1703,7 +1784,7 @@ BOOL ODFileAccessMode(const char *pszFilename, int nAccessMode)
    char *pszModeString;
    tODDirHandle hDir;
 
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    BYTE nLength;
    /* If we are looking for the root directory. */
    nLength = strlen(pszFilename);
@@ -1741,7 +1822,7 @@ done:
           return(TRUE);
       }
    }
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
    /* If the file doesn't exit, we fail in any mode. */
    if(ODDirOpen(pszFilename,

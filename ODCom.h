@@ -105,7 +105,7 @@ typedef enum
 tODResult ODComAlloc(tPortHandle *phPort);
 tODResult ODComFree(tPortHandle hPort);
 tODResult ODComSetIdleFunction(tPortHandle hPort,
-   void (*pfCallback)(void));
+   void (ODCALL *pfCallback)(void));
 tODResult ODComSetFlowControl(tPortHandle hPort, BYTE btFlowControlSetting);
 tODResult ODComSetSpeed(tPortHandle hPort, long lSpeed);
 tODResult ODComSetPort(tPortHandle hPort, BYTE btPort);
@@ -133,5 +133,10 @@ tODResult ODComSendBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize);
 tODResult ODComGetBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize,
    int *pnBytesRead);
 tODResult ODComWaitEvent(tPortHandle hPort, tComEvent Event);
+
+#ifdef ODPLAT_DOS32
+/* Test hook for the byte-at-a-time fallback; this is not public API. */
+tODResult ODComDOS32DisableFossilBlockIO(tPortHandle hPort);
+#endif
 
 #endif /* !_INC_ODCOM */

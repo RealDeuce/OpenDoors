@@ -168,7 +168,7 @@ int _spawnvpe(int nModeFlag, const char *pszPath, const char *const papszArgs[],
  */
 ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
 {
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    const char *apszArgs[4];
    INT16 nReturnCode;
 
@@ -193,7 +193,7 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
    *apszArgs = "command.com";
 
    return(od_spawnvpe(P_WAIT, *apszArgs, apszArgs, NULL) != -1);
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 #ifdef ODPLAT_WIN32
    char *pch;
@@ -276,12 +276,14 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 #ifdef ODPLAT_WIN32
    void *pWindow;
 #endif /* ODPLAT_WIN32 */   
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    char *pszDir;
    BYTE *abtScreenBuffer;
+#ifdef ODPLAT_DOS
    INT nDrive;
+#endif
    tODScrnTextInfo TextInfo;
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_spawnvpe()");
@@ -289,7 +291,7 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
 
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    /* Ensure the nModeFlag is P_WAIT, which is the only valid value for */
    /* the MS-DOS version of OpenDoors.                                  */
    if(nModeFlag != P_WAIT)
@@ -335,10 +337,14 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    }
 
    /* Store current directory. */
+#ifdef ODPLAT_DOS
    strcpy(pszDir, "X:\\");
    pszDir[0] = 'A' + (nDrive = _getdrv());
    _getcd(0, (char *)pszDir + 3);
-#endif /* ODPLAT_DOS */
+#else
+   ODDirGetCurrent(pszDir, 256);
+#endif
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
    /* Remember when spawned to program was executed. */
    nStartUnixTime = time(NULL);
@@ -372,7 +378,11 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    }
 
    /* Execute specified program with the specified arguments. */
+#ifdef ODPLAT_DOS32
+   nToReturn = spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
+#else
    nToReturn = _spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
+#endif
 
    if(nModeFlag == P_WAIT)
    {
@@ -412,7 +422,7 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 #endif /* ODPLAT_WIN32 */
    }
 
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    /* Redisplay the door screen. */
    ODScrnPutText(1, 1, 80, 25, (char *)abtScreenBuffer);
 
@@ -422,12 +432,16 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    ODScrnSetAttribute(TextInfo.attribute);
    ODScrnSetCursorPos(TextInfo.curx, TextInfo.cury);
 
+#ifdef ODPLAT_DOS
    _setdrvcd(nDrive, pszDir);
+#else
+   ODDirChangeCurrent(pszDir);
+#endif
 
    /* Free allocated space. */
    free(abtScreenBuffer);
    free(pszDir);
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
    /* Return appropriate value. */
    return(nToReturn);

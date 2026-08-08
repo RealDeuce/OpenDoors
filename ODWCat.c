@@ -58,7 +58,7 @@
  */
 ODAPIDEF void ODCALL pdef_wildcat(BYTE btOperation)
 {
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    static char abtGreyBlock[2] = {' ', 0x70};
    BYTE btInfoType = od_control.od_info_type;
 
@@ -259,7 +259,7 @@ ODAPIDEF void ODCALL pdef_wildcat(BYTE btOperation)
          ODStatRemoveKey(0x3f00);
          break;
    }
-#else /* !ODPLAT_DOS */
+#else /* !ODPLAT_DOS && !ODPLAT_DOS32 */
    (void)btOperation;
-#endif /* !ODPLAT_DOS */
+#endif /* !ODPLAT_DOS && !ODPLAT_DOS32 */
 }

@@ -504,3 +504,188 @@ jobs:
             build/dos/PERSPASS.OK
             build/dos/PERSFAIL.TXT
             build/dos/dosbox.log
+
+  dos32:
+    name: DOS Open Watcom 32-bit
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Restore Open Watcom cache
+        id: watcom-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/watcom
+          key: open-watcom-${{ runner.os }}-${{ runner.arch }}-2.0-2026-08-01
+
+      - name: Set up Open Watcom
+        if: steps.watcom-cache.outputs.cache-hit != 'true'
+        uses: open-watcom/setup-watcom@v1
+        with:
+          version: '2.0'
+          tag: 2026-08-01-Build
+          target: dos
+          environment: false
+
+      - name: Save Open Watcom cache
+        if: >-
+          steps.watcom-cache.outputs.cache-hit != 'true' &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache/save@v6
+        with:
+          path: ~/watcom
+          key: open-watcom-${{ runner.os }}-${{ runner.arch }}-2.0-2026-08-01
+
+      - name: Configure Open Watcom environment
+        run: |
+          echo "WATCOM=$HOME/watcom" >> "$GITHUB_ENV"
+          echo "INCLUDE=$HOME/watcom/h" >> "$GITHUB_ENV"
+          echo "$HOME/watcom/binl" >> "$GITHUB_PATH"
+
+      - name: Configure OpenDoors DOS32 build
+        env:
+          CC: wcl386
+        run: >-
+          cmake
+          -S dos
+          -B build/dos32
+          -G 'Unix Makefiles'
+          -D CMAKE_SYSTEM_NAME=DOS
+          -D CMAKE_SYSTEM_PROCESSOR=I386
+          -D CMAKE_BUILD_TYPE=Release
+          -D OPENDOORS_WARNINGS_AS_ERRORS=ON
+
+      - name: Build libraries, examples, and tests
+        run: cmake --build build/dos32
+
+      - name: Verify DOS32 outputs
+        run: |
+          test -s build/dos32/ODOOR32R.lib
+          test -s build/dos32/ODOOR32S.lib
+          test -s build/dos32/dos32_link_smoke_r.exe
+          test -s build/dos32/dos32_link_smoke_s.exe
+          test -s build/dos32/dos32_abi_smoke_default.exe
+          test -s build/dos32/dos32_abi_smoke_hostile.exe
+          test -s build/dos32/od32test.exe
+          test -s build/dos32/od32tsts.exe
+          test -s build/dos32/OD32CHLD.exe
+          test -s build/dos32/od32pers.exe
+          test -s build/dos32/od32pss.exe
+          test -s build/dos32/od32foss.exe
+          test -s build/dos32/FOSSTSR.com
+          test -s build/dos32/ex_chat.exe
+          test -s build/dos32/ex_diag.exe
+          test -s build/dos32/ex_hello.exe
+          test -s build/dos32/ex_music.exe
+
+      - name: Install DOSBox runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes dosbox xvfb xauth
+
+      - name: Test with DOS/4GW
+        env:
+          SDL_AUDIODRIVER: dummy
+        run: |
+          set -o pipefail
+          cp "$WATCOM/binw/dos4gw.exe" build/dos32/DOS4GW.EXE
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32" \
+              -c 'c:' \
+              -c 'od32foss.exe nofossil' \
+              -c 'fosstsr.com' \
+              -c 'od32foss.exe' \
+              -c 'od32test.exe' \
+              -c 'ren D32PASS.OK D32RPASS.OK' \
+              -c 'od32tsts.exe' \
+              -c 'ren D32PASS.OK D32SPASS.OK' \
+              -c 'od32pers.exe' \
+              -c 'ren PERSPASS.OK PERSRPAS.OK' \
+              -c 'od32pss.exe' \
+              -c 'ren PERSPASS.OK PERSSPAS.OK' \
+              -c 'exit' \
+            2>&1 | tee build/dos32/dos4gw.log
+          test -s build/dos32/NOFSPASS.OK
+          test -s build/dos32/FOSSPASS.OK
+          test -s build/dos32/D32RPASS.OK
+          test -s build/dos32/D32SPASS.OK
+          test -s build/dos32/PERSRPAS.OK
+          test -s build/dos32/PERSSPAS.OK
+
+      - name: Bind DOS/32A test programs and examples
+        run: |
+          mkdir -p build/dos32a
+          cp "$WATCOM/binw/sb.exe" build/dos32a/SB.EXE
+          cp "$WATCOM/binw/dos32a.exe" build/dos32a/DOS32A.EXE
+          cp build/dos32/FOSSTSR.com build/dos32a/
+          cp build/dos32/od32foss.exe build/dos32a/
+          cp build/dos32/od32test.exe build/dos32a/
+          cp build/dos32/od32tsts.exe build/dos32a/
+          cp build/dos32/OD32CHLD.exe build/dos32a/
+          cp build/dos32/od32pers.exe build/dos32a/
+          cp build/dos32/od32pss.exe build/dos32a/
+          cp build/dos32/ex_chat.exe build/dos32a/
+          cp build/dos32/ex_diag.exe build/dos32a/
+          cp build/dos32/ex_hello.exe build/dos32a/
+          cp build/dos32/ex_music.exe build/dos32a/
+
+      - name: Test with DOS/32A
+        env:
+          SDL_AUDIODRIVER: dummy
+        run: |
+          set -o pipefail
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32a" \
+              -c 'c:' \
+              -c 'sb /r /s od32foss.exe' \
+              -c 'sb /r /s od32test.exe' \
+              -c 'sb /r /s od32tsts.exe' \
+              -c 'sb /r /s od32chld.exe' \
+              -c 'sb /r /s od32pers.exe' \
+              -c 'sb /r /s od32pss.exe' \
+              -c 'sb /r /s ex_chat.exe' \
+              -c 'sb /r /s ex_diag.exe' \
+              -c 'sb /r /s ex_hello.exe' \
+              -c 'sb /r /s ex_music.exe' \
+              -c 'od32foss.exe nofossil' \
+              -c 'fosstsr.com' \
+              -c 'od32foss.exe' \
+              -c 'od32test.exe' \
+              -c 'ren D32PASS.OK D32RPASS.OK' \
+              -c 'od32tsts.exe' \
+              -c 'ren D32PASS.OK D32SPASS.OK' \
+              -c 'od32pers.exe' \
+              -c 'ren PERSPASS.OK PERSRPAS.OK' \
+              -c 'od32pss.exe' \
+              -c 'ren PERSPASS.OK PERSSPAS.OK' \
+              -c 'exit' \
+            2>&1 | tee build/dos32a/dos32a.log
+          test -s build/dos32a/NOFSPASS.OK
+          test -s build/dos32a/FOSSPASS.OK
+          test -s build/dos32a/D32RPASS.OK
+          test -s build/dos32a/D32SPASS.OK
+          test -s build/dos32a/PERSRPAS.OK
+          test -s build/dos32a/PERSSPAS.OK
+          bound_count=$(find build/dos32a -maxdepth 1 -type f \
+            \( -iname 'od32test.exe' -o -iname 'ex_*.exe' \) \
+            -exec grep -aFl 'DOS/32A' {} \; | wc -l)
+          test "$bound_count" -eq 5
+
+      - name: Upload OpenDoors DOS32 outputs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: opendoors-dos32-openwatcom
+          path: |
+            build/dos32/ODOOR32R.lib
+            build/dos32/ODOOR32S.lib
+            build/dos32/*.log
+            build/dos32/*FAIL.TXT
+            build/dos32a/*.exe
+            build/dos32a/*.EXE
+            build/dos32a/*.log
+            build/dos32a/*FAIL.TXT

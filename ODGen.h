@@ -68,9 +68,9 @@
 #endif
 
 /* Text mode specific definitions. */
-#if defined(ODPLAT_DOS)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 #define OD_TEXTMODE
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 /* Headless mode specific definitions. */
 #if defined(ODPLAT_NIX)
@@ -116,8 +116,6 @@
 #define LARGECODE
 #endif
 #endif /* ODPLAT_DOS */
-
-
 /* VERSION INFORMATION CONSTANTS. */
 #define OD_VER_SHORTNAME   "OpenDoors"
 #define OD_VER_STATUSLINE  "  OpenDoors 6.30 - (C) Copyright 1991-2001" \
@@ -130,6 +128,11 @@
                            "(C) Copyright 1991-2001 by Brian Pirie]\n\r"
 #define OD_VER_FULLNAME    "OpenDoors 6.30/DOS"
 #endif /* ODPLAT_DOS */
+#ifdef ODPLAT_DOS32
+#define OD_VER_SIGNON      "[OpenDoors 6.30/DOS32 - " \
+                           "(C) Copyright 1991-2001 by Brian Pirie]\n\r"
+#define OD_VER_FULLNAME    "OpenDoors 6.30/DOS32"
+#endif /* ODPLAT_DOS32 */
 #ifdef ODPLAT_WIN32
 #define OD_VER_SIGNON      "[OpenDoors 6.30/Win32 - " \
                            "(C) Copyright 1991-2001 by Brian Pirie]\n\r"

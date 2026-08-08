@@ -86,6 +86,9 @@
 #include "ODSafe.h"
 #include "ODCom.h"
 #include "ODUtil.h"
+#ifdef ODPLAT_DOS32
+#include "OD32Foss.h"
+#endif
 
 
 /* The following define determines whether serial port function should */
@@ -111,6 +114,9 @@
 #define INCLUDE_FOSSIL_COM                      /* INT 14h FOSSIL-based I/O. */
 #define INCLUDE_UART_COM                   /* Internal interrupt driven I/O. */
 #endif /* ODPLAT_DOS */
+#ifdef ODPLAT_DOS32
+#define INCLUDE_FOSSIL_COM                      /* Real-mode INT 14h via DPMI. */
+#endif /* ODPLAT_DOS32 */
 
 /* Serial I/O mechanisms supported under Win32 version. */
 #ifdef ODPLAT_WIN32
@@ -179,7 +185,7 @@ typedef struct
    int nTransmitBufferSize;
    BYTE btFIFOSetting;
    tComMethod Method;
-   void (*pfIdleCallback)(void);
+   void (ODCALL *pfIdleCallback)(void);
 #ifdef INCLUDE_WIN32_COM
    HANDLE hCommDev;
    tReadTimeoutState ReadTimeoutState;
@@ -199,6 +205,9 @@ typedef struct
 #ifdef OD_MULTITHREADED
    tODSemaphoreHandle hCarrierLostSemaphore;
 #endif
+#endif
+#ifdef ODPLAT_DOS32
+   tOD32FossilBuffer FossilBuffer;
 #endif
 } tPortInfo;
 
@@ -787,6 +796,9 @@ tODResult ODComAlloc(tPortHandle *phPort)
    pPortInfo->btFIFOSetting = FIFO_ENABLE | FIFO_TRIGGER_8;
    pPortInfo->Method = kComMethodUnspecified;
    pPortInfo->pfIdleCallback = NULL;
+#ifdef ODPLAT_DOS32
+   memset(&pPortInfo->FossilBuffer, 0, sizeof(pPortInfo->FossilBuffer));
+#endif
 
    /* Convert serial port information structure pointer to a handle. */
    *phPort = ODPTR2HANDLE(pPortInfo, tPortInfo);
@@ -827,6 +839,19 @@ tODResult ODComFree(tPortHandle hPort)
    return(kODRCSuccess);
 }
 
+#ifdef ODPLAT_DOS32
+tODResult ODComDOS32DisableFossilBlockIO(tPortHandle hPort)
+{
+   tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
+
+   if(pPortInfo == NULL || !pPortInfo->bIsOpen
+      || pPortInfo->Method != kComMethodFOSSIL)
+      return(kODRCInvalidCall);
+   OD32FossilBufferFree(&pPortInfo->FossilBuffer);
+   return(kODRCSuccess);
+}
+#endif
+
 
 /* ----------------------------------------------------------------------------
  * ODComSetIdleFunction()
@@ -840,7 +865,7 @@ tODResult ODComFree(tPortHandle hPort)
  *     Return: kODRCSuccess on success, or an error code on failure.
  */
 tODResult ODComSetIdleFunction(tPortHandle hPort,
-   void (*pfCallback)(void))
+   void (ODCALL *pfCallback)(void))
 {
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
@@ -1232,9 +1257,11 @@ tODResult ODComGetMethod(tPortHandle hPort, tComMethod *pMethod)
  */
 tODResult ODComOpen(tPortHandle hPort)
 {
-#if defined(INCLUDE_FOSSIL_COM) || defined(INCLUDE_UART_COM)
+#ifdef INCLUDE_UART_COM
    unsigned int uDivisor;
    unsigned long ulQuotient, ulRemainder;
+#endif /* INCLUDE_UART_COM */
+#if defined(INCLUDE_FOSSIL_COM) || defined(INCLUDE_UART_COM)
    BYTE btTemp;
 #endif /* INCLUDE_FOSSIL_COM || INCLUDE_UART_COM */
 #ifdef INCLUDE_STDIO_COM
@@ -1247,6 +1274,11 @@ tODResult ODComOpen(tPortHandle hPort)
    /* Ensure that port is not already open. */
    VERIFY_CALL(!pPortInfo->bIsOpen);
 
+#ifdef ODPLAT_DOS32
+   if(pPortInfo->Method == kComMethodUART)
+      return(kODRCUnsupported);
+#endif
+
    /* The following code is used to handle FOSSIL-based serial I/O open */
    /* operations.                                                       */
 #ifdef INCLUDE_FOSSIL_COM
@@ -1256,14 +1288,17 @@ tODResult ODComOpen(tPortHandle hPort)
       pPortInfo->Method == kComMethodUnspecified)
    {
       int nPort;
-#ifdef __WATCOMC__
+#if defined(__WATCOMC__) && !defined(ODPLAT_DOS32)
       union REGS Registers;
 #endif
 
       nPort = (int)pPortInfo->btPort;
       
       /* Attempt to open port with FOSSIL DRIVER. */
-#ifdef __WATCOMC__
+#ifdef ODPLAT_DOS32
+      if(!OD32FossilDetect((BYTE)nPort))
+         goto no_fossil;
+#elif defined(__WATCOMC__)
       Registers.h.ah = 4;
       Registers.x.dx = nPort;
       Registers.x.bx = 0;
@@ -1287,6 +1322,10 @@ fossil:
 #endif
       pPortInfo->Method = kComMethodFOSSIL;
 
+#ifdef ODPLAT_DOS32
+      OD32FossilBufferAllocate(&pPortInfo->FossilBuffer, 4096);
+#endif
+
       /* Enable flow control, if applicable. */
 
       /* Generate flow control setting. All bits in high nibble of flow   */
@@ -1301,6 +1340,9 @@ fossil:
          btTemp = pPortInfo->btFlowControlSetting | 0xf0;
       }
 
+#ifdef ODPLAT_DOS32
+      OD32FossilSetFlow((BYTE)nPort, btTemp);
+#else
       ASM    push si
       ASM    push di
       ASM    mov ah, 0x0f
@@ -1309,6 +1351,7 @@ fossil:
       ASM    int 20
       ASM    pop di
       ASM    pop si
+#endif
 
       /* If serial port speed is not to be set, then return now. */
       if(pPortInfo->lSpeed == SPEED_UNSPECIFIED)
@@ -1351,6 +1394,9 @@ fossil:
       btTemp |= pPortInfo->btWordFormat;
 
       /* Initialize fossil driver. */
+#ifdef ODPLAT_DOS32
+      OD32FossilInitialize((BYTE)nPort, btTemp);
+#else
       ASM    push si
       ASM    push di
       ASM    mov al, btTemp
@@ -1359,6 +1405,7 @@ fossil:
       ASM    int 20
       ASM    pop di
       ASM    pop si
+#endif
 
       /* Set port state to open. */
       pPortInfo->bIsOpen = TRUE;
@@ -1943,10 +1990,15 @@ tODResult ODComClose(tPortHandle hPort)
          int nPort;
 
          nPort = (int)pPortInfo->btPort;
-         
+
+#ifdef ODPLAT_DOS32
+         OD32FossilClose((BYTE)nPort);
+         OD32FossilBufferFree(&pPortInfo->FossilBuffer);
+#else
          ASM    mov ah, 5
          ASM    mov dx, nPort
          ASM    int 20
+#endif
          break;
       }
 #endif /* INCLUDE_FOSSIL_COM */
@@ -2066,11 +2118,15 @@ tODResult ODComCarrier(tPortHandle hPort, BOOL *pbIsCarrier)
 
          nPort = pPortInfo->btPort;
 
+#ifdef ODPLAT_DOS32
+         to_return = OD32FossilStatus((BYTE)nPort) & 0x0080;
+#else
          ASM    mov ah, 3
          ASM    mov dx, nPort
          ASM    int 20
          ASM    and ax, 128
          ASM    mov to_return, ax
+#endif
 
          *pbIsCarrier = to_return;
 
@@ -2206,13 +2262,15 @@ tODResult ODComSetDTR(tPortHandle hPort, BOOL bHigh)
       case kComMethodFOSSIL:
       {
          int nPort;
-#ifdef __WATCOMC__
+#if defined(__WATCOMC__) && !defined(ODPLAT_DOS32)
          union REGS Registers;
 #endif
 
          nPort = pPortInfo->btPort;
 
-#ifdef __WATCOMC__
+#ifdef ODPLAT_DOS32
+         OD32FossilSetDTR((BYTE)nPort, bHigh);
+#elif defined(__WATCOMC__)
          Registers.h.al = bHigh ? 1 : 0;
          Registers.h.ah = 6;
          Registers.x.dx = nPort;
@@ -2331,13 +2389,17 @@ tODResult ODComOutbound(tPortHandle hPort, int *pnOutboundWaiting)
       case kComMethodFOSSIL:
       {
          int nPort;
-#ifdef __WATCOMC__
+#if defined(__WATCOMC__) && !defined(ODPLAT_DOS32)
          union REGS Registers;
 #endif
 
          nPort = pPortInfo->btPort;
 
-#ifdef __WATCOMC__
+#ifdef ODPLAT_DOS32
+         *pnOutboundWaiting = (OD32FossilStatus((BYTE)nPort) & 0x4000)
+            ? 0 : SIZE_NON_ZERO;
+         break;
+#elif defined(__WATCOMC__)
          Registers.h.ah = 3;
          Registers.x.dx = nPort;
          int86(0x14, &Registers, &Registers);
@@ -2441,9 +2503,14 @@ tODResult ODComClearOutbound(tPortHandle hPort)
 
          nPort = pPortInfo->btPort;
 
+#ifdef ODPLAT_DOS32
+         OD32FossilClearOutbound((BYTE)nPort);
+#else
          ASM    mov ah, 9
          ASM    mov dx, nPort
          ASM    int 20
+#endif
+         break;
       }
 #endif /* INCLUDE_FOSSIL_COM */
 
@@ -2514,9 +2581,14 @@ tODResult ODComClearInbound(tPortHandle hPort)
 
          nPort = pPortInfo->btPort;
 
+#ifdef ODPLAT_DOS32
+         OD32FossilClearInbound((BYTE)nPort);
+#else
          ASM    mov ah, 10
          ASM    mov dx, nPort
          ASM    int 20
+#endif
+         break;
       }
 #endif /* INCLUDE_FOSSIL_COM */
 
@@ -2596,6 +2668,9 @@ tODResult ODComInbound(tPortHandle hPort, int *pnInboundWaiting)
 
          nPort = pPortInfo->btPort;
 
+#ifdef ODPLAT_DOS32
+         bDataInBuffer = (OD32FossilStatus((BYTE)nPort) & 0x0100) != 0;
+#else
          ASM    mov ah, 3
          ASM    mov dx, nPort
          ASM    push si
@@ -2605,6 +2680,7 @@ tODResult ODComInbound(tPortHandle hPort, int *pnInboundWaiting)
          ASM    pop si
          ASM    and ah, 1
          ASM    mov bDataInBuffer, ah
+#endif
 
          *pnInboundWaiting = bDataInBuffer ? SIZE_NON_ZERO : 0;
 
@@ -2736,6 +2812,9 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
             if(nInboundSize == 0) return(kODRCNothingWaiting);
          }
 
+#ifdef ODPLAT_DOS32
+         btToReturn = OD32FossilGetByte((BYTE)nPort);
+#else
          ASM     mov ah, 2
          ASM     mov dx, nPort
          ASM     push si
@@ -2744,6 +2823,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
          ASM     pop di
          ASM     pop si
          ASM     mov btToReturn, al
+#endif
 
          *pbtNext = btToReturn;
 
@@ -3079,12 +3159,18 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
       case kComMethodFOSSIL:
       {
          int nPort;
-#ifdef __WATCOMC__
+#if defined(__WATCOMC__) && !defined(ODPLAT_DOS32)
          union REGS Registers;
 #endif
          nPort = pPortInfo->btPort;
 
-#ifdef __WATCOMC__
+#ifdef ODPLAT_DOS32
+         while(!OD32FossilSendByte((BYTE)nPort, btToSend))
+         {
+            if(pPortInfo->pfIdleCallback != NULL)
+               (*pPortInfo->pfIdleCallback)();
+         }
+#elif defined(__WATCOMC__)
          do
          {
             Registers.h.ah = 0x0b;
@@ -3314,6 +3400,20 @@ tODResult ODComGetBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize,
 
          nPort = pPortInfo->btPort;
 
+#ifdef ODPLAT_DOS32
+         nReceived = OD32FossilReceiveBlock((BYTE)nPort,
+            &pPortInfo->FossilBuffer, pbtBuffer, nSize);
+         if(nReceived < 0 || (nReceived == 0
+            && (OD32FossilStatus((BYTE)nPort) & 0x0100) != 0))
+         {
+            nReceived = 0;
+            while(nReceived < nSize
+               && (OD32FossilStatus((BYTE)nPort) & 0x0100) != 0)
+            {
+               pbtBuffer[nReceived++] = OD32FossilGetByte((BYTE)nPort);
+            }
+         }
+#else
          ASM    push di
          ASM    mov cx, nSize
          ASM    mov dx, nPort
@@ -3331,6 +3431,7 @@ tODResult ODComGetBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize,
          ASM    int 20
          ASM    pop di
          ASM    mov nReceived, ax
+#endif
 
          *pnBytesRead = nReceived;
 
@@ -3541,6 +3642,39 @@ tODResult ODComSendBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize)
 
          nPort = pPortInfo->btPort;
 
+#ifdef ODPLAT_DOS32
+         {
+            BYTE *pCurrent = buf;
+            int nRemaining = nSize;
+
+            while(nRemaining > 0)
+            {
+               nCount = OD32FossilSendBlock((BYTE)nPort,
+                  &pPortInfo->FossilBuffer, pCurrent, nRemaining);
+               if(nCount < 0)
+               {
+                  while(nRemaining-- > 0)
+                  {
+                     while(!OD32FossilSendByte((BYTE)nPort, *pCurrent))
+                     {
+                        if(pPortInfo->pfIdleCallback != NULL)
+                           (*pPortInfo->pfIdleCallback)();
+                     }
+                     ++pCurrent;
+                  }
+                  break;
+               }
+               if(nCount == 0)
+               {
+                  if(pPortInfo->pfIdleCallback != NULL)
+                     (*pPortInfo->pfIdleCallback)();
+                  continue;
+               }
+               pCurrent += nCount;
+               nRemaining -= nCount;
+            }
+         }
+#else
 try_again:
          ASM    push di
          ASM    mov cx, nSize
@@ -3572,6 +3706,7 @@ try_again:
             buf+=nCount;
             goto try_again;
          }
+#endif
          break;
       }
 #endif /* INCLUDE_FOSSIL_COM */

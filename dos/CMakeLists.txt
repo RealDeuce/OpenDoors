@@ -15,6 +15,14 @@ if(NOT CMAKE_C_COMPILER_ID STREQUAL "OpenWatcom")
 endif()
 
 set(OPENDOORS_ROOT "${CMAKE_CURRENT_LIST_DIR}/..")
+string(TOUPPER "${CMAKE_SYSTEM_PROCESSOR}" OPENDOORS_DOS_PROCESSOR)
+
+if(NOT OPENDOORS_DOS_PROCESSOR STREQUAL "I86" AND
+   NOT OPENDOORS_DOS_PROCESSOR STREQUAL "I386")
+    message(FATAL_ERROR
+        "The DOS build supports CMAKE_SYSTEM_PROCESSOR=I86 or I386")
+endif()
+
 set(OPENDOORS_DOS_SOURCES
     ODAuto.c
     ODBlock.c
@@ -53,6 +61,13 @@ set(OPENDOORS_DOS_SOURCES
 )
 list(TRANSFORM OPENDOORS_DOS_SOURCES PREPEND "${OPENDOORS_ROOT}/")
 
+if(OPENDOORS_DOS_PROCESSOR STREQUAL "I386")
+    list(APPEND OPENDOORS_DOS_SOURCES
+        "${OPENDOORS_ROOT}/OD32DPMI.c"
+        "${OPENDOORS_ROOT}/OD32Foss.c")
+endif()
+
+if(OPENDOORS_DOS_PROCESSOR STREQUAL "I86")
 find_program(OPENDOORS_WASM wasm REQUIRED)
 set(OPENDOORS_SWAP_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/ODSwap.obj")
 add_custom_command(
@@ -153,3 +168,150 @@ endif()
 target_compile_definitions(dos_personality_smoke PRIVATE
     OPENDOORS_HAVE_VSNPRINTF=1)
 target_link_libraries(dos_personality_smoke PRIVATE opendoors_dos)
+
+else()
+
+function(opendoors_configure_dos32_target target convention)
+    target_include_directories(${target} PUBLIC "${OPENDOORS_ROOT}")
+    target_compile_options(${target} PRIVATE
+        "-${convention}" -zq -za99)
+    if(OPENDOORS_WARNINGS_AS_ERRORS)
+        target_compile_options(${target} PRIVATE -we)
+    endif()
+    target_compile_definitions(${target} PRIVATE
+        OPENDOORS_HAVE_VSNPRINTF=1)
+endfunction()
+
+add_library(opendoors_dos32r STATIC ${OPENDOORS_DOS_SOURCES})
+opendoors_configure_dos32_target(opendoors_dos32r 3r)
+set_target_properties(opendoors_dos32r PROPERTIES
+    OUTPUT_NAME ODOOR32R
+    PREFIX "")
+
+add_library(opendoors_dos32s STATIC ${OPENDOORS_DOS_SOURCES})
+opendoors_configure_dos32_target(opendoors_dos32s 3s)
+set_target_properties(opendoors_dos32s PROPERTIES
+    OUTPUT_NAME ODOOR32S
+    PREFIX "")
+
+set(OPENDOORS_PERSONALITY_SDK_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/personality-sdk")
+file(MAKE_DIRECTORY "${OPENDOORS_PERSONALITY_SDK_DIR}")
+foreach(personality_sdk_file IN ITEMS
+    OpenDoor.h
+    ODStat.h
+    ODStand.c
+    ODPCB.c
+    ODRA.c
+    ODWCat.c
+    tests/dos_personality_smoke.c)
+    get_filename_component(personality_sdk_name
+        "${personality_sdk_file}" NAME)
+    configure_file(
+        "${OPENDOORS_ROOT}/${personality_sdk_file}"
+        "${OPENDOORS_PERSONALITY_SDK_DIR}/${personality_sdk_name}"
+        COPYONLY)
+endforeach()
+
+add_library(dos32_personality_sdk_compile_r OBJECT
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODStand.c"
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODPCB.c"
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODRA.c"
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODWCat.c")
+opendoors_configure_dos32_target(dos32_personality_sdk_compile_r 3r)
+target_include_directories(dos32_personality_sdk_compile_r PRIVATE
+    "${OPENDOORS_PERSONALITY_SDK_DIR}")
+
+add_library(dos32_personality_sdk_compile_s OBJECT
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODStand.c"
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODPCB.c"
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODRA.c"
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODWCat.c")
+opendoors_configure_dos32_target(dos32_personality_sdk_compile_s 3s)
+target_include_directories(dos32_personality_sdk_compile_s PRIVATE
+    "${OPENDOORS_PERSONALITY_SDK_DIR}")
+
+add_executable(dos32_link_smoke_r "${OPENDOORS_ROOT}/tests/link_smoke.c")
+opendoors_configure_dos32_target(dos32_link_smoke_r 3r)
+target_link_libraries(dos32_link_smoke_r PRIVATE opendoors_dos32r)
+
+add_executable(dos32_link_smoke_s "${OPENDOORS_ROOT}/tests/link_smoke.c")
+opendoors_configure_dos32_target(dos32_link_smoke_s 3s)
+target_link_libraries(dos32_link_smoke_s PRIVATE opendoors_dos32s)
+
+add_executable(dos32_abi_smoke_default
+    "${OPENDOORS_ROOT}/tests/dos32_abi_smoke.c")
+opendoors_configure_dos32_target(dos32_abi_smoke_default 3r)
+target_link_libraries(dos32_abi_smoke_default PRIVATE opendoors_dos32r)
+
+add_executable(dos32_abi_smoke_hostile
+    "${OPENDOORS_ROOT}/tests/dos32_abi_smoke.c")
+opendoors_configure_dos32_target(dos32_abi_smoke_hostile 3r)
+target_compile_options(dos32_abi_smoke_hostile PRIVATE -zp16 -em)
+target_link_libraries(dos32_abi_smoke_hostile PRIVATE opendoors_dos32r)
+
+foreach(example IN ITEMS ex_chat ex_diag ex_hello ex_music)
+    add_executable(${example} "${OPENDOORS_ROOT}/${example}.c")
+    opendoors_configure_dos32_target(${example} 3r)
+    target_link_libraries(${example} PRIVATE opendoors_dos32r)
+endforeach()
+
+add_executable(dos32_runtime_smoke
+    "${OPENDOORS_ROOT}/tests/dos32_runtime_smoke.c")
+set_target_properties(dos32_runtime_smoke PROPERTIES OUTPUT_NAME od32test)
+opendoors_configure_dos32_target(dos32_runtime_smoke 3r)
+target_link_libraries(dos32_runtime_smoke PRIVATE opendoors_dos32r)
+
+add_executable(dos32_spawn_child
+    "${OPENDOORS_ROOT}/tests/dos32_spawn_child.c")
+set_target_properties(dos32_spawn_child PROPERTIES OUTPUT_NAME OD32CHLD)
+opendoors_configure_dos32_target(dos32_spawn_child 3r)
+add_dependencies(dos32_runtime_smoke dos32_spawn_child)
+
+add_executable(dos32_runtime_smoke_s
+    "${OPENDOORS_ROOT}/tests/dos32_runtime_smoke.c")
+set_target_properties(dos32_runtime_smoke_s PROPERTIES OUTPUT_NAME od32tsts)
+opendoors_configure_dos32_target(dos32_runtime_smoke_s 3s)
+target_link_libraries(dos32_runtime_smoke_s PRIVATE opendoors_dos32s)
+add_dependencies(dos32_runtime_smoke_s dos32_spawn_child)
+
+find_program(OPENDOORS_WASM wasm REQUIRED)
+find_program(OPENDOORS_WLINK wlink REQUIRED)
+set(OPENDOORS_FOSSIL_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/FOSSTSR.obj")
+set(OPENDOORS_FOSSIL_TSR "${CMAKE_CURRENT_BINARY_DIR}/FOSSTSR.com")
+add_custom_command(
+    OUTPUT "${OPENDOORS_FOSSIL_TSR}"
+    COMMAND "${OPENDOORS_WASM}" -q -0
+        "-fo=${OPENDOORS_FOSSIL_OBJECT}"
+        "${OPENDOORS_ROOT}/tests/fossil_tsr.asm"
+    COMMAND "${OPENDOORS_WLINK}" format dos com option quiet
+        option nodefaultlibs
+        name "${OPENDOORS_FOSSIL_TSR}"
+        file "${OPENDOORS_FOSSIL_OBJECT}"
+    DEPENDS "${OPENDOORS_ROOT}/tests/fossil_tsr.asm"
+    VERBATIM)
+add_custom_target(dos32_fossil_tsr ALL DEPENDS "${OPENDOORS_FOSSIL_TSR}")
+
+add_executable(dos32_fossil_smoke
+    "${OPENDOORS_ROOT}/tests/dos32_fossil_smoke.c")
+set_target_properties(dos32_fossil_smoke PROPERTIES OUTPUT_NAME od32foss)
+opendoors_configure_dos32_target(dos32_fossil_smoke 3r)
+target_link_libraries(dos32_fossil_smoke PRIVATE opendoors_dos32r)
+
+add_executable(dos32_personality_smoke
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/dos_personality_smoke.c")
+set_target_properties(dos32_personality_smoke PROPERTIES OUTPUT_NAME od32pers)
+opendoors_configure_dos32_target(dos32_personality_smoke 3r)
+target_include_directories(dos32_personality_smoke PRIVATE
+    "${OPENDOORS_PERSONALITY_SDK_DIR}")
+target_link_libraries(dos32_personality_smoke PRIVATE opendoors_dos32r)
+
+add_executable(dos32_personality_smoke_s
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/dos_personality_smoke.c")
+set_target_properties(dos32_personality_smoke_s PROPERTIES OUTPUT_NAME od32pss)
+opendoors_configure_dos32_target(dos32_personality_smoke_s 3s)
+target_include_directories(dos32_personality_smoke_s PRIVATE
+    "${OPENDOORS_PERSONALITY_SDK_DIR}")
+target_link_libraries(dos32_personality_smoke_s PRIVATE opendoors_dos32s)
+
+endif()

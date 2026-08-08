@@ -61,15 +61,15 @@ tODResult ODScrnInitialize(void);
 void ODScrnShutdown(void);
 
 /* Basic text output functions. */
-void ODScrnDisplayChar(unsigned char chToOutput);
-void ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay);
-void ODScrnDisplayString(const char *pszString);
-INT ODScrnPrintf(char *pszFormat, ...);
+void ODCALL ODScrnDisplayChar(unsigned char chToOutput);
+void ODCALL ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay);
+void ODCALL ODScrnDisplayString(const char *pszString);
+INT ODVCALL ODScrnPrintf(char *pszFormat, ...);
 
 /* Functions for manipulating rectangular areas of the screen buffer. */
-BOOL ODScrnGetText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
+BOOL ODCALL ODScrnGetText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
    void *pbtBuffer);
-BOOL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
+BOOL ODCALL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
    void *pbtBuffer);
 BOOL ODScrnCopyText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
    BYTE btDestColumn, BYTE btDestRow);
@@ -80,8 +80,8 @@ void ODScrnClearToEndOfLine(void);
 
 /* Functions for setting or obtaining current display settings. */
 void ODScrnSetBoundary(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom);
-void ODScrnSetCursorPos(BYTE btColumn, BYTE btRow);
-void ODScrnSetAttribute(BYTE btAttribute);
+void ODCALL ODScrnSetCursorPos(BYTE btColumn, BYTE btRow);
+void ODCALL ODScrnSetAttribute(BYTE btAttribute);
 void ODScrnEnableScrolling(BOOL bEnable);
 void ODScrnEnableCaret(BOOL bEnable);
 void ODScrnGetTextInfo(tODScrnTextInfo *pTextInfo);

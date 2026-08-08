@@ -76,6 +76,66 @@ def dos(args):
     write_buildinfo(destination / "BUILDINFO.txt", args)
 
 
+def dos32(args):
+    destination = Path(args.destination)
+    reset_directory(destination)
+    include = destination / "include"
+    libraries = destination / "lib"
+    examples = destination / "examples"
+    licenses = destination / "licenses"
+    include.mkdir()
+    libraries.mkdir()
+    examples.mkdir()
+    licenses.mkdir()
+
+    shutil.copy2(ROOT / "OpenDoor.h", include)
+    shutil.copy2(ROOT / "ODStat.h", include)
+    shutil.copy2(args.register_library, libraries / "ODOOR32R.LIB")
+    shutil.copy2(args.stack_library, libraries / "ODOOR32S.LIB")
+    examples_source = Path(args.examples_directory)
+    example_files = {}
+    for entry in examples_source.iterdir():
+        if not entry.is_file():
+            continue
+        folded_name = entry.name.lower()
+        if folded_name in example_files:
+            raise SystemExit(
+                f"duplicate case-insensitive DOS32 filename: {entry.name}")
+        example_files[folded_name] = entry
+    for name in ("ex_chat.exe", "ex_diag.exe", "ex_hello.exe",
+                 "ex_music.exe"):
+        source = example_files.get(name)
+        if source is None:
+            raise SystemExit(
+                f"DOS32 example is missing: {examples_source / name}")
+        if b"DOS/32A" not in source.read_bytes():
+            raise SystemExit(f"DOS32 example is not bound with DOS/32A: {source}")
+        shutil.copy2(source, examples / name.upper())
+    shutil.copy2(ROOT / "LICENSE", licenses / "OpenDoors.txt")
+    shutil.copy2(args.dos32a_license, licenses / "DOS32A.txt")
+    shutil.copy2(args.watcom_license, licenses / "OpenWatcom.txt")
+    shutil.copy2(ROOT / "VERSION", destination / "VERSION")
+    write_buildinfo(destination / "BUILDINFO.txt", args)
+
+    readme = (
+        f"OpenDoors {version()} 32-bit DOS SDK\n\n"
+        "This SDK targets 32-bit flat-model DOS programs built with Open "
+        "Watcom.\n"
+        "Link lib/ODOOR32R.LIB when compiling with -3r (register calling "
+        "convention), or lib/ODOOR32S.LIB when compiling with -3s (stack "
+        "calling convention). Do not mix conventions.\n\n"
+        "The example programs use the register convention and have DOS/32A "
+        "bound into each executable. The libraries are also compatible with "
+        "DOS/4GW-style LE executables.\n\n"
+        "The DOS32 serial implementation supports FOSSIL drivers. Direct UART "
+        "access (COM_INTERNAL) is not supported. FOSSIL block transfers use a "
+        "DPMI conventional-memory buffer when available and automatically "
+        "fall back to byte-at-a-time calls.\n\n"
+        "This product uses DOS/32 Advanced DOS Extender technology.\n"
+    )
+    (destination / "README.TXT").write_text(readme, encoding="ascii")
+
+
 def copy_distribution_license(name, destination):
     package = distribution(name)
     matches = [entry for entry in package.files or ()
@@ -145,6 +205,16 @@ def main():
     dos_parser.add_argument("--destination", required=True)
     add_metadata_arguments(dos_parser)
     dos_parser.set_defaults(function=dos)
+
+    dos32_parser = subparsers.add_parser("dos32")
+    dos32_parser.add_argument("--register-library", required=True)
+    dos32_parser.add_argument("--stack-library", required=True)
+    dos32_parser.add_argument("--examples-directory", required=True)
+    dos32_parser.add_argument("--dos32a-license", required=True)
+    dos32_parser.add_argument("--watcom-license", required=True)
+    dos32_parser.add_argument("--destination", required=True)
+    add_metadata_arguments(dos32_parser)
+    dos32_parser.set_defaults(function=dos32)
 
     companion_parser = subparsers.add_parser("companion")
     companion_parser.add_argument("--site", required=True)

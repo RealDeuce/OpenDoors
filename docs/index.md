@@ -30,7 +30,7 @@ proceed directly to the [API reference](reference/api/index.md).
 - The [`od_control`](reference/control/index.md) structure and the settings
   most often used by a door.
 - Public data types, flags, error values, and compatibility definitions.
-- Current native, Windows, and 16-bit DOS build procedures.
+- Current native, Windows, and 16-bit or 32-bit DOS build procedures.
 - The relationship between the remote terminal and the local OpenDoors
   display.
 

@@ -19,3 +19,7 @@ session.
 The lower-level serial fields remain for established DOS and BBS configurations.
 New network-hosted doors normally receive their communication method and handle
 from Door32 or the invoking server.
+
+On [`ODPLAT_DOS32`](../constants/general.md#platform-selection), the FOSSIL
+method is available, but the direct-UART method selected by
+[`COM_INTERNAL`](../constants/session.md#communication-methods) is not.

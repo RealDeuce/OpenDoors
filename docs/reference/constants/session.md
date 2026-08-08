@@ -34,6 +34,11 @@ These values identify the normalized source recorded in
 | `COM_SOCKET` | TCP socket connection. |
 | `COM_STDIO` | Standard input and output streams. |
 
+On [`ODPLAT_DOS32`](general.md#platform-selection), `COM_FOSSIL` is supported
+and `COM_INTERNAL` is not. FOSSIL block operations use a DPMI
+conventional-memory transfer buffer when possible and transparently fall back
+to byte operations otherwise.
+
 [`od_control.od_com_flow_control`](../control/connection.md) uses:
 
 | Name | Method |

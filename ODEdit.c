@@ -2551,7 +2551,7 @@ static tODResult ODEditBufferMakeSpace(tEditInstance *pEditInstance,
       unColumn -= unExtendLineBy;
       if(!ODSizeAdd((size_t)unNumChars, (size_t)unExtendLineBy,
          &nSizeNeeded)
-#ifndef ODPLAT_DOS
+#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
          || nSizeNeeded > (UINT)-1
 #endif
          )
@@ -2572,7 +2572,7 @@ static tODResult ODEditBufferMakeSpace(tEditInstance *pEditInstance,
       /* characters, then attempt to grow the buffer to make more room.   */
       if(!ODSizeAdd((size_t)unBufferUsed, (size_t)unNumChars,
          &nSizeNeeded)
-#ifndef ODPLAT_DOS
+#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
          || nSizeNeeded > (UINT)-1
 #endif
          )
@@ -2642,7 +2642,7 @@ static tODResult ODEditTryToGrow(tEditInstance *pEditInstance,
       /* realloc function provided by the client application.         */
       if(!ODSizeAdd((size_t)pEditInstance->unBufferSize, BUFFER_GROW_SIZE,
          &nGrownSize)
-#ifndef ODPLAT_DOS
+#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
          || nGrownSize > (UINT)-1
 #endif
          )

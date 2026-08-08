@@ -20,6 +20,7 @@ Exactly one target macro is selected while compiling OpenDoors headers.
 | `ODPLAT_WIN32` | A Win32-family target. |
 | `ODPLAT_NIX` | A supported Unix-like target, including macOS. |
 | `ODPLAT_DOS` | A 16-bit DOS target. |
+| `ODPLAT_DOS32` | An Open Watcom 32-bit flat-model DOS target. |
 | `OD_WIN32_STATIC` | Define this in a Windows consumer which links the static library instead of the DLL import library. |
 | `OD_DLL` | The header selected DLL import/export declarations. Applications normally test this value rather than define it. |
 

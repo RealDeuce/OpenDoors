@@ -49,7 +49,7 @@
 #include "OpenDoor.h"
 #include "ODStat.h"
 
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 
 /* Private variables, local to this module. */
 static BOOL bRAPersHasBeenOn = FALSE;
@@ -60,7 +60,7 @@ static void ODRADisplayPageInfo(void);
 static void ODRADisplayDate(char *pszDateString);
 static void ODRADisplayFlags(BYTE btFlags);
 static void ODRADisplayTime(void);
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 
 /* ----------------------------------------------------------------------------
@@ -75,7 +75,7 @@ static void ODRADisplayTime(void);
  */
 ODAPIDEF void ODCALL pdef_ra(BYTE btOperation)
 {
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    static char abtGreyBlock[2] = {' ', 0x70};
    BYTE btInfoType = od_control.od_info_type;
 
@@ -452,12 +452,12 @@ ODAPIDEF void ODCALL pdef_ra(BYTE btOperation)
          od_control.key_lesstime = 0x5000;
          od_control.od_page_statusline = 5;
    }
-#else /* !ODPLAT_DOS */
+#else /* !ODPLAT_DOS && !ODPLAT_DOS32 */
    (void)btOperation;
-#endif /* !ODPLAT_DOS */
+#endif /* !ODPLAT_DOS && !ODPLAT_DOS32 */
 }
 
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 
 /* ----------------------------------------------------------------------------
  * ODRADisplayPageInfo()                               *** PRIVATE FUNCTION ***
@@ -618,4 +618,4 @@ static void ODRADisplayFlags(BYTE btFlags)
       btMask <<= 1;
    }
 }
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */

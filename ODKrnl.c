@@ -72,7 +72,7 @@
 #include <limits.h>
 
 #include "OpenDoor.h"
-#if defined(ODPLAT_DOS) && defined(__WATCOMC__)
+#if (defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)) && defined(__WATCOMC__)
 #include <bios.h>
 #endif
 #ifdef ODPLAT_NIX
@@ -384,7 +384,7 @@ ODAPIDEF void ODCALL od_kernel(void)
 {
 #ifndef OD_MULTITHREADED
    char ch;
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    WORD wKey;
    BYTE btShiftStatus;
    char *pszShellName;
@@ -443,7 +443,7 @@ ODAPIDEF void ODCALL od_kernel(void)
       }
    }
 
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 check_keyboard_again:
     if(nKrnlFuncPending && !bShellChatActive)
     {

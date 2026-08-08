@@ -86,7 +86,8 @@ def personality_functions() -> set[str]:
     text = PERSONALITY_HEADER.read_text(encoding="utf-8")
     return set(
         re.findall(
-            r"^\s*(?:void|INT|BOOL)\s+(OD(?:Stat|Scrn)[A-Za-z0-9_]+)\s*\(",
+            r"^\s*(?:void|INT|BOOL)\s+(?:(?:ODCALL|ODVCALL)\s+)?"
+            r"(OD(?:Stat|Scrn)[A-Za-z0-9_]+)\s*\(",
             text,
             flags=re.MULTILINE,
         )

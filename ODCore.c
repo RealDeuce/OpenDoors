@@ -123,8 +123,8 @@ char szODWorkString[OD_GLOBAL_WORK_STRING_SIZE];
 tODScrnTextInfo ODTextInfo;
 
 /* Logfile function hooks. */
-BOOL (*pfLogWrite)(INT) = NULL;
-void (*pfLogClose)(INT) = NULL;
+BOOL (ODCALL *pfLogWrite)(INT) = NULL;
+void (ODCALL *pfLogClose)(INT) = NULL;
 
 /* od_color_config() support for od_printf(). */
 char chColorCheck = 0;

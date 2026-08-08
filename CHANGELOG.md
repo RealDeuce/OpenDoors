@@ -4,6 +4,15 @@ OpenDoors release versions use dotted `major.minor.patch` notation. See the
 [versioning guide](docs/guides/versioning.md) for its relationship to the
 traditional OpenDoors notation.
 
+## Unreleased
+
+- Added an Open Watcom 32-bit flat-model DOS platform with separate register-
+  and stack-convention libraries.
+- Added DOS/32A- and DOS/4GW-tested runtime, ABI, personality, and FOSSIL
+  coverage, including DPMI-buffered block calls with byte-call fallback.
+- Added a DOS32 release SDK containing both libraries and DOS/32A-bound
+  register-convention examples.
+
 ## 6.3.0 - 2026-08-08
 
 Traditional OpenDoors version: 6.30.

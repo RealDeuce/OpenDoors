@@ -49,8 +49,8 @@ static FILE *logfile_pointer;
 
 
 /* Private helper functions. */
-static BOOL ODLogWriteStandardMsg(INT nLogfileMessage);
-static void ODLogClose(INT nReason);
+static BOOL ODCALL ODLogWriteStandardMsg(INT nLogfileMessage);
+static void ODCALL ODLogClose(INT nReason);
 
 
 /* ----------------------------------------------------------------------------
@@ -136,7 +136,7 @@ ODAPIDEF BOOL ODCALL od_log_open()
  *
  *     Return: TRUE on success, or FALSE on failure.
  */
-static BOOL ODLogWriteStandardMsg(INT nLogfileMessage)
+static BOOL ODCALL ODLogWriteStandardMsg(INT nLogfileMessage)
 {
    if(nLogfileMessage < 0 || nLogfileMessage > 11)
    {
@@ -226,7 +226,7 @@ ODAPIDEF BOOL ODCALL od_log_write(const char *pszMessage)
  *
  *     Return: void
  */
-static void ODLogClose(INT nReason)
+static void ODCALL ODLogClose(INT nReason)
 {
    /* Stop if logfile has been disabled in the config file, etc. */
    if(od_control.od_logfile_disable) return;

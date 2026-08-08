@@ -98,9 +98,9 @@ as `-XpdevDirectory C:\path\to\xpdev`.
 
 ## Open Watcom DOS builds
 
-The 16-bit DOS large-model build has its own CMake project under `dos/`,
-separate from the modern host builds. With Open Watcom 2.0 configured in the
-environment, build it with:
+The DOS builds have their own CMake project under `dos/`, separate from the
+modern host builds. With Open Watcom 2.0 configured in the environment, select
+the 16-bit large-model target with:
 
 ```sh
 cmake -S dos -B build/dos -G "Watcom WMake" \
@@ -115,6 +115,23 @@ DOS-compatible `odtest.exe`. The normal GitHub Actions Build workflow runs the
 latter under DOSBox with a strict timeout, exercising the 16-bit calling
 convention and size-limit checks instead of merely linking them. It publishes
 the library, test executables, and emulator log as workflow artifacts.
+
+For a 32-bit flat-model DOS build, select the I386 processor and use the
+32-bit compiler driver:
+
+```sh
+CC=wcl386 cmake -S dos -B build/dos32 -G "Unix Makefiles" \
+  -D CMAKE_SYSTEM_NAME=DOS \
+  -D CMAKE_SYSTEM_PROCESSOR=I386 \
+  -D CMAKE_BUILD_TYPE=Release
+cmake --build build/dos32
+```
+
+This produces `ODOOR32R.lib` for Open Watcom's `-3r` register convention and
+`ODOOR32S.lib` for its `-3s` stack convention. The DOS32 examples use `-3r`.
+CI runs both library conventions with DOS/4GW and DOS/32A, and exercises the
+FOSSIL serial path through a DPMI conventional-memory buffer. Direct UART
+access is not supported on the flat-model target.
 
 ## Legacy builds
 

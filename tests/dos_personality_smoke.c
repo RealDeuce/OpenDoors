@@ -26,7 +26,7 @@ static int Fail(int line)
 
 #define CHECK(condition) do { if(!(condition)) return(Fail(__LINE__)); } while(0)
 
-static void TestPersonality(BYTE btOperation)
+static void ODCALL TestPersonality(BYTE btOperation)
 {
    char abtActual[2];
    char abtExpected[2];

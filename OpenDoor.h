@@ -105,10 +105,32 @@
 #  undef DIRSEP_STR
 #  define DIRSEP_STR "/"
 # else
-#  define ODPLAT_DOS
-#  undef ODPLAT_WIN32
+#  if defined(__WATCOMC__) && defined(__386__)
+#   define ODPLAT_DOS32
+#   undef ODPLAT_DOS
+#   undef ODPLAT_WIN32
+#  else
+#   define ODPLAT_DOS
+#   undef ODPLAT_DOS32
+#   undef ODPLAT_WIN32
+#  endif
 # endif /* !NIX */
 #endif /* !WIN32 */
+
+#ifdef ODPLAT_DOS32
+# ifndef __WATCOMC__
+#  error ODPLAT_DOS32 requires Open Watcom
+# endif
+# ifndef __386__
+#  error ODPLAT_DOS32 requires the Open Watcom 32-bit compiler
+# endif
+# ifndef __FLAT__
+#  error ODPLAT_DOS32 requires the flat memory model
+# endif
+# ifdef __SW_RI
+#  error ODPLAT_DOS32 does not support the -ri return convention
+# endif
+#endif
 
 
 /* Include any other headers required by OpenDoor.h. */
@@ -150,11 +172,26 @@
 #define ODCALL WINAPI
 #define ODVCALL WINAPIV
 #define OD_GLOBAL_CONV WINAPI
+#elif defined(ODPLAT_DOS32)
+# ifdef __SW_3S
+#  define ODCALL __cdecl
+#  define OD_GLOBAL_CONV __cdecl
+# else
+#  define ODCALL __watcall
+#  define OD_GLOBAL_CONV __watcall
+# endif
+#define ODVCALL __cdecl
 #else /* !ODPLAT_WIN32 */
 #define ODCALL
 #define ODVCALL
 #define OD_GLOBAL_CONV
 #endif /* !ODPLAT_WIN32 */
+
+#ifdef ODPLAT_DOS32
+#define OD_DOS32_CALLBACK ODCALL
+#else
+#define OD_DOS32_CALLBACK
+#endif
 
 /* OpenDoors API function declaration type. */
 #ifdef BUILDING_OPENDOORS
@@ -268,6 +305,11 @@ typedef DWORD tODMilliSec;
 
 /* Multi-line editor defintions. */
 
+#ifdef ODPLAT_DOS32
+#pragma pack( __push, 8 )
+#pragma enum int
+#endif
+
 /* Editor text formats. */
 typedef enum
 {
@@ -295,8 +337,9 @@ typedef struct
    INT nAreaRight;
    INT nAreaBottom;
    tODEditTextFormat TextFormat;
-   tODEditMenuResult (*pfMenuCallback)(void *pUnused);
-   void * (*pfBufferRealloc)(void *pOriginalBuffer, UINT unNewSize);
+   tODEditMenuResult (OD_DOS32_CALLBACK *pfMenuCallback)(void *pUnused);
+   void * (OD_DOS32_CALLBACK *pfBufferRealloc)(void *pOriginalBuffer,
+      UINT unNewSize);
    DWORD dwEditFlags;
    char *pszFinalBuffer;
    UINT unFinalBufferSize;
@@ -349,12 +392,17 @@ typedef struct
    char chKeyPress;
 } tODInputEvent;
 
+#ifdef ODPLAT_DOS32
+#pragma enum pop
+#pragma pack( __pop )
+#endif
+
 
 /* Third option (in addition to TRUE and FALSE) for tri-state options. */
 #define MAYBE 2
 
 /* od_spawnvpe() flags. */
-#ifdef ODPLAT_WIN32
+#if defined(ODPLAT_WIN32) || defined(ODPLAT_DOS32)
 #include <process.h>
 #else
 #define P_WAIT                  0
@@ -523,7 +571,9 @@ ODAPIDEF void ODCALL ODLogEnable(void);
 ODAPIDEF void ODCALL ODMPSEnable(void);
 
 /* Optional OpenDoors component settings. */
-#if defined(__TURBOC__) && (defined(__MEDIUM__) || defined(__LARGE__) \
+#ifdef ODPLAT_DOS32
+typedef void ODCALL OD_COMPONENT(void);
+#elif defined(__TURBOC__) && (defined(__MEDIUM__) || defined(__LARGE__) \
    || defined(__HUGE__))
 typedef void OD_COMPONENT(void);
 #else
@@ -543,7 +593,9 @@ ODAPIDEF void ODCALL pdef_ra(BYTE btOperation);
 ODAPIDEF void ODCALL pdef_wildcat(BYTE btOperation);
 
 /* Personality proc type. */
-#if defined(__TURBOC__) && (defined(__MEDIUM__) || defined(__LARGE__) \
+#ifdef ODPLAT_DOS32
+typedef void ODCALL OD_PERSONALITY_PROC(BYTE);
+#elif defined(__TURBOC__) && (defined(__MEDIUM__) || defined(__LARGE__) \
    || defined(__HUGE__))
 typedef void OD_PERSONALITY_PROC(BYTE);
 #else
@@ -607,6 +659,9 @@ typedef void(ODFAR OD_PERSONALITY_PROC)(BYTE);
 #ifdef _MSC_VER
 #pragma pack(1)
 #endif /* _MSC_VER */
+#ifdef ODPLAT_DOS32
+#pragma pack( __push, 1 )
+#endif
 
 typedef struct
 {
@@ -766,15 +821,18 @@ typedef struct
    char          od_cfg_lines[25][33];
    OD_COMPONENT  *od_config_file;
    const char *  od_config_filename;
-   void          (*od_config_function)(char *keyword, char *options);
+   void          (OD_DOS32_CALLBACK *od_config_function)(char *keyword,
+                     char *options);
    char          od_color_char;
    char          od_color_delimiter;
    char          od_color_names[12][33];
    BOOL          od_clear_on_exit;
-   BOOL          (*od_cmd_line_flag_handler)(const char *pszKeyword);
-   void          (*od_cmd_line_handler)(char *pszKeyword, char *pszOptions);
-   void          (*od_cmd_line_help_func)(void);
-   void          (*od_default_personality)(BYTE operation);
+   BOOL          (OD_DOS32_CALLBACK *od_cmd_line_flag_handler)(
+                     const char *pszKeyword);
+   void          (OD_DOS32_CALLBACK *od_cmd_line_handler)(char *pszKeyword,
+                     char *pszOptions);
+   void          (OD_DOS32_CALLBACK *od_cmd_line_help_func)(void);
+   void          (OD_DOS32_CALLBACK *od_default_personality)(BYTE operation);
    BOOL          od_default_rip_win;
    WORD          od_disable;
    char          od_disable_dtr[40];
@@ -810,17 +868,17 @@ typedef struct
    char          od_swapping_path[80];
 
    /* Custom function hooks. */
-   void          (*od_no_file_func)(void);
-   void          (*od_before_exit)(void);
-   void          (*od_cbefore_chat)(void);
-   void          (*od_cafter_chat)(void);
-   void          (*od_cbefore_shell)(void);
-   void          (*od_cafter_shell)(void);
-   void          (*od_config_callback)(void);
-   void          (*od_help_callback)(void);
-   void          (*od_ker_exec)(void);
-   void          (*od_local_input)(INT16 key);
-   void          (*od_time_msg_func)(char *string);
+   void          (OD_DOS32_CALLBACK *od_no_file_func)(void);
+   void          (OD_DOS32_CALLBACK *od_before_exit)(void);
+   void          (OD_DOS32_CALLBACK *od_cbefore_chat)(void);
+   void          (OD_DOS32_CALLBACK *od_cafter_chat)(void);
+   void          (OD_DOS32_CALLBACK *od_cbefore_shell)(void);
+   void          (OD_DOS32_CALLBACK *od_cafter_shell)(void);
+   void          (OD_DOS32_CALLBACK *od_config_callback)(void);
+   void          (OD_DOS32_CALLBACK *od_help_callback)(void);
+   void          (OD_DOS32_CALLBACK *od_ker_exec)(void);
+   void          (OD_DOS32_CALLBACK *od_local_input)(INT16 key);
+   void          (OD_DOS32_CALLBACK *od_time_msg_func)(char *string);
 
    /* OpenDoors function key customizations. */
    WORD          key_chat;
@@ -838,7 +896,7 @@ typedef struct
    BYTE          od_num_keys;
    INT16         od_hot_key[16];
    INT16         od_last_hot;
-   void          (*od_hot_function[16])(void);
+   void          (OD_DOS32_CALLBACK *od_hot_function[16])(void);
 
    /* OpenDoors prompt customizations. */
    char *        od_after_chat;
@@ -901,6 +959,11 @@ typedef struct
 #ifdef _MSC_VER
 #pragma pack()
 #endif /* _MSC_VER */
+#ifdef ODPLAT_DOS32
+#pragma pack( __pop )
+#endif
+
+#undef OD_DOS32_CALLBACK
 
 
 /* The od_control external variable. */

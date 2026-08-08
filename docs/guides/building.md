@@ -2,7 +2,7 @@
 
 OpenDoors supports current Windows, Linux, and macOS toolchains through CMake.
 It also retains legacy makefiles and a separate Open Watcom project for
-16-bit DOS.
+16-bit and 32-bit DOS.
 
 ## Current host builds
 
@@ -79,6 +79,40 @@ cmake --build build/dos
 
 This creates the large-model `ODoorl.lib` library. The normal CI build also
 runs its DOS smoke test under DOSBox.
+
+### 32-bit flat-model DOS
+
+The same DOS-specific project selects a separate implementation when
+[`CMAKE_SYSTEM_PROCESSOR`](https://cmake.org/cmake/help/latest/variable/CMAKE_SYSTEM_PROCESSOR.html)
+is `I386`:
+
+```sh
+CC=wcl386 cmake -S dos -B build/dos32 -G "Unix Makefiles" \
+  -D CMAKE_SYSTEM_NAME=DOS \
+  -D CMAKE_SYSTEM_PROCESSOR=I386 \
+  -D CMAKE_BUILD_TYPE=Release
+cmake --build build/dos32
+```
+
+The build creates two libraries. `ODOOR32R.lib` is for applications compiled
+with Open Watcom's `-3r` register convention; `ODOOR32S.lib` is for the `-3s`
+stack convention. Every object in an application must use the convention
+matching the selected library. [`OpenDoor.h`](../reference/api/index.md)
+selects the matching API callback convention from the compiler mode and scopes
+its enumeration and structure layout so unrelated compiler defaults cannot
+change the DOS32 ABI.
+
+The libraries target ordinary 32-bit flat-model LE executables. CI verifies
+them under both DOS/4GW and DOS/32A. Release example executables have DOS/32A
+bound into them and do not require a separate extender file. This product uses
+DOS/32 Advanced DOS Extender technology.
+
+The 32-bit DOS communication implementation supports
+[`COM_FOSSIL`](../reference/constants/session.md#communication-methods).
+Block calls use DPMI conventional memory as a transfer buffer and fall back to
+byte-at-a-time FOSSIL calls when that buffer is unavailable.
+[`COM_INTERNAL`](../reference/constants/session.md#communication-methods), the
+direct-UART implementation, is not supported on this target.
 
 ## Older build systems
 

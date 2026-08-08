@@ -67,8 +67,8 @@ extern char szODWorkString[OD_GLOBAL_WORK_STRING_SIZE];
 extern tODScrnTextInfo ODTextInfo;
 
 /* Logfile function hooks. */
-extern BOOL (*pfLogWrite)(INT);
-extern void (*pfLogClose)(INT);
+extern BOOL (ODCALL *pfLogWrite)(INT);
+extern void (ODCALL *pfLogClose)(INT);
 
 /* od_colour_config() support for od_printf(). */
 extern char chColorCheck;

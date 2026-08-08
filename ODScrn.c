@@ -69,6 +69,9 @@
 #if defined(ODPLAT_DOS)
 #include <dos.h>
 #endif
+#ifdef ODPLAT_DOS32
+#include <i86.h>
+#endif
 #include "ODCore.h"
 #include "ODGen.h"
 #include "ODPlat.h"
@@ -99,9 +102,9 @@
 
 /* Private variables used by the screen I/O functions. */
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_NIX)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_NIX)
 static void *pAllocatedBufferMemory;
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 || ODPLAT_NIX */
 
 /* Far pointer to video buffer. */
 static void ODFAR *pScrnBuffer;
@@ -125,9 +128,11 @@ static BOOL bScrollEnabled;
 #ifdef ODPLAT_DOS
 /* Segment address of video buffer. */
 static WORD wBufferSegment;
+#endif
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 /* Display page to use. */
 static BYTE btDisplayPage;
-#endif
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 /* Is cursor currently on. */
 static BYTE bCaretOn;
@@ -957,6 +962,55 @@ tODResult ODScrnInitialize(void)
 {
    BOOL bClear = TRUE;
 
+#ifdef ODPLAT_DOS32
+   if(od_control.od_silent_mode)
+   {
+      pAllocatedBufferMemory = malloc(SCREEN_BUFFER_SIZE);
+      if(pAllocatedBufferMemory == NULL)
+         return(kODRCNoMemory);
+      pScrnBuffer = pAllocatedBufferMemory;
+   }
+   else
+   {
+      union REGS Registers;
+      BYTE btDisplayMode;
+      DWORD dwVideoAddress;
+
+      memset(&Registers, 0, sizeof(Registers));
+      Registers.h.ah = 0x0f;
+      int386(0x10, &Registers, &Registers);
+      btDisplayMode = Registers.h.al & 0x7f;
+      btDisplayPage = Registers.h.bh;
+      if(btDisplayMode == 0x07)
+      {
+         dwVideoAddress = 0x000b0000UL;
+      }
+      else if(btDisplayMode == 0x21)
+      {
+         memset(&Registers, 0, sizeof(Registers));
+         Registers.w.ax = 0x0007;
+         int386(0x10, &Registers, &Registers);
+         btDisplayPage = 0;
+         bClear = FALSE;
+         dwVideoAddress = 0x000b0000UL;
+      }
+      else
+      {
+         if(btDisplayMode != 0x02 && btDisplayMode != 0x03)
+         {
+            memset(&Registers, 0, sizeof(Registers));
+            Registers.w.ax = 0x0003;
+            int386(0x10, &Registers, &Registers);
+            btDisplayPage = 0;
+            bClear = FALSE;
+         }
+         dwVideoAddress = 0x000b8000UL;
+      }
+      pScrnBuffer = (void *)(dwVideoAddress
+         + (DWORD)SCREEN_BUFFER_SIZE * btDisplayPage);
+   }
+#endif /* ODPLAT_DOS32 */
+
 #if defined(ODPLAT_DOS) || defined(ODPLAT_NIX)
    /* In silent mode, we perform all output in a block of memory that is */
    /* never displayed.                                                   */
@@ -1226,7 +1280,7 @@ void ODScrnSetBoundary(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom)
  *
  *     Return: void
  */
-void ODScrnSetCursorPos(BYTE btColumn, BYTE btRow)
+void ODCALL ODScrnSetCursorPos(BYTE btColumn, BYTE btRow)
 {
    if(ODSessionScreenIsEmulating())
    {
@@ -1264,7 +1318,7 @@ void ODScrnSetCursorPos(BYTE btColumn, BYTE btRow)
  *
  *     Return: void
  */
-void ODScrnSetAttribute(BYTE btAttribute)
+void ODCALL ODScrnSetAttribute(BYTE btAttribute)
 {
    if(ODSessionScreenIsEmulating())
    {
@@ -1388,6 +1442,27 @@ set_cursor:
       ASM    pop si
    }
 #endif /* ODPLAT_DOS */
+
+#ifdef ODPLAT_DOS32
+   {
+      union REGS Registers;
+
+      if(bCaretOn == bEnable)
+         return;
+      bCaretOn = bEnable;
+      memset(&Registers, 0, sizeof(Registers));
+      Registers.h.ah = 0x03;
+      Registers.h.bh = btDisplayPage;
+      int386(0x10, &Registers, &Registers);
+      Registers.h.ch &= 0x1f;
+      if(!bCaretOn)
+         Registers.h.ch |= 0x20;
+      Registers.h.ah = 0x01;
+      int386(0x10, &Registers, &Registers);
+      if(bCaretOn)
+         ODScrnUpdateCaretPos();
+   }
+#endif /* ODPLAT_DOS32 */
 }
 
 
@@ -1441,7 +1516,7 @@ void ODScrnGetTextInfo(tODScrnTextInfo *pTextInfo)
  *
  *     Return: The standard printf() return value.
  */
-INT ODScrnPrintf(char *pszFormat, ...)
+INT ODVCALL ODScrnPrintf(char *pszFormat, ...)
 {
    va_list pArgumentList;
    INT nToReturn;
@@ -1498,7 +1573,7 @@ INT ODScrnPrintf(char *pszFormat, ...)
  *
  *     Return: void
  */
-void ODScrnDisplayChar(unsigned char chToOutput)
+void ODCALL ODScrnDisplayChar(unsigned char chToOutput)
 {
    BYTE ODFAR *pbtDest;
 
@@ -1643,6 +1718,19 @@ static void ODScrnGetCursorPos(void)
    ASM    sub dl, btLeftBoundary
    ASM    mov btCursorColumn, dl
 #endif /* ODPLAT_DOS */
+#ifdef ODPLAT_DOS32
+   if(bCaretOn)
+   {
+      union REGS Registers;
+
+      memset(&Registers, 0, sizeof(Registers));
+      Registers.h.ah = 0x03;
+      Registers.h.bh = btDisplayPage;
+      int386(0x10, &Registers, &Registers);
+      btCursorRow = Registers.h.dh - btTopBoundary;
+      btCursorColumn = Registers.h.dl - btLeftBoundary;
+   }
+#endif /* ODPLAT_DOS32 */
 }
 
 
@@ -1675,6 +1763,20 @@ static void ODScrnUpdateCaretPos(void)
    ASM    pop si
 #endif /* ODPLAT_DOS */
 
+#ifdef ODPLAT_DOS32
+   if(bCaretOn)
+   {
+      union REGS Registers;
+
+      memset(&Registers, 0, sizeof(Registers));
+      Registers.h.ah = 0x02;
+      Registers.h.bh = btDisplayPage;
+      Registers.h.dh = btCursorRow + btTopBoundary;
+      Registers.h.dl = btCursorColumn + btLeftBoundary;
+      int386(0x10, &Registers, &Registers);
+   }
+#endif /* ODPLAT_DOS32 */
+
 #ifdef ODPLAT_WIN32
    if(hwndScreenWindow != NULL)
    {
@@ -1693,6 +1795,10 @@ static void ODScrnRingBell(void)
    ASM    mov dl, 7
    ASM    int 0x21
 #endif /* ODPLAT_DOS */
+#ifdef ODPLAT_DOS32
+   putchar('\a');
+   fflush(stdout);
+#endif /* ODPLAT_DOS32 */
 #ifdef ODPLAT_WIN32
    MessageBeep(0xffffffff);
 #endif /* ODPLAT_WIN32 */
@@ -1863,7 +1969,7 @@ static void ODScrnScrollUpOneLine(void)
  *
  *     Return: TRUE on success, or FALSE on failure.
  */
-BOOL ODScrnGetText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
+BOOL ODCALL ODScrnGetText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
    void *pbtBuffer)
 {
    WORD *pwBuffer;
@@ -1931,7 +2037,7 @@ BOOL ODScrnGetText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
  *
  *     Return: TRUE on success, or FALSE on failure.
  */
-BOOL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
+BOOL ODCALL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
    void *pbtBuffer)
 {
    WORD *pwBuffer;
@@ -1998,7 +2104,7 @@ BOOL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
  *
  *     Return: void.
  */
-void ODScrnDisplayString(const char *pszString)
+void ODCALL ODScrnDisplayString(const char *pszString)
 {
    if(ODSessionScreenIsEmulating())
    {
@@ -2024,7 +2130,7 @@ void ODScrnDisplayString(const char *pszString)
  *
  *     Return: void.
  */
-void ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay)
+void ODCALL ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay)
 {
    const char *pchCurrentChar;
    INT nCharsLeft;
@@ -2111,14 +2217,7 @@ void ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay)
             /* If bell */
             if(!od_control.od_silent_mode)
             {
-#ifdef ODPLAT_DOS
-               ASM    mov ah, 0x02
-               ASM    mov dl, 7
-               ASM    int 0x21
-#endif /* ODPLAT_DOS */
-#ifdef ODPLAT_WIN32
-               MessageBeep(0xffffffff);
-#endif /* ODPLAT_WIN32 */
+               ODScrnRingBell();
                pchCurrentChar++;
             }
             break;

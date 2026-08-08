@@ -34,7 +34,7 @@
 
 #include "OpenDoor.h"
 
-#ifdef ODPLAT_DOS
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,28 +46,28 @@ extern char szStatusText[80];
 
 
 /* Personality helper functions. */
-void ODStatAddKey(WORD wKeyCode);
-void ODStatRemoveKey(WORD wKeyCode);
-void ODStatGetUserAge(char *pszAge);
-void ODStatForceStatusUpdate(void);
+void ODCALL ODStatAddKey(WORD wKeyCode);
+void ODCALL ODStatRemoveKey(WORD wKeyCode);
+void ODCALL ODStatGetUserAge(char *pszAge);
+void ODCALL ODStatForceStatusUpdate(void);
 
 /* Local-only personality screen output. */
-void ODScrnDisplayChar(unsigned char chToOutput);
-void ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay);
-void ODScrnDisplayString(const char *pszString);
-INT ODScrnPrintf(char *pszFormat, ...);
-BOOL ODScrnGetText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
+void ODCALL ODScrnDisplayChar(unsigned char chToOutput);
+void ODCALL ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay);
+void ODCALL ODScrnDisplayString(const char *pszString);
+INT ODVCALL ODScrnPrintf(char *pszFormat, ...);
+BOOL ODCALL ODScrnGetText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
    void *pbtBuffer);
-BOOL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
+BOOL ODCALL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
    void *pbtBuffer);
-void ODScrnSetCursorPos(BYTE btColumn, BYTE btRow);
-void ODScrnSetAttribute(BYTE btAttribute);
+void ODCALL ODScrnSetCursorPos(BYTE btColumn, BYTE btRow);
+void ODCALL ODScrnSetAttribute(BYTE btAttribute);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ODPLAT_DOS */
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 
 #endif /* _INC_ODSTAT */

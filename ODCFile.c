@@ -80,8 +80,13 @@ static BOOL ODCfgIsTrue(char *pszConfigText);
  */
 ODAPIDEF void ODCALL ODConfigInit(void)
 {
+#ifdef ODPLAT_DOS32
+   void (ODCALL *custom_line_function)(char *keyword, char *options)
+      = od_control.config_function;
+#else
    void (*custom_line_function)(char *keyword, char *options)
       = od_control.config_function;
+#endif
    char *pchConfigText;
    WORD wCurrent;
    INT nConfigOption;
