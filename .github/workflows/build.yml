@@ -591,6 +591,13 @@ jobs:
         run: |
           set -o pipefail
           cp "$WATCOM/binw/dos4gw.exe" build/dos32/DOS4GW.EXE
+          require_marker() {
+            if [[ ! -s "build/dos32/$1" ]]; then
+              echo "::error::DOS/4GW did not produce nonempty marker $1"
+              ls -la build/dos32
+              return 1
+            fi
+          }
           timeout --signal=TERM --kill-after=5s 45s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos32" \
@@ -600,6 +607,8 @@ jobs:
               -c 'od32foss.exe' \
               -c 'exit' \
             2>&1 | tee build/dos32/dos4gw-fossil.log
+          require_marker NOFSPASS.OK
+          require_marker FOSSPASS.OK
           timeout --signal=TERM --kill-after=5s 45s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos32" \
@@ -610,6 +619,8 @@ jobs:
               -c 'ren D32PASS.OK D32SPASS.OK' \
               -c 'exit' \
             2>&1 | tee build/dos32/dos4gw-runtime.log
+          require_marker D32RPASS.OK
+          require_marker D32SPASS.OK
           timeout --signal=TERM --kill-after=5s 45s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos32" \
@@ -620,12 +631,8 @@ jobs:
               -c 'ren PERSPASS.OK PERSSPAS.OK' \
               -c 'exit' \
             2>&1 | tee build/dos32/dos4gw-personality.log
-          test -s build/dos32/NOFSPASS.OK
-          test -s build/dos32/FOSSPASS.OK
-          test -s build/dos32/D32RPASS.OK
-          test -s build/dos32/D32SPASS.OK
-          test -s build/dos32/PERSRPAS.OK
-          test -s build/dos32/PERSSPAS.OK
+          require_marker PERSRPAS.OK
+          require_marker PERSSPAS.OK
 
       - name: Bind DOS/32A test programs and examples
         run: |
@@ -714,8 +721,10 @@ jobs:
             build/dos32/ODOOR32R.lib
             build/dos32/ODOOR32S.lib
             build/dos32/*.log
+            build/dos32/*PASS.OK
             build/dos32/*FAIL.TXT
             build/dos32a/*.exe
             build/dos32a/*.EXE
             build/dos32a/*.log
+            build/dos32a/*PASS.OK
             build/dos32a/*FAIL.TXT
