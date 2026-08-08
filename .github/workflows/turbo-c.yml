@@ -139,7 +139,7 @@ jobs:
               -conf "$PWD/tools/turboc/dosbox.conf" \
               -c "mount c $PWD/build/turboc" \
               -c 'c:' \
-              -c 'tcbuild.bat' \
+              -c 'call tcbuild.bat' \
               -c 'exit' \
             2>&1 | tee build/turboc/dosbox.log
 
