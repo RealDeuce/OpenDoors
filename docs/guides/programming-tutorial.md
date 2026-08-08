@@ -1,322 +1,996 @@
 # OpenDoors programming tutorial
 
-This tutorial preserves the complete programming walkthrough and example discussion from the OpenDoors 6.00 manual.
+An OpenDoors program is an ordinary C or C++ application linked with the
+OpenDoors library. The library reads the BBS door-information file, establishes
+the caller connection, maintains local and remote screen state, handles session
+timing and carrier detection, and provides the input, output, menu, chat, and
+file-display functions used by the application.
 
-## Detailed reference
+This tutorial builds a small door and then examines the facilities used by the
+larger examples in the repository. The [API reference](../reference/api/index.md)
+and [`od_control` reference](../reference/control/index.md) give the complete
+contract for each interface introduced here.
 
-The compiler, linker, and BBS launch instructions describe the original 6.00 distribution. Use [Building OpenDoors](building.md) for current toolchains; the API workflow and programming discussion remain useful.
+## Building a door
 
-The OpenDoors programmer's manual is intended to serve as a complete tutorial, guide and reference to writing programs with OpenDoors. Chapter 1 of this manual, beginning on page 5, provides an introduction and overview of the features of OpenDoors. If you are unsure of what OpenDoors will do for you, begin with Chapter 1. Chapter 2, beginning on page 9, provides important information related to this evaluation copy of OpenDoors, and how to register your copy. Chapter 3 serves as a tutorial on OpenDoors and BBS door programming in general. Chapter 4 provides a reference to the OpenDoors API functions which you can use in your programs. Chapter 5 provides a reference to the "OpenDoors control structure", which gives you access to a wide array of information, and allows you to customize OpenDoor's appearance and behavior. Chapter 6 provides information on special OpenDoors features and advanced door programming topics. Among the subjects discussed in chapter 6 are the Win32 version of OpenDoors, configuration files, multi- node operation, RIP graphics, logfile support, defining custom door information file formats, and more.
-
-Chapter 7 (which begins on page 242) gives instructions on troubleshooting programs written with OpenDoors, lists solutions to common difficulties, and has information about the many sources for OpenDoors support. If at any time you are having difficulty with OpenDoors, be sure to refer to this chapter for complete step-by-step instruction on tracing the source of your problem, and for solutions to common difficulties with OpenDoors. This chapter also directs you to some of the major sources of support, including information on the OpenDoors email conference, the OpenDoors support BBS, and how to get in touch with me.
-
-You will also find many useful tools in this manual, which will no doubt come in useful while working with OpenDoors. Beginning on page 2 is a basic table of contents, showing you how the manual is organized, and helping you to locate general topics. At the end of the manual, beginning on page 267, is an index to help you locate more information on specific topics. The manual also includes a glossary, on page 256, which will help you in understanding new terms that you may come across while reading the manual. At the end of the manual, you will also find several useful sections, such as information on what is new in this version, information on how to contact me, and information about new OpenDoors features currently in the works.
-
-You will likely want to print this manual, to make reading and reference while programming easier. To print this manual, simply type the following line from your DOS prompt. If you are worried about the size of this manual, you might consider using a utility that can print multiple pages of a text file on a single sheet of paper. Printing two manual pages per side of paper should certainly be legible, and even four-up would give you text about the size of average newspaper text. Printing on both sides, you should be able to fit the manual on about 34 sheets of paper (269/8 < 34).
-
-### Compiling A Program With Opendoors
-
-The process of compiling a program written with OpenDoors is very similar to that of compiling any other program. However, there are two additional steps which you must be sure to remember:
-
-1.)  You must include the OPENDOOR.H header file.
-
-2.)  You must link your program with the appropriate OpenDoors library file.
-
-All programs written with OpenDoors, must "include" the OPENDOOR.H header file. If you have placed the OPENDOOR.H header file in the same directory as your program's source code, place the following line at the beginning of your .C or .CPP file(s):
+Every source file which uses the API includes the public header with its actual
+case-sensitive name:
 
 ```c
-#include "opendoor.h"
+#include <OpenDoor.h>
 ```
 
-If you have placed the OPENDOOR.H header file in the same directory as other standard header files (such as stdio.h), place the following line at the beginning of your .C or .CPP file(s):
+[`OpenDoor.h`](../reference/api/index.md) is the application API. Do not include
+private source-tree headers. A DOS personality module additionally includes
+[`ODStat.h`](../reference/personality/index.md), but an ordinary door does not.
 
-```c
-#include <opendoor.h>
+### Installed CMake package
+
+The current desktop SDK installs CMake package metadata and exports separate
+shared and static targets. A minimal project is:
+
+```cmake
+cmake_minimum_required(VERSION 3.20)
+project(MyDoor LANGUAGES C)
+
+find_package(OpenDoors 6.3 CONFIG REQUIRED COMPONENTS Static)
+
+add_executable(mydoor mydoor.c)
+target_link_libraries(mydoor PRIVATE OpenDoors::Static)
 ```
 
-In addition to including the OpenDoors header file in your source code modules, you must also "link" the appropriate OpenDoors library file with your program. The procedure for doing this depends upon which compiler you are using. The following sections describe how to link with the OpenDoors libraries using various compilers.
+Configure it with the installation prefix or extracted SDK on the CMake search
+path:
 
-### Linking With Opendoors Using A Dos Compiler
-
-This section describes how to link with the provided OpenDoors library files under a variety of DOS compilers. If you are using a compiler other than those described here, refer to your compiler's manual for information on how to link with third- party libraries.
-
-If you are using Borland Turbo C 2.00 or earlier, you can cause your compiler to link your program with the OpenDoors library by creating a text file with a .PRJ extension. In this text file, you should list the names of your program's .C modules, along with the name of the appropriate OpenDoors library file, as listed in the table at the end of this section. You should then select this Project file from within the Turbo C IDE prior to compiling your program.
-
-If you are using Turbo C++ or Borland C++, you can set your compiler to link your program with the OpenDoors library by creating a project file from within the IDE. To do this, choose the Open Project command from the Project menu, and enter the name for your new project file in the Load Project dialog box. Then add the names of your program's .C/.CPP modules, along with the name of the appropriate OpenDoors library file, by pressing [Insert] in the project window. When you return to Turbo C++ or Borland C++ again, you can work with the same project file by using the Open command from the Project menu.
-
-If you are using any Microsoft C compiler, such as Quick C, Microsoft C or Visual C++, you can set your compiler to link your program with the OpenDoors library by creating a makefile. You can create a new project file from within Quick C by using the Set Program List option from the Make menu. You can do this from within Visual C++ by using the New command from the Project menu. You should add the names of your program's .C/.CPP source files, along with the name of the appropriate OpenDoors library file, to the newly create makefile.
-
-There are several different DOS library files included with OpenDoors, each one for use with a different memory model. The following chart lists the library file names, along with their corresponding memory model. It is important that you use the library file which corresponds to the memory model you are using. Whenever you change your compiler to use a different memory model, it is important to rebuild all of your source files (using the "Build All" or "Rebuild All" command) in addition to changing the library that your program is being linked with. If you are unfamiliar with the concept of memory models, you should refer to your compiler's manuals. If you are unsure as to what memory model your compiler is currently using, check this setting in the compile options dialog box or command line reference information.
-
-```c
-  +------------------------------------------------+
-  | Library     | Memory                           |
-  | Filename    | Model                            |
-  |-------------|----------------------------------|
-  | ODOORS.LIB  | DOS small memory model library   |
-  |             |                                  |
-  | ODOORM.LIB  | DOS medium memory model library  |
-  |             | (Available separately)           |
-  |             |                                  |
-  | ODOORC.LIB  | DOS compact memory model library |
-  |             | (Available separately)           |
-  |             |                                  |
-  | ODOORL.LIB  | DOS large memory model library   |
-  |             |                                  |
-  | ODOORH.LIB  | DOS huge memory model library    |
-  +------------------------------------------------+
+```sh
+cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/opendoors
+cmake --build build
 ```
 
-To understand how to compile a program written with OpenDoors, it is a good idea to try compiling one of the example programs, such as ex_hello.c, that are included in the OpenDoors package.
+Use the `Shared` component and `OpenDoors::Shared` target for the shared
+library. On MSVC, an SDK built with the optional static Microsoft runtime also
+provides `StaticMT` and `OpenDoors::StaticMT`. The imported targets propagate
+the include directory, platform definitions, link dependencies, and the
+[`OD_WIN32_STATIC`](../reference/constants/general.md#od_win32_static)
+definition required by a Windows static build. Prefer them to spelling a
+library filename in a build script.
 
-### Linking With Opendoors Using A Windows Compiler
+The shared Windows library must be available to the executable at run time.
+The installed or release SDK supplies the matching import library for linking;
+MSVC and MinGW import libraries are different formats and are not
+interchangeable. See [Building and linking](building.md) for library names,
+build switches, installation, and compiler-specific details.
 
-The Win32 version of OpenDoors resides in a DLL, ODOORS60.DLL. In order to use OpenDoors from a Win32 program, you will typically link to an import library (although it is also possible to use load-time dynamic linking through the use of LoadLibrary() and GetProcAddress()). The OpenDoors package includes a COFF-format import library for use Microsoft compilers, named ODOORW.LIB. If you are using a compiler that uses OMF-format object files, such as a Borland compiler, you will need to create your own version of the odoorw.lib import library, by using the implib utility provided with your compiler.
+### DOS builds
 
-When compiling an OpenDoors program with a Windows compiler, be sure that either the WIN32 or __WIN32__ constant is defined. Microsoft and Borland compilers define one of these constants by default. However, if you are using a compiler from another company, you may need to explicitly configure your compiler to define one of these preprocessor constants.
+The 16-bit and 32-bit DOS libraries are produced by the separate Open Watcom
+project under `dos/`. The 16-bit build uses the large memory model. A door and
+every object linked into it must use a compatible memory model and calling
+convention.
 
-If you are using Microsoft Visual C++ 2.0 or later, you can setup your compiler to link with the OpenDoors import library by creating a makefile (choose File|New|Project) and adding both your program's .C/.CPP source file(s) and the odoorw.lib import library to the project. When prompted for the Project type, choose "Application", not a "MFC AppWizard". If you are using Visual C++ 2.0, then you must manually edit the .mak file using a text editor. In this file, replace all occurrences of "/SUBSYSTEM:windows" with "/SUBSYSTEM:windows,4.0". This instructs the linker to create an executable file that is targeted for Windows 95. If you do not do this, some of the OpenDoors visual elements will not appear correctly. Later versions of Microsoft's compiler default to using "/SUBSYSTEM:windows,4.0", and so this step is no longer necessary with those compilers.
+The DOS32 build supplies one library for Open Watcom's `-3r` register calling
+convention and one for `-3s` stack calls. Select the library matching the
+application. The resulting flat-model program can be linked for DOS/4GW or for
+a native DOS/32A executable with the extender bound into it. These choices do
+not change the OpenDoors source API, but mixing calling conventions changes the
+ABI and will not work.
 
-If you are using Borland C++ 4.50 or later, you must create an OpenDoors import library for ODOORS60.DLL before you can compile your first OpenDoors program. To do this, go to the directory where ODOORS60.DLL is located, move the original odoorw.lib to a backup location, and issue the command:
+Legacy Borland and Microsoft DOS projects may continue to link their matching
+OpenDoors library in the usual compiler project or makefile. Source intended
+for those compilers must not use modern language features unconditionally;
+place platform-specific modern code behind the appropriate
+[`ODPLAT_*`](../reference/constants/general.md#platform-selection) guards.
 
-IMPLIB ODOORW.LIB ODOORS60.DLL
+### What the build must agree upon
 
-This will create a new import library (ODOORW.LIB) which you can then use with your compiler. To compile an OpenDoors program from the command line, issue the command:
+Including the correct header is only half of the build contract. The compiler
+which compiles the door and the compiler which built the selected library must
+agree upon the target architecture and application binary interface. In a
+modern hosted build, use a library built for the same operating system,
+processor architecture, and compiler family. A 64-bit program cannot link a
+32-bit library. On Windows, an MSVC import or static library is not a substitute
+for the corresponding MinGW file, even when both builds ultimately use the
+same OpenDoors DLL name.
 
-BCC32 -tW your_program.c ODOORW.LIB
+The same rule is especially important under DOS. A 16-bit large-model door
+needs a large-model library and compatible structure packing and calling
+conventions. A 32-bit Open Watcom door must select the register-call or
+stack-call DOS32 library which matches its compiler switch. Far pointers and
+segmented objects are part of the 16-bit interface; they must not be hidden by
+source-level aliases intended to imitate a flat model.
 
-To compile an OpenDoors program from within the IDE, create a new project file, and add both your program's source file(s) and the OpenDoors import library to that project. If you are compiling from within the IDE, check the TargetExpert and be sure that you are using the multithreaded version of the the runtime libraries. By default, the Borland IDE compiles single- threaded, which will not work with OpenDoors.
+The installed CMake targets encode the hosted-platform requirements for you.
+When working with an older project file or makefile, the responsibility moves
+to that build description. Recompile every application object after changing
+architecture, memory model, runtime selection, structure-packing, or calling
+convention; replacing only the library leaves old objects with the previous
+ABI.
 
-Additional information on the Win32 version of OpenDoors is provided in chapter 6.
+### Building the supplied examples
 
-### Running A Door Program Written With Opendoors
+The examples release bundle is an independent CMake consumer of the installed
+SDK. From the extracted examples directory, configure it as follows. This is
+useful both as a set of demonstrations and as a check that the SDK can be
+consumed without private source-tree headers:
 
-This section provides information on how to run a BBS door program that has been written with OpenDoors. If you are using OpenDoors to write some other form of online software, the information provided here will apply to different degrees, depending on the nature of your program.
-
-OpenDoors supports both local and remote modes. In the normal mode of operation, remote mode, your program's output will be displayed to both the local screen and the remote user's screen. To run your program in remote mode, you will usually set it up to run under some BBS package. However, for testing purposes, it is often convenient to run your program in local mode.
-
-There are several ways to start your program in local mode. The first method is to place the example DORINFO1.DEF file in the same directory as your program. If your program uses the OpenDoors command line processing function, [`od_parse_cmd_line()`](../reference/api/od_parse_cmd_line.md), then you can start your program in local mode by simply specifying -local on your program's command line. For example, you can try the example program include with OpenDoors by issuing the command VOTEDOS -LOCAL (for the DOS version) or VOTEWIN -LOCAL (for the Windows 95/NT version). OpenDoors will also run in local mode if you set it up to run under a BBS package, and log into the BBS in local mode. When the BBS runs your door program, OpenDoors will automatically run in local mode.
-
-To run your program in remote mode, you will probably want to run it under a BBS system. If you don't have a BBS package for testing purposes, you might want to obtain a popular BBS package such as Wildcat!, Maximus (which is free) or RemoteAccess.
-
-### Running Dos-Based Door Programs
-
-DOS BBS packages typically run door programs using one of two methods. Either the BBS package directly loads and executes the program, or it exits to a DOS batch file, which in turn executes the door program. In either case, the BBS package produces a door information file, common called a "drop file", which provides information to the door program such as the name of the current user. OpenDoors automatically supports the common drop file formats, including DORINFOx.DEF and DOOR.SYS.
-
-### Running Windows 95/Nt Door Programs
-
-This section provides information specific to running door programs that are compiled with the Win32 version of OpenDoors. Please feel free to include this information in your program's manual.
-
-Since the Win32 version of OpenDoors resides in a DLL, ODOORS60.DLL, this file must be present on any system where your program will be run. Although Windows 95/NT will find this file if it is located in the same directory as your program's executable file, it is a good idea to install this DLL into the Windows system directory. This way, all programs using the Win32 version of OpenDoors can share the same copy of the DLL, reducing the amount of disk space that is used.
-
-The required setup for a Windows 95/NT door will depend upon what BBS system it is being run under. If you the program is being run under a native Windows 95/NT BBS system, then ideally that BBS system will provide the ability to pass a live serial port handle to the door program, on the program's command line. Otherwise, you should run the door from a batch file, following the instructions provided below for running the program under a DOS-based BBS system. If the BBS system is able to pass a live Window communications handle on the door's command line, and you are using the OpenDoors standard command-line processing function ([`od_parse_cmd_line()`](../reference/api/od_parse_cmd_line.md)), then you can just setup the BBS to run the program directly, using the command line:
-
-YourProgramName.exe -handle xxxxxxxxxx
-
-where xxxxxxxxx is the serial port handle, in decimal format. You do not need to use the start command, nor the DTRON utility, and you do not have to change the COM<n>AutoAssign setting in the system.ini file.
-
-If you are running the Win32 door program under a DOS-based BBS system, or a Windows-based BBS system that is unable to pass a live serial port handle to the door program, then follow these steps:
-
-1.Add a line of the form "COM<n>AutoAssign=<x>" to the [386Enh] section of your system.ini file. Here, <n> specifies the serial port number that the BBS's modem is connected to, and <x> will usually be 0. For example, if your modem is connected to COM1, you would add a line such as "COM1AutoAssign=0" (sans quotes). You will then have to re- start your computer for this change to take effect. If you do not do this, the Windows-based door program will not be able to access the modem.
-
-2.Setup the BBS software to run the Windows-based door program just as you would any other door program. You will probably want to do this from a batch file. The command line that runs the Windows program should be of the form:
-
-start /w /m YourProgramName.exe [any command line parameters]
-
-This will cause the Windows-based door program to start in minimized mode, and cause the calling MS-DOS session to wait until the Windows program exits before continuing. If you do not wish the program to be started in minimized mode, remove the /m from the command line. If you attempt to start the door program by calling it directly, rather than using the "start /w" command, the BBS software will immediately start again, cause it to attempt to run simultaneously with the door program.
-
-3.After running the start command, use DTRON.EXE or a similar utility to re-enable DTR detection by the modem. Normally, this command line will be of the form:
-
-dtron /port x /bps y
-
-Where x is the serial port number (0 for COM1, 1 for COM2, etc.) and y is the locked bps rate. For example, if your serial port is locked at 38400 bps and is connected to COM2, you would use:
-
-dtron /port 1 /bps 38400
-
-For full information on the DTRON utility, simply type the command line:
-
-dtron /help
-
-You may freely redistribute the DTRON utility that is included in this package with your program.
-
-Additional information on the Win32 version of OpenDoors, and further explanation of some of these steps, is provided in chapter 6.
-
-### Basics Of Door Programming With Opendoors
-
-This section provides a complete tutorial to the basics of writing BBS door programs using OpenDoors. If you are using OpenDoors to write other online software, much of this information will still be relevant.
-
-In addition to reading this section, I would encourage you to look at the example programs included int the OpenDoors packages. These programs, which are described beginning on page 38, will give you a much better idea of what an OpenDoors program will look like. These programs can also serve as a great starting point for writing your own programs using OpenDoors.
-
-Probably the best means of introduction to door programming with OpenDoors is by doing it yourself. As such, I strongly encourage you to try compiling and running the simple introduction program below. For instructions on compiling programs written with OpenDoors, see page 22.
-
-DOS version:
-
-```c
-#include "opendoor.h"
+```sh
+cmake -S . -B build \
+  -DCMAKE_PREFIX_PATH=/path/to/opendoors \
+  -DOPENDOORS_EXAMPLE_VARIANT=Static
+cmake --build build
 ```
 
+Select `Shared`, `Static`, or, in the matching MSVC package, `StaticMT` as the
+example variant. The chat, diagnostic, hello, and music examples require only
+OpenDoors. The ski and vote examples additionally use Synchronet's xpdev
+portability wrappers. Pass `OPENDOORS_XPDEV_DIR` explicitly or place xpdev at
+the single documented `../xpdev` location; the build does not search the
+machine for an arbitrary checkout.
+
+When building directly from this repository rather than from a release
+bundle, the top-level project offers the same examples. This is convenient
+while changing OpenDoors itself, but it is not a substitute for testing the
+installed SDK: an in-tree target can accidentally see files which an installed
+consumer cannot. The package-consumer test and separate examples project exist
+to catch that class of mistake.
+
+## A minimal door
+
+The following program parses the standard command line, initializes the
+session, displays two lines, waits for a key, and returns to the BBS:
+
 ```c
-main()
+#include <OpenDoor.h>
+
+#ifdef ODPLAT_WIN32
+int WINAPI WinMain(HINSTANCE instance, HINSTANCE previous,
+    LPSTR command_line, int show_command)
+#else
+int main(int argc, char **argv)
+#endif
 {
-   od_printf("Welcome to my first door program!\n\r");
-   od_printf("Press a key to return to BBS!\n\r");
-   od_get_key(TRUE);
-   od_exit(0, FALSE);
+#ifdef ODPLAT_WIN32
+    (void)instance;
+    (void)previous;
+    od_control.od_cmd_show = show_command;
+    od_parse_cmd_line(command_line);
+#else
+    od_parse_cmd_line(argc, argv);
+#endif
+
+    od_init();
+
+    od_printf("Hello, %s!\n\r", od_control.user_name);
+    od_printf("Press any key to return to the BBS.\n\r");
+    od_get_key(TRUE);
+
+    od_exit(0, FALSE);
+    return 0;
 }
 ```
 
-Win32 version:
+The Windows entry point is useful for examples built as GUI-subsystem
+applications so Windows does not create an unrelated console window. A console
+subsystem application can use `main()` if its build and command-line handling
+are arranged accordingly.
+
+The example contains all of the required phases of a small door:
+
+1. It includes [`OpenDoor.h`](../reference/api/index.md), which declares both
+   the API functions and the exported [`od_control`](../reference/control/index.md)
+   structure.
+2. It passes the process command line to
+   [`od_parse_cmd_line()`](../reference/api/od_parse_cmd_line.md) before any
+   call can initialize OpenDoors. The Windows and non-Windows forms differ
+   because Windows supplies a single command-line string to `WinMain`, while
+   C supplies an argument count and vector to `main`.
+3. It calls [`od_init()`](../reference/api/od_init.md) explicitly. At this
+   point the drop file has been detected and read, communications have been
+   selected, defaults have been installed, and caller fields may be used.
+4. It writes terminal lines with carriage-return/line-feed sequences. A
+   remote terminal normally requires both controls: `\n` advances to the next
+   row and `\r` returns to the first column.
+5. It waits with [`od_get_key()`](../reference/api/od_get_key.md), then calls
+   [`od_exit()`](../reference/api/od_exit.md) with hangup disabled so the BBS
+   can continue the caller's session.
+
+Even this small program receives carrier monitoring, session-time enforcement,
+local sysop keys, status handling, and terminal-aware output from the library.
+Those services do not require application code in the main loop, but they do
+depend upon the application entering OpenDoors often enough for periodic
+processing to run.
+
+### Command-line processing
+
+The two public forms of
+[`od_parse_cmd_line()`](../reference/api/od_parse_cmd_line.md) accept the
+platform's natural command-line representation. The standard parser recognizes
+local mode, drop-file location, port and speed overrides, Door32 handles,
+sockets, node number, caller identity overrides, personality selection, and
+the other options listed in its reference.
+
+Call the parser before [`od_init()`](../reference/api/od_init.md). A program may
+also parse its own arguments or install the documented callbacks for custom
+options, but communications and door-information overrides must be established
+before initialization consumes them.
+
+### Initialization
+
+Most OpenDoors functions call [`od_init()`](../reference/api/od_init.md)
+automatically on first use. That convenience makes the smallest possible door
+very short, but explicit initialization is preferable in a real program:
+
+1. assign all pre-initialization settings in
+   [`od_control`](../reference/control/index.md);
+2. parse the command line;
+3. call [`od_init()`](../reference/api/od_init.md); and
+4. inspect caller, system, terminal, and connection fields only after the call
+   succeeds.
+
+An output call made too early can initialize the library before the
+application has selected its configuration file, components, callbacks,
+connection method, or program identity. The
+[session lifecycle](session-lifecycle.md) lists the phases in their normal
+order.
+
+### Orderly shutdown
+
+[`od_exit()`](../reference/api/od_exit.md) performs OpenDoors shutdown, updates
+supported door-information files, closes the activity log, restores local
+state, optionally hangs up, and terminates with the requested error level. A
+normal “return to BBS” choice passes
+[`FALSE`](../reference/constants/general.md#false) for hangup; an explicit
+logoff choice passes [`TRUE`](../reference/constants/general.md#true).
+
+Do not replace this call with the C runtime `exit()` or a return from `main()`
+when an initialized session needs orderly shutdown. Those paths cannot perform
+the complete OpenDoors cleanup contract.
+
+## Running locally and under a BBS
+
+OpenDoors can operate without a remote connection. Local mode is convenient
+for program flow, menus, file access, and much display testing. With standard
+command-line processing enabled, run a door with `-LOCAL`, or set
+[`od_control.od_force_local`](../reference/control/customization.md#od_force_local)
+before initialization.
+
+Local mode sets [`od_control.baud`](../reference/control/connection.md#baud) to
+zero. There is no remote carrier or modem object, but the normal screen and
+input functions remain available. Terminal behavior which depends on a real
+byte stream, latency, a particular emulator, Door32, a socket, or FOSSIL I/O
+must still be tested in an appropriate remote environment.
+
+In remote mode, the BBS normally writes a drop file and then starts the door in
+the corresponding node directory or passes its location on the command line.
+OpenDoors recognizes the supported `DORINFO?.DEF`, `DOOR.SYS`,
+`EXITINFO.BBS`, `CHAIN.TXT`, `CALLINFO.BBS`, `SFDOORS.DAT`, `TRIBBS.SYS`, and
+`DOOR32.SYS` forms. The selected type is reported by
+[`od_control.od_info_type`](../reference/control/connection.md#od_info_type).
+
+Modern hosts often pass a Door32 handle, a socket, or standard input/output
+instead of granting a door direct ownership of a UART. The communications
+method is reported by
+[`od_control.od_com_method`](../reference/control/connection.md#od_com_method).
+The BBS and door must agree on ownership: a borrowed handle must not be opened
+as if it were an independently configured serial port.
+
+### What happens when a BBS launches a door
+
+The usual launch sequence begins while the caller is still inside the BBS. The
+BBS writes a door-information file in the node's working directory, or updates
+an existing one, then launches the door with any required path, node, handle,
+or connection arguments. The door reads that state during initialization and
+uses the existing terminal connection. It does not answer a new call.
+
+While the door runs, the BBS normally waits. OpenDoors watches the live
+connection and the time limit reported by the BBS. On orderly exit it updates
+the formats which permit writeback, closes resources it owns, and returns an
+error level to the launching process. The BBS can then reload the changed
+record, continue the caller's session, disconnect the caller if the door
+requested a hangup, or use the error level for BBS-specific routing.
+
+This sequence is the reason a door must distinguish “return to BBS” from
+“hang up.” Both choices terminate the door program; only the latter should
+terminate the caller's connection. It is also why a door should not retain
+assumptions about its initial working directory or a particular drop-file
+format when the parser and the BBS provide explicit paths.
+
+### Testing with the sample drop file
+
+The source tree contains `DORINFO1.DEF`, a local test record. Its twelve lines
+contain, in order, the BBS name, sysop first and last names, port description,
+communications description, a legacy unused field, caller first and last
+names, caller location, ANSI setting, security level, and minutes remaining.
+The supplied file specifies `COM0` and `0 BAUD,N,8,1`, so it describes a local
+session rather than a modem connection.
+
+Place a copy in the door's working directory or point the standard command
+line at its directory, then run the door normally. Alternatively, `-LOCAL`
+constructs local operation without requiring that test file. A local test is
+appropriate for menus, file handling, color selection, callbacks, and orderly
+shutdown. It cannot prove that a real terminal interprets escape sequences as
+expected, that a passed socket remains live, or that a BBS correctly consumes
+writeback, so a release should also be exercised through the environments it
+claims to support.
+
+## Output and the screen model
+
+[`od_printf()`](../reference/api/od_printf.md) is the usual formatted output
+function. It accepts C `printf()` conversions and OpenDoors color descriptions:
 
 ```c
-#include "opendoor.h"
+od_printf("`bright white on blue`Welcome, %s!`white on black`\n\r",
+    od_control.user_name);
 ```
 
+[`od_disp_str()`](../reference/api/od_disp_str.md) sends a null-terminated
+string without C formatting. [`od_disp()`](../reference/api/od_disp.md) sends a
+specified byte count and is appropriate when the data is not null terminated.
+[`od_putch()`](../reference/api/od_putch.md) displays one byte.
+
+All of these functions update the authoritative session screen as appropriate
+and transmit through the active connection. On Unix, Windows, and the modern
+virtual-screen paths, this avoids making the remote terminal's dimensions
+depend on the physical local console. Cursor-addressed operations use the
+screen dimensions established for the caller.
+
+Use [`od_set_color()`](../reference/api/od_set_color.md) or
+[`od_set_attrib()`](../reference/api/od_set_attrib.md) for programmatic color
+changes. Plain ASCII callers receive no terminal color controls, although the
+local or virtual display still maintains its current cell attributes.
+
+Screen-clearing policy is separate from color. The caller's preference and
+[`od_control.od_always_clear`](../reference/control/customization.md#od_always_clear)
+determine whether [`od_clr_scr()`](../reference/api/od_clr_scr.md) performs a
+clear. The function reference describes its exact policy; do not assume that a
+clear request is unconditional.
+
+For saved areas, use the size-aware
+[`od_save_screen_ex()`](../reference/api/od_save_screen_ex.md) and
+[`od_restore_screen_ex()`](../reference/api/od_restore_screen_ex.md)
+interfaces in new code. The established
+[`od_gettext()`](../reference/api/od_gettext.md),
+[`od_puttext()`](../reference/api/od_puttext.md), and popup-window interfaces
+retain their historical coordinate and buffer contracts.
+
+### Coordinates, scrolling, and windows
+
+OpenDoors screen coordinates are one-based. A cursor position of row 1,
+column 1 is the upper-left cell. Rectangle functions accept inclusive edges,
+so a rectangle from `(1, 1)` through `(80, 24)` contains 1,920 cells rather
+than 1,817. Validate computed rectangles before calling the API: reversing an
+edge or allowing an unsigned calculation to wrap does not describe an empty
+area.
+
+[`od_set_cursor()`](../reference/api/od_set_cursor.md) positions subsequent
+screen output. [`od_clr_line()`](../reference/api/od_clr_line.md) clears from
+the current column through the right edge and leaves the cursor at its
+documented final position; it is not an abbreviation for clearing the entire
+row regardless of the starting column. [`od_scroll()`](../reference/api/od_scroll.md)
+moves the contents of an inclusive rectangle and fills the vacated cells with
+the selected attribute.
+
+Popup windows created by
+[`od_window_create()`](../reference/api/od_window_create.md) save the covered
+area and return an opaque handle. Pass that handle to
+[`od_window_remove()`](../reference/api/od_window_remove.md) once, in reverse
+nesting order when windows overlap. A saved window represents remote screen
+state; it must not be sized from assumptions about an 80-column local console.
+
+Writing the last cell of a terminal line deserves care. Many terminals advance
+to the next row after receiving a character in the rightmost column, and an
+advance from the bottom-right cell may scroll the screen. OpenDoors maintains
+its virtual cursor according to the documented terminal model, but an
+application which draws borders or fixed grids should avoid emitting an extra
+printable byte or newline after the final cell unless that movement is
+intended.
+
+## Input
+
+[`od_get_key()`](../reference/api/od_get_key.md) returns one queued input byte.
+Passing [`TRUE`](../reference/constants/general.md#true) waits; passing
+[`FALSE`](../reference/constants/general.md#false) polls. It accepts remote
+input and ordinary enabled local-keyboard input in arrival order.
+
+Use [`od_get_answer()`](../reference/api/od_get_answer.md) when only a small set
+of one-byte responses is valid:
+
 ```c
-int WINAPI WinMain(HINSTANCE hInstance,
-   HINSTANCE hPrevInstance,LPSTR lpszCmdLine,int nCmdShow)
+od_printf("Return to the BBS? (Y/N) ");
+if(od_get_answer("YN") == 'Y')
+    od_exit(0, FALSE);
+```
+
+[`od_get_input()`](../reference/api/od_get_input.md) is the structured input
+interface. It reports whether the event came from the remote or local side and
+translates recognized terminal sequences into
+[`OD_KEY_*`](../reference/constants/input.md#extended-key-codes) events. Use it
+for cursor keys, function keys, and applications which care who generated the
+input.
+
+[`od_input_str()`](../reference/api/od_input_str.md) provides simple
+line-oriented input for every terminal mode.
+[`od_edit_str()`](../reference/api/od_edit_str.md) provides a formatted,
+cursor-addressed field editor, while
+[`od_multiline_edit()`](../reference/api/od_multiline_edit.md) provides a text
+editor with paging, wrapping, and optional callbacks.
+
+Single-byte input functions return byte values, not Unicode characters. A door
+which accepts extended CP437 input should use an unsigned-capable object or an
+integer for the returned value and should follow each function's documented
+range. Do not store every result in a signed `char` and then assume values from
+128 through 255 remain positive on every compiler.
+
+Polling deserves a different loop from blocking input. A nonblocking call can
+return zero when no byte is ready; the application must perform useful work,
+call [`od_kernel()`](../reference/api/od_kernel.md), or yield before polling
+again. A tight loop which does nothing but ask for input consumes a processor
+and can starve the rest of the BBS. Conversely, a blocking call is appropriate
+for an ordinary menu prompt because OpenDoors continues its internal session
+work while waiting.
+
+Line and field editors require a destination with the capacity stated by the
+function. The maximum input length does not allocate storage for the caller.
+Include room for the terminating null byte, initialize any starting text when
+the interface expects it, and do not pass a pointer to read-only string
+storage. For cursor-addressed editors, also ensure that the field and its
+prompt fit within the active remote screen.
+
+## Using `od_control`
+
+The exported [`od_control`](../reference/control/index.md) structure serves two
+distinct purposes:
+
+- settings assigned before initialization select components, callbacks,
+  connection overrides, program identity, colors, prompts, and policies; and
+- fields populated during initialization report the BBS, caller, terminal,
+  connection, timing, and door-information state.
+
+For example, after initialization the caller's name is in
+[`od_control.user_name`](../reference/control/caller.md#user_name), location in
+[`od_control.user_location`](../reference/control/caller.md#user_location),
+security level in
+[`od_control.user_security`](../reference/control/caller.md#user_security),
+and remaining minutes in
+[`od_control.user_timelimit`](../reference/control/caller.md#user_timelimit).
+
+Not every drop-file format contains every value. Each field reference states
+its initial value, the formats or conditions which populate it, and whether
+OpenDoors itself reads or writes it. Test
+[`od_control.od_info_type`](../reference/control/connection.md#od_info_type) or
+the documented availability condition before treating a format-specific field
+as authoritative.
+
+Some caller fields are written back to supported `EXITINFO.BBS` variants during
+shutdown. Do not modify a field merely because it is publicly visible; follow
+the field's ownership and writeback description.
+
+## Periodic processing
+
+Normal API calls give [`od_kernel()`](../reference/api/od_kernel.md) regular
+opportunities to process carrier state, input, local sysop keys, time limits,
+inactivity, status updates, and callbacks. During a computation or external
+wait which makes no OpenDoors calls, invoke it periodically:
+
+```c
+for(record = 0; record < record_count; ++record)
 {
-   od_printf("Welcome to my first door program!\n\r");
-   od_printf("Press a key to return to BBS!\n\r");
-   od_get_key(TRUE);
-   od_exit(0, FALSE);
+    process_record(record);
+    od_kernel();
 }
 ```
 
-Keep in mind that even this simple program will automatically have all of the door capabilities we have already mentioned. Notice the line that reads #include "opendoor.h". All programs written with OpenDoors must include the OPENDOOR.H header file in order to compile correctly. The first two lines in the main/WinMain function simply call the OpenDoors [`od_printf()`](../reference/api/od_printf.md) function. [`od_printf()`](../reference/api/od_printf.md) is similar to the printf() function that C programmers will already be familiar with. However, unlike printf(), the [`od_printf()`](../reference/api/od_printf.md) function sends the output to both the modem and the local screen. Notice that the lines of text displayed by the [`od_printf()`](../reference/api/od_printf.md) function end with a "\n\r" sequence, instead of the normal "\n". This is because the terminal emulation software that is running on the remote user's system usually requires both a carriage return and a line feed to correctly begin a new line. The next line in our example program is the OpenDoors single-key input function, [`od_get_key()`](../reference/api/od_get_key.md). The TRUE value causes OpenDoors to wait for a key to be pressed (again, either from remote or local keyboard) before returning. The last line of the main/WinMain function is a call to [`od_exit()`](../reference/api/od_exit.md). Any program using OpenDoors should call this function. For the time being, you can always use the (0, FALSE) parameters.
+[`od_sleep()`](../reference/api/od_sleep.md) is preferable to an operating
+system busy wait because it yields while preserving the library's expected
+periodic behavior. A long section which holds an application data-file lock
+should normally finish and release the lock promptly rather than call arbitrary
+callbacks or wait for caller input while shared data is unavailable.
 
-Once again, you are encouraged to try compiling and running this program, as described above. Congratulations, you have written your first door program! Feel free to make any changes to this program, and see what effects your changes have.
+## Optional components and callbacks
 
-To simplify this example, separate versions of this program are shown for the DOS and Win32 versions of OpenDoors. However, you would typically write your program so that it could be compiled using either the DOS or Win32 versions of OpenDoors, by beginning the mainline function as follows:
+The built-in configuration reader is selected before initialization by
+assigning [`INCLUDE_CONFIG_FILE`](../reference/constants/components.md#include_config_file)
+to [`od_control.od_config_file`](../reference/control/customization.md#od_config_file).
+The default configuration filename and complete keyword set are described in
+[Configuration files](configuration.md).
 
-#ifdef ODPLAT_WIN32 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int nCmdShow) #else int main(int argc, char *argv[]) #endif
+An application can handle its own keywords through
+[`od_control.od_config_function`](../reference/control/customization.md#od_config_function)
+or observe recognized settings through
+[`od_control.od_config_callback`](../reference/control/customization.md#od_config_callback).
+Callbacks run during initialization; they must honor the argument-lifetime and
+re-entry rules in the field reference.
 
-In case you are not entirely familiar with the operation of door programs, we will now provide an introduction to the internals of a door's operation. Keep in mind that OpenDoors automatically carries out most of these tasks for you. When any door program starts up, one of the first things it must do is to read the door information file(s) (sometimes called a "drop file") passed to it by the BBS. When a user is on-line, and wishes to run a door, they will most likely select a command from a menu. At this point, the BBS system (such as RemoteAccess, Maximus, PC- Board or whatever), will create a file of information about the system, who is currently on-line, and so on. Various BBS packages produce various styles of door information files. OpenDoors automatically recognizes and reads a wide variety of door information file formats. As a result, your doors will be able to run on a almost any BBS system.
+The activity logger is selected with
+[`INCLUDE_LOGFILE`](../reference/constants/components.md#include_logfile) in
+[`od_control.od_logfile`](../reference/control/customization.md#od_logfile).
+It records standard session events, while
+[`od_log_write()`](../reference/api/od_log_write.md) adds application events.
+Log messages should be short, factual, and useful to an operator diagnosing a
+session.
 
-Fortunately, OpenDoors takes care of all the work involved in detecting and reading the door information file, and then initializing and communicating with the serial port for you. In order to carry out these tasks, along with setting up the status line, and so on, OpenDoors provides a function called [`od_init()`](../reference/api/od_init.md). If you do not explicitly call this function, the first call to any other OpenDoors function (such as the first time your door program outputs anything) will automatically cause the [`od_init()`](../reference/api/od_init.md) function to be called. As a result, upon the first call to an OpenDoors function, all of the initialization tasks for the door will automatically be carried out. However, there may be times when you will want your program to have access information about the user who is on-line, or carry out other actions which require [`od_init()`](../reference/api/od_init.md) to have been executed - prior to the point where you call any other OpenDoors functions. In this case, you will have to call [`od_init()`](../reference/api/od_init.md) yourself before you do any of these things.
+The DOS multiple-personality selector is selected with
+[`INCLUDE_MPS`](../reference/constants/components.md#include_mps) in
+[`od_control.od_mps`](../reference/control/customization.md#od_mps).
+Personalities affect only the DOS local status display and sysop keys. They do
+not change drop-file parsing or the remote terminal protocol.
 
-OpenDoors provides you with a C/C++ structure, by the name of od_control, which allows you to access all the available information about the user who is on-line, the system your door is running on, and also allows you to adjust various OpenDoors parameters. Depending on what BBS system your door is running under, the actual information available from the od_control structure will vary. For more information on the od_control structure, see the section on the control structure, beginning on page 148.
+Lifecycle callbacks can replace or supplement chat, shell, time-warning,
+configuration, and shutdown behavior. Install them before the phase in which
+they are used, and avoid assuming that every callback runs on the application's
+main thread on every platform.
 
-Once the door has initialized itself, it will then begin communications with the user who is online. OpenDoors takes care of all communications, through its various input and display functions. When the door has finished, it will then write any information that has changed back to the door information file (if applicable), finish communicating with the modem, and return to the BBS. In OpenDoors, these shut-down operations are automatically performed you call the [`od_exit()`](../reference/api/od_exit.md) function. This function will terminate the door's activity, OPTIONALLY hang up on the user (allowing you to provide either return to BBS or logoff options for exiting), and then exit with the specified errorlevel.
+## Menus and external display files
 
-One other important OpenDoors function that you should be aware of is the [`od_kernel()`](../reference/api/od_kernel.md) function. [`od_kernel()`](../reference/api/od_kernel.md) is the central OpenDoors control function, and is responsible for much of OpenDoor's updating of the status line, monitoring the carrier detect and user timeout status, responding to sysop function keys, and so on. The [`od_kernel()`](../reference/api/od_kernel.md) function is called automatically by OpenDoors, within the other OpenDoors functions. As a result, since most door programs will call some OpenDoors function on a regular basis, you will most often have no need to call the [`od_kernel()`](../reference/api/od_kernel.md) function yourself. However, if your door is going to perform some action, such as updating data files, during which it will not call any OpenDoors function for more than a few seconds, you should then call the [`od_kernel()`](../reference/api/od_kernel.md) function yourself. For more information on the [`od_kernel()`](../reference/api/od_kernel.md) function, see page 97.
+[`od_send_file()`](../reference/api/od_send_file.md) displays an explicitly
+named file or selects `.rip`, `.avt`, `.ans`, and `.asc` variants according to
+the caller's capabilities. It supports page pausing, interruption, local
+emulation, and the implemented RemoteAccess/QuickBBS substitutions documented
+in its reference.
 
-For more information on the functions available from OpenDoors, or the control structure, see the corresponding sections in this manual.
-
-### Tour Of A Sample Door Program: "Ex_Vote"
-
-One of the best ways to see how OpenDoors works, and the potential that it has, is to look at the example programs included in the OpenDoors package. A brief description of each of these programs can be found on page 38. This section takes a closer look at one of the example programs, EX_VOTE.C. Unlike our simple example in the previous section, EX_VOTE.C is a much more complicated program, taking advantage of many of the advanced features of OpenDoors. Even if you do not understand everything that EX_VOTE.C does, you should be able to make use of various elements demonstrated here, in your own programs.
-
-The OpenDoors package includes a two compiled versions of EX_VOTE. VOTEDOS.EXE is a plain-DOS program which can run under DOS, Windows or OS/2. VOTEWIN.EXE was compiled using the Win32 version of OpenDoors, and so it runs only on Windows 95/NT. The OpenDoors package also contains a sample door information file, DORINFO1.DEF. You can use this file to test any doors in local mode. If you wish to manually create your own DORINFO1.DEF file, you can do so very easily. The DORINFO1.DEF door information file is a simple text file which lists a different piece of information on each line, in the following format:
-
-```c
-+----------------------------------------------------------+
-| LINE NUMBER | DESCRIPTION            | EXAMPLE           |
-+-------------+------------------------+-------------------|
-|     1       | Name of the BBS        | MY OWN BBS        |
-|     2       | Sysop's first name     | BRIAN             |
-|     3       | Sysop's last name      | PIRIE             |
-|     4       | Com Port modem is on   | COM0              |
-|     5       | Baud rate, etc.        | 0 BAUD,N,8,1      |
-|     6       | Unused                 | 0                 |
-|     7       | User's first name      | JOHN              |
-|     8       | User's last name       | PUBLIC            |
-|     9       | Caller's location      | OTTAWA, ON        |
-|     10      | ANSI mode (0=off, 1=on)| 1                 |
-|     11      | User's security level  | 32000             |
-|     12      | User's time left       | 60                |
-+----------------------------------------------------------+
-```
-
-Feel free to make any changes you wish to EX_VOTE.C, and recompile it. One of the most effective and enjoyable ways to learn OpenDoors is by experimenting. If you are a registered owner of OpenDoors, you may even distribute your own versions of this door. Also, you may find that EX_VOTE.C serves as a good framework for building your own door programs.
-
-The EX_VOTE.C door behaves similarly to most other door programs, and will have a fair bit in common with any other door you write in OpenDoors. What you see in the output window is identical to what a remote user will be seeing. If the user has ANSI, AVATAR or RIP mode turned on, you will see the same colors as they do, and if they have screen clearing turned on, your screen will be cleared when theirs is. The status line at the bottom of the window will list the name of the user currently on-line (if you are using the sample DORINFO1.DEF file, the user's name will be "The Sysop"), the user's location, and the user's baud rate (0 if the door is operating in local mode). The local display also shows how much time the user has left, whether the user has paged the system operator for a chat, and other information.
-
-There are a number of special commands that are only available to the system operator on the local keyboard. These commands allow the system operator to hang up on the user, adjust the amount of time the user may remain online, enter chat mode with the user, enter a DOS shell (in the DOS version), and so on. In the DOS version, help on these commands is available on the status line by pressing the [F9] key. In the Windows version, these commands are listed on the menu that appears at the top of the window.
-
-Now, let us take a closer look at the actual source code for the EX_VOTE.C door. If you have not already printed out a copy of this manual, and possibly the EX_VOTE.C file as well, it would probably be a good idea to do so now.
-
-Notice that near the top of the program, along with all the standard header files, the OPENDOOR.H file is included. This file must be included in all programs written under OpenDoors. If you are placing the OPENDOOR.H file in the same directory as the door you are compiling, simply include the line:
+[`od_hotkey_menu()`](../reference/api/od_hotkey_menu.md) adds a set of valid
+menu keys and can return as soon as one is selected, even before the display
+file has finished. This permits a sysop to replace a compiled menu screen
+without changing application logic:
 
 ```c
-#include "opendoor.h"
+char choice;
+
+choice = od_hotkey_menu("MAINMENU", "PLQ", TRUE);
+switch(choice)
+{
+    case 'P':
+        od_page();
+        break;
+
+    case 'L':
+        od_exit(0, TRUE);
+        break;
+
+    case 'Q':
+        od_exit(0, FALSE);
+        break;
+}
 ```
 
-in your program.
+Always retain a usable text path. A RIP or AVATAR screen alone is not a
+substitute for an ASCII fallback when the caller does not advertise those
+capabilities.
 
-The main()/WinMain() function of the EX_VOTE.C program has a for(;;) loop that repeatedly displays the main menu, obtains a choice from the user and responds to the command, until the user chooses to exit the program. Before the main menu is displayed, the screen is cleared by calling [`od_clr_scr()`](../reference/api/od_clr_scr.md). The [`od_clr_scr()`](../reference/api/od_clr_scr.md) function will clear both the local and remote screens, but only if the user has screen clearing enabled. Refer to page 57 for information on how to force the screen to be cleared, regardless of the user's screen clearing setting. The main menu is displayed using the [`od_printf()`](../reference/api/od_printf.md) function, one of the most common OpenDoors functions you will use. Next, [`od_get_answer()`](../reference/api/od_get_answer.md) is used to obtain a menu choice from the user from the specified set of keys. Next, a switch() statement is used to respond to the user's command appropriately. If the user presses the P key to page the system operator, [`od_page()`](../reference/api/od_page.md) is called. If the user chooses to return to the BBS, [`od_exit()`](../reference/api/od_exit.md) is called to terminate OpenDoor's activities and return control to the BBS. The FALSE parameter passed to [`od_exit()`](../reference/api/od_exit.md) indicates that OpenDoors should not disconnect (hangup) before exiting. If the user chooses to log off, EX_VOTE.C first confirms this action with the user, and then calls [`od_exit()`](../reference/api/od_exit.md) with the TRUE parameter. The numerical parameter passed to [`od_exit()`](../reference/api/od_exit.md) sets the errorlevel that OpenDoors will exit with.
+## Multi-node data
 
-In its ChooseQuestion() function, EX_VOTE.C uses the OpenDoors function [`od_get_key()`](../reference/api/od_get_key.md). This function is similar to the [`od_get_answer()`](../reference/api/od_get_answer.md) function that we have already seen. However, unlike [`od_get_answer()`](../reference/api/od_get_answer.md) which will wait until the user presses some key from the list of possibilities you provide, [`od_get_key()`](../reference/api/od_get_key.md) will allow the user to press any key. [`od_get_key()`](../reference/api/od_get_key.md) accepts a single parameter. If this parameter is TRUE, [`od_get_key()`](../reference/api/od_get_key.md) will wait for the user to press a key before returning. If this parameter is FALSE, [`od_get_key()`](../reference/api/od_get_key.md) will return immediately with a value of 0 if there are no keys waiting in the inbound buffer, and returning the next key if there are characters waiting.
+Two nodes can execute the same door simultaneously. Any shared score, poll,
+user, message, or configuration data must therefore be designed for concurrent
+access. The safe update pattern is:
 
-In a number of places, EX_VOTE.C also uses the [`od_input_str()`](../reference/api/od_input_str.md) function. Unlike [`od_get_key()`](../reference/api/od_get_key.md) and [`od_get_answer()`](../reference/api/od_get_answer.md) which return a single character, [`od_input_str()`](../reference/api/od_input_str.md) allows the user to input and edit a string of many characters. You will only receive the string entered by the user after they press the enter key. [`od_input_str()`](../reference/api/od_input_str.md) accepts four parameters: the string where the user's input should be stored, the maximum number of characters to input, the minimum character value to accept and the maximum character value to accept.
+1. acquire the file or record lock;
+2. read the current value while the lock is held;
+3. calculate and write the update;
+4. flush as required; and
+5. release the lock immediately.
 
-Another new feature of OpenDoors that is used by EX_VOTE.C is the OpenDoors control structure, od_control. This global structure is documented in chapter 5 of this manual. The OpenDoors control structure allows you to access a wide variety of information about the user who is currently online, the BBS system your program is running on, and also allows you to control various OpenDoors settings. For example, EX_VOTE.C compares the current user name (od_control.od_user_name) with the name of the system operator (od_control.od_sysop_name) to determine whether it is the system operator who using the program.
+Reading before acquiring the lock can lose another node's update. Holding a
+lock while waiting for caller input can stall every other node. See
+[Multi-node programming](multinode.md) for the detailed failure scenario and
+the locking approaches used by the examples.
 
-EX_VOTE.C uses two data files, the first of which contains a record for every user, and the second of which contains a record for every question. EX_VOTE.C accesses these data files in a controlled manner in order to permit the program to be running simultaneously on multiple lines on a multi-node BBS system. When EX_VOTE.C needs to update a data file, it opens it for exclusive access, so that only one node can access the file at any given time. Since the data file could have been changed by another node since the time that EX_VOTE.C last read the file, it always reads a record, makes changes to it and then re-writes the record while it has the file open for exclusive access. It then closes the file as soon as possible after opening the file, in order to permit other nodes to once again access the file. Because EX_VOTE.C keeps track of which questions each user has voted on, along with the questions and results of voting on each question, its data file format is more complex than many door programs (although not as complex as others).
+## A tour of `ex_vote.c`
 
-EX_VOTE.C also uses color. One of the easiest ways to use different colors in an OpenDoors program is to use the OpenDoor's print color-setting extensions. You can change the color of text display at any point in an [`od_printf()`](../reference/api/od_printf.md) format string using by enclosing the name of new display color in back quote characters (`, not '). For example:
+The Vote example is large enough to resemble a practical door while remaining
+organized around a small number of OpenDoors features. It maintains a set of
+poll questions, answer totals, and a record of the questions on which each
+caller has voted. The program demonstrates startup customization, caller
+fields, an external menu, OpenDoors input and output, configuration callbacks,
+logging, shutdown callbacks, and optional multi-node file locking.
 
-od_printf("`red`This is in red `green`This is green\n\r");
+The example is older application code retained as a demonstration; its own
+displayed “Version 6.00” string is the example program's text and is not the
+version of the library being linked. Read the API reference for the current
+contract, and treat the example's fixed-size binary data files as an example
+format rather than a portable interchange format.
 
-Would cause the words "This is in red" to be displayed in red, and the words "This is in green" to be displayed in green.
+### Records and limits
 
-EX_VOTE.C also takes advantage of a number of OpenDoors capabilities that you can optionally choose to include in your door programs. You will notice that there are a number of new lines at the beginning of the main() function, all of which change settings in the OpenDoors control structure. The line:
+Near the beginning of the file, Vote defines limits for 200 questions, 15
+answers per question, and 30,000 caller records. `tUserRecord` contains the
+caller's name and one Boolean byte for each possible question. The current
+user record and its file index remain in memory for the session.
+
+`tQuestionRecord` contains the question text, the possible answer strings,
+counts, creator name, and creation time. These structures are written directly
+to `vote.usr` and `vote.qst`. That is simple and fast for one build of the
+example, but it ties a file to the compiler's structure layout, byte order,
+integer sizes, and `time_t` representation. A production door which must share
+data between DOS and 64-bit hosts, or preserve it across compiler changes,
+should define a fixed on-disk encoding and serialize each field deliberately.
+
+The global `nViewResultsFrom` policy begins by allowing results for questions
+already answered by the caller. `nQuestionsVotedOn` accumulates activity for
+the session and is later included in the OpenDoors log. Neither variable
+belongs in [`od_control`](../reference/control/index.md), because both describe
+Vote's application state rather than the BBS session.
+
+### Startup customization
+
+Vote's `main`/`WinMain` first supplies a program name, version text, and
+copyright text. These must be set before initialization if the local interface
+and log are to display the application identity. It then calls
+[`od_parse_cmd_line()`](../reference/api/od_parse_cmd_line.md), allowing the
+sysop to use the normal connection, path, local-mode, node, and diagnostic
+options.
+
+Before calling [`od_init()`](../reference/api/od_init.md), the example selects
+three optional components and installs two callbacks:
 
 ```c
 od_control.od_config_file = INCLUDE_CONFIG_FILE;
-```
-
-causes the OpenDoors configuration file system to be included in your program. Using this system, OpenDoors automatically reads a configuration file that can be used by the system operator to change various program settings. Refer to the included door.cfg file for an example OpenDoors configuration file. In addition to the configuration file settings automatically supported by the configuration file system, you can also add your own configuration file settings. To do this, you simply supply OpenDoors with a callback function that it will call whenever it encounters an unrecognized keyword in the configuration file. The line:
-
-```c
 od_control.od_config_function = CustomConfigFunction;
-```
-
-Causes OpenDoors to call the function CustomConfigFunction() in EX_VOTE.C for this purpose. You will notice that the CustomConfigFunction() receives two parameters - the first is the unrecognized keyword, and the second is any parameters that follow the keyword in the configuration file. EX_VOTE.C checks for two special configuration file lines - one to set whether or
-
-not users can add questions, and one to set whether or not users can view the results of a question before voting on it.
-
-The next line in the main() function,
-
-```c
 od_control.od_mps = INCLUDE_MPS;
+od_control.od_logfile = INCLUDE_LOGFILE;
+strcpy(od_control.od_logfile_name, "vote.log");
+od_control.od_before_exit = BeforeExitFunction;
 ```
 
-causes the OpenDoors "Multiple Personality System" to be included in program. This allows the sysop to choose from a number of status line / sysop function key "personalities" that mimic a number of different BBS systems, using the Personality setting in the configuration file.
+[`INCLUDE_CONFIG_FILE`](../reference/constants/components.md#include_config_file)
+enables the configuration reader. The
+[`od_config_function`](../reference/control/customization.md#od_config_function)
+callback receives settings not recognized by the built-in keyword table.
+[`INCLUDE_MPS`](../reference/constants/components.md#include_mps) enables the
+DOS personality selector; it has no effect on the remote terminal or on
+non-DOS local presentation. [`INCLUDE_LOGFILE`](../reference/constants/components.md#include_logfile)
+enables the logger, and
+[`od_before_exit`](../reference/control/customization.md#od_before_exit)
+provides one final application callback during orderly shutdown.
 
-The line:
+All of these assignments precede initialization because each affects work
+performed while OpenDoors is starting. Moving the configuration selector
+after the first display call would be too late: that display could implicitly
+initialize the library before the selector is seen.
+
+The explicit initialization which follows makes caller information available.
+Vote immediately calls `ReadOrAddCurrentUser`, which uses
+[`user_name`](../reference/control/caller.md#user_name) as its application user
+key. If the record cannot be obtained, the program reports the error and exits
+through [`od_exit()`](../reference/api/od_exit.md), preserving normal OpenDoors
+cleanup even on this early failure path.
+
+### The main menu
+
+The main loop continues until the caller chooses either return-to-BBS or
+hangup. It begins by calling [`od_clr_scr()`](../reference/api/od_clr_scr.md),
+then attempts to display an external menu:
 
 ```c
-od_control.od_logfile = INCLUDE_LOGFILE;
+chMenuChoice = od_hotkey_menu("VOTE", "VRADPEH", TRUE);
 ```
 
-causes the OpenDoors log file system to be included in the program. The OpenDoors log file system automatically records the date and time of program startup, exit and other major actions in the specified file. EX_VOTE.C also writes its own log file entries by calling the [`od_log_write()`](../reference/api/od_log_write.md) function.
+[`od_hotkey_menu()`](../reference/api/od_hotkey_menu.md) looks for the suitable
+`VOTE` display-file variant and accepts only the listed command characters. Its
+final true argument permits the caller to interrupt the file as soon as a
+valid choice is pressed. A zero return indicates that no suitable file could
+be displayed, so Vote falls back to a menu compiled into the program. This
+fallback is important: installing an ANSI or RIP file must not make the door
+unusable for a plain-ASCII caller or on a fresh installation with no display
+files.
 
-EX_VOTE.C also provides the ability for the sysop to provide their own ASCII/ANSI/AVATAR/RIP files to be displayed in place of the normal main menu. EX_VOTE.C uses the [`od_hotkey_menu()`](../reference/api/od_hotkey_menu.md) function to display a VOTE.ASC/.ANS/.AVT/.RIP file for the main menu, if such a file exists. If the file is not available, the normal EX_VOTE.C menu is used instead. The [`od_hotkey_menu()`](../reference/api/od_hotkey_menu.md) function will automatically select the appropriate file (.ASC/.ANS/.AVT/.RIP) for the current display mode, and the user is able to make a menu choice at any time. If a menu choice is made before the menu is entirely displayed, the function will stop displaying the menu and return immediately.
+The compiled menu uses color descriptions embedded in
+[`od_printf()`](../reference/api/od_printf.md) strings. When ANSI or AVATAR is
+available it draws a CP437 horizontal line; otherwise it uses an ASCII hyphen.
+The current value of
+[`user_timelimit`](../reference/control/caller.md#user_timelimit) is included
+in the prompt. [`od_get_answer()`](../reference/api/od_get_answer.md) then
+waits until one of the valid letters is entered.
 
-### Other Example Programs Included With Opendoors
+A `switch` dispatches the choice. Vote, view results, and add question are
+application functions. Page calls [`od_page()`](../reference/api/od_page.md).
+The hangup path asks for confirmation before retaining the hangup choice. At
+the end of the loop, Vote calls [`od_exit()`](../reference/api/od_exit.md) with
+true only for that confirmed hangup; its ordinary exit message is followed by
+a false hangup argument so the caller returns to the BBS.
 
-In addition to the EX_VOTE.C program, which is discussed in detail in the previous section, a number of other example programs are included with OpenDoors. These programs help to demonstrate what is possible with OpenDoors. They can also serve as excellent tools to help you learn OpenDoors. In addition, you are free to include any portions of any of these example programs in your own programs. Below is a summary of each of these example programs:
+### Configuration and logging callbacks
 
-#### `EX_HELLO.C`
+`CustomConfigFunction` is invoked for application keywords which the OpenDoors
+configuration component does not recognize. Vote compares the normalized
+keyword with `ViewUnanswered` and accepts `Yes` or `No` to update its local
+policy. The callback does not retain either argument because both point into
+temporary parser storage. A larger door should also diagnose invalid values
+rather than silently treating every unrecognized value as the existing
+default.
 
-EX_HELLO.C     This an example of a very simple door program that displays a short message and prompts for the user to press a key. After the user presses a key, the door exits and control is returned to the main BBS software. Despite the fact that it only consists of a few lines of code, EX_HELLO remains a fully functional door program. For information on compiling an OpenDoors door program, see the section that begins on page 22.
+`BeforeExitFunction` formats the session's vote count and passes it to
+[`od_log_write()`](../reference/api/od_log_write.md). OpenDoors invokes this
+callback during its shutdown sequence, including shutdown initiated from
+inside library processing. That makes it a useful final accounting point, but
+the callback must not call the C runtime `exit()` or recursively begin another
+OpenDoors shutdown.
 
-#### `EX_CHAT.C`
+Vote also writes log entries when questions are created and other significant
+application actions occur. This illustrates the useful division between
+automatic component messages—startup, exit, chat, and connection events—and
+application messages which explain what the caller actually did inside the
+door.
 
-EX_CHAT.C      This program is an example of a multi-window full-screen chat door written with OpenDoors. EX_CHAT demonstrates the ease of using sophisticated ANSI / AVATAR / RIP terminal features within OpenDoors programs. For instructions on how to compile this program, see the section that begins on page 22.
+### Caller input and question selection
 
-This program create two windows on the screen, separated by a bar with user name / sysop name information. This program permits communication between the local sysop and remote user by displaying the text typed by the user in one window, and the text typed by the sysop in the other window. When either person's typing reaches the bottom of the window, the contents of the window is scrolled up to provide more room for typing. Words are also wrapped when either typist reaches the end of a line. The advantage of a split-screen chat program is that it permits both sysop and user to type at the same time without difficulty. The chat function automatically invokes OpenDoor's internal chat mode if ANSI, AVATAR or RIP modes are not available. The display colors, window sizes and locations, and distance to scroll a window's contents are configurable by setting the appropriate variables, below. When the Sysop invokes a DOS shell, a pop-up window is displayed to indicate to the user that the door program has been suspended.
+The question-selection functions use
+[`od_input_str()`](../reference/api/od_input_str.md) for short numeric and text
+responses, [`od_get_answer()`](../reference/api/od_get_answer.md) for bounded
+menu choices, and [`od_get_key()`](../reference/api/od_get_key.md) where any
+single byte is acceptable. This is a useful division of responsibility: let
+the narrowest suitable input function enforce the basic interaction, then
+validate the application meaning after it returns.
 
-The chat feature of this program can also be easily integrated into other doors you write, and may be used to replace the existing OpenDoors line-oriented chat system.
+Vote tracks a page location while listing questions so that the caller can
+move through a set larger than the screen. It never assumes that an entered
+number identifies an existing question merely because it fit in the input
+buffer. The application still checks its range and reads the corresponding
+record before using it.
 
-#### `EX_MUSIC.C`
+When it displays results, Vote uses the caller's ANSI and AVATAR capability
+fields to choose between CP437 line characters and an ASCII fallback. These
+fields describe terminal capabilities, not a guarantee that every arbitrary
+escape sequence will work. Code which uses the high-level screen API lets
+OpenDoors perform the protocol selection; code which sends a custom terminal
+extension must make its own capability and fallback decisions.
 
-EX_MUSIC.C     This example door demonstrates how to play "ANSI" music and sound effects in an OpenDoors door. Included in this program is a function to send "ANSI" music to the remote system, and a function to text the remote system's ability to play "ANSI" music. You may use both of these functions in your own doors, if you wish to add music or sound effect capabilities. This program can be compiled by following the instructions that begin on page 22.
+### Multi-node file access
 
-#### `EX_SKI.C`
+The release examples CMake project defines `MULTINODE_AWARE` for Vote when it
+builds the example with xpdev. In that mode, `ExclusiveFileOpen` attempts a
+share-aware open which denies simultaneous readers and writers, waits for a
+bounded interval when another node owns the file, and calls
+[`od_kernel()`](../reference/api/od_kernel.md) while waiting. Without the
+definition, it falls back to ordinary `fopen()` and does not provide
+multi-node exclusion.
 
-EX_SKI.C       This is a simple but addictive online game that is written using OpenDoors. In this action game, the player must control a skier through a downhill slalom course. The user may turn the skier left or right, and the game ends as soon as the player skis outside the marked course. The game begins at an easy level, but quickly becomes more and more difficult as the course to be navigated becomes more and more narrow. The game maintains a list of players with high scores, and this list may be viewed from the main menu.
+The important pattern is broader than the particular wrapper. Vote acquires
+exclusive access before searching or modifying a file, performs the complete
+read/change/write transaction while ownership is held, and releases access
+before returning to caller interaction. Its user lookup cannot safely scan an
+unlocked snapshot and lock only for the append: another node could add the
+same caller between those operations. Likewise, a question total must be read
+again under the same lock which protects the increment.
 
-#### `EX_VOTE.C`
+Calling [`od_kernel()`](../reference/api/od_kernel.md) during a bounded lock
+wait keeps carrier and time handling responsive, but it also means OpenDoors
+callbacks may run while the application is waiting. The application must not
+pretend it owns a file before the open succeeds, and should keep global state
+consistent at every point where it services the kernel.
 
-EX_VOTE.C      The EX_VOTE.C file contain the source code for the Vote example door, as is described beginning on page 38. The Vote example door allows users to vote on up to 200 different "polls", view the results of voting on each question, and optionally add their own questions for other users to answer.
+The example's wrappers are demonstrations, not a universal locking API.
+Sharing semantics differ among DOS, Windows, and Unix-like systems, which is
+why the two xpdev-dependent examples are optional. A production format may
+prefer record locks, lock files, a database transaction, or a single service
+which owns the data. Whichever mechanism is chosen, document its behavior when
+a node crashes and its policy for stale locks.
+
+### What to take from the example
+
+Vote's most reusable lesson is its separation of responsibilities. OpenDoors
+owns the terminal session, drop-file handling, time, carrier, standard
+operator functions, and optional common components. Vote owns poll policy,
+records, menus, and validation. The application passes only the information
+needed at each boundary and performs orderly shutdown through the library.
+
+Do not copy implementation details merely because they occur in a working
+example. In particular, direct binary structure files are not portable
+serialization, fixed 80-column decoration should be adapted for the caller's
+screen, and every file-I/O result needs careful success testing. The current
+API pages and the defects recorded in this repository take precedence over
+comments inherited by the example source.
+
+## Example programs
+
+The source distribution and separate examples release artifact contain six
+doors. Each concentrates on a different part of the API.
+
+### `ex_hello.c`
+
+Hello is the smallest example. It includes the public header, displays a
+two-line message, waits for one key, and returns to the BBS without hanging up.
+It deliberately relies on implicit initialization, showing that a complete
+door can be only a few OpenDoors calls. The tutorial's minimal program adds
+standard command-line handling and an explicit initialization call because
+those are better starting points once the program needs settings or caller
+information before its first output.
+
+### `ex_diag.c`
+
+The diagnostic door has its own parser for launch settings and displays the
+resulting connection method, port, drop-file type, terminal capabilities,
+caller identity, time, and serial-driver configuration. Its interactive tests
+exercise typing, mode autodetection, clearing, carriage return, line feed,
+color, and other terminal behavior.
+
+This example is valuable when a door works locally but not beneath a
+particular BBS. Run it using the same node directory, account, transport, and
+launch command as the failing door, then compare the detected values with what
+the BBS intended to pass. The custom parser is diagnostic application code;
+ordinary doors should normally begin with
+[`od_parse_cmd_line()`](../reference/api/od_parse_cmd_line.md) and add only
+their own documented options.
+
+### `ex_chat.c`
+
+Chat implements a split-screen conversation. One window contains the caller's
+typing and the other contains the sysop's. It tracks the cursor and current
+word independently for both participants, wraps words at the window edge, and
+uses [`od_scroll()`](../reference/api/od_scroll.md) when either half reaches
+its bottom row. [`od_last_input`](../reference/control/runtime.md#od_last_input)
+selects the window corresponding to the source of the most recent byte.
+
+The file can be compiled as a stand-alone chat door or adapted as a replacement
+for the built-in chat interface. In replacement mode it installs a before-chat
+callback, saves the existing screen, suppresses the normal chat loop, and
+restores the screen on completion. Its shell callbacks create and remove a
+popup notice while the local command interpreter is active.
+
+The example predates the size-aware screen-save API and its layout is fixed for
+an 80-column terminal. New code should use
+[`od_save_screen_size()`](../reference/api/od_save_screen_size.md),
+[`od_save_screen_ex()`](../reference/api/od_save_screen_ex.md), and
+[`od_restore_screen_ex()`](../reference/api/od_restore_screen_ex.md), and
+should derive window geometry from the remote screen fields. The chat logic
+remains a useful illustration of simultaneous local and remote input.
+
+### `ex_music.c`
+
+Music demonstrates an extension historically implemented by some ANSI
+terminal programs. It sends the extension with
+[`od_disp()`](../reference/api/od_disp.md) and disables local echo for those
+bytes so the BBS machine does not play or display the remote-only sequence. It
+first asks the caller whether a short test produced sound, then plays a sample
+only when the caller confirms support.
+
+The example is also a warning against inferring every extension from the
+general ANSI flag. ANSI music is not part of the basic cursor-and-color
+capability represented by
+[`user_ansi`](../reference/control/caller.md#user_ansi), and many current
+terminals do not implement it. Probe with consent, retain a silent path, and do
+not send a potentially disruptive sequence solely because ANSI display is
+enabled.
+
+### `ex_ski.c`
+
+Ski is a real-time terminal game. It draws a slalom course, polls for steering
+input, advances the game on a timer, narrows and moves the course, and stores a
+high-score table. Its main loop demonstrates the difference between an
+ordinary blocking menu and gameplay which must continue when no key is ready.
+
+The example depends on xpdev for portable timing and file wrappers. Its score
+file illustrates read/modify/write locking, but, like Vote's files, directly
+stored C structures are tied to the producing ABI. The hard-coded terminal art
+also assumes a traditional CP437 display. Preserve a text-mode fallback and
+define an explicit disk encoding before using the design in a door expected to
+share files across targets.
+
+### `ex_vote.c`
+
+Vote is the poll door examined above. It combines menus, caller records,
+configuration callbacks, logging, external display files, session callbacks,
+shared data, and multi-node locking. Its greater size makes it the most useful
+example for studying how OpenDoors fits around an application's own data and
+control flow.
+
+`ex_chat`, `ex_diag`, `ex_hello`, and `ex_music` build using only the installed
+OpenDoors SDK. `ex_ski` and `ex_vote` also require Synchronet's xpdev library;
+pass its location as `OPENDOORS_XPDEV_DIR` or place it beside the examples
+directory. The examples package contains its own CMake project and documents
+the `Shared`, `Static`, and MSVC `StaticMT` selections.
+
+The DOS release builds the examples which are compatible with each DOS target.
+The personality sources are also built against only the public personality SDK
+headers, making them suitable starting points for a custom DOS local interface.
+
+Read the examples as demonstrations of individual techniques, not as a reason
+to copy every historical design choice. In particular, use the current API
+reference for buffer sizes, error handling, platform support, and behaviors
+which have changed since those programs were first written.
+
+## Preparing a door for distribution
+
+A door which works from a developer's build directory is not yet necessarily
+ready for a BBS installation. The installed files, launch command, writable
+paths, terminal assumptions, and failure behavior form part of the door's
+interface to the sysop.
+
+### Program and run-time files
+
+Ship the executable built for the intended operating system and architecture.
+A shared Windows build also requires its matching OpenDoors DLL; a Unix-like
+installation must make its shared library discoverable through the normal
+system or application run-time search path. A statically linked door includes
+OpenDoors code in the executable, but may still depend upon the platform C
+runtime or other libraries used by the application. Test the package on a
+machine which does not contain the source tree or build directory.
+
+Include every configuration, help, menu, and data file which the door expects,
+along with a plain-text display fallback. File names on DOS may be limited to
+the 8.3 form and treated without case distinctions, while a Unix-like host has
+case-sensitive names and paths. A reference to `VOTE.ANS` which succeeds on a
+case-insensitive development system is not proof that `vote.ans` will be found
+on every target.
+
+Do not install a sample drop file as though it were permanent caller data. The
+BBS writes its node-specific file before each launch. A sample such as the
+repository's `DORINFO1.DEF` belongs in a test setup and should not overwrite or
+mask the live BBS record.
+
+### Working and data directories
+
+Document whether relative paths are resolved from the node directory, the
+door's program directory, or a path selected in configuration. BBS software
+does not universally launch a door with the executable's directory as the
+current working directory. Use an explicit data directory when persistent
+files must live in one shared location, and keep per-node temporary files in a
+node-specific location.
+
+For multi-node operation, decide which files are immutable, which are private
+to one node, and which require serialized updates. Ensure that a failed or
+interrupted write cannot silently replace a valid data file with a partial
+record. A robust update may write a complete temporary file, flush it, and
+replace the old file using the guarantees of the target filesystem; a record
+database may need a different transaction protocol. OpenDoors does not impose
+an application data format or make ordinary C file I/O multi-node safe.
+
+Permissions are also part of deployment. The account running the BBS needs
+read access to the program and display files and write access only where logs,
+scores, votes, or configuration changes require it. Failure to open a data
+file should produce an operator-useful message and a controlled return to the
+BBS, not an unchecked null pointer or a hang which consumes the node.
+
+### Launch documentation
+
+Give the sysop an exact launch example for each supported BBS interface. State
+which drop-file format or handle is expected, how the node or drop-file path is
+passed, which working directory is required, and which exit levels the BBS may
+interpret. If the standard OpenDoors parser is used, link or reproduce the
+relevant option names without inventing abbreviated aliases; similarly named
+historical doors are not evidence that an option exists in this program.
+
+Document the distinction between returning to the BBS and hanging up. A menu
+label such as “Exit” should make clear whether it preserves the caller's BBS
+session. Reserve connection termination for a confirmed logoff action, and
+exercise both paths beneath the BBS rather than only in local mode.
+
+### Test matrix
+
+At minimum, test the door in local mode, through each claimed connection
+method, and with plain ASCII and ANSI terminals. When supported, include AVATAR
+and RIP tests. Exercise a narrow or nontraditional screen as well as 80 columns,
+the last row and column, an expired or nearly expired time limit, loss of the
+connection during input and output, empty and maximum-length caller fields,
+missing optional files, and simultaneous nodes updating shared data.
+
+Build warnings deserve attention on every supported compiler. The 16-bit DOS
+build can reveal assumptions hidden by flat 64-bit hosts: automatic objects
+which exceed a segment, pointer truncation, unavailable C library functions,
+and accidental dependence upon a modern language feature. Conversely, a
+64-bit build exposes assumptions that a pointer, file offset, or time value
+fits in an `int` or `long`. Platform-specific implementations may use modern C
+behind the appropriate platform guards, but the public declarations and code
+shared with Borland or Microsoft DOS compilers must remain acceptable to those
+tools.
+
+Finally, run the packaged door long enough to trigger periodic status, time,
+and inactivity processing, and verify the log and rewritten drop file after
+shutdown. A successful greeting screen proves only that initialization and one
+output path worked; it does not validate the complete session lifecycle.
+
+## Where to continue
+
+- [Session lifecycle](session-lifecycle.md) explains initialization and
+  shutdown ordering.
+- [Building and linking](building.md) covers every supported toolchain and
+  library variant.
+- [Command-line processing](../reference/api/od_parse_cmd_line.md) lists the
+  standard launch options.
+- [Terminal and screen model](terminal-screen.md) explains local, remote, and
+  virtual presentation.
+- [Configuration files](configuration.md), [Logging](logging.md), and
+  [Personality modules](personalities.md) cover the optional subsystems.
+- The [function reference](../reference/api/index.md),
+  [`od_control` reference](../reference/control/index.md), and
+  [constants reference](../reference/constants/general.md) are the authoritative
+  interface descriptions.

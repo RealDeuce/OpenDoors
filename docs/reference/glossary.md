@@ -1,173 +1,619 @@
 # Glossary
 
-Terminology used by OpenDoors and the BBS software environment.
+This glossary defines terminology used by OpenDoors, door programs, and the
+BBS environments in which they operate.
 
-## Detailed reference
+[ANSI](#ansi) · [API](#api) · [ASCII](#ascii) · [AVATAR](#avatar) ·
+[baud](#baud) · [BBS](#bbs) · [bit-mapped flags](#bit-mapped-flags) ·
+[Boolean values](#boolean-values) · [BPS](#bps) ·
+[calling convention](#calling-convention) · [carrier detect](#carrier-detect) ·
+[chat mode](#chat-mode) · [CP437](#cp437) · [DPMI](#dpmi) ·
+[DOS extender](#dos-extender) ·
+[compile](#compile) · [DLL](#dll) · [door](#door) ·
+[door-information file](#door-information-file) · [DTR](#dtr) ·
+[echo](#echo) · [FOSSIL driver](#fossil-driver) ·
+[import library](#import-library) · [library](#library) · [link](#link) ·
+[local mode](#local-mode) · [local echo](#local-echo) ·
+[locked BPS rate](#locked-bps-rate) · [log file](#log-file) ·
+[memory model](#memory-model) · [modem](#modem) ·
+[object file](#object-file) · [online](#online) ·
+[output window](#output-window) · [page](#page) · [parameter](#parameter) ·
+[remote](#remote) · [RIP](#rip) · [source code](#source-code) ·
+[socket](#socket) · [status line](#status-line) · [sysop](#sysop) ·
+[sysop chat](#sysop-chat) · [sysop page](#sysop-page) · [user](#user) ·
+[Win32](#win32)
 
-Definitions are retained in the context of the original manual. In particular, operating-system and modem examples reflect that period.
+## ANSI
 
-ANSI           ANSI is an acronym for "American National Standards Institute". One of the standards approved by ANSI is a terminal display protocol which allows (in this case), BBS software to perform certain display functions such as changing the color of displayed text, or moving the location of the cursor on the screen. The majority, though not all, BBS users use terminal software with ANSI capabilities. Any users that do not have graphics display capabilities, will be using ASCII mode, instead. The ANSI terminal protocol is sometimes referred to as "ANSI graphics". It is graphic in the sense that it provides more visual control than an ASCII TTY terminal does, but does not imply any support for bit-mapped nor vector graphics. Compare ASCII and AVATAR.
+ANSI is an acronym for *American National Standards Institute*. In BBS usage,
+“ANSI” ordinarily means the family of terminal-control sequences derived from
+ANSI X3.64 and compatible DEC terminal behavior. These sequences allow a BBS
+or door to select colors, position the cursor, erase portions of the display,
+and perform other screen operations.
 
-API            API is an acronym for "Application Program(er) Interface". An API is a set of well documented functions, variables and data types that you can use to access certain services from your program. When you write any C program that uses standard C library functions such as fopen() or strcpy(), you are using a sort of API. When you use OpenDoors functions such as [`od_printf()`](api/od_printf.md) or [`od_get_key()`](api/od_get_key.md), you are using functions that are part of the OpenDoors API. Operating systems provide their own APIs that allow programs to gain access to operating system features such as screen display, file I/O and communications. The API provided by Microsoft Windows 95 and Windows NT is called the Win32 API.
+The expression “ANSI graphics” is traditional BBS terminology. It describes
+the greater visual control available compared with an ASCII TTY display; it
+does not imply a bit-mapped or vector graphics protocol. OpenDoors translates
+its screen operations into ANSI sequences when the caller's terminal supports
+them. Compare [ASCII](#ascii), [AVATAR](#avatar), and [RIP](#rip).
 
-ASCII          ASCII (pronounced "ass-key") is an acronym for "American Standard Code for Information Interchange", and is a definition of a set of 128 letters, number and symbols, which can be displayed by computer systems. Also, when used within the domain of BBS software, ASCII mode is often used to refer to the lack of any more advanced display capabilities, such as ANSI or AVATAR. When ASCII mode is used, characters can only be displayed in standard Teletype (TTY) fashion, one after another. Also, color and cursor positioning functions are not available in ASCII mode. Compare ANSI and AVATAR.
+## API
 
-AVATAR         AVATAR is an acronym for "Advanced Video Attribute Terminal Assembler and Recreator". AVATAR is a graphics display protocol, similar to ANSI. Like ANSI-graphics, AVATAR graphics allow functions such as cursor positioning, and color changing. However, AVATAR also offers many capabilities not available from ANSI, and performs the same functions as ANSI much more quickly. AVATAR graphics is less common than both ANSI or ASCII, but is becoming more popular as time goes by. Compare ASCII and ANSI.
+API is an acronym for *application programming interface*. An API is the set of
+documented functions, variables, types, constants, and calling conventions
+through which one program uses services supplied by another component.
 
-BAUD           "baud" or "baud rate" are generally used as a synonym for "BPS".
+For example, a C program uses the C library API when it calls `fopen()` or
+`strcpy()`. A door uses the OpenDoors API when it calls
+[`od_printf()`](api/od_printf.md) or [`od_get_key()`](api/od_get_key.md), or
+when it reads or sets documented members of [`od_control`](control/index.md).
+The public declarations for the OpenDoors door API are provided by
+[`OpenDoor.h`](api/index.md); the DOS personality SDK is separately declared
+by [`ODStat.h`](personality/index.md).
 
-BPS            BPS is an acronym for "Bits Per Second", and refers to the rate at which data is being sent over a communications medium. There are two important BPS rates which are relevant to OpenDoors. The serial port BPS rate (also called the DCE rate) is the speed at which the computer is communicating with the local modem. The connect speed, on the other hand, is the speed at which the local modem is communicating with the remote modem. The serial port speed must be at least as fast as the connection speed. Often the serial port speed will be locked at a fixed speed that is higher than the fastest possible connection speed of the modem. For example, the serial port might be locked at a speed of 38400 BPS, while the modem could be connected at 28,800, 14,400 or slower speeds. OpenDoors usually needs to know the serial port BPS rate in order to function correctly (as stored in [`od_control.baud`](control/connection.md#baud)). Under certain situations, OpenDoors will also be able to report the connection speed to you (as stored in [`od_control.od_connect_speed`](control/connection.md#od_connect_speed)), although OpenDoors does never requires this information to operate.
+## ASCII
 
-BIT-MAPPED     As with Boolean values, described below, bit mapped flags FLAGS          are used to indicate whether or not various conditions exist. (For example, whether or not a certain setting is enabled, or whether or not a particular event has occurred.) However, unlike Boolean variables, a single bit-mapped flag represents more than one of these TRUE/FALSE values. In fact, each bit (BInary Digit), which makes of the variable can be used to represent a separate TRUE/FALSE state. (ie, each bit maps to a particular piece of information, and hence the term "Bit Map").
+ASCII, pronounced “ass-key,” is an acronym for *American Standard Code for
+Information Interchange*. The standard assigns values to 128 control
+characters, letters, digits, punctuation marks, and symbols.
 
-For an example of using bit-mapped flags, let us take a case of a single "unsigned char" which contains three independent TRUE/FALSE values. We will call this variable user_info, and it will indicate whether or not a user has ANSI graphics, whether or not the user has screen clearing turned on, and whether or not the user has end-of-page "more" prompts enabled. Internally, the bits of the user_info variable will be as follows:
+In BBS terminology, *ASCII mode* also means that the remote terminal is being
+treated as a sequential teletype display rather than as an ANSI- or
+AVATAR-capable screen. Text can be sent in order, but OpenDoors cannot rely on
+remote color, cursor positioning, or selective erasure. Screen-oriented
+functions therefore use the plain-text behavior documented for those
+functions. Compare [ANSI](#ansi) and [AVATAR](#avatar).
 
-```c
-      Bit:  7 6 5 4 3 2 1 0
-                      | | |
-                      | | +--- ANSI Graphics
-                      | +----- Screen Clearing
-                      +------- More prompts
+## AVATAR
+
+AVATAR is an acronym for *Advanced Video Attribute Terminal Assembler and
+Recreator*. It is a terminal display protocol developed for BBS use. Like
+ANSI, it supports cursor positioning, color selection, erasure, and other
+screen operations. Its compact commands were intended to perform common BBS
+display operations using fewer transmitted bytes than equivalent ANSI
+sequences.
+
+AVATAR is less widely implemented than ANSI and is distinct from ordinary
+ASCII output. OpenDoors can select the appropriate representation after
+learning the caller's capabilities. Compare [ANSI](#ansi) and [ASCII](#ascii).
+
+## Baud
+
+*Baud* is the number of signaling symbols transmitted per second. A symbol can
+represent more than one bit, so baud and [BPS](#bps) are not generally
+interchangeable technical units. Older modem and BBS documentation often uses
+“baud rate” informally when it means bits per second; some OpenDoors field and
+option names retain that established terminology for source compatibility.
+
+## BBS
+
+BBS is an acronym for *bulletin board system*. A BBS accepts local or remote
+sessions and provides services such as messages, file transfer, chat, and door
+programs. Historically, callers commonly reached a BBS through a modem and a
+serial connection. Present-day systems may instead carry the terminal session
+over Telnet, RLogin, SSH, WebSocket, or another network transport while still
+presenting the same door interface.
+
+## Bit-mapped flags
+
+A bit-mapped flag variable stores several independent true-or-false states in
+one integer. Each bit represents one condition. A set bit represents the
+enabled or true state; a clear bit represents the disabled or false state.
+
+For example, an illustrative one-byte `user_info` value might assign its three
+low bits as follows:
+
+```text
+Bit:  7 6 5 4 3 2 1 0
+                | | |
+                | | +--- ANSI graphics
+                | +----- Screen clearing
+                +------- More prompts
 ```
 
-In this case, we will have three constants which we define in order to simplify access to these bit-mapped flags, as follows:
-
-#define ANSI_GRAPHICS        0x01 #define SCREEN_CLEARING      0x02 #define MORE_PROMPTS         0x04
-
-Note that normally within OpenDoors, these constants will be defined for you, and you will have no need to know what their values are, nor in which bit which piece of information is stored.
-
-Using bit-mapped flags, you are able to set or clear any of the individual flags, and check whether any of the flags are set, using these simple methods: (Not that a set flag is the equivalent of a Boolean value of "True", and a cleared flag is the equivalent of a Boolean value of "False".)
-
-Set Flag:      variable |= FLAG_CONSTANT; Clear Flag:    variable &=~ FLAG_CONSTANT; Test Flag:     variable & FLAG_CONSTANT
-
-Where "variable" is the name of the bit-mapped flag variable, and "FLAG_CONSTANT" is the pre-defined constant for the individual setting. To return to our example, you could turn on the user's ANSI graphics setting by using the line:
-
-user_info |= ANSI_GRAPHICS;
-
-and to turn off screen clearing you would:
-
-user_info &=~ ANSI_GRAPHICS;
-
-To perform an action (such as waiting for the user to press [Return]/[Enter]) only if "More" prompts are enabled, you would:
-
-if(user_info & MORE_PROMPTS) { ...            /* Whatever you want */ }
-
-BOOLEAN        Many of the variables used within OpenDoors contain a VALUES         "Boolean Value". A Boolean value is a two-state variable, who's states are referred to as "True" and "False'. If the variable contains a value of "True", it indicates that a certain condition is so, and if it contains a value of "False", it indicates that the condition is not so. For example, a Boolean variable "wait" might be used to indicate whether or not OpenDoors should wait for the user to press a key, or continue without waiting. In this case, a value of "True" would indicate that OpenDoors should wait, and a value of "False" would indicate that it should not wait.
-
-Note that in the C programming language, there is no actual Boolean variable type - usually a char or an int are used to store Boolean values.
-
-The constants TRUE and FALSE, as defined in the OPENDOOR.H file, are used to represent the two states of a Boolean value. Thus, to set a Boolean variable "wait" to the value of "True", you would use this line:
+Named masks make those assignments usable without embedding their numeric
+positions throughout a program:
 
 ```c
-wait=TRUE;
+#define ANSI_GRAPHICS   0x01
+#define SCREEN_CLEARING 0x02
+#define MORE_PROMPTS    0x04
 ```
 
-and to set the variable "wait" to "False", you would:
+Use bitwise operators to set, clear, and test an individual flag without
+altering the other bits:
 
 ```c
-wait=FALSE;
+user_info |= ANSI_GRAPHICS;       /* Set a flag. */
+user_info &= ~SCREEN_CLEARING;    /* Clear a flag. */
+
+if(user_info & MORE_PROMPTS)      /* Test a flag. */
+{
+    /* Wait for Return. */
+}
 ```
 
-However, you SHOULD NOT test whether a Boolean variable is "True" or "False" by using the C compare (==) operator, as the value "True" will not always be the same numerical value. (Actually, the TRUE constant represents just one of many possible numerical values for "True"). Instead, to perform an action of the "wait" Boolean variable is "True", you would:
+The masks used by actual OpenDoors fields are defined by
+[`OpenDoor.h`](api/index.md) and documented with the fields or constants to
+which they apply. A program should use those names rather than assuming a bit
+position from the storage type.
+
+## Boolean values
+
+A Boolean value represents one of two states, conventionally called true and
+false. OpenDoors uses the [`BOOL`](types.md#bool) type and the
+[`TRUE`](constants/general.md#true) and
+[`FALSE`](constants/general.md#false) constants because the supported C
+compilers do not all provide the same built-in Boolean type.
+
+Assignment may use the named constants:
+
+```c
+wait = TRUE;
+```
+
+When testing a Boolean value, test whether it is zero rather than requiring it
+to equal one particular nonzero representation. Any nonzero value is true in
+a C conditional expression:
 
 ```c
 if(wait)
 {
-     ...        /* Whatever you want */
+    /* The value is true. */
 }
-```
 
-and to perform an action if the "wait" Boolean variable is "False', you would:
-
-```c
 if(!wait)
 {
-     ...       /* Whatever you want */
+    /* The value is false. */
 }
 ```
 
-For interest sake, Boolean values are named after the 19th century English mathematician, who studied formal logic, and created Boolean algebra - an algebra which deals with TRUE and FALSE values.
+This rule matters for functions and fields whose true result may be any
+nonzero value, even when [`TRUE`](constants/general.md#true) itself has a
+specific numeric definition.
 
-BPS            BPS is an acronym for "Bits Per Second". For our purposes here, the terms BPS and BAUD refer to the same thing.
+## BPS
 
-CARRIER        The term "Carrier" or "Carrier Detect" refers to a signal which DETECT         most modems send to the computer, which indicates whether or not the modem is currently connected to (communicating with) another modem. The door driver module of OpenDoors, as with most other BBS software, uses the status of this carrier detect signal in order to know whether the user is still connected to the BBS computer. Thus, if the user hangs up, or if something goes wrong and the connection is lost, OpenDoors is able to detect this state, and exit to the BBS. The BBS will then also detect that the carrier signal has been "lost", and will reset itself, and then again be ready to accept calls.
+BPS is an acronym for *bits per second*. It measures the rate at which bits are
+transferred over a communications channel.
 
-CHAT MODE      The term "chat mode" refers to a means by which the sysop can communicate with a user of the BBS / door. During sysop chat, anything typed by the sysop will appear on the user's screen, and likewise, anything typed by the user will appear on the sysop's screen. Sysop chatting is available on both single and multi-line systems. Sysop chatting is initiated by the sysop, either at any time a user is online, or specifically in response to a sysop page.
+Traditional modem operation has two relevant rates. The serial-port or DTE
+rate is the rate between the BBS computer and its modem. The connection or DCE
+rate describes the modem link. A modem using compression can move data across
+the serial port faster than the nominal connection rate, so the port is often
+configured at a fixed, higher rate. OpenDoors stores its communication rate in
+[`baud`](control/connection.md#baud) and, when the source format supplies one,
+the reported connection rate in
+[`od_connect_speed`](control/connection.md#od_connect_speed). See also
+[baud](#baud) and [locked BPS rate](#locked-bps-rate).
 
-COMPILE        "Compiling" refers to the process of converting the source code that you write for your program, into an executable file (such as a .EXE file) that an end user can use. The process of building an executable file is generally divided into two stages. In the first stage, called compiling, source files are converted to object files, often named .OBJ. In the second stage, called linking, one or more object files are combined, along with any library files, to produce the final executable file.
+## Calling convention
 
-DLL            DLL is an acronym for "Dynamic Link Library". A dynamic link library is similar to a static library, in that it contains one or more functions that an application program can use. Unlike a static library, the code from a dynamic link library is not added to the program's executable file at link time. Instead, the dynamic link library exists as a separate file which must be loaded when the program is run. The Win32 version of OpenDoors resides in a DLL.
+A calling convention is the part of an application binary interface which
+defines how a function call passes arguments, returns a result, preserves
+registers, and names its externally visible symbol. Source code can contain a
+valid declaration and still fail to link or execute if the caller and library
+compiled that declaration using different conventions.
 
-See also "Library".
+This distinction is visible in OpenDoors' DOS32 libraries. Open Watcom's `-3r`
+mode passes eligible arguments in registers, while `-3s` uses stack calls.
+`ODOOR32R.lib` and `ODOOR32S.lib` provide the matching builds. Every object in
+the door, and every callback invoked through the API, must use the convention
+selected by the library. Hosted CMake targets and
+[`OpenDoor.h`](api/index.md) propagate the required definitions for supported
+current toolchains.
 
-DOOR           A "door" is a program that runs as part of a BBS system, but which is separate from the central BBS software (RemoteAccess, Maximus, QuickBBS, PC-Board, etc.) itself. A door provides additional features not built into the BBS software, such as on- line games, on-line shopping services, voting booths, match making systems, access to special files or messages, and much much more. Since the user also communicates with the door online, as they do with the BBS, it may not necessarily be obvious to the user that the door is even a separate entity from the central BBS software itself.
+A calling convention is separate from a [memory model](#memory-model), although
+both are ABI choices. It is also separate from whether the implementation is
+stored in a static or shared [library](#library).
 
-DOOR           Also referred to as a "drop file", "exit file", or "chain INFORMATION    file". The door information file is a file passed from the FILE           central BBS software to a door program, providing it with information about the user who is online, the BBS the door is running under, and the current modem connection. The door information file may also be used to pass changed information back to the BBS, such as the amount of time that the user has used in the door. OpenDoors takes care of all of the work involved in reading and writing the door information file for you, as described in the "Basics of Door Programming" section, in chapter 4. Examples of door information files supported by OpenDoors include: DOOR.SYS, EXITINFO.BBS, DORINFO?.DAT, SFDOORS.DAT, CALLINFO.BBS and CHAIN.TXT.
+## Carrier detect
 
-DTR            DTR is an acronym for "Data Terminal Ready". This is a signal that the computer sends to the modem, indicating that the computer is ready to send or receive information. Most modems are configured to hangup if the DTR signal is lowered. This is a convenient means of hanging up the modem, but cases problems under Windows 95, where the DTR signal is always lowered when a program closes the serial port.
+Carrier detect is the signal by which a serial modem or communications driver
+reports that a remote connection is present. OpenDoors monitors that state so
+that loss of the call can terminate the door cleanly instead of leaving it to
+wait indefinitely for further input.
 
-ECHO           See "Local Echo".
+With a socket transport there is no physical modem carrier, but connection
+closure serves the same purpose. In [local mode](#local-mode), OpenDoors can
+operate without a remote carrier.
 
-FOSSIL         The FOSSIL driver, or simply FOSSIL, is a TSR program or DRIVER         device driver which OpenDoors can optionally make use of in order to communicate with the modem. The FOSSIL driver is loaded prior to starting up the BBS or your door, usually from the AUTOEXEC.BAT or CONFIG.SYS files. The two most commonly used FOSSIL drivers are X00 and BNU. (FOSSIL is an acronym for "Fido/Opus/SEAdog Standard Interface Layer", although it has now become the standard for nearly all BBS software.) FOSSIL drivers are also available for other specialized serial port hardware, such as the popular "DigiBoard" multi-port serial card.
+## Chat mode
 
-IMPORT LIBRARY See "Library".
+Chat mode allows the sysop and caller to communicate interactively. Text typed
+at the local keyboard is displayed to the caller, and text typed by the caller
+is displayed locally. The sysop may enter chat directly with the configured
+local key or in response to a [sysop page](#sysop-page). OpenDoors supplies the
+chat interface and provides callbacks and replacement text through the
+[customization fields](control/customization.md).
 
-LIBRARY        A "library" or "library file" is a collection of precompiled functions and variables that can be used by other programs. All of the features, capabilities and functions of OpenDoors that you can make use of are contained within the OpenDoors library files. (Likewise, the C runtime library, consisting of the familiar functions such as fopen(), printf() and atoi(), is also contained within a library file.) For more information on the different OpenDoors library files, see the section that begins on page 22.
+## CP437
 
-There are several different kinds of library files. A static library file is actually a collection of individual object files. When you compile a program that makes use of a static library file, only those portions of the library file that your program actually uses are linked into your program's executable (.EXE) file. Static library files can be identified by a .LIB extension. The DOS version of OpenDoors resides in a static library.
+CP437 is the original IBM PC character set. It assigns byte values to control
+characters, letters, accented characters, mathematical symbols, and the line-
+and box-drawing glyphs traditionally used by DOS BBS software. Its low 128
+positions largely follow ASCII, while the display of the upper half depends
+upon use of the CP437 mapping.
 
-A dynamic link library, on the other hand, is not combined with the program's executable file. Instead dynamic link libraries exist in separate .DLL files that must also be present when the program is executed. The Win32 version of OpenDoors resides in a dynamic link library.
+OpenDoors color attributes and default border bytes use the IBM PC text-mode
+model. A terminal configured for CP437 can display those bytes as intended. A
+UTF-8 connection cannot receive an arbitrary high CP437 byte and infer the
+same glyph; a gateway or application must perform an encoding conversion.
+Likewise, a plain-ASCII fallback should use characters such as `+`, `-`, and
+`|` rather than depending upon CP437 corners and lines.
 
-An import library is a small file that describes a dynamic link library. The most common way for a program to call functions in a dynamic link library requires that an import library be used a program link time.
+## DPMI
 
-See also "DLL".
+DPMI is an acronym for *DOS Protected Mode Interface*. It defines services by
+which a protected-mode DOS program obtains memory, manages descriptors,
+handles interrupts, and invokes real-mode services under a compatible host.
+The interface allows a 32-bit application to use a flat protected-mode address
+space while still cooperating with DOS and real-mode drivers.
 
-LINK           "Linking" generally refers to the process of combining several object files into a final executable file, during which references to symbol names (such as [`od_printf()`](api/od_printf.md)) are resolved to the address of the corresponding object. See also "Compiling".
+Pointers in that flat address space cannot simply be passed to a real-mode
+interrupt which expects a 16-bit segment and offset. The DOS32 FOSSIL
+implementation therefore obtains conventional memory through DPMI, copies
+block data through that buffer, and presents its real-mode address to the
+driver. If a transfer buffer is unavailable, it can use FOSSIL operations
+which transfer individual bytes. See [DOS extender](#dos-extender) and
+[FOSSIL driver](#fossil-driver).
 
-LOCAL MODE     The term "local mode" refers to a mode in which a BBS system or door program may operate. In local mode, the BBS/door behave as they would if a user were connected via modem to the BBS, except that all display and input is done simply on the BBS software, but not through the modem. Local mode allows the sysop or another person with direct access to the BBS computer to use the BBS/door software, either for their own user, or for testing that the software is running correctly. When programming door software, local mode can be very useful in testing and debugging the door, without requiring the door to be connected to a remote system. All doors written with OpenDoors automatically support local mode operation. Compare "Remote". LOCAL ECHO     The term "Local Echo" refers to a door displaying the same characters which are sent to the modem on the local screen ("Output Window"). This allows the sysop to view the same information that is sent to the user's system, in the same manner that it will appear on the user's screen.
+## DOS extender
 
-LOCKED         (eg. "Locked Baud Rate", "Locked BPS Rate", "Locked Commport Speed", etc.) Usually, the communication port to which a modem is connected is set to transfer data at the same BPS rate as the rate at which the modem is communicating. However, many high speed modems allow very high speed data transfer by using built- in data compression methods. In this case, the actual rate of data transfer can easily exceed the true BPS rate of the connection. As a result, the BPS rate of the port is kept a single speed, faster than any of the true modem connections, in order to increase modem speed performance. This is referred to as locking the commport BPS rate. OpenDoors has full support for the use of locked BPS rates.
+A DOS extender is run-time support which allows a protected-mode application
+to execute while DOS itself and many device interfaces remain in real mode. It
+sets up the protected-mode environment, supplies DPMI or equivalent services,
+and translates operating-system operations as required. The application can
+use flat 32-bit pointers and objects larger than a 16-bit segment, but calls to
+real-mode drivers still require an appropriate transition and addressable
+transfer storage.
 
-LOG FILE       A log file is a normal text file in which BBS software records all major activities that have taken place. As such, the log file permits the sysop, to review what activities have taken place on the BBS during the time which they have been away from the computer. A log file can be helpful in identifying system errors or crashes that have occurred, in alerting the sysop in the case that any users have been causing problems on the BBS, or in simply letting the sysop know who has called recently, and what when they did when they called.
+Open Watcom can link OpenDoors DOS32 applications for DOS/4GW or DOS/32A.
+Release examples use native DOS/32A executables with the extender bound into
+the executable, so a separate extender program need not be installed beside
+them. The library ABI is determined by architecture and calling convention;
+the supported linker system selects the executable form and extender used by
+the completed door.
 
-MEMORY MODEL   C and C++ programs can be compiled under a variety of different memory models. Each memory model describes how data and program code are addressed in memory. When writing MS-DOS programs, you generally have the choice of six different memory models (named tiny, small, compact, medium, large and huge), each of which provides a different combination of the maximum sizes of data and code that your program may have. When writing Win32 programs, there is a single, flat 32-bit memory model that all programs use. This memory model allows a program to address (in theory) up to 4 gigabytes of data and code.
+## Compile
 
-MODEM          A device connected to a computer which permits it to communicate with other computers, usually over standard telephone lines.
+Compiling translates C or C++ source code into machine code and associated
+symbol information, usually producing an [object file](#object-file). Building
+a complete program normally has at least two stages: the compiler processes
+each source file, then the linker combines the resulting object files and
+required libraries into an executable or library. In ordinary usage, “compile”
+is also used loosely for that entire build process. See [link](#link).
 
-OBJECT FILE    An object file contains the compiled version of a source code file of a program. The source code file may be a .C file, .CPP file, .ASM file, .PAS file, .BAS file, or any number of other extensions associated with other programming languages. When any of these language's source code files are compiled, a .OBJ file is created containing information such as the executable code, and names of symbols (variables and functions) that are to be shared with other .OBJ files. In order to produce a .EXE file that may be executed, a process known as linking must be performed. During the link process, one or more object files composing your program are combined, along with the necessary code from any library files being used, in order to produce the final .EXE file.
+## DLL
 
-ONLINE         In the case of BBS software and BBS door programs, the term online refers to the state of a user using the BBS. Usually, the user will be connected to the BBS from a remote location, using a modem. However, it is also possible that the user will be using the actual BBS computer, with the software operating in "local mode".
+DLL is an acronym for *dynamic-link library*, the Windows name for a shared
+library. Unlike code selected from a static library and copied into an
+executable at link time, DLL code remains in a separate file which the
+operating system loads for the program. Programs normally link against an
+[import library](#import-library) which describes the DLL's exported symbols.
 
-OUTPUT WINDOW  The local screen of the BBS on which BBS software is running is usually divided into two sections. At the bottom of the screen, there is often a one or two line status line, which displays information to the sysop about the BBS and the user who is currently online. The rest of the screen is usually an "output window", in which the information which is being displayed to the user, is also displayed on the local screen. In some cases, there will be no status line, in which case the entire screen will be the output window. Usually, the upper 23 lines of the screen in an OpenDoors door will be the output window, with the bottom two lines being the status line. However, it is possible to disable the OpenDoors status line, in which case the entire screen will be the output window. See also "Status Line"
+OpenDoors can be built as a shared or static library on supported modern
+platforms. See the [building and installation guide](../guides/building.md) for
+the available CMake targets and options.
 
-PAGE           See "SYSOP PAGE"
+## Door
 
-PARAMETER      In the C programming language, many tasks are accomplished by calling functions. When a function is called, one or more pieces of information may be passed to a function, in the form of parameters. For example, a function used to set the foreground and background color of displayed text might accept two parameters, one for each of the two color settings. In this example, a function such as [`od_set_color()`](api/od_set_color.md), would be called as follows:
+A door is an application launched by a BBS to provide a service outside the
+central BBS software. Games, voting systems, information services, special
+message or file interfaces, and account utilities are common examples. The
+caller continues to use the same terminal session, so the transition between
+the BBS and door may not be visible to the caller.
+
+The BBS commonly supplies the door with caller, system, connection, and time
+information in a [door-information file](#door-information-file) or by command
+line. The door returns control to the BBS when it exits.
+
+## Door-information file
+
+A door-information file—also called a *drop file*, *exit file*, or *chain
+file*—is written by the BBS before it launches a door. It communicates facts
+about the BBS, the caller, the terminal, the connection, and the permitted
+session time. Some formats also allow the door to return changed information,
+such as elapsed time or an updated caller record, when the door exits.
+
+OpenDoors recognizes formats including `DOOR.SYS`, `EXITINFO.BBS`,
+`DORINFO?.DEF`, `SFDOORS.DAT`, `CALLINFO.BBS`, and `CHAIN.TXT`. The formats do
+not contain identical information. OpenDoors records the detected format in
+[`od_info_type`](control/connection.md#od_info_type), populates the fields
+available from that format, and documents format-specific availability with
+each field. See the [caller and system information](control/caller.md) and
+[connection](control/connection.md) field references.
+
+## DTR
+
+DTR is an acronym for *data terminal ready*. It is a signal driven by a
+computer's serial port to indicate that its terminal side is ready. Modems are
+commonly configured to hang up when DTR is lowered, making the signal a simple
+way for communications software to terminate a call.
+
+OpenDoors' handling of DTR applies to serial communications. Socket and local
+sessions do not have a physical DTR circuit. The
+[`od_disable_dtr`](control/customization.md#od_disable_dtr) setting controls
+whether OpenDoors uses DTR when closing a supported serial connection.
+
+## Echo
+
+In this manual, *echo* generally refers to [local echo](#local-echo). In
+communications literature it can also mean returning received characters to
+their sender; that separate behavior depends upon the terminal, modem, or
+communications protocol in use.
+
+## FOSSIL driver
+
+FOSSIL is an acronym for *Fido/Opus/SEAdog Standard Interface Layer*. A FOSSIL
+driver is a DOS resident program or device driver which presents a standard
+interrupt interface for serial communications. It insulates BBS and door
+software from the details of a particular UART or multiport adapter.
+
+The 16-bit DOS platform can use a FOSSIL driver instead of directly driving a
+serial port. The driver must be installed before the BBS or door starts. This
+term does not apply to the socket transport used by current hosted platforms.
+
+## Import library
+
+An import library is link-time metadata for a Windows [DLL](#dll). It supplies
+the symbol information needed to link calls from an application while leaving
+the actual implementation in the DLL loaded at run time. Despite its library
+file extension, it does not contain the complete OpenDoors implementation in
+the manner of a static library.
+
+## Library
+
+A library is a collection of compiled functions and data intended for use by
+other programs. The C runtime library, for example, provides functions such as
+`fopen()`, `printf()`, and `atoi()`; the OpenDoors library provides the door
+API described by this manual.
+
+A *static library* is an archive of object code from which the linker selects
+the portions required by an application. The selected code becomes part of
+the resulting executable. A *shared library* remains a separate run-time
+component which can be loaded by one or more applications. Windows calls a
+shared library a [DLL](#dll) and normally accompanies it with an
+[import library](#import-library).
+
+OpenDoors provides separately named static and shared CMake targets where the
+platform supports them. DOS builds use static libraries. The exact build and
+installation interface is described in the
+[building guide](../guides/building.md).
+
+## Link
+
+Linking combines object files and libraries into an executable or another
+library. The linker resolves symbolic references—for example, a call to
+[`od_printf()`](api/od_printf.md)—to the corresponding compiled definition. It
+also arranges code and data into the file format and address layout required by
+the target platform. See [compile](#compile), [library](#library), and
+[object file](#object-file).
+
+## Local mode
+
+Local mode runs a door without a remote caller connection. Input is obtained
+from the local keyboard and output is presented on the machine running the
+door. It is useful for sysop access, testing, and diagnosis.
+
+OpenDoors can enter local mode from a door-information file, a command-line
+option, or the [`od_force_local`](control/customization.md#od_force_local)
+setting. The door should continue to use the normal OpenDoors input and output
+functions; application code does not need a separate local user interface.
+Compare [remote](#remote).
+
+## Local echo
+
+Local echo is the local presentation of output sent through OpenDoors to the
+caller's terminal. OpenDoors first applies output to its authoritative virtual
+screen, whose dimensions describe the remote session. A platform-specific
+local display may then present that state within the space it has available.
+
+The local and remote screens need not have the same dimensions. Direct writes
+to the local display are not transmitted to the caller merely because they
+alter the local display, and the local presentation must not be treated as the
+storage for remote screen operations. See the
+[terminal and virtual-screen guide](../guides/terminal-screen.md).
+
+## Locked BPS rate
+
+A locked BPS rate is a fixed serial-port speed used regardless of the modem's
+current connection speed. Modem error correction and compression can make the
+data rate between computer and modem greater than the rate across the telephone
+connection. Selecting a sufficiently high fixed port speed avoids changing the
+UART for every call and prevents the local link from becoming the bottleneck.
+
+The door-information format or command line must report the rate expected by
+the serial interface. See [BPS](#bps) and the
+[`baud`](control/connection.md#baud) field.
+
+## Log file
+
+A log file is a chronological text record of important session activity. It
+allows the sysop to review calls, door events, errors, and abnormal
+terminations after the session has ended. OpenDoors' optional logging component
+is selected and customized with the fields described under
+[customization and callbacks](control/customization.md#od_logfile).
+
+## Memory model
+
+A memory model describes how compiled code addresses instructions and data.
+Sixteen-bit DOS C compilers commonly offer tiny, small, compact, medium, large,
+and huge models. These choose whether code and data pointers are near or far,
+how many segments may be used, and which individual objects can exceed a
+single 64-KiB segment. A library and its caller must agree on the relevant
+model and calling convention.
+
+Protected-mode 32-bit DOS targets and current hosted operating systems use a
+flat address space for ordinary C objects, so application code does not use the
+16-bit near, far, and huge distinctions. The address width and executable
+format still remain part of the target ABI; a 32-bit and 64-bit library are not
+interchangeable merely because both use flat pointers.
+
+## Modem
+
+A modem converts data into a form suitable for a communications circuit and
+back again. Dial-up BBS systems normally use modems over telephone lines.
+OpenDoors' DOS serial support retains the concepts of modem control signals,
+carrier, and port speed; network sessions on hosted platforms provide an
+equivalent byte stream without requiring a physical modem.
+
+## Object file
+
+An object file is the compiler or assembler's binary output for one source
+translation unit. It contains machine code, data, relocation information, and
+symbols which may be defined for or required from other object files.
+
+Object files are not normally executable by themselves. The linker combines
+them with other objects and the necessary portions of libraries to produce an
+executable or library in the target platform's file format. DOS toolchains
+commonly use the `.OBJ` extension; Unix-like toolchains commonly use `.o`.
+
+## Online
+
+In a BBS context, *online* means that a caller is actively using the BBS or a
+door. The session may arrive over a modem or network transport, or may be an
+operator using [local mode](#local-mode). Thus, online describes the active
+session rather than requiring one particular physical connection.
+
+## Output window
+
+The output window is the portion of the local interface used to show the door
+session. A status line or other local controls may occupy additional rows.
+Historically, DOS doors often used the upper 23 rows of a 25-row text display
+for output and the bottom two rows for status; that physical arrangement is not
+a limit on the remote terminal.
+
+OpenDoors now maintains the remote screen in its virtual-screen state. The
+local output window is a presentation of that state and may be clipped or
+otherwise adapted when its dimensions differ. See [local echo](#local-echo),
+[status line](#status-line), and the
+[terminal-screen guide](../guides/terminal-screen.md).
+
+## Page
+
+In the BBS user-interface sense, *page* means to request the sysop's attention.
+See [sysop page](#sysop-page). It may also have its ordinary documentation or
+display meaning where the context clearly refers to a page of text.
+
+## Parameter
+
+A parameter is information accepted by a function. In the function
+declaration, parameters specify the expected types and names; in a function
+call, the corresponding supplied expressions are also called arguments.
+
+For example, [`od_set_color()`](api/od_set_color.md) accepts foreground and
+background color parameters:
 
 ```c
-od_set_color(D_GREEN,D_RED);
+od_set_color(D_GREEN, D_RED);
 ```
 
-In this case, D_GREEN, the foreground color, is the first parameter, and D_RED, the background color, is the second parameter.
+The first argument selects a dark-green foreground and the second selects a
+dark-red background. C encloses the argument list in parentheses and separates
+arguments with commas. A function which accepts no arguments has an empty list
+in a call, as in:
 
-In C, parameters are enclosed in parentheses, ( and ), which are located after the name of the function to be called. Each parameter is then separated by a comma character. If a function does not accept any parameters, the parentheses will have nothing between them. (ie. [`od_clr_scr()`](api/od_clr_scr.md) ).
+```c
+od_clr_scr();
+```
 
-REGISTRATION   This is a demonstration version of OpenDoors, which may only be used under limited circumstances, for a limited period of time. If you wish to continue using OpenDoors after this "evaluation period", you must "register" it. For more information on registering OpenDoors, please see chapter 2 of this manual.
+## Remote
 
-REMOTE         When used in reference to BBS software or door programs, the term remote is used to refer to a user or computer that is communicating with the BBS, for a distant location, by use of a modem. Compare "Local Mode"
+A remote caller uses the door through a communications connection rather than
+the keyboard and display of the machine running it. The connection may be a
+dial-up modem link or a network transport. OpenDoors sends output to and
+receives input from that connection while optionally presenting the session to
+the sysop through [local echo](#local-echo). Compare [local mode](#local-mode).
 
-RIP            "RIP", "RIPScrip" or "Remote Imaging Protocol" is a popular graphical terminal standard that is used with BBS systems. Unlike other terminal emulation standards, such as the ANSI and AVATAR modes supported by OpenDoors, RIP operates in bit mapped graphics mode, allowing features such as lines, circles and icons to be drawn on the remote screen. OpenDoors provides support for RIP graphics, although OpenDoors operates in text mode itself.
+## RIP
 
-STATUS LINE    Usually, the bottom two lines of the screen, as displayed by an OpenDoors door, is devoted to a status line (although this status line may be turned off). This status line will display information about the user who is online, along with information about the current state of the BBS system, and a reference to the sysop function keys. See also "Local Window".
+RIP, RIPScrip, or *Remote Imaging Protocol* is a graphical terminal protocol
+developed for BBS systems. Unlike the text-cell display controlled by ANSI or
+AVATAR, RIP can describe bit-mapped graphics, lines, shapes, icons, mouse
+regions, and related graphical-interface operations.
 
-SYSOP          The term sysop is a short-form for "SYStem OPerator", and refers to the individual who is responsible for running and maintaining the BBS system. The sysop is usually the only person who has direct access to the local keyboard and computer on which the BBS, BBS utilities and BBS doors are running.
+OpenDoors can identify and send RIP content to a capable remote terminal while
+its ordinary text output and local status interface remain text-oriented.
+Compare [ANSI](#ansi), [AVATAR](#avatar), and [ASCII](#ascii).
 
-SYSOP CHAT     See "CHAT MODE".
+## Socket
 
-SOURCE CODE    The term "source code" refers to the original file or files that where used to produce a library or executable program. The source code files contain the language statements or commands that are directly written by the programmer. These source code files are then compiled to produce an executable file that may be "run".
+A socket is an operating-system endpoint for network communication. To a door,
+a connected stream socket can provide the same ordered byte stream once
+carried by a serial modem connection, while connection closure serves the
+purpose historically provided by carrier detect.
 
-SYSOP PAGE     Sysop paging refers to the process whereby a user of the BBS system may call or page for the sysop's attention, when they wish to "chat" with the sysop, and can be thought of as being similar to the ringing of a telephone. When a user pages the sysop, the BBS system will produce some sort of sound, which the sysop may elect to respond to if they are within hearing range of the computer. The most common reasons for a user to page a sysop include the case that they are having difficulty with some aspect of the BBS, that they have a question, or if they are simply interested in having a friendly conversation with the sysop. Obviously, since the sysop may not wish to be disturbed by users paging at certain times (such as when they are in bed), most BBS software provides controls to allow you to control paging. These features might include the ability to set hours for each day of the week during which paging will be permitted, and the ability to temporarily override the ability of some or all callers to page the sysop.
+OpenDoors may receive a socket from a BBS through `DOOR32.SYS` or a standard
+command-line option. Depending upon the launch interface, the value can be a
+native socket or a descriptor or handle supplied by the parent process. The
+door must not assume that a borrowed socket can be closed, reopened, or
+configured as if it owned an independent serial port. The selected transport
+and handle are reported by the [connection fields](control/connection.md).
 
-USER           When applied to computers in general, the term user simply refers to any person using the computer hardware and software. However, when applied particularly to BBSes, the term user refers specifically to a person who calls the BBS, to carry out activities such as communicating via messages or chatting, uploading and downloading files, or using doors. Often, the term user is used in contrast with the term sysop. In this case, users are all of the people who call and user the BBS, other than the sysop themselves.
+The byte-stream abstraction does not by itself provide terminal negotiation.
+A Telnet connection, for example, can contain Telnet command bytes as well as
+terminal data unless the BBS or another layer performs that protocol handling.
+The launching system and OpenDoors configuration must agree on which layer
+owns such processing.
 
-WIN32          Win32 is the name of the API that programs written to run under Microsoft Windows 95 and Microsoft Windows NT use to access operating system services. Win32 programs use a flat, 32-bit memory model and have access to advanced operating system services such as multithreading. Win32 programs cannot run under DOS nor OS/2. While some Win32 programs can run under Windows 3.x using the Win32s system, OpenDoors cannot since it requires multithreading services that are not provided by Win32s.
+## Source code
+
+Source code is the human-readable program text from which a compiler or
+assembler produces object code. OpenDoors is written principally in C, with
+platform-specific source where required. The public repository contains the
+library sources, headers, examples, tests, build descriptions, and this
+documentation.
+
+## Status line
+
+The status line is the local part of the OpenDoors interface which summarizes
+the caller and session and identifies available sysop controls. DOS personality
+modules can customize its appearance. It is local operator information, not
+part of the remote terminal display, and may be disabled with
+[`od_status_on`](control/customization.md#od_status_on).
+
+The status line and output window share a physical local display on platforms
+which provide one, but the remote screen remains represented independently.
+See [output window](#output-window).
+
+## Sysop
+
+*Sysop* is a contraction of *system operator*. The sysop operates and maintains
+the BBS, manages its users and content, and ordinarily has access to the local
+keyboard and administrative controls which are not available to callers.
+
+## Sysop chat
+
+Sysop chat is OpenDoors' interactive conversation between the local sysop and
+the caller. See [chat mode](#chat-mode).
+
+## Sysop page
+
+A sysop page is a caller's request for the sysop's attention, comparable to
+ringing a telephone. The BBS or door normally produces an audible indication
+which the sysop may answer by entering [chat mode](#chat-mode). Paging can be
+restricted to configured hours or disabled when the sysop is unavailable.
+
+OpenDoors supplies paging behavior and customizable paging text through the
+fields documented under [customization and callbacks](control/customization.md).
+
+## User
+
+In general computing usage, a user is any person operating a computer or
+program. In BBS usage, *user* or *caller* ordinarily means the person connected
+to the BBS to read and write messages, transfer files, chat, or use doors. The
+term is often contrasted with [sysop](#sysop), who operates the system.
+
+## Win32
+
+Win32 is the Windows application programming interface introduced for 32-bit
+Windows. Much of that API, including its names, data types, and calling
+conventions, remains available to native 64-bit Windows applications through
+the Windows API. “Win32” in existing OpenDoors identifiers or conditional code
+therefore does not necessarily mean that the resulting program is restricted
+to a 32-bit processor or address space.
+
+OpenDoors supports current 32- and 64-bit Windows toolchains as described in
+the [building guide](../guides/building.md). DOS serial and text-mode platform
+interfaces are separate from the Windows implementation.

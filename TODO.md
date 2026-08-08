@@ -249,3 +249,22 @@
   period, and wildcards for `W`, but rejects all digits and ordinary filename
   punctuation which the related `F` class accepts. Valid wildcard filenames
   such as `FILE2.*` therefore cannot be entered with that format class.
+
+- [ ] Correct the success test in `ex_vote.c`'s `WriteCurrentUser()` example.
+  It enters the “unable to update” path when `fwrite()` returns one, which is
+  the successful one-record result. That path closes the stream and then falls
+  through to close it a second time; an actual short write is treated as
+  success.
+
+- [ ] Close the multi-node Vote example's shared file descriptor exactly once.
+  `ExclusiveFileOpen()` passes the descriptor returned by `sopen()` to
+  `fdopen()`, so `fclose()` in `ExclusiveFileClose()` already closes it. The
+  following `close(hHandle)` attempts to close the same descriptor again and
+  can affect an unrelated file if the descriptor number has been reused.
+
+- [ ] Format the signed 32-bit `system_calls` field with a matching argument
+  type. [`ODRA.c`](ODRA.c) and the RemoteAccess `^KA` substitution in
+  [`ODEmu.c`](ODEmu.c) pass `INT32` to `%lu`. On hosted platforms `INT32` can
+  be `int`, so the variadic call expects a wider `unsigned long` argument and
+  has undefined behavior; on 32-bit-long targets the signedness still does not
+  match the conversion.
