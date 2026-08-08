@@ -634,44 +634,44 @@ jobs:
           require_marker PERSRPAS.OK
           require_marker PERSSPAS.OK
 
-      - name: Bind DOS/32A test programs and examples
+      - name: Configure native DOS/32A build
+        env:
+          CC: wcl386
+        run: >-
+          cmake
+          -S dos
+          -B build/dos32a
+          -G 'Unix Makefiles'
+          -D CMAKE_SYSTEM_NAME=DOS
+          -D CMAKE_SYSTEM_PROCESSOR=I386
+          -D CMAKE_BUILD_TYPE=Release
+          -D OPENDOORS_WARNINGS_AS_ERRORS=ON
+          -D OPENDOORS_DOS32_EXTENDER=DOS32A
+
+      - name: Build native DOS/32A programs
+        run: cmake --build build/dos32a
+
+      - name: Verify native DOS/32A outputs
         run: |
-          mkdir -p build/dos32a
-          cp "$WATCOM/binw/sb.exe" build/dos32a/SB.EXE
-          cp "$WATCOM/binw/dos32a.exe" build/dos32a/DOS32A.EXE
-          cp build/dos32/FOSSTSR.com build/dos32a/
-          cp build/dos32/od32foss.exe build/dos32a/
-          cp build/dos32/od32test.exe build/dos32a/
-          cp build/dos32/od32tsts.exe build/dos32a/
-          cp build/dos32/OD32CHLD.exe build/dos32a/
-          cp build/dos32/od32pers.exe build/dos32a/
-          cp build/dos32/od32pss.exe build/dos32a/
-          cp build/dos32/ex_chat.exe build/dos32a/
-          cp build/dos32/ex_diag.exe build/dos32a/
-          cp build/dos32/ex_hello.exe build/dos32a/
-          cp build/dos32/ex_music.exe build/dos32a/
+          test -s build/dos32a/ODOOR32R.lib
+          test -s build/dos32a/ODOOR32S.lib
+          test -s build/dos32a/FOSSTSR.com
+          test -s build/dos32a/od32foss.exe
+          test -s build/dos32a/od32test.exe
+          test -s build/dos32a/od32tsts.exe
+          test -s build/dos32a/OD32CHLD.exe
+          test -s build/dos32a/od32pers.exe
+          test -s build/dos32a/od32pss.exe
+          test -s build/dos32a/ex_chat.exe
+          test -s build/dos32a/ex_diag.exe
+          test -s build/dos32a/ex_hello.exe
+          test -s build/dos32a/ex_music.exe
 
       - name: Test with DOS/32A
         env:
           SDL_AUDIODRIVER: dummy
         run: |
           set -o pipefail
-          timeout --signal=TERM --kill-after=5s 45s \
-            xvfb-run -a dosbox -noconsole \
-              -c "mount c $PWD/build/dos32a" \
-              -c 'c:' \
-              -c 'sb /r /s od32foss.exe' \
-              -c 'sb /r /s od32test.exe' \
-              -c 'sb /r /s od32tsts.exe' \
-              -c 'sb /r /s od32chld.exe' \
-              -c 'sb /r /s od32pers.exe' \
-              -c 'sb /r /s od32pss.exe' \
-              -c 'sb /r /s ex_chat.exe' \
-              -c 'sb /r /s ex_diag.exe' \
-              -c 'sb /r /s ex_hello.exe' \
-              -c 'sb /r /s ex_music.exe' \
-              -c 'exit' \
-            2>&1 | tee build/dos32a/dos32a-bind.log
           timeout --signal=TERM --kill-after=5s 45s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos32a" \

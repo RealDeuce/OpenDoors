@@ -23,6 +23,33 @@ if(NOT OPENDOORS_DOS_PROCESSOR STREQUAL "I86" AND
         "The DOS build supports CMAKE_SYSTEM_PROCESSOR=I86 or I386")
 endif()
 
+if(OPENDOORS_DOS_PROCESSOR STREQUAL "I386")
+    set(OPENDOORS_DOS32_EXTENDER "DOS4GW" CACHE STRING
+        "DOS extender used to link 32-bit executables (DOS4GW or DOS32A)")
+    set_property(CACHE OPENDOORS_DOS32_EXTENDER PROPERTY STRINGS
+        DOS4GW DOS32A)
+    string(TOUPPER "${OPENDOORS_DOS32_EXTENDER}"
+        OPENDOORS_DOS32_EXTENDER)
+    if(OPENDOORS_DOS32_EXTENDER STREQUAL "DOS32A")
+        if(NOT CMAKE_EXE_LINKER_FLAGS MATCHES "system dos4g")
+            message(FATAL_ERROR
+                "Unable to select Open Watcom's DOS32A linker system")
+        endif()
+        string(REPLACE "system dos4g" "system dos32x"
+            CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
+        set(OPENDOORS_DOS32A_STUB "$ENV{WATCOM}/binw/dos32a.exe")
+        if(NOT EXISTS "${OPENDOORS_DOS32A_STUB}")
+            message(FATAL_ERROR
+                "Cannot find the DOS32A extender at ${OPENDOORS_DOS32A_STUB}")
+        endif()
+        configure_file("${OPENDOORS_DOS32A_STUB}"
+            "${CMAKE_BINARY_DIR}/dos32a.exe" COPYONLY)
+    elseif(NOT OPENDOORS_DOS32_EXTENDER STREQUAL "DOS4GW")
+        message(FATAL_ERROR
+            "OPENDOORS_DOS32_EXTENDER must be DOS4GW or DOS32A")
+    endif()
+endif()
+
 set(OPENDOORS_DOS_SOURCES
     ODAuto.c
     ODBlock.c
