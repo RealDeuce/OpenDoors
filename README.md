@@ -6,6 +6,19 @@ both local and remote screens, creates ANSI/AVATAR/RIP control sequences, and
 provides a sysop interface. The 6.2x changes by Rob Swindell added TCP socket
 (Telnet) and Door32.sys support.
 
+The current API and integration documentation is published as the
+[OpenDoors Reference](https://realdeuce.github.io/OpenDoors/). Its Markdown
+source is maintained under `docs/`. To preview it locally:
+
+```sh
+python -m pip install -r docs/requirements.txt
+python tools/check_api_docs.py
+mkdocs serve
+```
+
+The original CP437 OpenDoors 6.00 manual is retained under `historic/` for
+historical reference.
+
 ## CMake builds
 
 CMake 3.20 or newer can build the shared library, static library, examples,

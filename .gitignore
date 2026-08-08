@@ -4,6 +4,7 @@ objs-*
 
 # Out-of-tree build directories
 /build/
+/site/
 
 # Generated binaries and intermediate files
 *.a

@@ -1,0 +1,78 @@
+name: Documentation
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/docs.yml'
+      - 'docs/**'
+      - 'historic/OPENDOOR.TXT'
+      - 'mkdocs.yml'
+      - 'OpenDoor.h'
+      - 'README.md'
+      - 'tools/check_api_docs.py'
+  pull_request:
+    paths:
+      - '.github/workflows/docs.yml'
+      - 'docs/**'
+      - 'historic/OPENDOOR.TXT'
+      - 'mkdocs.yml'
+      - 'OpenDoor.h'
+      - 'README.md'
+      - 'tools/check_api_docs.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - name: Install documentation dependencies
+        run: python -m pip install -r docs/requirements.txt
+
+      - name: Check API reference coverage
+        run: python tools/check_api_docs.py
+
+      - name: Build site
+        run: mkdocs build --strict --site-dir site
+
+      - name: Upload GitHub Pages artifact
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    name: Deploy documentation
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
