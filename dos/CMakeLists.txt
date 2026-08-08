@@ -119,6 +119,17 @@ endif()
 target_compile_definitions(dos_link_smoke PRIVATE OPENDOORS_HAVE_VSNPRINTF=1)
 target_link_libraries(dos_link_smoke PRIVATE opendoors_dos)
 
+foreach(example IN ITEMS ex_chat ex_diag ex_hello ex_music)
+    add_executable(${example} "${OPENDOORS_ROOT}/${example}.c")
+    target_compile_options(${example} PRIVATE -ml -zq -za99)
+    if(OPENDOORS_WARNINGS_AS_ERRORS)
+        target_compile_options(${example} PRIVATE -we)
+    endif()
+    target_compile_definitions(${example} PRIVATE
+        OPENDOORS_HAVE_VSNPRINTF=1)
+    target_link_libraries(${example} PRIVATE opendoors_dos)
+endforeach()
+
 add_executable(dos_runtime_smoke
     "${OPENDOORS_ROOT}/tests/dos_runtime_smoke.c")
 set_target_properties(dos_runtime_smoke PROPERTIES OUTPUT_NAME odtest)

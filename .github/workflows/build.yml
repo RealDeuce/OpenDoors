@@ -332,19 +332,29 @@ jobs:
           -D CMAKE_BUILD_TYPE=Release
           -D OPENDOORS_WARNINGS_AS_ERRORS=ON
 
-      - name: Build OpenDoors DOS library and tests
+      - name: Build OpenDoors DOS library, examples, and tests
         run: cmake --build build/dos
 
       - name: Verify OpenDoors DOS outputs
         run: |
           test -s build/dos/ODoorl.lib
           test -s build/dos/dos_link_smoke.exe
+          test -s build/dos/ex_chat.exe
+          test -s build/dos/ex_diag.exe
+          test -s build/dos/ex_hello.exe
+          test -s build/dos/ex_music.exe
           test -s build/dos/odtest.exe
           test -s build/dos/odpers.exe
           test "$(od -An -tx1 -N2 build/dos/dos_link_smoke.exe | tr -d ' ')" = '4d5a'
+          test "$(od -An -tx1 -N2 build/dos/ex_chat.exe | tr -d ' ')" = '4d5a'
+          test "$(od -An -tx1 -N2 build/dos/ex_diag.exe | tr -d ' ')" = '4d5a'
+          test "$(od -An -tx1 -N2 build/dos/ex_hello.exe | tr -d ' ')" = '4d5a'
+          test "$(od -An -tx1 -N2 build/dos/ex_music.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/odtest.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/odpers.exe | tr -d ' ')" = '4d5a'
           file build/dos/ODoorl.lib build/dos/dos_link_smoke.exe \
+            build/dos/ex_chat.exe build/dos/ex_diag.exe \
+            build/dos/ex_hello.exe build/dos/ex_music.exe \
             build/dos/odtest.exe build/dos/odpers.exe
 
       - name: Install DOSBox runtime
