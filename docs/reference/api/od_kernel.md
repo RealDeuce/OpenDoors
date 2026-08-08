@@ -1,6 +1,6 @@
 # `od_kernel()`
 
-The OpenDoors Central Control function.
+Performs OpenDoors' periodic session processing.
 
 ## Synopsis
 
@@ -8,27 +8,61 @@ The OpenDoors Central Control function.
 void od_kernel(void);
 ```
 
-## Return value
-
-N/A
-
 ## Description
 
-In the DOS version of OpenDoors, the [`od_kernel()`](od_kernel.md) function is responsible for many vital OpenDoors tasks, such as monitoring the carrier detect signal, monitoring the amount of time that the user has remaining, updating the status line, responding to sysop hotkeys, and reading characters which are received from the modem. The [`od_kernel()`](od_kernel.md) function is automatically called on a frequent basis by the other OpenDoors functions, so most often you will not need to be concerned with this function. However, in order that OpenDoors can carry out the activities mentioned above with a quick response, it is important that [`od_kernel()`](od_kernel.md), or some other OpenDoors function be called at least once every second. Thus, if your program will be carrying out some processing, in which it will not be calling any OpenDoors functions for more than a second or so, you should call the [`od_kernel()`](od_kernel.md) function yourself. The example below demonstrates one method of doing just this.
+OpenDoors functions call [`od_kernel()`](od_kernel.md) regularly in builds
+which require explicit servicing. An application normally calls it directly
+only during a computation, polling loop, or wait which can run for more than
+about one second without making any other OpenDoors call.
 
-Note that if for some reason or other, it is not possible for your program to call the [`od_kernel()`](od_kernel.md) function, or any other OpenDoors functions for a period of several seconds, this will not cause your door to crash or fail in any way. The only problem will be that OpenDoors will not be able to respond to any action, such as the sysop pressing a function key, or the user dropping carrier, until such time as you next call [`od_kernel()`](od_kernel.md), or some OpenDoors function. Hence, use of the [`od_kernel()`](od_kernel.md) function will improve the quality and response time of your program, but calling it or some OpenDoors function on a regular basis is not absolutely vital.
+Every invocation first calls
+[`od_control.od_ker_exec`](../control/customization.md#od_ker_exec), when that
+callback is installed. A recursive call made while the kernel is already
+active returns immediately, preventing callbacks and functions invoked by the
+kernel from re-entering the processing loop.
 
-This function has no effect in the Win32 version of OpenDoors.
+In a single-threaded build, periodic processing includes:
 
-## Additional details
+- reading available remote bytes into the common input queue;
+- checking carrier detect unless
+  [`DIS_CARRIERDETECT`](../constants/session.md#dis_carrierdetect) is set;
+- processing enabled DOS local-keyboard input, sysop command keys, custom hot
+  keys, chat, and DOS shell requests;
+- updating or redrawing the DOS status line as required;
+- deducting elapsed minutes from
+  [`od_control.user_timelimit`](../control/caller.md#user_timelimit), issuing
+  time warnings, and enforcing the session time limit; and
+- issuing inactivity warnings and enforcing the configured inactivity limit.
 
-The kernel checks carrier state, time limits, inactivity, local sysop keys,
-status updates, and configured callbacks. API functions invoke it frequently,
-so ordinary doors seldom need to call it after every operation. Call it during
-long computations or wait loops which otherwise make no OpenDoors calls.
+Carrier loss, a sysop termination key, an expired time limit, or an inactivity
+timeout can cause the normal OpenDoors shutdown path to terminate the door from
+inside this function. Delaying kernel calls therefore delays detection of those
+conditions and the handling of local keys; it does not disable them.
 
-The function returns no value. It may terminate the session when connection or
-time-limit policy requires it.
+On Win32, the connection and time processing is performed by background
+threads. A direct call still invokes
+[`od_control.od_ker_exec`](../control/customization.md#od_ker_exec), but the
+remainder of the single-threaded processing loop is omitted. Unix builds use
+the single-threaded path unless configured to provide their own periodic kernel
+mechanism.
+
+## Return value
+
+This function returns no value. It may terminate the session when an enabled
+connection, time-limit, inactivity, or sysop policy requires shutdown.
+
+## Example
+
+The following structure services OpenDoors while a lengthy operation is split
+into individual units:
+
+```c
+for(item = 0; item < item_count; ++item)
+{
+    process_one_item(item);
+    od_kernel();
+}
+```
 
 ## See also
 

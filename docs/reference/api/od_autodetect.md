@@ -1,6 +1,6 @@
 # `od_autodetect()`
 
-Attempts to automatically determine the terminal capabilities of the remote system.
+Attempts to determine the remote terminal's ANSI and RIP capabilities.
 
 ## Synopsis
 
@@ -8,101 +8,69 @@ Attempts to automatically determine the terminal capabilities of the remote syst
 void od_autodetect(INT nFlags);
 ```
 
-## Return value
-
-N/A
-
 ## Description
 
-This function can be used to determine whether or not the remote terminal supports ANSI and/or RIP (Remote Imaging Protocol) graphics modes. This information is usually supplied to the door by the BBS software, through the door information file. For this reason, most door programs do not need to make used of this function. However, if your door will be running under any BBS software that does not report the ANSI or RIP capabilities of the remote system, you may wish to use this function. [`od_autodetect()`](od_autodetect.md) will set either of the following OpenDoors control structure variables to TRUE if the corresponding graphics mode is detected:
+Most BBS door-information files report the caller's terminal capabilities, so
+most doors do not need to call [`od_autodetect()`](od_autodetect.md). It is
+provided for sessions in which that information is unavailable or unreliable.
 
-od_control.user_ansi     - TRUE if ANSI mode is available od_control.user_rip      - TRUE if RIP mode is available
+The function tests ANSI first by sending the ANSI cursor-position query
+`ESC [ 6 n`, followed by carriage return and spaces used to erase the query
+from ordinary terminals. It waits up to 660 milliseconds for a response which
+begins with `ESC [`.
 
-However, if either of these variables have previously been set to TRUE (either explicitly by your program, or due to the corresponding modes being enabled in the door information file), and [`od_autodetect()`](od_autodetect.md) does not detect the corresponding graphics mode, they will not be set to FALSE. Not all terminal software that supports ANSI or RIP graphics mode will necessarily have the ability to report their graphics mode capabilities to the door. For this reason, failure to detect either of these modes does not necessarily indicate that they are not available. However, if these modes are detected by [`od_autodetect()`](od_autodetect.md), it is safe to assume that the remote system does support the detected mode.
+It then tests RIP by sending carriage return, `ESC [ !`, and another carriage
+return with erasing spaces. It waits up to 660 milliseconds for the characters
+`RIP`, without regard to case, and discards the following eleven identification
+bytes when that response is found. Each test is made only if the corresponding
+capability is not already enabled.
 
-The current implementation ignores `nFlags`. Pass [`DETECT_NORMAL`](../constants/display.md#detect_normal), the only
-defined value, so the call remains compatible if a later version assigns
-meaning to additional bits.
+Successful ANSI detection sets
+[`od_control.user_ansi`](../control/caller.md#user_ansi) to
+[`TRUE`](../constants/general.md#true). Successful RIP detection sets
+[`od_control.user_rip`](../control/caller.md#user_rip) to
+[`TRUE`](../constants/general.md#true). A failed or unanswered query does not
+clear either field: many capable terminal programs do not implement these
+queries, so failure is not evidence that the mode is unavailable.
 
-This function cannot auto-detect AVATAR mode, because there is no standard means of determining whether a remote system supports AVATAR mode.
+In local mode, indicated by a zero
+[`od_control.baud`](../control/connection.md#baud), OpenDoors enables ANSI and
+returns without sending either query. The function cannot detect AVATAR because
+there is no corresponding standard query; it never changes
+[`od_control.user_avatar`](../control/caller.md#user_avatar).
 
-## Examples
+The input queue is cleared before and after each remote test. Consequently,
+input which was already waiting, response bytes which do not match the expected
+prefix, and bytes received while a test is in progress may be discarded.
 
-Below is an example of using [`od_autodetect()`](od_autodetect.md) in determining the remote terminal's graphics capabilities. Since not all terminal software supports auto-detection, this example will also prompt the user to determine their software's capabilities if [`od_autodetect()`](od_autodetect.md) fails to detect ANSI mode. This code assumes that if the terminal software supports the autodetection of ANSI mode, that it will also support the autodetection of RIP mode. OpenDoors assumes that ANSI mode is always available in conjunction with RIP mode.
+`nFlags` is reserved and ignored by the current implementation. Pass
+[`DETECT_NORMAL`](../constants/display.md#detect_normal), the only defined
+value, for compatibility with future versions.
 
-/* Call the automatic terminal detection function */ [`od_autodetect()`](od_autodetect.md);
+## Return value
+
+This function returns no value. Inspect
+[`od_control.user_ansi`](../control/caller.md#user_ansi) and
+[`od_control.user_rip`](../control/caller.md#user_rip) after the call.
+
+## Example
+
+Because a failed probe is inconclusive, a door which depends on ANSI should
+still ask the caller when detection fails:
 
 ```c
-/* If ANSI mode was not detected, ask the user about
+od_autodetect(DETECT_NORMAL);
+
 if(!od_control.user_ansi)
 {
-   /* Prompt the user for ANSI capabilities */
-   od_clr_scr();
-   od_printf("Does your system support ANSI graphics?");
-   od_printf(" (Y/N)");
-```
-
-```c
-/* If the user chooses [Y]es */
-if(od_get_answer("YN") == 'Y')
-{
-   /* Turn on ANSI mode */
-   od_control.user_ansi = TRUE;
-```
-
-```c
-/* Since ANSI mode is present, RIP mode may also */
-/* be available. Prompt the user for RIP. */
-od_printf("\r\n\n");
-od_printf("Does your system support RIP graphics?");
-od_printf(" (Y/N)");
-```
-
-```c
-/* If the user chooses [Y]es */
-if(od_get_answer("YN") == 'Y')
-   /* Turn on RIP mode */
-   od_control.user_rip = TRUE;
-```
-
-```c
-/* Since ANSI mode is present, AVATAR mode may  */
-/* also be available. Prompt the user for AVATAR. */
-od_printf("\r\n\n");
-od_printf("Does your system support AVATAR ");
-od_printf("graphics? (Y/N)");
-```
-
-```c
-   /* If the user chooses [Y]es */
-   if(od_get_answer("YN") == 'Y')
-      /* Turn on AVATAR mode */
-      od_control.user_avatar = TRUE;
+    od_printf("Does your terminal support ANSI graphics? (Y/N) ");
+    if(od_get_answer("YN") == 'Y')
+        od_control.user_ansi = TRUE;
 }
 ```
-
-```c
-   od_printf("\r\n\n");
-}
-```
-
-## Additional details
-
-`nFlags` is reserved and is currently ignored; pass
-[`DETECT_NORMAL`](../constants/display.md). OpenDoors sends the ANSI and RIP
-queries, waits for replies, and enables the corresponding
-[`od_control.user_ansi`](../control/caller.md) or
-[`user_rip`](../control/caller.md) state when detected. In local mode it enables
-ANSI without probing.
-
-Capabilities already known to be present are not cleared merely because a
-terminal does not answer a probe. Most BBS door-information formats already
-report these values, so explicit detection is normally needed only when that
-information is unavailable. The function returns no value.
 
 ## See also
 
-
-
-[Terminal and screen model](../../guides/terminal-screen.md), [Menus and
-screen](../constants/display.md)
+[`od_clear_keybuffer()`](od_clear_keybuffer.md),
+[Terminal and screen model](../../guides/terminal-screen.md),
+[Display constants](../constants/display.md)

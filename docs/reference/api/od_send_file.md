@@ -1,6 +1,6 @@
 # `od_send_file()`
 
-Sends an ASCII/ANSI/AVATAR/RIP file from disk, using terminal emulation.
+Displays an ASCII, ANSI, AVATAR, or RIP file.
 
 ## Synopsis
 
@@ -8,143 +8,182 @@ Sends an ASCII/ANSI/AVATAR/RIP file from disk, using terminal emulation.
 BOOL od_send_file(const char *pszFileName);
 ```
 
-## Return value
-
-TRUE if the file was successfully sent FALSE if OpenDoors was unable to send the file
-
 ## Description
 
-This powerful function will display any ASCII, ANSI, AVATAR or RIP file. The [`od_send_file()`](od_send_file.md) function can be used to display existing BBS text files, such as a "logoff screen", before your door hangs up on the user. You can also make use of the [`od_send_file()`](od_send_file.md) function to build many of your door screens as external files. This will allow you to easily create these screens in an ANSI editor program, such as "TheDraw". It will could also optionally allow sysops to customize your door for use on their own BBS.
+[`od_send_file()`](od_send_file.md) opens a display file, sends it to the
+remote user, and maintains the OpenDoors local or virtual screen. It can be
+used for menus, welcome and logoff screens, instructions, or any other
+presentation kept outside the program.
 
-The [`od_send_file()`](od_send_file.md) function is called with the full path and filename of the file you wish to have displayed. Thus, if you wished to send the ANSI file MAINMENU.SCR, you would simply call:
+`pszFileName` may name one particular file or a base name from which OpenDoors
+selects a terminal-specific variant.
 
-```text
-od_send_file("MAINMENU.SCR");
-```
+### Automatic file selection
 
-In many cases, instead of having just one file that you want displayed in particular, you will have several different files, and will want a different one displayed according to the user's graphics mode. For example, you might have the four files, MAINMENU.ASC, MAINMENU.ANS, MAINMENU.AVT and MAINMENU.RIP; the .ASC file containing no special control codes, the .ANS file containing ANSI control codes, the .AVT file containing AVATAR control codes, and the .RIP file containing RIP graphics control codes. In this case, you can have the [`od_send_file()`](od_send_file.md) function automatically select the appropriate file according to the user's current display mode, by omitting the extension altogether. Thus, a call to:
+When `pszFileName` contains no period anywhere in the string, OpenDoors tries
+the following extensions in order, skipping formats whose capability flag is
+not enabled:
 
-```text
+| Priority | Extension | Required caller capability |
+| ---: | --- | --- |
+| 1 | `.rip` | [`od_control.user_rip`](../control/caller.md#user_rip) |
+| 2 | `.avt` | [`od_control.user_avatar`](../control/caller.md#user_avatar) |
+| 3 | `.ans` | [`od_control.user_ansi`](../control/caller.md#user_ansi) |
+| 4 | `.asc` | None |
+
+For example:
+
+```c
 od_send_file("MAINMENU");
 ```
 
-would cause OpenDoors to automatically send the appropriate file, according to the user's graphics mode settings. When the [`od_send_file()`](od_send_file.md) function is used in this "automatic mode" (where you do not specify a filename extension), it will look for one of the four filename extensions listed below.
+may open `MAINMENU.rip`, `MAINMENU.avt`, `MAINMENU.ans`, or `MAINMENU.asc`.
+The search stops at the first compatible file which can be opened. AVATAR
+capability does not by itself enable the ANSI candidate, and RIP capability
+does not by itself enable AVATAR or ANSI; each fallback is considered only
+when its own control-structure flag is true. The ASCII candidate is always
+considered.
 
-```text
-+----------------------------------------------------------+
-| Extension| File type                                     |
-+----------+-----------------------------------------------|
-|   .ASC   | Does not require any graphics mode to display |
-|   .ANS   | Requires ANSI graphics mode to display        |
-|   .AVT   | Requires AVATAR graphics mode to display      |
-|   .RIP   | Requires RIP graphics mode to be displayed    |
-+----------------------------------------------------------+
+If the selected remote file is RIP, OpenDoors performs a second search,
+beginning with `.avt`, for a version which can be shown on the local screen.
+It uses that companion file for local presentation while sending the RIP file
+unchanged to the remote user. If no companion can be opened, it displays the
+message beginning with
+[`od_control.od_sending_rip`](../control/customization.md#od_sending_rip) on
+the local interface until remote transmission has drained.
+
+### Explicit filenames
+
+If `pszFileName` contains a period, OpenDoors treats it as an explicit filename
+and opens exactly that path; it does not perform extension fallback. Thus:
+
+```c
+od_send_file("MAINMENU.ANS");
 ```
 
-If the user has RIP graphics enabled, [`od_send_file()`](od_send_file.md) will first search for the .RIP file. If no file exists with the specified filename and a .RIP extension, [`od_send_file()`](od_send_file.md) will then search for .AVT, then .ANS, and if not found .ASC. If the user has only ANSI graphics enabled, [`od_send_file()`](od_send_file.md) will attempt first to display the .ANS file, and if not found will search for .ASC. In the case that the user is using plain-ASCII mode, this function will attempt only to display the .ASC file.
+opens only `MAINMENU.ANS`.
 
-When displaying a .RIP file to the remote system, OpenDoors will attempt to locate and display a corresponding .AVT/.ANS/.ASC file on the local system. If no such file can be found, a window will be displayed, indicating the name of the .RIP file that is being sent to the remote system. When a .RIP file is being displayed, page pausing is disabled.
+An explicit name containing the substring `.rip`, without regard to case, is
+treated as RIP data: page pausing and local emulation are disabled, and the
+local RIP-transmission message is displayed. Unlike automatic mode, this path
+does not search for a companion local file.
 
-When displaying .AVT/.ANS/.ASC files, [`od_send_file()`](od_send_file.md) will send any ANSI or AVATAR codes in the file directly to the remote terminal, and interpret them to display on the local screen (regardless of the actual filename extension). This interpretation is accomplished by OpenDoor's built in terminal emulator. The terminal emulator fully supports all ANSI and AVATAR level 0 and level 0+ control codes. The terminal emulator will also translate Remote Access/QuickBBS style control codes, if enabled by setting od_control.od_no_ra_codes to FALSE. The control codes supported by OpenDoors are listed in the chart on the following pages. When these control codes are inserted into the file, OpenDoors will replace them with various pieces of user or system information.
+For every non-RIP file, content rather than the filename extension determines
+which ANSI and AVATAR commands are interpreted for the local or virtual
+screen. An explicitly named file with another extension can therefore contain
+the same supported terminal commands.
 
-```text
-  +-----------------------------------------------------+
-  | CONTROL | ASCII |                                   |
-  |  CODE   | VALUE | DESCRIPTION                       |
-  +---------+-------+-----------------------------------|
-  |   ^FA   | 06,65 | Displays the user's full name     |
-  |   ^FB   | 06,66 | Location the user is calling from |
-  |   ^FC   | 06,67 | Displays the user's password      |
-  |   ^FD   | 06,68 | Business/data phone number        |
-  |   ^FE   | 06,69 | Home/voice phone number           |
-  |   ^FF   | 06,70 | Date of the user's last call      |
-  |   ^FG   | 06,71 | Time of day of the last call      |
-  |   ^FH   | 06,72 | The user's `A' flags settings     |
-  |   ^FI   | 06,73 | The user's `B' flags settings     |
-  |   ^FJ   | 06,74 | The user's `C' flags settings     |
-  |   ^FK   | 06,75 | The user's `D' flags settings     |
-  |   ^FL   | 06,76 | User's remaining netmail credit   |
-  |   ^FM   | 06,77 | Number of messages posted by user |
-  |   ^FN   | 06,78 | Last read message number by user  |
-  |   ^FO   | 06,79 | Displays security level of user   |
-  |   ^FP   | 06,80 | Number of times user has called   |
-  |   ^FQ   | 06,81 | Total # of uploads by user        |
-  |   ^FR   | 06,82 | Total KBytes uploaded by user     |
-  |   ^FS   | 06,83 | Total # of downloads by user      |
-  |   ^FT   | 06,84 | Total Kbytes downloaded by user   |
-  |   ^FU   | 06,85 | # of minute user has used today   |
-  |   ^FV   | 06,86 | User's screen length setting      |
-  |   ^FW   | 06,87 | User's first name only            |
-  |   ^FX   | 06,88 | User's ANSI setting               |
-  |   ^FY   | 06,89 | User's "continue?" prompt setting |
-  |   ^FZ   | 06,90 | Does user have screen clearing on |
-  |   ^F0   | 06,48 | User's Full-screen editor setting |
-  |   ^F1   | 06,49 | User's Quiet mode setting         |
-  |   ^F2   | 06,50 | User's hot-keys setting           |
-  |   ^F3   | 06,51 | Displays the user's alias         |
-  |   ^F4   | 06,52 | The date of the User's first call |
-  |   ^F5   | 06,53 | The user's date of birth          |
-  |   ^F6   | 06,54 | User's subscription expiry date   |
-  |   ^F7   | 06,55 | Number of days until expiry       |
-  |   ^F8   | 06,56 | User's AVATAR setting             |
-  |   ^F9   | 06,57 | The user's upload:download ratio  |
-  |   ^F:   | 06,58 | User's Upload K:download K ratio  |
-  +-----------------------------------------------------+
-```
+## Paging and interruption
 
-```text
-  +-----------------------------------------------------+
-  | CONTROL | ASCII |                                   |
-  |  CODE   | VALUE | DESCRIPTION                       |
-  +---------+-------+-----------------------------------|
-  |   ^F;   | 06,59 | Full-screen message reader        |
-  |   ^KA   | 11,65 | Total # of calls BBS has received |
-  |   ^KB   | 11,66 | Name of the last caller to BBS    |
-  |   ^KC   | 11,67 | Total # of active messages on BBS |
-  |   ^KD   | 11,68 | Displays # of the first message   |
-  |   ^KE   | 11,69 | Displays # of the last message    |
-  |   ^KF   | 11,70 | # of times user has paged sysop   |
-  |   ^KG   | 11,71 | Full name of the current weekday  |
-  |   ^KH   | 11,72 | Displays total number of users    |
-  |   ^KI   | 11,73 | Displays the current time         |
-  |   ^KJ   | 11,74 | Displays the current date         |
-  |   ^KK   | 11,75 | Minutes the user has been online  |
-  |   ^KL   | 11,76 | Seconds the user has been online  |
-  |   ^KM   | 11,77 | Minutes the user has used today   |
-  |   ^KN   | 11,78 | Seconds the user has used today   |
-  |   ^KO   | 11,79 | Minutes remaining for user today  |
-  |   ^KP   | 11,80 | Seconds remaining for user today  |
-  |   ^KQ   | 11,81 | The user's daily time limit       |
-  |   ^KR   | 11,82 | Displays the current baud rate    |
-  |   ^KS   | 11,83 | The current weekday in short-form |
-  |   ^KT   | 11,84 | The user's daily download limit   |
-  |   ^KU   | 11,85 | # of minutes until the next event |
-  |   ^KV   | 11,86 | Time of the next system event     |
-  |   ^KW   | 11,87 | # of node user is currently on    |
-  |   ^KX   | 11,88 | Disconnects the user              |
-  +-----------------------------------------------------+
-```
+Page pausing begins in the state reported by
+[`od_control.od_page_pausing`](../control/runtime.md#od_page_pausing) and uses
+[`od_control.user_screen_length`](../control/caller.md#user_screen_length) as
+the page length. OpenDoors counts records returned by the C stream reader which
+end in carriage return or line feed. At the page boundary it uses the standard
+continue prompt, allowing the caller to continue, disable further pauses, or
+stop. Pausing is always disabled for RIP transmission.
 
-## Examples
+When [`od_control.od_list_pause`](../control/customization.md#od_list_pause) is
+enabled, `P` pauses display until another key is pressed. When
+[`od_control.od_list_stop`](../control/customization.md#od_list_stop) is
+enabled, `S`, Ctrl-C, Ctrl-K, or Ctrl-X stops display. These checks accept both
+upper- and lower-case letters. Stopping an open file is a successful,
+user-requested termination and does not make the function return
+[`FALSE`](../constants/general.md#false).
 
-For an example of the use of the [`od_send_file()`](od_send_file.md) function in displaying a custom door menu, see the EX_VOTE.C example program.
+When [`od_control.od_emu_simulate_modem`](../control/customization.md#od_emu_simulate_modem)
+is true, local emulation is paced according to the reported connection speed
+rather than being completed immediately.
 
-## Additional details
+## RemoteAccess and QuickBBS substitutions
 
-If `pszFileName` has no extension, OpenDoors searches for a compatible variant
-according to the user's display capabilities. File contents are interpreted for
-the local presentation while being transmitted to the remote user. Page pausing
-and user interruption follow the current [`od_control`](../control/index.md)
-settings.
+Unless [`od_control.od_no_ra_codes`](../control/customization.md#od_no_ra_codes)
+is true, the emulator recognizes the established RemoteAccess/QuickBBS prefix
+bytes Ctrl-A (`0x01`), Ctrl-F (`0x06`), and Ctrl-K (`0x0b`). Ctrl-A waits for
+Enter. Ctrl-F and Ctrl-K consume the following byte as a case-sensitive
+substitution code. The code letters shown below are uppercase; an unlisted or
+lower-case code is consumed without output.
 
-The function returns false with [`ERR_FILEOPEN`](../constants/errors.md) when no
-suitable file can be opened and with [`ERR_PARAMETER`](../constants/errors.md)
-for a null name. The implementation reads display files with `fgets()` and
-treats a failed read like end of file; it does not set [`ERR_FILEREAD`](../constants/errors.md#err_fileread).
+The implemented Ctrl-F substitutions are:
+
+| Code | Output |
+| --- | --- |
+| `^FA` | [`od_control.user_name`](../control/caller.md#user_name) |
+| `^FB` | [`od_control.user_location`](../control/caller.md#user_location) |
+| `^FC` | [`od_control.user_password`](../control/caller.md#user_password) |
+| `^FD` | [`od_control.user_dataphone`](../control/caller.md#user_dataphone) |
+| `^FE` | [`od_control.user_homephone`](../control/caller.md#user_homephone) |
+| `^FF` | [`od_control.user_lastdate`](../control/caller.md#user_lastdate) |
+| `^FG` | [`od_control.user_lasttime`](../control/caller.md#user_lasttime) |
+| `^FH` through `^FK` | Eight `X` or `-` characters representing [`od_control.user_flags[0]`](../control/caller.md#user_flags) through `user_flags[3]`, least-significant bit first |
+| `^FL` | Decimal [`od_control.user_net_credit`](../control/caller.md#user_net_credit) |
+| `^FM` | Decimal [`od_control.user_messages`](../control/caller.md#user_messages) |
+| `^FN` | Decimal [`od_control.user_lastread`](../control/caller.md#user_lastread) |
+| `^FO` | Decimal [`od_control.user_security`](../control/caller.md#user_security) |
+| `^FP` | Decimal [`od_control.user_numcalls`](../control/caller.md#user_numcalls) |
+| `^FQ` | Intended to display [`od_control.user_uploads`](../control/caller.md#user_uploads); the current format string is defective and appends `l`, with an ABI-dependent numeric result |
+| `^FR` | Intended to display [`od_control.user_upk`](../control/caller.md#user_upk); the current format string is defective and appends `l`, with an ABI-dependent numeric result |
+| `^FS` | Intended to display [`od_control.user_downloads`](../control/caller.md#user_downloads); the current format string is defective and appends `l`, with an ABI-dependent numeric result |
+| `^FT` | Intended to display [`od_control.user_downk`](../control/caller.md#user_downk); the current format string is defective and appends `l`, with an ABI-dependent numeric result |
+| `^FU` | Decimal [`od_control.user_time_used`](../control/caller.md#user_time_used) |
+| `^FV` | Decimal [`od_control.user_screen_length`](../control/caller.md#user_screen_length) |
+| `^FW` | First space-delimited word of [`od_control.user_name`](../control/caller.md#user_name) |
+| `^FX` | `ON` when [`od_control.user_ansi`](../control/caller.md#user_ansi) is true; otherwise `OFF` |
+| `^FY` | `ON` when bit `0x04` of [`od_control.user_attribute`](../control/caller.md#user_attribute) is set; otherwise `OFF` |
+| `^FZ` | `ON` when bit `0x02` of [`od_control.user_attribute`](../control/caller.md#user_attribute) is set; otherwise `OFF` |
+| `^F0` | `ON` when bit `0x40` of [`od_control.user_attribute`](../control/caller.md#user_attribute) is set; otherwise `OFF` |
+| `^F1` | `ON` when bit `0x80` of [`od_control.user_attribute`](../control/caller.md#user_attribute) is set; otherwise `OFF` |
+| `^F2` | `ON` when bit `0x01` of [`od_control.user_attrib2`](../control/caller.md#user_attrib2) is set; otherwise `OFF` |
+| `^F3` | [`od_control.user_handle`](../control/caller.md#user_handle) |
+| `^F4` | [`od_control.user_firstcall`](../control/caller.md#user_firstcall) |
+| `^F5` | [`od_control.user_birthday`](../control/caller.md#user_birthday) |
+| `^F6` | [`od_control.user_subdate`](../control/caller.md#user_subdate) |
+| `^F7` | No output in the current implementation |
+| `^F8` | `ON` when bit `0x02` of [`od_control.user_attrib2`](../control/caller.md#user_attrib2) is set; otherwise `OFF` |
+| `^F9` | Decimal [`od_control.user_uploads`](../control/caller.md#user_uploads), a colon, and decimal [`od_control.user_downloads`](../control/caller.md#user_downloads) |
+| `^F:` | Decimal [`od_control.user_upk`](../control/caller.md#user_upk), a colon, and decimal [`od_control.user_downk`](../control/caller.md#user_downk) |
+| `^F;` | `ON` when bit `0x04` of [`od_control.user_attrib2`](../control/caller.md#user_attrib2) is set; otherwise `OFF` |
+
+The implemented Ctrl-K substitutions are:
+
+| Code | Output or action |
+| --- | --- |
+| `^KA` | Decimal [`od_control.system_calls`](../control/caller.md#system_calls) |
+| `^KB` | [`od_control.system_last_caller`](../control/caller.md#system_last_caller) |
+| `^KM` | Decimal [`od_control.user_time_used`](../control/caller.md#user_time_used) |
+| `^KN` | The literal text `00` |
+| `^KO` | Decimal [`od_control.user_timelimit`](../control/caller.md#user_timelimit) |
+| `^KQ` | The literal character `0` |
+| `^KR` | The literal character `0` |
+| `^KV` | [`od_control.event_starttime`](../control/caller.md#event_starttime), written only to the local screen by the current implementation |
+| `^KX` | Calls [`od_exit()`](od_exit.md) with error level 2 and hangup enabled |
+
+The recognized Ctrl-K codes `C` through `L`, `P`, `S` through `U`, `W`, `Y`,
+`Z`, and `0` through `2` currently produce no output. This includes several
+substitutions described by historical RemoteAccess and QuickBBS documentation;
+they are not implemented by the library in this repository.
+
+When [`od_control.od_no_ra_codes`](../control/customization.md#od_no_ra_codes)
+is true, these prefixes are not interpreted as substitutions and proceed
+through ordinary terminal emulation instead.
+
+## Return value
+
+The function returns [`TRUE`](../constants/general.md#true) after an opened
+file reaches end of file or the user stops it. It returns
+[`FALSE`](../constants/general.md#false) and sets
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter) for a null filename,
+or to [`ERR_FILEOPEN`](../constants/errors.md#err_fileopen) when the explicit
+file or every compatible automatic candidate cannot be opened.
+
+The implementation reads through `fgets()` and treats any failed read as end
+of file. It does not distinguish a stream read error from normal end of file
+and does not set [`ERR_FILEREAD`](../constants/errors.md#err_fileread).
 
 ## See also
 
-[`od_disp_emu()`](od_disp_emu.md), [`od_list_files()`](od_list_files.md), [`od_hotkey_menu()`](od_hotkey_menu.md)
-
 [`od_send_file_section()`](od_send_file_section.md),
-[`od_hotkey_menu()`](od_hotkey_menu.md), [`od_disp_emu()`](od_disp_emu.md)
+[`od_hotkey_menu()`](od_hotkey_menu.md),
+[`od_disp_emu()`](od_disp_emu.md),
+[`od_list_files()`](od_list_files.md)

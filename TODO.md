@@ -167,3 +167,85 @@
   [`ODInEx1.c`](ODInEx1.c) derives the hour and minute portions of line 15, but
   passes the minute portion first to `sprintf("%02u:%02u", ...)`, producing
   `MM:HH` in `user_logintime`.
+
+- [ ] Reject reversed or degenerate rectangles in `od_draw_box()`.
+  [`ODDrBox.c`](ODDrBox.c) checks only whether coordinates exceed the fixed
+  80-by-25 bounds. If the right edge does not follow the left edge, or the
+  bottom edge does not follow the top edge, byte-sized width and height
+  calculations wrap and can produce very large repeated output or AVATAR
+  clear-area dimensions.
+
+- [ ] Handle titles safely in very narrow windows. [`ODWin.c`](ODWin.c)
+  permits a three- or four-column window, then computes the maximum title
+  length as `btBetweenSize - 4`. That expression is negative for these valid
+  widths and is converted to an unsigned size for comparison, so a nonempty
+  title is not truncated to fit and subsequent byte-sized spacing calculations
+  wrap.
+
+- [ ] Preserve non-waiting behavior after `od_get_key(FALSE)` discards a line
+  feed. [`ODCore.c`](ODCore.c) checks the queue only before entering its
+  do/while loop. If the queued event is a line feed, the loop discards it and
+  calls `ODInQueueGetNextEvent()` with an infinite timeout without checking
+  `bWait` or the queue again, so an operation requested as a poll can block.
+
+- [ ] Compare the full unsigned byte range correctly in `od_input_str()`.
+  [`ODCore.c`](ODCore.c) stores the received byte in plain `char` before
+  comparing it with the unsigned `chMin` and `chMax` parameters. On targets
+  where `char` is signed, input bytes 128 through 255 become negative and can
+  never satisfy a range intended to accept them.
+
+- [ ] Release multiline-editor bookkeeping allocations on every exit path.
+  [`ODEdit.c`](ODEdit.c) allocates `pRememberBuffer` and dynamically grows
+  `papchStartOfLine`, but `od_multiline_edit()` never frees either allocation
+  after the editor finishes or after a later setup/indexing failure. Every
+  invocation therefore leaks internal memory independently of the caller's
+  text-buffer ownership.
+
+- [ ] Report the grown multiline-editor buffer capacity correctly.
+  [`ODEdit.c`](ODEdit.c) updates the editor instance's `unBufferSize` after a
+  successful `pfBufferRealloc` call, but writes the original function argument
+  to `tODEditOptions.unFinalBufferSize` on return. The returned final pointer
+  and reported capacity can consequently describe different allocations.
+
+- [ ] Validate custom multiline-editor rectangles before deriving unsigned
+  dimensions. [`ODEdit.c`](ODEdit.c) replaces zero coordinates with defaults
+  but does not reject negative, reversed, off-screen, or otherwise unusable
+  values. The width, height, scrolling, allocation, and redraw calculations
+  can then underflow or address positions outside the supported screen.
+
+- [ ] Parse display-file extensions from the final path component.
+  [`ODEmu.c`](ODEmu.c) selects automatic mode only when the entire path has no
+  period and recognizes an explicit RIP file whenever `.rip` occurs anywhere
+  in the uppercased path. A period in a directory disables automatic variant
+  selection, while names such as `screen.ripple` are treated as RIP files.
+
+- [ ] Bound display-file path construction. `od_send_file()` and
+  `ODEmulateFindCompatFile()` in [`ODEmu.c`](ODEmu.c) copy the caller's path
+  into the fixed global work buffer with `strcpy()` and append extensions with
+  `strcat()`. A sufficiently long path can overflow the buffer before the
+  attempted file open.
+
+- [ ] Correct the RemoteAccess `^FQ` through `^FT` numeric substitutions.
+  [`ODEmu.c`](ODEmu.c) uses the format string `%ul` for `DWORD` upload and
+  download counters. It supplies the wrong conversion type where `unsigned
+  int` and `unsigned long` differ and emits a literal `l` after the result on
+  every platform.
+
+- [ ] Complete or deliberately retire the unimplemented RemoteAccess/QuickBBS
+  substitution codes in [`ODEmu.c`](ODEmu.c). `^F7` and most of the recognized
+  `^K` table are consumed without output; `^KQ` and `^KR` always emit `0`
+  because their arguments are unused; and `^KV` writes the event time only to
+  the local screen rather than to the normal local/remote output path.
+
+- [ ] Validate the complete `od_edit_str()` display rectangle.
+  [`ODEdStr.c`](ODEdStr.c) rejects only row and column values below one. It
+  accepts as many as 80 represented field positions and normally draws an
+  additional cursor cell, without checking the active screen dimensions or
+  whether `nColumn + field_length` overflows the row. A field reaching the
+  lower-right screen cell can wrap and scroll while it is being drawn.
+
+- [ ] Reconcile the `W` filename-format character in `od_edit_str()` with its
+  documented purpose. [`ODEdStr.c`](ODEdStr.c) accepts letters, separators,
+  period, and wildcards for `W`, but rejects all digits and ordinary filename
+  punctuation which the related `F` class accepts. Valid wildcard filenames
+  such as `FILE2.*` therefore cannot be entered with that format class.

@@ -1,6 +1,6 @@
 # `od_window_create()`
 
-Creates a popup window of the specified size and color, storing the contents of the screen "under" the window. The window can later be removed from the screen, restoring the original contents of the screen "under" the window, using the [`od_window_remove()`](od_window_remove.md) function. Requires ANSI, AVATAR or RIP mode.
+Creates a popup window and saves the screen cells which it covers.
 
 ## Synopsis
 
@@ -10,43 +10,75 @@ void *od_window_create(INT nLeft, INT nTop, INT nRight, INT nBottom,
     BYTE btInsideCol, INT nReserved);
 ```
 
-## Return value
-
-Pointer to newly allocated window structure on success NULL on failure
-
 ## Description
 
-This function creates a pop-up window on the remote and local screens. The contents of the screen beneath the window are stored, to allow the window to later be removed from the screen using the [`od_window_remove()`](od_window_remove.md) function. The window is drawn using the boarder characters defined in the already existing od_control.od_box_chars[] array. The boarder is displayed using the color attribute specified in btBorderCol. The working area of the window is created in the color specified in btInsideCol. A title may optionally be displayed on the window by specifying a string in pszTitle. This title will be displayed in the color specified by btTitleCol. If you do not wish a title to be displayed, pass an empty string or NULL pointer in pszTitle. On success, [`od_window_create()`](od_window_create.md) will return a pointer to a buffer which was allocated to store information on the window and the contents of the screen "under" the window. This pointer should at some point be passed in a call to [`od_window_remove()`](od_window_remove.md).
+The first four arguments are one-based, inclusive screen coordinates.
+`nLeft` and `nTop` identify the upper-left corner; `nRight` and `nBottom`
+identify the lower-right corner. The rectangle must fit within columns 1
+through 80 and rows 1 through 25, and must contain a border plus at least one
+interior row and one interior column. In other words, each pair of opposing
+edges must be separated by at least two cells. These limits remain part of
+this interface when the active virtual screen is larger.
 
-This function requires ANSI, AVATAR or RIP graphics mode. If AVATAR mode is active, this function will take advantage of special AVATAR control sequences to display the window much faster than is possible in ANSI mode. In ANSI mode, window display will be slightly faster if btBorderCol and btTitleCol are equal. Note that the nReserved parameter of this function is not currently used. To preserve compatibility with future versions of OpenDoors, this parameter should always be set to 0. Currently, the size of the buffer allocated to store the window information will be (length*width*2) + 4 bytes in size.
+Before drawing, [`od_window_create()`](od_window_create.md) obtains and saves
+the cells in the rectangle. It then draws a border using
+[`od_control.od_box_chars`](../control/customization.md#od_box_chars), fills
+the interior, and optionally centers a title in the top border. As with
+[`od_draw_box()`](od_draw_box.md), a zero bottom-edge character is replaced in
+the control structure by the top-edge character and a zero right-edge
+character is replaced by the left-edge character.
 
-If [`od_window_create()`](od_window_create.md) fails, it returns `NULL` and records the reason in
-[`od_control.od_error`](../control/runtime.md#od_error).
+`pszTitle` points to the title, or may be null or point to an empty string when
+no title is wanted. A title which does not fit is truncated. `btBorderCol`,
+`btTitleCol`, and `btInsideCol` are complete IBM text attributes for the
+border, title, and interior respectively. `nReserved` is ignored by this
+version; pass zero so that the call remains compatible if a later version
+assigns it a meaning.
 
-## Examples
+In AVATAR mode, OpenDoors uses the AVATAR clear-area command to fill the
+interior. Otherwise it uses the ANSI-compatible cursor and display path. RIP
+by itself is not tested: either
+[`od_control.user_ansi`](../control/caller.md#user_ansi) or
+[`od_control.user_avatar`](../control/caller.md#user_avatar) must be enabled.
 
-For an example of the use of the [`od_window_create()`](od_window_create.md) function, see the included ex_chat.c example program.
+On success, the returned value is an opaque, allocated window handle. Pass it
+exactly once to [`od_window_remove()`](od_window_remove.md), which restores the
+saved cells and releases the allocation. Windows may overlap, but they must be
+removed in reverse creation order if each one is to reveal the screen contents
+which existed before it was drawn.
 
-## Additional details
+## Return value
 
-Coordinates are one-based and inclusive. `pszTitle` may be null or empty. The
-three attributes select the border, title, and interior colors. `nReserved` is
-ignored by the current implementation; pass zero for compatibility with the
-documented interface.
+The function returns an opaque non-null handle on success. It returns `NULL`
+and sets [`od_control.od_error`](../control/runtime.md#od_error) as follows:
 
-The function requires ANSI or AVATAR graphics. On success it returns an opaque
-window handle which must eventually be passed to
-[`od_window_remove()`](od_window_remove.md). On failure it returns `NULL` and
-sets [`od_control.od_error`](../control/runtime.md), commonly to
-[`ERR_PARAMETER`](../constants/errors.md), [`ERR_NOGRAPHICS`](../constants/errors.md), or
-[`ERR_MEMORY`](../constants/errors.md).
+| Error | Condition |
+| --- | --- |
+| [`ERR_PARAMETER`](../constants/errors.md#err_parameter) | A coordinate is outside the supported range, the edges are reversed, or the rectangle has no usable interior. |
+| [`ERR_NOGRAPHICS`](../constants/errors.md#err_nographics) | Neither ANSI nor AVATAR mode is enabled. |
+| [`ERR_MEMORY`](../constants/errors.md#err_memory) | Storage for the saved cells and window description cannot be allocated. |
 
-The window must fit within columns 1 through 80 and rows 1 through 25 and must
-have room for a border and at least one interior row and column. These limits
-remain even when the current virtual screen is larger.
+An error returned by [`od_gettext()`](od_gettext.md) while saving the rectangle
+is preserved.
+
+## Example
+
+```c
+void *window;
+
+window = od_window_create(17, 9, 63, 15, "DOS Shell",
+    0x1f, 0x1e, 0x17, 0);
+if(window == NULL)
+    od_exit(10);
+
+/* Display and input operations within the window go here. */
+
+od_window_remove(window);
+```
 
 ## See also
 
-[`od_window_remove()`](od_window_remove.md), [`od_draw_box()`](od_draw_box.md), [`od_gettext()`](od_gettext.md), [`od_puttext()`](od_puttext.md), [`od_save_screen()`](od_save_screen.md), [`od_restore_screen()`](od_restore_screen.md), [`od_scroll()`](od_scroll.md)
-
-[`od_window_remove()`](od_window_remove.md), [`od_draw_box()`](od_draw_box.md)
+[`od_window_remove()`](od_window_remove.md),
+[`od_draw_box()`](od_draw_box.md),
+[`od_gettext()`](od_gettext.md),
+[`od_puttext()`](od_puttext.md)

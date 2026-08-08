@@ -1,6 +1,6 @@
 # `od_set_personality()`
 
-Sets the current status line / sysop function key personality to be used.
+Selects the current status-line and sysop-function-key personality.
 
 ## Synopsis
 
@@ -8,50 +8,56 @@ Sets the current status line / sysop function key personality to be used.
 BOOL od_set_personality(const char *pszName);
 ```
 
-## Return value
-
-TRUE on success FALSE on failure
-
 ## Description
 
-This function changes the current status line / sysop function key personality. The pszName parameter should contain the string which uniquely identifies the personality to be set. This function may only be used by OpenDoors programs which include the OpenDoors "Multiple Personality System". To enable use of the MPS, include the following line before your first call to any OpenDoors function:
+[`od_set_personality()`](od_set_personality.md) selects the DOS local-interface
+personality identified by `pszName`. Names are compared without regard to case
+and only the first 32 characters are significant.
 
-```text
-od_control.od_mps=INCLUDE_MPS;
-```
+The built-in names are `STANDARD`, `REMOTEACCESS`, `WILDCAT`, and `PCBOARD`.
+Additional names may be installed before initialization with
+[`od_add_personality()`](od_add_personality.md).
 
-OpenDoors includes a number of built-in personalities. Additional personalities may be added using the [`od_add_personality()`](od_add_personality.md) function. The following personalities are included with this version of OpenDoors:
+When the selected personality differs from the current one, OpenDoors removes
+the existing status line, sends the old personality
+[`PEROP_DEINITIALIZE`](../constants/components.md#perop_deinitialize), sends the new
+personality
+[`PEROP_INITIALIZE`](../constants/components.md#perop_initialize), installs
+the new output-screen boundaries, and displays its normal status line. The
+function does nothing beyond reporting success when the requested personality
+is already active.
 
-```text
-     Name                Description
-     -----------------------------------------------------------
-     Standard            OpenDoors style, similar to RA 1.11
-     PCBoard             Similar to PC-Board
-     RemoteAccess        Similar to RemoteAccess 2.x
-     Wildcat             Similar to Wildcat!
-```
+To permit selection through the `Personality` configuration keyword or the
+`-PERSONALITY` command-line option during initialization, set
+[`od_control.od_mps`](../control/customization.md#od_mps) to
+[`INCLUDE_MPS`](../constants/components.md#include_mps) before calling
+[`od_init()`](od_init.md). A program can call this function directly without
+using those configuration interfaces.
 
-Personality names are not case sensitive. For more information on the OpenDoors Multiple Personality System, see the section.
+Personalities affect only the local operator display and keys. They do not
+change the remote user's terminal mode or the contents sent to the remote
+connection.
 
-This function returns [`TRUE`](../constants/general.md#true) on success or
-[`FALSE`](../constants/general.md#false) on failure. On failure,
-[`od_control.od_error`](../control/runtime.md#od_error) indicates the reason.
+This function is supported by the DOS and DOS32 text-mode builds. Other builds
+return [`FALSE`](../constants/general.md#false) and set
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_UNSUPPORTED`](../constants/errors.md#err_unsupported).
 
-## Additional details
+`pszName` must point to a nonempty, null-terminated string. An empty string
+returns [`FALSE`](../constants/general.md#false) with
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter). The legacy interface
+does not check for a null pointer.
 
-The nonempty name may identify a built-in personality or one installed with
-[`od_add_personality()`](od_add_personality.md). The function returns true when
-a match is selected. The text-mode implementation reports an empty name as
-[`ERR_PARAMETER`](../constants/errors.md) and a missing name as
-[`ERR_LIMIT`](../constants/errors.md); targets without the personality system return
-false with [`ERR_UNSUPPORTED`](../constants/errors.md).
+## Return value
 
-Personalities control the local status display and sysop keys; they do not
-change the remote terminal protocol. The caller must not pass a null name.
+The function returns [`TRUE`](../constants/general.md#true) when the named
+personality is selected. If no installed personality has that name, it returns
+[`FALSE`](../constants/general.md#false) and sets
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_LIMIT`](../constants/errors.md#err_limit).
 
 ## See also
 
-[`od_add_personality()`](od_add_personality.md), [`od_set_statusline()`](od_set_statusline.md)
-
 [`od_add_personality()`](od_add_personality.md),
-[`od_set_statusline()`](od_set_statusline.md)
+[`od_set_statusline()`](od_set_statusline.md),
+[Personality modules](../../guides/personalities.md)

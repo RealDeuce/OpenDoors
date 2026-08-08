@@ -1,6 +1,6 @@
 # `od_get_answer()`
 
-Function to allow the user to respond to a prompt using only certain keys.
+Waits for the user to select one of a specified set of keys.
 
 ## Synopsis
 
@@ -8,31 +8,47 @@ Function to allow the user to respond to a prompt using only certain keys.
 char od_get_answer(const char *pszOptions);
 ```
 
-## Return value
-
-Character that user entered
-
 ## Description
 
-This function can be used to get a response from the user, when only particular responses should be accepted. The parameter to the [`od_get_answer()`](od_get_answer.md) function is simply a string listing the valid responses. The function will wait until the user selects one of the valid responses, and then return that response. The function is case insensitive, and will return the character in the same case that was supplied to it in the string.
+`pszOptions` points to a null-terminated string containing every acceptable
+one-byte response. [`od_get_answer()`](od_get_answer.md) waits until the user
+presses one of those keys and ignores all other input.
 
-## Examples
+Matching is not case-sensitive, but the function returns the character in the
+form in which it appears in `pszOptions`. For example:
 
-od_get_answer("YN"); - If the user presses 'y', will return 'Y'.
+```c
+od_get_answer("YN");
+```
 
-od_get_answer("yn"); - If the user presses 'y', will return 'y'.
+returns `Y` for either `y` or `Y`, while:
 
-od_get_answer("ABC 123\n\rZ"); - Valid responses will be: [A], [B], [C], [SPACE], [1], [2], [3], [ENTER], [Z]
+```c
+od_get_answer("yn");
+```
 
-## Additional details
+returns `y` for either form. Spaces, digits, punctuation, carriage return, and
+line feed can be included like any other byte. Thus the following accepts the
+letters `A`, `B`, `C`, and `Z`, space, the digits 1 through 3, Enter, or line
+feed:
 
-`pszOptions` is a nul-terminated string containing the allowed keys. Matching
-is case-insensitive; the return value uses the form represented in the options
-string. Input from both the remote user and enabled local keyboard is accepted.
+```c
+od_get_answer("ABC 123\n\rZ");
+```
 
-The function continues processing OpenDoors housekeeping while it waits.
-`pszOptions` must be non-null and contain at least one character; the legacy
-interface does not diagnose an unusable option set.
+Input is obtained through [`od_get_key()`](od_get_key.md), so remote input and
+an enabled local keyboard are both accepted, and OpenDoors continues its normal
+kernel processing while waiting.
+
+`pszOptions` must be non-null and must contain at least one character. The
+legacy interface does not diagnose a null or empty option set; a null pointer
+has undefined behavior and an empty string waits indefinitely without being
+able to accept a key.
+
+## Return value
+
+The function returns the matching byte from `pszOptions`. It has no separate
+cancel or error return.
 
 ## See also
 

@@ -1,6 +1,6 @@
 # `od_multiline_edit()`
 
-Provides a multiple line text editor which can be used for entering editing any text that spans more than one line, such as messages or text files.
+Edits text which spans more than one line.
 
 ## Synopsis
 
@@ -9,62 +9,166 @@ INT od_multiline_edit(char *pszBufferToEdit,
     UINT unBufferSize, tODEditOptions *pEditOptions);
 ```
 
-## Return value
-
-OD_MULTIEDIT_SUCCESS on success, or OD_MULTIEDIT_ERROR on failure
-
 ## Description
 
-This function provides a text editor with optional word wrap capabilities. This editor can be used for entering or editing text files, messages or other information that spans multiple lines. The editor can be configured to operate in full-screen mode, or to occupy any smaller area of the screen that you specify. It provides the navigation (home / end / page up / arrow keys) features and editing features (insert / overwrite mode, Ctrl-Y to delete a line, etc.) that you would expect.
+[`od_multiline_edit()`](od_multiline_edit.md) provides an interactive text
+editor with cursor movement, paging, insert and overwrite modes, optional word
+wrapping, and an optional application menu. It can occupy the default
+80-column by 23-row screen area or a smaller caller-selected rectangle.
 
-The [`od_multiline_edit()`](od_multiline_edit.md) function is designed to be both easy to use and very flexible. To that end, the function only takes three parameters. The first two parameters are required, and the third parameter is an optional options structure. The first parameter, pszBufferToEdit, is a pointer to the buffer of text to edit. This buffer must always be a '\0'-terminated string. This buffer must be initialized before calling [`od_multiline_edit()`](od_multiline_edit.md). The second parameter, unBufferSize, indicates the size of the buffer that is passed in pszBufferToEdit. Note that this should be the total amount of space that is available in the buffer for text entered by the user, not the length of data that is actually initially in the buffer. If you do not wish to customize any of the [`od_multiline_edit()`](od_multiline_edit.md) options, then you may simply set the third parameter to 0. Hence, a simple example of how to use [`od_multiline_edit()`](od_multiline_edit.md) is:
+`pszBufferToEdit` points to the initial, null-terminated text and receives the
+edited text. `unBufferSize` is the complete capacity of that allocation,
+including the terminating null byte; it is not the initial string length. The
+initial terminator must occur within that capacity.
 
-char szMyEditBuffer[4000] = ""; od_multiline_edit(szMyEditBuffer, sizeof(szMyEditBuffer), NULL);
+For a fixed buffer and all default options, pass a null third argument:
 
-If you wish to customize [`od_multiline_edit()`](od_multiline_edit.md), you should pass a pointer to a tODEditOptions structure as the third parameter. You should initialize this entire structure to zeros before attempting to use it. You can then set any values of this structure which you wish to change from their default. Any values that are left at 0 will automatically revert to their defaults. For example, if you wanted to specify a text format other than the default, you could create, initialize and pass in a tODEditOptions structure as follows:
+```c
+char text[4000] = "";
 
-char szMyEditBuffer[4000] = ""; tODEditOptions MyEditOptions; memset(&MyEditOptions, 0, sizeof(MyEditOptions)); MyEditOptions.TextFormat = FORMAT_LINE_BREAKS; od_multiline_edit(szMyEditBuffer, sizeof(szMyEditBuffer), &MyEditOptions);
-
-The definition of the tODEditOptions structure is as follows:
-
-```text
-typedef struct
-{
-   INT nAreaLeft;
-   INT nAreaTop;
-   INT nAreaRight;
-   INT nAreaBottom;
-   tODEditTextFormat TextFormat;
-   tODEditMenuResult (*pfMenuCallback)(void *pUnused);
-   void * (*pfBufferRealloc)(void *pOriginalBuffer,
-      UINT unNewSize);
-   DWORD dwEditFlags;
-   char *pszFinalBuffer;
-   UINT unFinalBufferSize;
-} tODEditOptions;
+if(od_multiline_edit(text, sizeof(text), NULL) != OD_MULTIEDIT_SUCCESS)
+    od_exit(10);
 ```
 
-nAreaLeft, nAreaTop, nAreaRight, nAreaBottom allows you to specify the portion of the screen that the text editor should use. This defaults to 1, 1 - 80, 23.
+To customize the editor, zero a
+[`tODEditOptions`](../types.md#todeditoptions) structure and then set only the
+members which differ from their defaults:
 
-TextFormat allows you to specify what format the text should be stored in the buffer using. The default is FORMAT_PARAGRAPH_BREAKS, which specifies that a line break only appears at the end of each paragraph, and that the contents of a paragraph are word wrapped. FORMAT_LINE_BREAKS specifies that a line break appears at the end of each line of text on the screen, and that newly entered text is word wrapped. FORMAT_NO_WORDWRAP is equivalent to FORMAT_LINE_BREAKS, except that newly entered text is not word wrapped. Instead, lines may be arbitrarily long. For each of these text formats, [`od_multiline_edit()`](od_multiline_edit.md) automatically decides whether line breaks should take the form of a carriage return ('\r'), line feed ('\n'), or some combination of these, based on what it sees in the buffer that you supply. If no line breaks are found in the buffer, then the default is to use just a line feed ('\n') character. FORMAT_FTSC_MESSAGE specifies a FTSC- compliant message, such as is used in a *.MSG message file. Among other things, this specifies that carriage returns ('\r') end paragraphs, and that line feeds ('\n') should be ignored.
+```c
+char text[4000] = "";
+tODEditOptions options;
 
-pfMenuCallback allows you to provide a callback function that will be called when the user presses the escape (or control-Z) key. This allows you to provide a menu that can be accessed from within the text editor. This function should return EDIT_MENU_DO_NOTHING if the editor should continue normally, or EDIT_MENU_EXIT_EDITOR if the [`od_multiline_edit()`](od_multiline_edit.md) should return. If no menu callback function is provided, then [`od_multiline_edit()`](od_multiline_edit.md) always returns when the escape or control-z key is pressed.
+memset(&options, 0, sizeof(options));
+options.TextFormat = FORMAT_LINE_BREAKS;
 
-pfBufferRealloc allows you to provide a function which will attempt to reallocate a larger buffer if the user enters more text than will fit in the originally supplied buffer. You should only do this if you have dynamically allocated the buffer that you initially passed into [`od_multiline_edit()`](od_multiline_edit.md). If you allocated the buffer using malloc() or calloc(), then pfBufferRealloc can be set to point to the realloc() function. If you allocated the buffer using the C++ new operator, then you must write a your own reallocation function which obeys the same semantics as the C realloc() function. If no buffer reallocation function is provided, then [`od_multiline_edit()`](od_multiline_edit.md) will never allow the user to enter more text than will fit in the buffer that you initially supply. If you are using the buffer reallocation option, you can obtain a pointer to the final buffer, and the size of the final buffer, from the pszFinalBuffer and unFinalBufferSize members.
+od_multiline_edit(text, sizeof(text), &options);
+```
 
-## Additional details
+## Editing keys
 
-`pszBufferToEdit` contains the initial text and receives the result.
-`unBufferSize` is the complete destination capacity, including the terminating
-nul. `pEditOptions` selects the edit rectangle, colors, callbacks, and behavior.
+The editor recognizes the extended keys returned by
+[`od_get_input()`](od_get_input.md) and their normal control-key alternatives.
+The following operations are provided:
 
-The function requires ANSI or AVATAR graphics. Its return value describes how
-editing ended. Invalid buffers or options set
-[`ERR_PARAMETER`](../constants/errors.md); lack of graphics sets
-[`ERR_NOGRAPHICS`](../constants/errors.md); allocation failure sets
-[`ERR_MEMORY`](../constants/errors.md).
+| Key | Operation |
+| --- | --- |
+| Arrow keys | Move by one character or one displayed line. |
+| Home and End | Move to the beginning or end of the current line. |
+| Page Up and Page Down | Move through the buffer by an edit-area page. |
+| Insert | Toggle insert and overwrite modes. The initial mode is insert. |
+| Delete | Delete the character at the cursor. |
+| Backspace | Move left and delete the preceding character when one exists. |
+| Ctrl-Y | Delete the current line. |
+| Tab | Advance to the next eight-column tab stop, inserting spaces in insert mode. |
+| Enter | Insert the selected line or paragraph break in insert mode; in overwrite mode, move to the following line unless already at the end. |
+| Escape or Ctrl-Z | Invoke the menu callback, or leave the editor successfully when no callback is installed. |
+
+Only bytes with values of 32 or greater are inserted as ordinary text. The
+editor does not itself provide a separate accept-versus-cancel result. Without
+a menu callback, Escape and Ctrl-Z finish successfully and leave all edits in
+the buffer.
+
+## Options
+
+The [`tODEditOptions`](../types.md#todeditoptions) members have the following
+purposes. See [Types and callbacks](../types.md#todeditoptions) for their exact
+declarations and ownership rules.
+
+### Edit area
+
+[`nAreaLeft`](../types.md#narealeft-nareatop-narearight-nareabottom),
+[`nAreaTop`](../types.md#narealeft-nareatop-narearight-nareabottom),
+[`nAreaRight`](../types.md#narealeft-nareatop-narearight-nareabottom), and
+[`nAreaBottom`](../types.md#narealeft-nareatop-narearight-nareabottom) are
+one-based, inclusive coordinates. Their defaults are 1, 1, 80, and 23. In a
+supplied options structure, each individual zero coordinate is replaced with
+its corresponding default.
+
+The caller must supply ordered, usable coordinates within the active screen.
+The current implementation derives unsigned widths and heights directly and
+does not completely validate a custom rectangle.
+
+### Text format
+
+[`TextFormat`](../types.md#textformat) selects how logical lines and paragraphs
+are represented:
+
+| Value | Stored representation and wrapping |
+| --- | --- |
+| [`FORMAT_PARAGRAPH_BREAKS`](../constants/input.md#format_paragraph_breaks) | Store a break only at the end of a paragraph and word-wrap each paragraph for display. This is the default. |
+| [`FORMAT_LINE_BREAKS`](../constants/input.md#format_line_breaks) | Store a break at the end of every logical line and word-wrap newly entered text. |
+| [`FORMAT_NO_WORDWRAP`](../constants/input.md#format_no_wordwrap) | Store a break at the end of every logical line but do not word-wrap new text. |
+| [`FORMAT_FTSC_MESSAGE`](../constants/input.md#format_ftsc_message) | Treat carriage return as a paragraph break, ignore line feeds, and skip FTSC kludge lines beginning with Ctrl-A when building the visible line index. |
+
+For the first three formats, OpenDoors examines existing end-of-line sequences
+to select carriage return, line feed, or the pair for newly inserted breaks.
+If the buffer supplies no usable precedent, a line feed is used. FTSC mode
+always uses carriage return for a new paragraph.
+
+An unrecognized format returns
+[`OD_MULTIEDIT_ERROR`](../constants/input.md#od_multiedit_error) and sets
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter).
+
+### Menu callback
+
+When [`pfMenuCallback`](../types.md#pfmenucallback) is non-null, Escape or
+Ctrl-Z calls it synchronously with a null argument. Returning
+[`EDIT_MENU_DO_NOTHING`](../constants/input.md#edit_menu_do_nothing) resumes
+editing; returning
+[`EDIT_MENU_EXIT_EDITOR`](../constants/input.md#edit_menu_exit_editor) finishes
+successfully. After a resume result, OpenDoors restores the editor cursor
+position, allowing the callback to draw a popup menu temporarily.
+
+### Growable buffers
+
+When [`pfBufferRealloc`](../types.md#pfbufferrealloc) is null, input which
+cannot fit is rejected and the editor sounds the terminal bell. When it is
+non-null, OpenDoors calls it with the current buffer pointer and a requested
+larger capacity. The callback must obey `realloc()` semantics: preserve the
+contents and return suitable storage, or return null without invalidating the
+old allocation.
+
+The callback may move the buffer. After the function returns, use
+[`pszFinalBuffer`](../types.md#pszfinalbuffer), not the original pointer, to
+find the edited allocation. The current implementation writes the original
+`unBufferSize` argument to
+[`unFinalBufferSize`](../types.md#unfinalbuffersize) even after growth, so a
+growable-buffer callback must keep its own authoritative capacity.
+
+[`dwEditFlags`](../types.md#dweditflags) is reserved. Set it to
+[`EFLAG_NORMAL`](../constants/input.md#eflag_normal); the current implementation
+does not read it.
+
+## Terminal requirements
+
+The editor requires ANSI or AVATAR cursor addressing. If neither
+[`od_control.user_ansi`](../control/caller.md#user_ansi) nor
+[`od_control.user_avatar`](../control/caller.md#user_avatar) is enabled, the
+function returns an error. RIP alone is not tested, although a RIP session
+which also enables ANSI uses the ANSI path.
+
+Before drawing the editor, OpenDoors waits briefly for previously queued
+output to drain. During large changes it may discard still-pending editor
+redraw output and send a complete redraw instead. This optimization does not
+discard application output which was already drained before entry.
+
+## Return value
+
+[`OD_MULTIEDIT_SUCCESS`](../constants/input.md#od_multiedit_success) means the
+user left through Escape, Ctrl-Z, or a menu callback which requested exit.
+[`OD_MULTIEDIT_ERROR`](../constants/input.md#od_multiedit_error) indicates a
+parameter, graphics, or allocation failure. In the latter case,
+[`od_control.od_error`](../control/runtime.md#od_error) is normally one of:
+
+| Error | Condition |
+| --- | --- |
+| [`ERR_PARAMETER`](../constants/errors.md#err_parameter) | The buffer is null, its capacity is zero, or the text format is invalid. |
+| [`ERR_NOGRAPHICS`](../constants/errors.md#err_nographics) | Neither ANSI nor AVATAR mode is enabled. |
+| [`ERR_MEMORY`](../constants/errors.md#err_memory) | Required editor bookkeeping or buffer indexing cannot be allocated. |
 
 ## See also
 
-[`od_edit_str()`](od_edit_str.md), [`od_input_str()`](od_input_str.md), [Types
-and callbacks](../types.md)
+[`od_edit_str()`](od_edit_str.md), [`od_input_str()`](od_input_str.md),
+[`od_get_input()`](od_get_input.md), [Input constants](../constants/input.md),
+[Types and callbacks](../types.md)

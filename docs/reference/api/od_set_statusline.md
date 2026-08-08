@@ -1,6 +1,6 @@
 # `od_set_statusline()`
 
-To set the currently displayed status line.
+Selects the status display provided by the current personality.
 
 ## Synopsis
 
@@ -8,78 +8,71 @@ To set the currently displayed status line.
 void od_set_statusline(INT nSetting);
 ```
 
-## Return value
-
-N/A
-
 ## Description
 
-If you have the OpenDoors status line enabled within your door program (as is the default), the sysop will be able to control the setting of the status line using the F1 - F10 keys on the keyboard. These function keys are as follows:
+The DOS personality system can provide one normal status display and seven
+alternate displays. [`od_set_statusline()`](od_set_statusline.md) selects one
+of those displays or removes the status area from the local screen:
 
-```text
-[F1] -  Display basic door and user information
-[F2] -  Display phone numbers and important dates
-[F3] -  Display security flags and up/download info
-[F4] -  Display system information and current time
-[F5] -  Display message info and user's settings
-[F6] -  Display chat reason and sysop's comment
-[F9] -  Display help information for sysop
-[F10] - Turn off the status line
-```
+| Value | Selection |
+| --- | --- |
+| [`STATUS_NORMAL`](../constants/display.md#status_normal) | Normal display, operation 0 |
+| [`STATUS_ALTERNATE_1`](../constants/display.md#status_alternate_1) through [`STATUS_ALTERNATE_7`](../constants/display.md#status_alternate_7) | Personality-defined alternate displays, operations 1 through 7 |
+| [`STATUS_NONE`](../constants/display.md#status_none) | No status display, operation 8 |
 
-Using the [`od_set_statusline()`](od_set_statusline.md) function, you can manually set which of these status line settings is currently selected. The [`od_set_statusline()`](od_set_statusline.md) accepts a single parameter, which should be one of the values listed below, which indicates which status line you would like to have selected:
+The compatibility names [`STATUS_USER1`](../compatibility.md#status-and-color-aliases)
+through [`STATUS_USER4`](../compatibility.md#status-and-color-aliases),
+[`STATUS_SYSTEM`](../compatibility.md#status-and-color-aliases), and
+[`STATUS_HELP`](../compatibility.md#status-and-color-aliases) designate particular
+alternate values. Their descriptive names reflect the historical built-in
+personalities; a custom personality determines what each alternate display
+actually contains.
 
-```text
-+---------------+---------------+------------------------------+
-|               | Corresponding |                              |
-| Value         | Function Key  | Meaning                      |
-+---------------+---------------+------------------------------+
-| STATUS_NORMAL | [F1]          | Basic door and user info     |
-| STATUS_NONE   | [F10]         | Turn off status line         |
-| STATUS_HELP   | [F9]          | Displays help for the sysop  |
-| STATUS_USER1  | [F2]          | Phone Numbers and dates      |
-| STATUS_USER2  | [F3]          | Security flags & up/downloads|
-| STATUS_USER3  | [F5]          | Message info & user settings |
-| STATUS_USER4  | [F6]          | Chat reason and sysop comment|
-| STATUS_SYSTEM | [F4]          | System info & current time   |
-+---------------+---------------+------------------------------+
-(Note that these keys may be customized using variables in the
- OpenDoors control structure.)
-```
+If `nSetting` is outside the range 0 through 8, OpenDoors substitutes
+[`STATUS_NORMAL`](../constants/display.md#status_normal). The selected value is
+stored in
+[`od_control.od_current_statusline`](../control/runtime.md#od_current_statusline).
 
-Keep in mind that the [`od_set_statusline()`](od_set_statusline.md) function only temporarily changes the current status line setting, and that the sysop will still be able to change the status line to any of the other settings using the function keys. For instance, if you wished to allow the sysop to normally see all 25 lines of text displayed by your door, but at the same time to still allow the sysop to turn on the status line at any time, you could place the line
+When [`STATUS_NONE`](../constants/display.md#status_none) is selected,
+OpenDoors clears the rows which had been occupied by the status display and
+expands the local door-output area. Selecting another value invokes the current
+personality to draw that display and restores its configured output-screen
+boundaries. Cursor position, display attribute, and local screen boundaries are
+preserved across the redraw as required for ordinary door output.
 
-```text
+The change is temporary. Enabled local status-selection keys can select another
+display later. To disable status-line processing completely, set
+[`od_control.od_status_on`](../control/customization.md#od_status_on) to
+[`FALSE`](../constants/general.md#false); while that field is false this
+function makes no change.
+
+If the requested display is already active, the function normally returns
+without redrawing it. Setting
+[`od_control.od_update_status_now`](../control/runtime.md#od_update_status_now)
+to [`TRUE`](../constants/general.md#true) forces the same selection to be drawn
+again. Personality modules should normally request an incremental update with
+[`ODStatForceStatusUpdate()`](../personality/ODStatForceStatusUpdate.md)
+instead.
+
+This function is supported by the DOS and DOS32 text-mode builds. On other
+builds it sets [`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_UNSUPPORTED`](../constants/errors.md#err_unsupported).
+
+## Return value
+
+This function returns no value.
+
+## Example
+
+The following removes the local status display while leaving the personality
+and its status-selection keys enabled:
+
+```c
 od_set_statusline(STATUS_NONE);
 ```
 
-at the beginning of your program. Similarly, when the user pages the sysop, OpenDoors itself calls
-
-```text
-od_set_statusline(STATUS_USER4);
-```
-
-in order to display the status line which shows the user's reason for chat, while still allowing the sysop to switch back to any of the other status lines.
-
-If you wish to permanently turn off the OpenDoor's status line, without allowing the sysop to be able to turn it back on using the sysop function keys, simply set the "od_control.od_status_on" variable to FALSE. This variable is described in the OpenDoors control structure section of this manual.
-
-## Additional details
-
-Use the [`STATUS_*`](../constants/display.md) values defined by [`OpenDoor.h`](index.md)
-to select the normal line, one of seven alternate lines, or no line. Values
-outside 0 through 8 are converted to [`STATUS_NORMAL`](../constants/display.md#status_normal). If status-line processing
-has been disabled through [`od_status_on`](../control/customization.md#od_status_on), the call makes no change. Selecting
-the already active line also makes no change unless [`od_update_status_now`](../control/runtime.md#od_update_status_now) is
-set.
-
-On DOS and DOS32, the active personality redraws its local area as necessary;
-this affects the operator display and does not alter remote output. Other
-targets set [`ERR_UNSUPPORTED`](../constants/errors.md). The function returns no
-value.
-
 ## See also
 
-
-
-[`od_set_personality()`](od_set_personality.md), [Menus and
-screen](../constants/display.md)
+[`od_set_personality()`](od_set_personality.md),
+[`ODStatForceStatusUpdate()`](../personality/ODStatForceStatusUpdate.md),
+[Display constants](../constants/display.md)

@@ -1,6 +1,6 @@
 # `od_edit_str()`
 
-Allows you to perform formatted input with full line editing features, etc., in ANSI/AVATAR/RIP graphics mode.
+Inputs or edits one formatted field with full cursor editing.
 
 ## Synopsis
 
@@ -10,219 +10,209 @@ WORD od_edit_str(char *pszInput, char *pszFormat, INT nRow,
     char chBlank, WORD nFlags);
 ```
 
-## Return value
-
-This function will return one of the following values:
-
-EDIT_RETURN_ERROR        Indicates that an error has occurred, and the edit function was unable to run. This will occur if there is an error in one of the parameters, or if ANSI/AVATAR/RIP graphics is not available
-
-EDIT_RETURN_CANCEL       Indicates that the user pressed the cancel key [ESC], and that the string was left unaltered.
-
-EDIT_RETURN_ACCEPT       Indicates that the user pressed the accept key [Enter], or that the auto- enter feature was activated.
-
-EDIT_RETURN_PREVIOUS     Indicates that the user wishes to move to the previous field, by pressing [UP ARROW], [SHIFT]-[TAB], etc.
-
-EDIT_RETURN_NEXT         Indicates that the user wishes to move to the next field, by pressing [DOWN ARROW], [TAB], etc.
-
 ## Description
 
-To perform string input within OpenDoors, one of two functions can be used, [`od_input_str()`](od_input_str.md) and [`od_edit_str()`](od_edit_str.md). The first function, [`od_input_str()`](od_input_str.md), allows simple line input and editing, and can be used in ASCII, ANSI, AVATAR and RIP modes. The second function, [`od_edit_str()`](od_edit_str.md), allows many formatted input options, advanced line editing, and other features, but requires the use of ANSI, AVATAR or RIP terminal modes.
+[`od_edit_str()`](od_edit_str.md) provides insertion, overwrite, cursor
+movement, character deletion, format validation, literal insertion, password
+masking, and multi-field navigation. It is intended for cursor-addressable
+terminal sessions. For simple input which also works in plain ASCII mode, use
+[`od_input_str()`](od_input_str.md).
 
-As mentioned above, the [`od_edit_str()`](od_edit_str.md) function allows for advanced line editing, such as inputting and deleting text from the middle of the string (whereas the [`od_input_str()`](od_input_str.md) function only allows editing from the end of the string, such as backspacing to erase a mistake). The edit functions available from the [`od_edit_str()`](od_edit_str.md) are listed below. Note that some of these functions may or may not be available, depending upon the capabilities of the user's terminal program. While there is no single standard used for the transmission of special edit keys such as the arrow keys, the [`od_edit_str()`](od_edit_str.md) function makes as much effort as possible to make all of the edit features available to most terminal programs. Many of the edit functions can be accesses using either [CONTROL]-key combinations or special keys such as the arrow keys, delete key, and so on. OpenDoors will recognize most of these special control keys when sent as either an ANSI control sequence (which is sent by most terminal programs), or as a DoorWay style scan code / ASCII code sequence (which is also available from many terminal programs, but is not usually required). The [`od_edit_str()`](od_edit_str.md) edit functions are as follows. Note that all edit functions are always available from the local keyboard.
+`pszInput` points to the destination buffer. When
+[`EDIT_FLAG_EDIT_STRING`](../constants/input.md#edit_flag_edit_string) is set,
+the buffer must initially contain a null-terminated value to edit; otherwise
+the function immediately makes it an empty string. The buffer must have room
+for every position represented by `pszFormat` plus the terminating null byte.
 
-HOME - Moves the cursor to the beginning of the line being edited. Press the [HOME] key, either in DoorWay mode or from the local keyboard.
+If an initial edit string is longer than the represented field, OpenDoors
+truncates it to the field length before saving the value used by cancellation.
+Consequently, [`EDIT_RETURN_CANCEL`](../constants/input.md#edit_return_cancel)
+restores the truncated starting value, not bytes which were beyond the field.
 
-END - Moves the cursor to the end of the line being edited. Press the [END] key, either in DoorWay mode or from the local keyboard.
+`nRow` and `nColumn` are the one-based row and column of the field's first
+position. `btHighlightColour` is the complete IBM text attribute used while
+the field is active; `btNormalColour` is used for the normal final display.
+`chBlank` fills unused field positions. In password mode, `chBlank` instead
+masks each stored character and spaces fill the unused positions.
 
-DELETE CHARACTER - Deletes the character under the cursor. Press [DELete] on the local keyboard, in DoorWay mode, and under many terminal programs without DoorWay mode. Alternatively, press [CONTROL]-[G].
+Unless [`EDIT_FLAG_SHOW_SIZE`](../constants/input.md#edit_flag_show_size) is
+set, the displayed field includes one extra cursor cell after its maximum
+stored length. The function checks only that `nRow` and `nColumn` are at least
+one; it does not verify that the entire field, including that extra cell, fits
+the active screen. A field which reaches the terminal's last column can wrap
+the cursor, and output at the lower-right cell can scroll the screen.
 
-BACKSPACE - Deletes the character left of the cursor. Press [BACKSPACE] or [CONTROL]-[H].
+## Format string
 
-TOGGLE INSERT MODE - Switches the [`od_edit_str()`](od_edit_str.md) function between insert mode and overwrite mode. Press [INSert], either in DoorWay mode, or from the local keyboard. Alternatively, press [CONTROL]-[V].
+`pszFormat` defines both the maximum stored length and the character class of
+each position. Format letters are case-insensitive. Unquoted spaces are ignored
+and may be inserted to make a format more readable; they do not occupy field
+positions. At most 80 editable or literal positions may be represented.
 
-CURSOR LEFT - Moves the cursor left one character. Press [LEFT ARROW] on the local keyboard, in DoorWay mode, and under many terminal programs without DoorWay mode. Alternatively, press [CONTROL]-[S].
+| Character | Accepted input and conversion |
+| --- | --- |
+| `#` | Decimal digit `0` through `9` |
+| `%` | Decimal digit or space |
+| `9` | Decimal digit, `.`, `+`, or `-` |
+| `?` | Any input byte not already handled as an editor command |
+| `*` | Any value which the implementation treats as 32 or greater |
+| `A` | ASCII letter or space |
+| `C` | ASCII letter, space, comma, period, `*`, or `?`; word capitalization is applied |
+| `D` | Decimal digit, `-`, or `/` |
+| `F` | ASCII letter or digit, the platform directory separator, or one of `: . ? * # $ & ' ( > - @ _ ! { } ~`; letters are converted to upper case |
+| `H` | Hexadecimal digit `0` through `9`, `A` through `F`, or `a` through `f` |
+| `L` | ASCII letter or space; letters are converted to lower case |
+| `M` | ASCII letter or space; the first letter of each word is upper case and remaining letters are lower case |
+| `T` | Decimal digit, space, `-`, `+`, `(`, or `)` |
+| `U` | ASCII letter or space; letters are converted to upper case |
+| `W` | ASCII letter, the platform directory separator, `:`, `.`, `*`, or `?` |
+| `X` | ASCII letter, decimal digit, or space |
+| `Y` | `Y`, `N`, `y`, or `n`; the stored value is upper case |
 
-CURSOR RIGHT - Moves the cursor right one character. Press [RIGHT ARROW] on the local keyboard, in DoorWay mode, and under many terminal programs without DoorWay mode. Alternatively, press [CONTROL]-[D].
+An otherwise unrecognized unquoted format character behaves like an
+unrestricted editable position in the current implementation. Applications
+should use `?` explicitly instead of depending on that fallback.
 
-ERASE ENTIRE LINE - Press [CONTROL]-[Y].
+Single or double quotes delimit literal characters. The opening and closing
+delimiter must use the same quote:
 
-ACCEPT INPUT - Press the [ENTER] / [RETURN] line to accept the input. Alternatively, press [CONTROL]-[Z]. Note that this key will only work when the current input is "valid" (ie, it conforms to the format string, which is described below)
+```c
+"###'-'###'-'####"
+```
 
-CANCEL INPUT - Only available if specifically enabled on the [`od_edit_str()`](od_edit_str.md) command line. Press [ESCape].
+represents ten numeric positions and two literal hyphens. The delimiters do
+not occupy stored positions, but the literal characters do. Literal text is
+inserted automatically as the cursor reaches it. In a C string, a double quote
+used as a format delimiter must itself be escaped.
 
-NEXT FIELD - If enabled, allows the user to move to the next field in a dialog box / form. Press [DOWN ARROW] in DoorWay mode and under many terminal programs without DoorWay mode. Alternatively, press [TAB]. Note that the [DOWN ARROW] key is NOT usually available from the local keyboard, as it is usually used to adjust the user's remaining time.
+[`EDIT_FLAG_PERMALITERAL`](../constants/input.md#edit_flag_permaliteral) draws
+all literals from the beginning and prevents editing operations from moving or
+deleting them. Without that flag, a literal appears when preceding input
+reaches it.
 
-PREVIOUS FIELD - If enabled, allows the user to move to the previous field in a dialog box / form. Press [UP ARROW] in DoorWay mode and under many terminal programs without DoorWay mode. Alternatively, press [SHIFT]-[TAB] on the local keyboard or in DoorWay mode. Again, note that the [UP ARROW] key is NOT usually available from the local keyboard, as it is usually used to adjust the user's remaining time.
+## Editing keys
 
-Let us now look at the parameters which the [`od_edit_str()`](od_edit_str.md) function accepts. The first parameter, pszInput, is a pointer to the string where the user's input should be stored. It is important that this string be long enough to accommodate the longest input your format string will permit, including the '\0' C string terminator (ie, the string should be one character greater than the length of the format string, not including the format string's ' and " characters).
+The function obtains input through [`od_get_input()`](od_get_input.md), so it
+recognizes supported ANSI, VT-style, and DoorWay extended sequences as well as
+the established control-key alternatives.
 
-The second parameter, pszFormat, is a pointer to a string which specifies the format and maximum length of the input the [`od_edit_str()`](od_edit_str.md) function should accept. Using the format string, not only do you specify the length of the input field, but you can also force the user's input into certain formats. For example, if you wished to input a North American style phone number, you could use a format string of "###-###-####". Then regardless of whether the user typed any dash character or not, their input would be converted, as they type, to the format of the phone number 613-599-5554. You could also specify a format string such of "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", which would permit the user to enter a name of up to 30 characters. Note that since the cursor can be moved to the position immediately following the last character, a the input field for a 30 character string will occupy 31 columns on the screen. The [`od_edit_str()`](od_edit_str.md) function would then automatically capitalize the name, so that the first character of each word is capitalized, and the remain characters of the word is in lower case. Even if the user were to move the cursor to the middle of the string they had entered, and add or delete a space (and thus either make one work two or two words one), [`od_edit_str()`](od_edit_str.md) would re- format the string to reflect the change. The valid characters for the format sting, along with their meanings, are listed below. Note that the format string is NOT case sensitive (except for literal strings delimited by the '' or "" characters), and space characters can be added at any point to increase legibility.
+| Key | Operation |
+| --- | --- |
+| Home and End | Move to the beginning or end of the current value. |
+| Left and Right Arrow | Move by one stored position. |
+| Insert or Ctrl-V | Toggle insert and overwrite modes, unless strict or permanent-literal mode disables insertion. |
+| Delete or Ctrl-G | Delete the character under the cursor when permitted. |
+| Backspace or Ctrl-H | Delete the preceding character when permitted. |
+| Ctrl-Y | Erase the entire field. |
+| Enter or Ctrl-Z | Attempt to accept the field. Invalid or insufficient input remains in the editor. |
+| Escape | Cancel only when [`EDIT_FLAG_ALLOW_CANCEL`](../constants/input.md#edit_flag_allow_cancel) is set. |
+| Down Arrow or Tab | Request the next field when [`EDIT_FLAG_FIELD_MODE`](../constants/input.md#edit_flag_field_mode) is set. |
+| Up Arrow or Shift-Tab | Request the previous field when [`EDIT_FLAG_FIELD_MODE`](../constants/input.md#edit_flag_field_mode) is set. |
 
-\#    Indicates that numeric characters from '0' to '9' are valid for this position
+The function temporarily claims the DOS Up and Down Arrow keys from the normal
+sysop time-adjustment handling, so these editing operations are also available
+from the enabled local keyboard.
 
-%    Indicates that numeric characters from '0' to '9', and the space character (' ') are valid for this position.
+## Flags
 
-9    Indicates that numeric characters from '0' to '9', along with '.', '-' and '+' are valid for this position. This format style is intended for floating-point numeric input.
+Combine compatible [`EDIT_FLAG_*`](../constants/input.md#single-line-editor-flags)
+values with bitwise OR. The complete behavioral definitions are in
+[Input and editors](../constants/input.md#single-line-editor-flags).
 
-?    Indicates that any character is valid for this position.
+| Flag | Effect |
+| --- | --- |
+| [`EDIT_FLAG_NORMAL`](../constants/input.md#edit_flag_normal) | Default behavior; contributes no bits. |
+| [`EDIT_FLAG_NO_REDRAW`](../constants/input.md#edit_flag_no_redraw) | Suppress the ordinary initial and final complete redraws. Cancellation and normalization can still require a redraw. |
+| [`EDIT_FLAG_FIELD_MODE`](../constants/input.md#edit_flag_field_mode) | Permit previous-field and next-field results. |
+| [`EDIT_FLAG_EDIT_STRING`](../constants/input.md#edit_flag_edit_string) | Edit the initial value instead of starting empty. |
+| [`EDIT_FLAG_STRICT_INPUT`](../constants/input.md#edit_flag_strict_input) | Disable insertion, Delete, and middle-of-string Backspace so positions remain aligned with different format classes. |
+| [`EDIT_FLAG_PASSWORD_MODE`](../constants/input.md#edit_flag_password_mode) | Display `chBlank` instead of the stored characters. |
+| [`EDIT_FLAG_ALLOW_CANCEL`](../constants/input.md#edit_flag_allow_cancel) | Let Escape restore the starting value and return a cancel result. |
+| [`EDIT_FLAG_FILL_STRING`](../constants/input.md#edit_flag_fill_string) | Require every represented position, including literals, to be present before acceptance. |
+| [`EDIT_FLAG_AUTO_ENTER`](../constants/input.md#edit_flag_auto_enter) | Attempt acceptance automatically when the field reaches its maximum stored length. |
+| [`EDIT_FLAG_AUTO_DELETE`](../constants/input.md#edit_flag_auto_delete) | Let the first ordinary input character replace an existing value while navigation/edit commands preserve it. |
+| [`EDIT_FLAG_KEEP_BLANK`](../constants/input.md#edit_flag_keep_blank) | Leave fill characters in unused positions after editing. |
+| [`EDIT_FLAG_PERMALITERAL`](../constants/input.md#edit_flag_permaliteral) | Keep format literals visible and fixed; insertion mode is disabled. |
+| [`EDIT_FLAG_LEAVE_BLANK`](../constants/input.md#edit_flag_leave_blank) | Return an empty string when the only stored characters are leading literals. |
+| [`EDIT_FLAG_SHOW_SIZE`](../constants/input.md#edit_flag_show_size) | Omit the usual extra displayed cursor cell. |
 
-\*    Indicates that any printable character, from ASCII 32 to ASCII 127, is valid for this position.
+## Return value
 
-A    Indicates that alphabetical characters 'A' to 'Z', 'a' to 'z' and space (' ') are valid for this position.
+Always inspect the result before using the edited value:
 
-C    Indicates that city name characters are valid for this position. As with the 'M' format character, words are automatically capitalized so that the first letter is in upper case, and all subsequent letters are in lower case. In addition to permitting alphabetical characters and the space (' ') character, the ',' and '.' characters are also accepted in this position.
+| Result | Meaning |
+| --- | --- |
+| [`EDIT_RETURN_ERROR`](../constants/input.md#edit_return_error) | A parameter or format error prevented editing. |
+| [`EDIT_RETURN_CANCEL`](../constants/input.md#edit_return_cancel) | Escape was accepted and the saved starting value was restored. |
+| [`EDIT_RETURN_ACCEPT`](../constants/input.md#edit_return_accept) | Enter, Ctrl-Z, or automatic entry accepted a valid value. |
+| [`EDIT_RETURN_PREVIOUS`](../constants/input.md#edit_return_previous) | Field mode accepted the value and requested the previous field. |
+| [`EDIT_RETURN_NEXT`](../constants/input.md#edit_return_next) | Field mode accepted the value and requested the next field. |
 
-D    Indicates that date characters '0' to '9', '-' and '/' are valid for this position.
+A null input or format pointer, a row or column below one, an empty format, or
+a format representing more than 80 positions returns
+[`EDIT_RETURN_ERROR`](../constants/input.md#edit_return_error) and sets
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter).
 
-F    Indicates that MS-DOS filename characters are valid for this position.
-
-H    Indicates that hexidecimal character '0' to '9', 'A' to 'F' and 'a' to 'f' are valid for this position.
-
-L    Indicates that only lower case alphabetical characters 'a' to 'z', and the space (' ') character is valid for this position. However, if the user attempts to enter an upper case alphabetical character in this position, it will automatically be converted to the lower case equivalent.
-
-M    Indicates that name characters are valid for this position. These characters are the alphabetical characters 'A' to 'Z', 'a' to 'z', and the space character (' '). A character's case is converted such that the first character of a word is in upper case, and all other letters are in lower case.
-
-T    Indicates that telephone number character '0' to '9', '(', ')', '-' and ' ' are valid for this position.
-
-U    Indicates that only upper case alphabetical characters 'A' to 'Z', and the space (' ') character is valid for this position. However, if the user attempts to enter a lower case alphabetical character in this position, it will automatically be converted to the upper case equivalent.
-
-W    Indicates that MS-DOS filename characters are permitted in this position, including the '*' and '?' wildcard characters.
-
-X    Indicates that alphanumeric characters 'A' to 'Z', 'a' to 'z', '0' to '9' and ' ' are valid for this position.
-
-Y    Indicates that yes/no characters 'Y', 'N', 'y', 'n' are valid for this position. The characters are automatically converted to upper case.
-
-'/"  Single or double quotes can be used to specify sequences of characters that should appear at the same location in the input string (referred to elsewhere as "literal strings"). When the user is entering the string, these characters are automatically supplied, and the user is not required to type them. Literal strings must begin and end with the same quote character. Remember that the double quote (") character must be imbedded in C strings by preceding the quote character with a \ (backslash) character.
-
-The third and fourth parameters, nRow and nColumn specify the location on the screen where the first (left most) character of the input field should be located. These parameters are identical to the nRow and nColumn parameters passed to the [`od_set_cursor()`](od_set_cursor.md) function. In other words, nRow specifies the line number on the screen, where 1 is the first line, and nColumn specifies the column across the screen, where 1 is the first column.
-
-The fifth and sixth parameters, btNormalColor and btHighlightColor, allow you to specify the color of the input field. The fifth parameter, btNormalColor, specifies the color of the input field when input is not taking place and the sixth parameter, btHighlightColor, specifies the color of the field while input is taking place. Thus, if you had several input fields on the screen at one time, you would be able to make is easier for the user to identify the currently active field by having the field currently accepting input highlighted in a color distinct from the other fields. When the [`od_edit_str()`](od_edit_str.md) function begins, it will change the current color of the field from the normal color to the highlighted color. Then, when the [`od_edit_str()`](od_edit_str.md) function exits, it will change the current color of the field back to its normal color. If you do not wish to have the field highlighted, you can set both of these parameters to the same value, and disable field re-drawing by using the eighth parameter, flags.
-
-The seventh parameter accepted by the [`od_edit_str()`](od_edit_str.md) function, chBlank, will serve one of two purposes. Normally, this parameter will specify a background character to display in the unfilled portion at the end of the input field. This can be set to a character, such as the ASCII 177 grey block character, to produce a visual background to the field. Doing this will show the user visually how long the field is, and how many character they will be permitted to type into the field. Normally, this field will be displayed during input, and removed when the [`od_edit_str()`](od_edit_str.md) function exits. However, you may cause the background to remain in place using the eighth parameter, flags. If you do not wish to have this "background" visual field effect, simply set the character parameter to a space (ASCII 32). In password input mode, this parameter will instead specify the character to display in place of characters typed by the user. In this case, the background display character defaults to the space (ASCII 32) character.
-
-The eighth, and last, parameter accepted by the [`od_edit_str()`](od_edit_str.md) function is the nFlags parameter. This parameter is a bit-mapped flags variable which allows you to control special features of the [`od_edit_str()`](od_edit_str.md) function. More than one of these settings may be specified by listing a chain of the values, separated by the bitwise-or (|) operator. If you do not wish to turn on any of these modes, simply pass the EDIT_FLAG_NORMAL value as the flags parameter.
-
-EDIT_FLAG_NORMAL - Default setting, use this value of none of the other flags below are active.
-
-EDIT_FLAG_NO_REDRAW - When set, prevents the [`od_edit_str()`](od_edit_str.md) function from re-drawing the input string and field when it starts up and exits. If you set this flag, the normal color and highlight color should contain the same value. If background character (the character parameter) is not a space (ASCII 32) character, you must draw the field background prior to calling [`od_edit_str()`](od_edit_str.md). Also, if you are calling [`od_edit_str()`](od_edit_str.md) with the EDIT_FLAG_EDIT_STRING flag set, you must display the existing string in the field prior to calling [`od_edit_str()`](od_edit_str.md).
-
-EDIT_FLAG_FIELD_MODE - Setting this flag specifies that [`od_edit_str()`](od_edit_str.md) should operate in field input mode. In field input mode, the user may finish entering their input by pressing the previous field or next field button (arrow keys, tab keys, etc.), as described above. If the user chooses to finish and accept their input by pressing one of these keys, the [`od_edit_str()`](od_edit_str.md) return value will reflect which choice they made. This will allow you to make it possible for the user to move between a number of input fields in a form / dialog box, as demonstrated in the example accompanying the [`od_draw_box()`](od_draw_box.md) function.
-
-EDIT_FLAG_EDIT_STRING - Setting this flag specifies that [`od_edit_str()`](od_edit_str.md) should edit a pre-existing string, instead of starting with a blank string. In this case, the input_string parameter MUST point to an initialized string. This string may either contain some text, or be empty, but [`od_edit_str()`](od_edit_str.md) will expect to find a string terminator ('\0') character, and will begin editing the contents of the string prior to that character. If you do not set the EDIT_FLAG_EDIT_STRING flag, the previous contents of the input_string parameter is not significant, as [`od_edit_str()`](od_edit_str.md) will automatically start with a blank string.
-
-EDIT_FLAG_STRICT_INPUT - Setting this flag causes the [`od_edit_str()`](od_edit_str.md) function to operate in "strict" input mode, which may be desirable if your input format contains more than one type of input. Normally, if you were inputting such a string, the user would be able to move to the middle of the string, and insert any text. Doing so would cause the rest of the input line to shift right. However, in cases where your format string specifies different types of character to be permitted in different positions, this can cause the input to be changed so that it no longer conforms to the format string. In this case, the user's input will no longer be valid, and the user will not be able to exit the function by pressing [ENTER] (although [ESCAPE] will still be available, if you activated it) until they change their input. However, when strict input mode is turned on, [`od_edit_str()`](od_edit_str.md) will restrict the ways in which the user is permitted to edit the string, to prevent just such a case from occurring.
-
-EDIT_FLAG_PASSWORD_MODE - Setting this flag causes the [`od_edit_str()`](od_edit_str.md) function to operate in "password" mode. In password mode, the characters typed by the user will be hidden, displayed instead as the blank character specified in the "character" parameter.
-
-EDIT_FLAG_ALLOW_CANCEL - When this flag is set, the user will be able to cancel their current input and abort the editing process by pressing their [ESCAPE] key. When they do so, any changes they have made to the input field will be canceled, and replaced by the original contents of the string. The [`od_edit_str()`](od_edit_str.md) function will then exit, indicating that the user has canceled their input.
-
-EDIT_FLAG_FILL_STRING - When set, this flag will force the user to enter a string that fills the entire length of the format string. Normally, the user will be able to enter a string of any length up to the maximum length specified by the format string. However in some cases, such as when inputting a date, you will want to have the input field filled. (Otherwise, the user would be able to enter only the first part of the date.)
-
-EDIT_FLAG_AUTO_ENTER - When set, this flag will cause the [`od_edit_str()`](od_edit_str.md) function to automatically simulate pressing of the [ENTER] key when the string is filled. This can be used to cause the [`od_edit_str()`](od_edit_str.md) function to finish inputting as soon as a valid string is entered, instead of having to wait for the user to press [ENTER] / [RETURN].
-
-EDIT_FLAG_AUTO_DELETE - When set, along with the EDIT_FLAG_EDIT_STRING flag, this flag will activate the auto-delete feature of the [`od_edit_str()`](od_edit_str.md) function. When auto-delete is active, if the first key pressed by the user is not an edit control key, the existing text will automatically be deleted, and a totally new string accepted from the user. This could be useful when you are allowing the user to go back to edit a previous input. If the user wishes to only change part of the old string, they can move the cursor to the location where they wish to make the change, and perform their editing. However, if the user wishes to completely replace the old string with a new one, they can simply begin to type, and the old string will automatically be deleted, and the new string accepted.
-
-EDIT_FLAG_KEEP_BLANK - Normally, OpenDoors will only display the input field background (as passed in the "character" parameter) while the user is editing the string, and will remove it when the [`od_edit_str()`](od_edit_str.md) function exits. However, you may wish to continue having this field displayed after input has taken place, and the [`od_edit_str()`](od_edit_str.md) function has exited. In this case, setting this flag will cause the background characters to remain visible after input has finished.
-
-EDIT_FLAG_PERMALITERAL - When the format string contains literal characters (such as forcing a ':' character to be added to a time input by using the format string "##':'##':'##"), the [`od_edit_str()`](od_edit_str.md) function can operate in one of two modes. In the default mode, the literal characters will only be displayed when they have been automatically added to the string. For instance, if you were inputting the current time using the above format string, this mode would result in the input field initially being blank. When the user types the first digit of the time, that number would appear. When the user types the second digit of the time, that number will appear, and then the colon character will automatically be added by OpenDoors. However, you can also set the [`od_edit_str()`](od_edit_str.md) function to operate in "PermaLiteral" mode, by setting this flag. When the EDIT_FLAG_PERMALITERAL flag is set, the input field will initially contain the literal characters (ie, the colons in our example), with the cursor still located at the leftmost position in the input field. In this mode, the literal character become a permanent part of the input field, and can not be moved or deleted by the user - instead the cursor simply skips over the literal character's position.
-
-EDIT_FLAG_LEAVE_BLANK - This flag applies to the special case where the first character or characters of the format string are literals. By default, the [`od_edit_str()`](od_edit_str.md) function will always return a string containing at least these first literal characters. However, you can alter this behaviors by setting this flag. When set, if no non-literal characters have been entered in the string, [`od_edit_str()`](od_edit_str.md) will return an empty string.
-
-EDIT_FLAG_SHOW_SIZE - Normally, [`od_edit_str()`](od_edit_str.md) adds an extra blank to the end of the input field, to give the cursor a space to move into when the field is full. However, you may prefer to have the input field be shown as exactly the maximum size of input that is permitted. Setting EDIT_FLAG_SHOW_SIZE does just this. In this case, the cursor will be positioned immediately past the end of the input field when the maximum number of characters have been entered.
+Despite its cursor-addressed design, the current implementation does not
+perform an explicit ANSI/AVATAR capability check and does not define
+[`ERR_NOGRAPHICS`](../constants/errors.md#err_nographics) as a reliable return
+condition for this function.
 
 ## Examples
 
-Below are several examples of typical uses of the [`od_edit_str()`](od_edit_str.md) function. For the sake of simplicity, all of these examples perform their input beginning at the top, left hand corner of the screen, and store the user's input in the string variable named "string". For an example of the user of the [`od_edit_str()`](od_edit_str.md) function in a dialog-box / form entry application, see the example accompanying the [`od_draw_box()`](od_draw_box.md) function.
-
-To input a name with a maximum of 25 characters, having the first letter of each word automatically capitalized:
+Input a name of at most 25 characters, applying word capitalization:
 
 ```c
-od_edit_str(string, "MMMMMMMMMMMMMMMMMMMMMMMMM", 1, 1,
-            0x03, 0x21, 176, EDIT_FLAG_NORMAL);
+char name[26];
+
+od_edit_str(name, "MMMMMMMMMMMMMMMMMMMMMMMMM", 1, 1,
+    0x03, 0x21, 176, EDIT_FLAG_NORMAL);
 ```
 
-To input a North American style phone number, requiring that all digits be filled, and running in "strict input" mode:
+Require a complete North American telephone-number form:
 
 ```c
-od_edit_str(string, "###'-'###'-'####",
-            1, 1, 0x03, 0x21, 176,
-            EDIT_FLAG_FILL_STRING|
-            EDIT_FLAG_STRICT_INPUT);
+char phone[13];
+
+od_edit_str(phone, "###'-'###'-'####", 1, 1,
+    0x03, 0x21, 176,
+    EDIT_FLAG_FILL_STRING | EDIT_FLAG_STRICT_INPUT);
 ```
 
-To allow the user to edit a previously entered 20 character string, with auto-delete mode on. Any characters will be permitted in the string. Remember that when the EDIT_FLAG_EDIT_STRING flag is set, the string must be initialized prior to calling the [`od_edit_str()`](od_edit_str.md) function.
+Edit an existing value, allowing the first typed character to replace it:
 
 ```c
-od_edit_str(string, "????????????????????",
-            1, 1, 0x03, 0x21, 176,
-            EDIT_FLAG_EDIT_STRING|
-            EDIT_FLAG_AUTO_DELETE);
+char description[21] = "Existing value";
+
+od_edit_str(description, "????????????????????", 1, 1,
+    0x03, 0x21, 176,
+    EDIT_FLAG_EDIT_STRING | EDIT_FLAG_AUTO_DELETE |
+    EDIT_FLAG_ALLOW_CANCEL);
 ```
 
-To input a password of up to 16 characters from the user. Here, the password will only be permitted to contain upper case characters, and the [`od_edit_str()`](od_edit_str.md) password mode is used, with a small block displayed in place of any characters typed:
+Input a masked, upper-case password:
 
 ```c
-od_edit_str(string, "UUUUUUUUUUUUUUUU",
-            1, 1, 0x03, 0x21, 254,
-            EDIT_FLAG_PASSWORD_MODE);
+char password[17];
+
+od_edit_str(password, "UUUUUUUUUUUUUUUU", 1, 1,
+    0x03, 0x21, 254, EDIT_FLAG_PASSWORD_MODE);
 ```
 
-To input a two-digit number from the user, requiring that both digits be filled, and automatically accepting the input after the two digits have been entered (not requiring the user to press [ENTER]):
+Display a fixed date layout from the start of editing:
 
 ```c
-od_edit_str(string, "##", 1, 1, 0x03, 0x21, 176,
-            EDIT_FLAG_FILL_STRING|
-            EDIT_FLAG_AUTO_ENTER);
+char date[12];
+
+od_edit_str(date, "UUU'-'##'-19'##", 1, 1,
+    0x03, 0x21, 176,
+    EDIT_FLAG_PERMALITERAL | EDIT_FLAG_FILL_STRING);
 ```
-
-To input a filename to download, as a field in a dialog box. Here, the filename will be permitted to contain valid filename characters, and the [`od_input_str()`](od_input_str.md) function will operate in field mode, with the cancel [ESCape] key enabled. Also, string edit mode will be enabled, allowing the user to edit a previously entered line, and the EDIT_FLAG_KEEP_BLANK flag will be set, causing the field background to remain displayed after the user exits. This time, however, auto-delete mode will not be used. Note that this combination of parameters expects that the field and it's contents will have already been displayed, prior to calling the [`od_edit_str()`](od_edit_str.md) function.
-
-```c
-od_edit_str(string, "WWWWWWWWWWWW",
-            1, 1, 0x03, 0x21, 176,
-            EDIT_FLAG_EDIT_STRING|
-            EDIT_FLAG_FIELD_MODE|
-            EDIT_FLAG_ALLOW_CANCEL|
-            EDIT_FLAG_KEEP_BLANK);
-```
-
-To input a string without the field background and line redrawing before and after input takes place:
-
-```c
-od_edit_str(string, "******************************",
-            1, 1, 0x07, 0x07, ' ',
-            EDIT_FLAG_NO_REDRAW);
-```
-
-To input a date, using PermaLiteral mode. Here, the month is entered by a three digit short form ("JAN", "FEB", etc.), and the literal characters such as the '-' and the "19" are a permanent part of the input field:
-
-```c
-od_edit_str(string,"UUU'-'##'-19'##",
-            1, 1, 0x03, 0x21, 176,
-            EDIT_FLAG_PERMALITERAL|
-            EDIT_FLAG_FILL_STRING);
-```
-
-## Additional details
-
-`pszInput` receives the edited result. It supplies the starting value only when
-[`EDIT_FLAG_EDIT_STRING`](../constants/input.md#edit_flag_edit_string) is present; without that flag the function begins with
-an empty string. `pszFormat` defines editable positions, literals, and character
-classes. At most 80 editable or literal positions are accepted. The row,
-column, colors, blank character, and [`EDIT_*`](../constants/input.md) flags
-control presentation and behavior.
-
-The return value identifies the key or editing condition which ended input. A
-null input or format pointer, a row or column below 1, an empty format, or a
-format representing more than 80 positions returns [`EDIT_RETURN_ERROR`](../constants/input.md#edit_return_error) and sets
-[`ERR_PARAMETER`](../constants/errors.md). The function is designed for a
-cursor-addressable graphics mode, but it does not perform its own ANSI/AVATAR
-capability check and does not define [`ERR_NOGRAPHICS`](../constants/errors.md#err_nographics) as a return condition.
 
 ## See also
 
-[`od_input_str()`](od_input_str.md), [`od_get_key()`](od_get_key.md), [`od_clear_keybuffer()`](od_clear_keybuffer.md)
-
 [`od_input_str()`](od_input_str.md),
-[`od_multiline_edit()`](od_multiline_edit.md), [Input and
-editors](../constants/input.md)
+[`od_multiline_edit()`](od_multiline_edit.md),
+[`od_get_input()`](od_get_input.md),
+[Input and editors](../constants/input.md)

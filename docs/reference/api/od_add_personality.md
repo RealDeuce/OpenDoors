@@ -1,6 +1,6 @@
 # `od_add_personality()`
 
-Installs a custom status line / sysop function key personality into OpenDoors.
+Registers a status-line and sysop-function-key personality.
 
 ## Synopsis
 
@@ -9,39 +9,54 @@ BOOL od_add_personality(const char *pszName, BYTE btOutputTop,
     BYTE btOutputBottom, OD_PERSONALITY_PROC *pfPerFunc);
 ```
 
-## Return value
-
-TRUE on success FALSE on failure
-
 ## Description
 
-If used, this function should be called before any other OpenDoors API functions. This function installs a new personality into OpenDoors. The first parameter specifies the string that will be used to identify the personality. This is the string that the user will be able to supply in the configuration file to select this personality, and is also the string that can be passed to [`od_set_personality()`](od_set_personality.md) to manually switch to this personality. The second and third parameters specify the 1-based to and bottom line numbers of the output window to be used with this personality. For instance, a top value of 1 and bottom value of 23 would cause all door output to be displayed on the first 23 lines of the screen, leaving the bottom two lines for use by the personality's status line. The last parameter is a pointer to the personality function, which OpenDoors will call to perform various operations with that involve the personality. For more information on personalities and the OpenDoors Multiple Personality System, see the section.
+[`od_add_personality()`](od_add_personality.md) adds a personality to the set
+which can be selected by name. Personalities control the DOS local status line,
+the portion of the local display assigned to door output, and the handling of
+personality operations. They do not change the remote terminal protocol.
 
-This function only has an effect under the DOS version of OpenDoors.
+The function must be called before [`od_init()`](od_init.md), or before any
+other OpenDoors function which can initialize the library. It does not itself
+initialize OpenDoors.
 
-## Additional details
+`pszName` points to the name by which the personality will be selected. Names
+are case-insensitive. OpenDoors copies, converts to upper case, and retains the
+first 32 characters; the caller may therefore release or reuse the source
+string after this function returns. The name can subsequently be supplied to
+[`od_set_personality()`](od_set_personality.md), the `Personality`
+configuration-file keyword, or the `-PERSONALITY` command-line option.
 
-Call this function before any operation which initializes OpenDoors. `pszName`
-identifies the personality, the two line numbers define its local door-output
-area, and `pfPerFunc` receives
+`btOutputTop` and `btOutputBottom` specify the one-based first and last local
+screen rows assigned to ordinary door output while the personality is active.
+For example, values of 1 and 23 reserve rows 24 and 25 for the status display.
+The personality callback receives the
 [`PEROP_*`](../constants/components.md#personality-procedure-operations)
-operations.
+operations used to initialize, terminate, display, update, and report custom
+hot keys. Its address is retained and the callback must remain available for
+as long as the personality can be selected.
 
-The function returns true when the personality is registered. An exhausted
-personality table returns false with [`ERR_LIMIT`](../constants/errors.md). Custom
-personalities affect the text-mode local interface; targets without that
-interface return false with [`ERR_UNSUPPORTED`](../constants/errors.md).
+The current interface does not validate a null name, a null callback, or the
+order and range of the output rows. Supplying any of them incorrectly results
+in undefined behavior or an unusable local display.
 
-OpenDoors copies and uppercases at most 32 characters of `pszName`, so the name
-string need not remain allocated after the call. It retains `pfPerFunc` and may
-call it later. The function does not validate a null name, a null callback, or
-the ordering and range of the output bounds; the caller must supply all four
-arguments correctly.
+This function is supported by the DOS and DOS32 text-mode builds. Other builds
+return [`FALSE`](../constants/general.md#false) and set
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_UNSUPPORTED`](../constants/errors.md#err_unsupported).
+
+## Return value
+
+The function returns [`TRUE`](../constants/general.md#true) when the
+personality has been registered. OpenDoors can hold twelve personalities,
+including its four built-in personalities. If the table is full, the function
+returns [`FALSE`](../constants/general.md#false) and sets
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_LIMIT`](../constants/errors.md#err_limit).
 
 ## See also
 
-[`od_set_personality()`](od_set_personality.md), [`od_set_statusline()`](od_set_statusline.md)
-
 [`od_set_personality()`](od_set_personality.md),
-[`od_set_statusline()`](od_set_statusline.md), [Types and
-callbacks](../types.md)
+[`od_set_statusline()`](od_set_statusline.md),
+[Personality modules](../../guides/personalities.md),
+[Types and callbacks](../types.md)

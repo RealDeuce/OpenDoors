@@ -1,6 +1,6 @@
 # `od_input_str()`
 
-Inputs a string from the user
+Inputs and echoes a simple line of text.
 
 ## Synopsis
 
@@ -9,59 +9,60 @@ void od_input_str(char *pszInput, INT nMaxLength,
     unsigned char chMin, unsigned char chMax);
 ```
 
-## Return value
-
-N/A
-
 ## Description
 
-To perform string input within OpenDoors, one of two functions can be used, [`od_input_str()`](od_input_str.md) and [`od_edit_str()`](od_edit_str.md). The first function, [`od_input_str()`](od_input_str.md), allows simple line input and editing, and can be used in ASCII, ANSI, AVATAR and RIP modes. The second function, [`od_edit_str()`](od_edit_str.md), allows many formatted input options, advanced line editing, and other features, but requires the use of ANSI, AVATAR or RIP graphics modes.
+[`od_input_str()`](od_input_str.md) provides line input in plain ASCII, ANSI,
+AVATAR, and RIP sessions. It accepts characters until the user presses Enter,
+supports destructive backspace, echoes accepted characters, and displays a
+line break when input is complete. It does not require cursor addressing.
 
-The [`od_input_str()`](od_input_str.md) function allows you to input a string from the user. The string will be permitted to have up to the number of characters specified by the max_len parameter, and all characters must be between the values of the min_char and max_char parameters. This function will wait until the user presses the [Enter] key to finish inputting the string.
+`pszInput` points to the destination array. Input begins at position zero;
+existing contents are neither displayed nor edited. `nMaxLength` is the
+largest number of input bytes which can be stored, excluding the terminating
+null byte. The array must therefore provide at least `nMaxLength + 1` bytes.
 
-The first parameter passed to this function should be a pointer to the string where the user's input should be stored. So, if you wanted to store a string of up to 30 characters inputted by the user, you might define this string as follows:
+`chMin` and `chMax` specify the inclusive range of character values which may
+be entered. Characters outside the range are ignored, as are additional
+characters after `nMaxLength` has been reached. Carriage return and line feed
+finish input, and backspace edits input, before the range test is applied;
+those control characters cannot be stored as ordinary data through this
+function.
 
-```text
-char input_string[31];
-```
-
-Notice here than the string must be long enough to hold the thirty characters which can be entered by the user, along with the additional "null" character which is used to indicate the end of a string in C. Hence, the length of the string should always be at least one greater than the total number of characters the user is permitted to enter, passed in the nMaxLength parameter.
-
-The second parameter passed to the [`od_input_str()`](od_input_str.md) function should be an integer value indicating the maximum number of characters which can be input by the user. For example, if this parameter had a value of 10, the user would be able to enter a string containing any number of characters up to and including 10 characters. If this parameter had a value of 1, the user would only be able to enter a single character. However, the user would be able to backspace, change the character, and press [Enter] when they were satisfied with their entry. Note that even if you only ask the [`od_input_str()`](od_input_str.md) function to input a single character, it will still expect a STRING to be passed to it, and will return a string with either zero or one character, followed by a null (string terminator) character.
-
-The third and fourth parameters passed to this function allow you to control what characters the user will be permitted to enter as part of the string. For example, you could set the minimum character to the '0' character and the maximum character to the '9' character, permitting the user to only enter numeric characters. On the other hand, you could permit the user to enter all ASCII characters in the range from 32 to 127. The [`od_input_str()`](od_input_str.md) function will permit characters in the range beginning with the character passed as minchar, up to and including the character passed as maxchar.
-
-## Examples
-
-Below are a number of examples of the use of the [`od_input_str()`](od_input_str.md) function in various applications:
-
-\- To input a two character number (only digits from 0-9):
+For example, to accept at most two decimal digits:
 
 ```c
-od_input_str(string, 2, '0', '9');
+char number[3];
+
+od_input_str(number, 2, '0', '9');
 ```
 
-\- To input a 35 character name (characters from Space to ASCII 127):
+To accept a name of at most 35 printable seven-bit characters:
 
 ```c
-od_input_str(string, 35, 32, 127);
+char name[36];
+
+od_input_str(name, 35, 32, 126);
 ```
 
-## Additional details
+Use [`od_edit_str()`](od_edit_str.md) when the application needs formatted
+fields, cursor movement, editing of an existing value, password display, or a
+distinguishable cancel result. Use
+[`od_multiline_edit()`](od_multiline_edit.md) for text spanning several lines.
 
-`pszInput` is the destination buffer. Existing contents are not displayed or
-edited: input begins at position zero and replaces the buffer when the user
-finishes. `nMaxLength` is the largest accepted string length, excluding its nul
-terminator. `chMin` and `chMax` give the inclusive range of acceptable character
-values.
+## Return value
 
-The user may edit with the normal erase keys and finishes with Enter. The
-destination must have room for `nMaxLength + 1` bytes. Invalid parameters are
-reported through [`od_control.od_error`](../control/runtime.md). The function
-returns no value.
+This function returns no value. When Enter is pressed, it null-terminates the
+accepted input in `pszInput`.
+
+A null destination, a maximum length below one, or a minimum character greater
+than the maximum causes the function to return without accepting input and set
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter). Existing destination
+contents are not changed in that case.
 
 ## See also
 
-[`od_edit_str()`](od_edit_str.md), [`od_get_key()`](od_get_key.md), [`od_clear_keybuffer()`](od_clear_keybuffer.md)
-
-[`od_edit_str()`](od_edit_str.md), [`od_multiline_edit()`](od_multiline_edit.md)
+[`od_edit_str()`](od_edit_str.md),
+[`od_multiline_edit()`](od_multiline_edit.md),
+[`od_get_key()`](od_get_key.md),
+[`od_clear_keybuffer()`](od_clear_keybuffer.md)
