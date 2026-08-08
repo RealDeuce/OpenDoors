@@ -267,8 +267,10 @@ jobs:
           test -s "$dylib"
           test -s "$stage/lib/libODoors.a"
           lipo "$dylib" -verify_arch '${{ matrix.architecture }}'
-          vtool -show-build "$dylib" | grep -Eq \
-            'minos[[:space:]]+${{ matrix.deployment }}([.]0)?([[:space:]]|$)'
+          vtool -show-build "$dylib" | tee build/macos-build-version.txt
+          grep -Eq \
+            '(minos|version)[[:space:]]+${{ matrix.deployment }}([.]0)?([[:space:]]|$)' \
+            build/macos-build-version.txt
           otool -D "$dylib" | grep -q 'libODoors.6.3.dylib'
 
           for variant in Shared Static; do
