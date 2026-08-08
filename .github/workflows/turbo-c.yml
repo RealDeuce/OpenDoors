@@ -13,6 +13,7 @@ jobs:
 
     env:
       TURBO_C_SHA256: 2c87f988605ae9ed70e5fef35b9854de87e36ccdb021caec35ab2424ca4b5553
+      JWASM_SHA256: e4cab76e0cdc038e4bc284be136cbd0e5116b02a0a2a76fc4a12cad326224723
 
     steps:
       - uses: actions/checkout@v7
@@ -94,6 +95,18 @@ jobs:
             2>&1 | tee build/turboc/wasm.log
           test -s build/turboc/OBJ/ODSWAP.OBJ
 
+      - name: Download JWasm for Turbo C inline assembly
+        run: |
+          archive="$RUNNER_TEMP/jwasm-dos.zip"
+          destination="$RUNNER_TEMP/jwasm-dos"
+          curl --fail --location --retry 3 \
+            --output "$archive" \
+            https://github.com/Baron-von-Riedesel/JWasm/releases/download/v2.20/JWasm_v220_dos.zip
+          echo "$JWASM_SHA256  $archive" | sha256sum --check --strict
+          unzip -q "$archive" -d "$destination"
+          mkdir -p build/turboc/TC/BIN
+          cp "$destination/JWasmr.exe" build/turboc/TC/BIN/JWASM.EXE
+
       - name: Stage DOSBox build tree
         run: |
           mkdir -p build/turboc/SRC/TRIO build/turboc/TC
@@ -111,7 +124,7 @@ jobs:
           done
           awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
             tests/link_smoke.c > build/turboc/SRC/LINKTEST.C
-          for file in TCBUILD.BAT TCONE.BAT TCLIB.BAT; do
+          for file in TCBUILD.BAT TCONE.BAT TCASM.BAT TCLIB.BAT; do
             awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
               "tools/turboc/$file" > "build/turboc/$file"
           done
@@ -162,6 +175,7 @@ jobs:
             build/turboc/TCBUILD.LOG
             build/turboc/TCFAIL.TXT
             build/turboc/TCBUILD.OK
+            build/turboc/OBJ/*.ASM
             build/turboc/OUT/ODOORL.LIB
             build/turboc/OUT/LINKTEST.EXE
           if-no-files-found: warn
