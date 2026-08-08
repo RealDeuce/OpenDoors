@@ -132,6 +132,112 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+  package:
+    name: Installed package (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: Shared
+            build_shared: ON
+            build_static: OFF
+          - variant: Static
+            build_shared: OFF
+            build_static: ON
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure selected library variant
+        run: >-
+          cmake
+          -S .
+          -B build/package
+          -DCMAKE_BUILD_TYPE=Release
+          -DOPENDOORS_BUILD_SHARED=${{ matrix.build_shared }}
+          -DOPENDOORS_BUILD_STATIC=${{ matrix.build_static }}
+          -DOPENDOORS_BUILD_EXAMPLES=OFF
+          -DOPENDOORS_WARNINGS_AS_ERRORS=ON
+
+      - name: Build and test selected variant
+        run: |
+          cmake --build build/package --parallel
+          ctest --test-dir build/package --output-on-failure
+
+      - name: Install OpenDoors package
+        run: >-
+          cmake
+          --install build/package
+          --prefix '${{ runner.temp }}/opendoors-install'
+
+      - name: Build installed-package consumer
+        run: |
+          cmake \
+            -S tests/package_consumer \
+            -B build/consumer \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH='${{ runner.temp }}/opendoors-install' \
+            -DOPENDOORS_VARIANT=${{ matrix.variant }}
+          cmake --build build/consumer --parallel
+          ctest --test-dir build/consumer --output-on-failure
+
+  package-windows:
+    name: Installed package (Windows ${{ matrix.variant }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: Shared
+            build_shared: ON
+            build_static: OFF
+          - variant: Static
+            build_shared: OFF
+            build_static: ON
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure selected library variant
+        shell: pwsh
+        run: >-
+          cmake
+          -S .
+          -B build/package
+          -A x64
+          -DOPENDOORS_BUILD_SHARED=${{ matrix.build_shared }}
+          -DOPENDOORS_BUILD_STATIC=${{ matrix.build_static }}
+          -DOPENDOORS_BUILD_EXAMPLES=OFF
+          -DOPENDOORS_WARNINGS_AS_ERRORS=ON
+
+      - name: Build and test selected variant
+        shell: pwsh
+        run: |
+          cmake --build build/package --config Release --parallel
+          ctest --test-dir build/package -C Release --output-on-failure
+
+      - name: Install OpenDoors package
+        shell: pwsh
+        run: >-
+          cmake
+          --install build/package
+          --config Release
+          --prefix "$env:RUNNER_TEMP/opendoors-install"
+
+      - name: Build installed-package consumer
+        shell: pwsh
+        run: |
+          cmake `
+            -S tests/package_consumer `
+            -B build/consumer `
+            -A x64 `
+            "-DCMAKE_PREFIX_PATH=$env:RUNNER_TEMP/opendoors-install" `
+            -DOPENDOORS_VARIANT=${{ matrix.variant }}
+          cmake --build build/consumer --config Release --parallel
+          $env:PATH = "$env:RUNNER_TEMP\opendoors-install\bin;$env:PATH"
+          ctest --test-dir build/consumer -C Release --output-on-failure
+
   dos:
     name: DOS Open Watcom 16-bit
     runs-on: ubuntu-24.04

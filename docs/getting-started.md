@@ -45,10 +45,18 @@ add_subdirectory(path/to/OpenDoors)
 target_link_libraries(mydoor PRIVATE OpenDoors::Shared)
 ```
 
-Windows programs which link the static library directly must define
-[`OD_WIN32_STATIC`](guides/building.md). See [Building and
-linking](guides/building.md) for the standalone build commands, library names,
-and DOS build.
+An installed OpenDoors package provides the same target names:
+
+```cmake
+find_package(OpenDoors 6.30 CONFIG REQUIRED COMPONENTS Shared)
+target_link_libraries(mydoor PRIVATE OpenDoors::Shared)
+```
+
+On Windows, `OpenDoors::Static` defines
+[`OD_WIN32_STATIC`](guides/building.md) for its consumers automatically.
+Programs which link the static library without that CMake target must define it
+themselves. See [Building and linking](guides/building.md) for the standalone
+build commands, library names, and DOS build.
 
 ## Where to go next
 

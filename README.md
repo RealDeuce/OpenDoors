@@ -30,15 +30,28 @@ and link smoke tests on Windows, Linux, and macOS:
 cmake -S . -B build
 cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
+cmake --install build --prefix /path/to/prefix
+```
+
+Both library variants are built by default. Set `OPENDOORS_BUILD_SHARED` or
+`OPENDOORS_BUILD_STATIC` to `OFF` to omit that variant; at least one must
+remain enabled. An installed package can be consumed with:
+
+```cmake
+find_package(OpenDoors 6.30 CONFIG REQUIRED COMPONENTS Shared)
+target_link_libraries(mydoor PRIVATE OpenDoors::Shared)
 ```
 
 On Unix-like systems the libraries are `libODoors.so`/`libODoors.a` (or the
 macOS `.dylib` equivalent). With MSVC, the shared build produces
 `ODoors62.dll` and `ODoorW.lib`; the static build produces
-`ODoors-static.lib`. Consumers linking the Windows static library must define
-[`OD_WIN32_STATIC`](https://realdeuce.github.io/OpenDoors/guides/building/).
-The `OpenDoors::Shared` and `OpenDoors::Static` CMake target
-aliases are available when OpenDoors is included with `add_subdirectory()`.
+`ODoors-static.lib`. `OpenDoors::Static` supplies
+[`OD_WIN32_STATIC`](https://realdeuce.github.io/OpenDoors/guides/building/)
+automatically; consumers linking the Windows static library without the CMake
+target must define it themselves.
+The `OpenDoors::Shared` and `OpenDoors::Static` CMake targets are available
+both from `add_subdirectory()` and from the installed package when their
+corresponding variants were built.
 
 ## MSVC builds
 

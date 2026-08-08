@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(OpenDoors VERSION 6.3 LANGUAGES C)
+project(OpenDoors VERSION 6.30.0 LANGUAGES C)
 
 include(CTest)
 include(CheckIncludeFile)
 include(CheckSymbolExists)
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
 
+option(OPENDOORS_BUILD_SHARED "Build the OpenDoors shared library" ON)
+option(OPENDOORS_BUILD_STATIC "Build the OpenDoors static library" ON)
 option(OPENDOORS_BUILD_EXAMPLES "Build the OpenDoors example programs" ON)
 option(OPENDOORS_WARNINGS_AS_ERRORS
     "Treat OpenDoors compiler and linker warnings as errors" OFF)
@@ -71,6 +75,11 @@ set(OPENDOORS_PUBLIC_HEADERS
     OpenDoor.h
 )
 
+if(NOT OPENDOORS_BUILD_SHARED AND NOT OPENDOORS_BUILD_STATIC)
+    message(FATAL_ERROR
+        "At least one of OPENDOORS_BUILD_SHARED or OPENDOORS_BUILD_STATIC must be enabled")
+endif()
+
 check_include_file(inttypes.h OPENDOORS_HAVE_INTTYPES_H)
 check_symbol_exists(vsnprintf "stdio.h" OPENDOORS_HAVE_VSNPRINTF)
 if(NOT WIN32)
@@ -79,7 +88,8 @@ endif()
 
 function(opendoors_configure_library target)
     target_include_directories(${target} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
     target_compile_features(${target} PUBLIC c_std_99)
     if(OPENDOORS_HAVE_INTTYPES_H)
         target_compile_definitions(${target} PRIVATE HAS_INTTYPES_H)
@@ -114,58 +124,110 @@ function(opendoors_configure_library target)
         POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
-add_library(opendoors_shared SHARED
-    ${OPENDOORS_SOURCES}
-    ${OPENDOORS_PUBLIC_HEADERS})
-add_library(OpenDoors::Shared ALIAS opendoors_shared)
-opendoors_configure_library(opendoors_shared)
+set(OPENDOORS_LIBRARY_TARGETS)
 
-add_library(opendoors_static STATIC
-    ${OPENDOORS_SOURCES}
-    ${OPENDOORS_PUBLIC_HEADERS})
-add_library(OpenDoors::Static ALIAS opendoors_static)
-opendoors_configure_library(opendoors_static)
-
-if(WIN32)
-    set_target_properties(opendoors_shared PROPERTIES
-        PREFIX ""
-        RUNTIME_OUTPUT_NAME ODoors62
-        ARCHIVE_OUTPUT_NAME ODoorW)
-    set_target_properties(opendoors_static PROPERTIES
-        ARCHIVE_OUTPUT_NAME ODoors-static)
-    target_compile_definitions(opendoors_static PUBLIC OD_WIN32_STATIC)
-
-    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        if(MSVC)
-            target_sources(opendoors_shared PRIVATE OpenDoor.def)
-            target_compile_definitions(opendoors_shared PRIVATE
-                OPENDOORS_USE_DEF_EXPORTS)
-        elseif(MINGW)
-            target_sources(opendoors_shared PRIVATE OpenDoorMinGW.def)
-        endif()
-    else()
-        target_sources(opendoors_shared PRIVATE OpenDoor64.def)
-        target_compile_definitions(opendoors_shared PRIVATE
-            OPENDOORS_USE_DEF_EXPORTS)
-    endif()
-else()
-    set_target_properties(opendoors_shared PROPERTIES
-        OUTPUT_NAME ODoors
-        VERSION ${PROJECT_VERSION}
-        SOVERSION ${PROJECT_VERSION_MAJOR})
-    set_target_properties(opendoors_static PROPERTIES OUTPUT_NAME ODoors)
+if(OPENDOORS_BUILD_SHARED)
+    add_library(opendoors_shared SHARED
+        ${OPENDOORS_SOURCES}
+        ${OPENDOORS_PUBLIC_HEADERS})
+    add_library(OpenDoors::Shared ALIAS opendoors_shared)
+    opendoors_configure_library(opendoors_shared)
+    set_target_properties(opendoors_shared PROPERTIES EXPORT_NAME Shared)
+    list(APPEND OPENDOORS_LIBRARY_TARGETS opendoors_shared)
 endif()
 
-foreach(target opendoors_shared opendoors_static)
+if(OPENDOORS_BUILD_STATIC)
+    add_library(opendoors_static STATIC
+        ${OPENDOORS_SOURCES}
+        ${OPENDOORS_PUBLIC_HEADERS})
+    add_library(OpenDoors::Static ALIAS opendoors_static)
+    opendoors_configure_library(opendoors_static)
+    set_target_properties(opendoors_static PROPERTIES EXPORT_NAME Static)
+    list(APPEND OPENDOORS_LIBRARY_TARGETS opendoors_static)
+endif()
+
+if(WIN32)
+    if(OPENDOORS_BUILD_SHARED)
+        set_target_properties(opendoors_shared PROPERTIES
+            PREFIX ""
+            RUNTIME_OUTPUT_NAME ODoors62
+            ARCHIVE_OUTPUT_NAME ODoorW)
+
+        if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            if(MSVC)
+                target_sources(opendoors_shared PRIVATE OpenDoor.def)
+                target_compile_definitions(opendoors_shared PRIVATE
+                    OPENDOORS_USE_DEF_EXPORTS)
+            elseif(MINGW)
+                target_sources(opendoors_shared PRIVATE OpenDoorMinGW.def)
+            endif()
+        else()
+            target_sources(opendoors_shared PRIVATE OpenDoor64.def)
+            target_compile_definitions(opendoors_shared PRIVATE
+                OPENDOORS_USE_DEF_EXPORTS)
+        endif()
+    endif()
+
+    if(OPENDOORS_BUILD_STATIC)
+        set_target_properties(opendoors_static PROPERTIES
+            ARCHIVE_OUTPUT_NAME ODoors-static)
+        target_compile_definitions(opendoors_static PUBLIC OD_WIN32_STATIC)
+    endif()
+else()
+    if(OPENDOORS_BUILD_SHARED)
+        set_target_properties(opendoors_shared PROPERTIES
+            OUTPUT_NAME ODoors
+            VERSION ${PROJECT_VERSION}
+            SOVERSION ${PROJECT_VERSION_MAJOR})
+    endif()
+    if(OPENDOORS_BUILD_STATIC)
+        set_target_properties(opendoors_static PROPERTIES OUTPUT_NAME ODoors)
+    endif()
+endif()
+
+foreach(target IN LISTS OPENDOORS_LIBRARY_TARGETS)
     set_target_properties(${target} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
         LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endforeach()
 
+install(TARGETS ${OPENDOORS_LIBRARY_TARGETS}
+    EXPORT OpenDoorsTargets
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES ${OPENDOORS_PUBLIC_HEADERS}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES LICENSE
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/OpenDoors)
+install(EXPORT OpenDoorsTargets
+    FILE OpenDoorsTargets.cmake
+    NAMESPACE OpenDoors::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/OpenDoors)
+
+configure_package_config_file(
+    cmake/OpenDoorsConfig.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/OpenDoorsConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/OpenDoors)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/OpenDoorsConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/OpenDoorsConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/OpenDoorsConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/OpenDoors)
+
+if(OPENDOORS_BUILD_SHARED)
+    set(OPENDOORS_DEFAULT_LINK_TARGET OpenDoors::Shared)
+else()
+    set(OPENDOORS_DEFAULT_LINK_TARGET OpenDoors::Static)
+endif()
+
 function(opendoors_add_example name source)
     add_executable(${name} ${source})
-    target_link_libraries(${name} PRIVATE OpenDoors::Shared)
+    target_link_libraries(${name} PRIVATE ${OPENDOORS_DEFAULT_LINK_TARGET})
     set_target_properties(${name} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 endfunction()
@@ -237,15 +299,23 @@ if(OPENDOORS_BUILD_EXAMPLES)
 endif()
 
 if(BUILD_TESTING)
-    add_executable(opendoors_safety_test tests/safety_test.c)
-    target_link_libraries(opendoors_safety_test PRIVATE OpenDoors::Static)
-    add_test(NAME safety COMMAND opendoors_safety_test)
+    # These white-box tests exercise intentionally hidden implementation
+    # symbols, so they require the static library.
+    if(OPENDOORS_BUILD_STATIC)
+        add_executable(opendoors_safety_test tests/safety_test.c)
+        target_link_libraries(opendoors_safety_test PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_safety_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME safety COMMAND opendoors_safety_test)
 
-    add_executable(opendoors_virtual_screen_test
-        tests/virtual_screen_test.c)
-    target_link_libraries(opendoors_virtual_screen_test
-        PRIVATE OpenDoors::Static)
-    add_test(NAME virtual_screen COMMAND opendoors_virtual_screen_test)
+        add_executable(opendoors_virtual_screen_test
+            tests/virtual_screen_test.c)
+        target_link_libraries(opendoors_virtual_screen_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_virtual_screen_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME virtual_screen COMMAND opendoors_virtual_screen_test)
+    endif()
 
     if(NOT WIN32)
         add_executable(opendoors_fallback_format_test
@@ -258,15 +328,19 @@ if(BUILD_TESTING)
         add_test(NAME fallback_format COMMAND opendoors_fallback_format_test)
     endif()
 
-    add_executable(opendoors_shared_smoke tests/link_smoke.c)
-    target_link_libraries(opendoors_shared_smoke PRIVATE OpenDoors::Shared)
-    set_target_properties(opendoors_shared_smoke PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-    add_test(NAME shared_link_smoke COMMAND opendoors_shared_smoke)
+    if(OPENDOORS_BUILD_SHARED)
+        add_executable(opendoors_shared_smoke tests/link_smoke.c)
+        target_link_libraries(opendoors_shared_smoke PRIVATE OpenDoors::Shared)
+        set_target_properties(opendoors_shared_smoke PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME shared_link_smoke COMMAND opendoors_shared_smoke)
+    endif()
 
-    add_executable(opendoors_static_smoke tests/link_smoke.c)
-    target_link_libraries(opendoors_static_smoke PRIVATE OpenDoors::Static)
-    set_target_properties(opendoors_static_smoke PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-    add_test(NAME static_link_smoke COMMAND opendoors_static_smoke)
+    if(OPENDOORS_BUILD_STATIC)
+        add_executable(opendoors_static_smoke tests/link_smoke.c)
+        target_link_libraries(opendoors_static_smoke PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_static_smoke PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME static_link_smoke COMMAND opendoors_static_smoke)
+    endif()
 endif()
