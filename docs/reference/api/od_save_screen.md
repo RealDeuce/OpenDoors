@@ -15,12 +15,12 @@ saved row.
 ## Description
 
 This interface retains its historical fixed-width format and local-screen
-behavior for source and binary compatibility. It fails with `ERR_PARAMETER` if
-the current local output window is not 80 columns wide or the pointer is null.
-It returns true on success.
+behavior for source and binary compatibility. It fails with
+[`ERR_PARAMETER`](../constants.md) if the current local output window is not 80
+columns wide or the pointer is null. It returns true on success.
 
-New programs which must preserve a remote screen wider or taller than the
-local display should use the size-aware snapshot functions.
+New programs which must preserve a remote screen wider or taller than the local
+display should use the size-aware snapshot functions.
 
 ## See also
 

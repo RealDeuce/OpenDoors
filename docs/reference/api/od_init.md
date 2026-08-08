@@ -15,11 +15,12 @@ already been initialized; normal API functions also call it automatically when
 needed.
 
 Program identity, component selection, callbacks, and other initialization
-settings in `od_control` must be assigned before this call. Command-line
-parsing must also occur first. Fatal initialization errors are handled through
-the configured OpenDoors exit behavior.
+settings in [`od_control`](../control/index.md) must be assigned before this
+call. Command-line parsing must also occur first. Fatal initialization errors
+are handled through the configured OpenDoors exit behavior.
 
 ## See also
 
 [`od_parse_cmd_line()`](od_parse_cmd_line.md), [`od_kernel()`](od_kernel.md),
-[`od_exit()`](od_exit.md), [Session lifecycle](../../guides/session-lifecycle.md)
+[`od_exit()`](od_exit.md), [Session
+lifecycle](../../guides/session-lifecycle.md)

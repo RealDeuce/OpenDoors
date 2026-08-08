@@ -8,14 +8,15 @@ Displays one named section of a terminal display file.
 BOOL od_send_file_section(char *pszFileName, char *pszSectionName);
 ```
 
-`pszFileName` follows the same extension-selection rules as `od_send_file()`.
-`pszSectionName` contains only the section name, without the `@#` delimiter
-used in the file.
+`pszFileName` follows the same extension-selection rules as
+[`od_send_file()`](od_send_file.md). `pszSectionName` contains only the section
+name, without the `@#` delimiter used in the file.
 
-OpenDoors searches for the named section and transmits its contents through
-the normal terminal emulator. It returns true on success. Null arguments set
-`ERR_PARAMETER`; a missing or unreadable file sets `ERR_FILEOPEN` or
-`ERR_FILEREAD`; a missing section is reported as failure.
+OpenDoors searches for the named section and transmits its contents through the
+normal terminal emulator. It returns true on success. Null arguments set
+[`ERR_PARAMETER`](../constants.md); a missing or unreadable file sets
+[`ERR_FILEOPEN`](../constants.md) or [`ERR_FILEREAD`](../constants.md); a
+missing section is reported as failure.
 
 ## See also
 

@@ -1,8 +1,8 @@
 # Types and callbacks
 
-`OpenDoor.h` defines fixed-width types where a protocol or binary interface
-requires them and native-width types where the host's natural integer is more
-appropriate.
+[`OpenDoor.h`](api/index.md) defines fixed-width types where a protocol or
+binary interface requires them and native-width types where the host's natural
+integer is more appropriate.
 
 ## Primitive types
 
@@ -39,21 +39,22 @@ remote input from an enabled local keyboard.
 
 `tODEditOptions` describes the edit rectangle, text format, optional menu and
 reallocation callbacks, flags, and the final buffer returned by
-`od_multiline_edit()`. Initialize every member before use. `TextFormat` is one
-of `FORMAT_PARAGRAPH_BREAKS`, `FORMAT_LINE_BREAKS`, `FORMAT_FTSC_MESSAGE`, or
-`FORMAT_NO_WORDWRAP`.
+[`od_multiline_edit()`](api/od_multiline_edit.md). Initialize every member
+before use. `TextFormat` is one of `FORMAT_PARAGRAPH_BREAKS`,
+`FORMAT_LINE_BREAKS`, `FORMAT_FTSC_MESSAGE`, or `FORMAT_NO_WORDWRAP`.
 
-The menu callback returns `EDIT_MENU_DO_NOTHING` or `EDIT_MENU_EXIT_EDITOR`.
-The buffer callback receives the previous buffer and requested size and must
-obey the same ownership rules as `realloc()`.
+The menu callback returns `EDIT_MENU_DO_NOTHING` or `EDIT_MENU_EXIT_EDITOR`. The
+buffer callback receives the previous buffer and requested size and must obey
+the same ownership rules as `realloc()`.
 
 ## Personalities and components
 
-`OD_PERSONALITY_PROC` is a far-compatible callback receiving a `PEROP_*`
-operation. `OD_COMPONENT` is the initialization-function type used by the
-configuration, logging, and multiple-personality component selectors.
+`OD_PERSONALITY_PROC` is a far-compatible callback receiving a
+[`PEROP_*`](constants.md) operation. `OD_COMPONENT` is the
+initialization-function type used by the configuration, logging, and
+multiple-personality component selectors.
 
-Function pointer fields in `od_control` use the signatures shown in the
-structure declaration. Callbacks run synchronously inside OpenDoors and must
-not retain pointers to temporary arguments unless their individual contract
-permits it.
+Function pointer fields in [`od_control`](control/index.md) use the signatures
+shown in the structure declaration. Callbacks run synchronously inside OpenDoors
+and must not retain pointers to temporary arguments unless their individual
+contract permits it.

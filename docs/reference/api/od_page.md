@@ -9,9 +9,9 @@ void od_page(void);
 ```
 
 Paging follows the configured availability hours, page count, sound, prompts,
-and status-line behavior in `od_control`. The user is told when paging is not
-available. While a page is active OpenDoors continues to service the session
-and allows the sysop to answer through the local controls.
+and status-line behavior in [`od_control`](../control/index.md). The user is
+told when paging is not available. While a page is active OpenDoors continues to
+service the session and allows the sysop to answer through the local controls.
 
 The function returns no value.
 

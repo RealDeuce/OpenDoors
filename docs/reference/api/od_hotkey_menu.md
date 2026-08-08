@@ -14,7 +14,7 @@ until a valid key arrives; otherwise it may return when the file finishes.
 
 The return value is the selected key, with the same case-handling used by the
 menu input code, or zero when no selection is available. File and parameter
-failures are reported through `od_control.od_error`.
+failures are reported through [`od_control.od_error`](../control/runtime.md).
 
 ## See also
 

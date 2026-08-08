@@ -10,7 +10,8 @@ void od_set_dtr(BOOL bHigh);
 
 Passing true raises DTR; passing false lowers it and can disconnect a modem
 caller. The operation is passed to the active communication method. Local mode
-sets `od_control.od_error` to `ERR_NOREMOTE`. The function returns no value.
+sets [`od_control.od_error`](../control/runtime.md) to
+[`ERR_NOREMOTE`](../constants.md). The function returns no value.
 
 ## See also
 

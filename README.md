@@ -6,6 +6,8 @@ both local and remote screens, creates ANSI/AVATAR/RIP control sequences, and
 provides a sysop interface. The 6.2x changes by Rob Swindell added TCP socket
 (Telnet) and Door32.sys support.
 
+## Documentation
+
 The current API and integration documentation is published as the
 [OpenDoors Reference](https://realdeuce.github.io/OpenDoors/). Its Markdown
 source is maintained under `docs/`. To preview it locally:
@@ -34,7 +36,8 @@ On Unix-like systems the libraries are `libODoors.so`/`libODoors.a` (or the
 macOS `.dylib` equivalent). With MSVC, the shared build produces
 `ODoors62.dll` and `ODoorW.lib`; the static build produces
 `ODoors-static.lib`. Consumers linking the Windows static library must define
-`OD_WIN32_STATIC`. The `OpenDoors::Shared` and `OpenDoors::Static` CMake target
+[`OD_WIN32_STATIC`](https://realdeuce.github.io/OpenDoors/guides/building/).
+The `OpenDoors::Shared` and `OpenDoors::Static` CMake target
 aliases are available when OpenDoors is included with `add_subdirectory()`.
 
 ## MSVC builds

@@ -11,13 +11,13 @@ INT od_popup_menu(char *pszTitle, char *pszText,
 
 `pszTitle` supplies the optional title and `pszText` describes the menu text.
 `nLeft` and `nTop` position the menu; `nLevel` selects the saved menu level and
-must be within the implementation's supported level range. `uFlags` combines
-the `MENU_*` options from `OpenDoor.h`.
+must be within the implementation's supported level range. `uFlags` combines the
+[`MENU_*`](../constants.md) options from [`OpenDoor.h`](index.md).
 
 ANSI or AVATAR support is required. A positive return is the one-based selected
 item. `POPUP_ESCAPE`, `POPUP_LEFT`, and `POPUP_RIGHT` report navigation;
 `POPUP_ERROR` reports failure. Invalid input, graphics mode, or allocation
-failure is reported through `od_control.od_error`.
+failure is reported through [`od_control.od_error`](../control/runtime.md).
 
 ## See also
 

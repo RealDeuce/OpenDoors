@@ -1,7 +1,7 @@
 # Constants and flags
 
-Include `OpenDoor.h` rather than copying these numeric values into an
-application. The names below are grouped by their intended use.
+Include [`OpenDoor.h`](api/index.md) rather than copying these numeric values
+into an application. The names below are grouped by their intended use.
 
 ## Errors
 
@@ -19,34 +19,36 @@ application. The names below are grouped by their intended use.
 | `ERR_NOMATCH` | A requested named object was not found. |
 | `ERR_UNSUPPORTED` | The operation is not implemented on this target. |
 
-The most recent API error is stored in `od_control.od_error`.
+The most recent API error is stored in
+[`od_control.od_error`](control/runtime.md).
 
 ## Colors
 
 `D_BLACK` through `D_GREY` select dark colors; `L_BLACK` through `L_WHITE`
 select their bright forms. The equivalent `B_*` names are retained for source
-compatibility. Pass these names to `od_set_color()` or combine foreground and
-background into the traditional IBM-PC attribute used by `od_set_attrib()`.
+compatibility. Pass these names to [`od_set_color()`](api/od_set_color.md) or
+combine foreground and background into the traditional IBM-PC attribute used by
+[`od_set_attrib()`](api/od_set_attrib.md).
 
 ## Input
 
 - `GETIN_NORMAL`, `GETIN_RAW`, and `GETIN_RAWCTRL` control translation in
-  `od_get_input()`.
+  [`od_get_input()`](api/od_get_input.md).
 - `OD_KEY_F1` through `OD_KEY_F12`, arrows, Insert, Delete, Home, End, Page Up,
   Page Down, and Shift-Tab identify translated extended keys.
 - `EDIT_FLAG_*` values control redraw, field mode, strict input, password
   display, cancellation, automatic entry/deletion, blanks, literals, and size
-  display in `od_edit_str()`.
+  display in [`od_edit_str()`](api/od_edit_str.md).
 - `EDIT_RETURN_*` values describe how single-line editing ended.
 
 ## Menus, screen, and status
 
 - `MENU_ALLOW_CANCEL`, `MENU_PULLDOWN`, `MENU_KEEP`, and `MENU_DESTROY` modify
   popup behavior; `POPUP_*` values report special results.
-- `SCROLL_NO_CLEAR` preserves lines exposed by `od_scroll()`.
+- `SCROLL_NO_CLEAR` preserves lines exposed by [`od_scroll()`](api/od_scroll.md).
 - `STATUS_NORMAL`, `STATUS_NONE`, and `STATUS_ALTERNATE_1` through
   `STATUS_ALTERNATE_7` select the local status display.
-- `BOX_*` indices identify characters in `od_control.od_box_chars`.
+- `BOX_*` indices identify characters in [`od_control.od_box_chars`](control/customization.md).
 
 ## Session configuration
 
@@ -65,5 +67,5 @@ Use `INCLUDE_CONFIG_FILE`, `INCLUDE_LOGFILE`, and `INCLUDE_MPS` to enable the
 built-in optional components, or their `NO_*` counterparts to disable them.
 `PER_OPENDOORS`, `PER_PCBOARD`, `PER_RA`, and `PER_WILDCAT` identify built-in
 personalities. Custom personality callbacks receive `PEROP_DISPLAY*`,
-`PEROP_UPDATE*`, `PEROP_INITIALIZE`, `PEROP_CUSTOMKEY`, and
-`PEROP_DEINITIALIZE` operations.
+`PEROP_UPDATE*`, `PEROP_INITIALIZE`, `PEROP_CUSTOMKEY`, and `PEROP_DEINITIALIZE`
+operations.

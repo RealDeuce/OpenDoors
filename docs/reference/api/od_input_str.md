@@ -15,7 +15,8 @@ largest accepted string length, excluding its nul terminator. `chMin` and
 
 The user may edit with the normal erase keys and finishes with Enter. The
 destination must have room for `nMaxLength + 1` bytes. Invalid parameters are
-reported through `od_control.od_error`. The function returns no value.
+reported through [`od_control.od_error`](../control/runtime.md). The function
+returns no value.
 
 ## See also
 

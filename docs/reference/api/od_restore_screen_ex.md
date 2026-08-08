@@ -1,6 +1,7 @@
 # `od_restore_screen_ex()`
 
-Restores a complete snapshot created by `od_save_screen_ex()`.
+Restores a complete snapshot created by
+[`od_save_screen_ex()`](od_save_screen_ex.md).
 
 ## Synopsis
 
@@ -16,7 +17,7 @@ restore.
 On success OpenDoors restores the remote contents and state, transmits the
 appropriate representation to the remote user, and refreshes the visible local
 portion. Malformed, truncated, version-incompatible, or dimension-mismatched
-buffers fail with `ERR_PARAMETER`.
+buffers fail with [`ERR_PARAMETER`](../constants.md).
 
 ## See also
 

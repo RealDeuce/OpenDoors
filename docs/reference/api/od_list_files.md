@@ -14,9 +14,10 @@ OpenDoors formats names, sizes, descriptions, and offline indications with the
 configured list colors, and honors the list pause and stop keys.
 
 The function returns true when the listing completes. A directory or listing
-which cannot be opened is reported through `od_control.od_error`.
+which cannot be opened is reported through
+[`od_control.od_error`](../control/runtime.md).
 
 ## See also
 
-[`od_send_file()`](od_send_file.md),
-[The `od_control` structure](../control/index.md)
+[`od_send_file()`](od_send_file.md), [The `od_control`
+structure](../control/index.md)

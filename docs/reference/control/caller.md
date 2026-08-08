@@ -2,7 +2,7 @@
 
 OpenDoors normalizes several door-information formats into a common set of
 fields. String arrays are fixed-size C buffers and are always subject to the
-capacity declared in `OpenDoor.h`.
+capacity declared in [`OpenDoor.h`](../api/index.md).
 
 ## System and caller identity
 

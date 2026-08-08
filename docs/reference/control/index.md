@@ -2,12 +2,13 @@
 
 `od_control` contains the information and settings associated with the current
 OpenDoors session. It is available as an imported global and through
-`od_control_get()`.
+[`od_control_get()`](../api/od_control_get.md).
 
-Some members are inputs which the door sets before `od_init()`. Others are
-filled from the command line, configuration, or door-information file. A third
-group changes as the call proceeds. The field pages identify the usual role;
-when in doubt, set initialization options before calling any API function.
+Some members are inputs which the door sets before
+[`od_init()`](../api/od_init.md). Others are filled from the command line,
+configuration, or door-information file. A third group changes as the call
+proceeds. The field pages identify the usual role; when in doubt, set
+initialization options before calling any API function.
 
 - [Connection and door information](connection.md)
 - [Caller and system information](caller.md)

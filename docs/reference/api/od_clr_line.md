@@ -10,8 +10,8 @@ void od_clr_line(void);
 
 The cleared cells use the current display attribute and the cursor remains in
 place. The operation requires ANSI or AVATAR support; otherwise
-`od_control.od_error` is set to `ERR_NOGRAPHICS`. The function returns no
-value.
+[`od_control.od_error`](../control/runtime.md) is set to
+[`ERR_NOGRAPHICS`](../constants.md). The function returns no value.
 
 ## See also
 

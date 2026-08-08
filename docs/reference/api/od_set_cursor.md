@@ -9,9 +9,10 @@ void od_set_cursor(INT nRow, INT nColumn);
 ```
 
 The requested position is constrained to the current remote screen. ANSI or
-AVATAR support is required; otherwise `od_control.od_error` is set to
-`ERR_NOGRAPHICS`. The local presentation follows the remote cursor when that
-position is visible. The function returns no value.
+AVATAR support is required; otherwise
+[`od_control.od_error`](../control/runtime.md) is set to
+[`ERR_NOGRAPHICS`](../constants.md). The local presentation follows the remote
+cursor when that position is visible. The function returns no value.
 
 ## See also
 

@@ -1,7 +1,7 @@
 # Customization and callbacks
 
-OpenDoors exposes its built-in configuration, text, colors, local controls,
-and lifecycle hooks through `od_control`.
+OpenDoors exposes its built-in configuration, text, colors, local controls, and
+lifecycle hooks through [`od_control`](index.md).
 
 ## Program and components
 
@@ -33,8 +33,8 @@ include `od_help_callback` and `od_config_callback`.
 
 `key_chat`, `key_dosshell`, `key_drop2bbs`, `key_hangup`, keyboard, time,
 lockout, status, and sysop-next members select local function keys.
-`od_hot_key`, `od_hot_function`, and `od_num_keys` add application-defined
-local keys. `od_default_personality` chooses the initial local interface.
+`od_hot_key`, `od_hot_function`, and `od_num_keys` add application-defined local
+keys. `od_default_personality` chooses the initial local interface.
 
 The complete built-in key fields are `key_keyboardoff`, `key_lesstime`,
 `key_lockout`, `key_moretime`, `key_status`, and `key_sysopnext` in addition to
@@ -48,9 +48,9 @@ the four named above.
 `od_no_ra_codes`, and `od_default_rip_win` tune terminal output.
 
 Prompt pointers such as `od_press_key`, `od_no_time`, `od_paging`, status text,
-day/month names, chat text, and timeout messages may be replaced before they
-are used. Color fields for chat, lists, windows, menus, and continuation
-prompts use IBM-PC attributes.
+day/month names, chat text, and timeout messages may be replaced before they are
+used. Color fields for chat, lists, windows, menus, and continuation prompts use
+IBM-PC attributes.
 
 The complete prompt set is `od_after_chat`, `od_after_shell`, `od_before_chat`,
 `od_before_shell`, `od_chat_reason`, `od_continue`, `od_hanging_up`,
@@ -62,11 +62,10 @@ The complete prompt set is `od_after_chat`, `od_after_shell`, `od_before_chat`,
 `od_continue_yes`, `od_continue_no`, and `od_continue_nonstop` supply response
 keys.
 
-Color members are `od_chat_color1`, `od_chat_color2`,
-`od_list_comment_col`, `od_list_name_col`, `od_list_offline_col`,
-`od_list_size_col`, `od_list_title_col`, `od_local_win_col`,
-`od_continue_col`, `od_menu_title_col`, `od_menu_border_col`,
-`od_menu_text_col`, `od_menu_key_col`, `od_menu_highlight_col`, and
-`od_menu_highkey_col`.
+Color members are `od_chat_color1`, `od_chat_color2`, `od_list_comment_col`,
+`od_list_name_col`, `od_list_offline_col`, `od_list_size_col`,
+`od_list_title_col`, `od_local_win_col`, `od_continue_col`, `od_menu_title_col`,
+`od_menu_border_col`, `od_menu_text_col`, `od_menu_key_col`,
+`od_menu_highlight_col`, and `od_menu_highkey_col`.
 
 On Windows, `od_app_icon` and `od_cmd_show` customize the native local window.

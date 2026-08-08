@@ -1,10 +1,11 @@
 # Getting started
 
-Every OpenDoors program includes `OpenDoor.h`, supplies a small amount of
-program information through `od_control`, and then calls the API functions it
+Every OpenDoors program includes [`OpenDoor.h`](reference/api/index.md),
+supplies a small amount of program information through
+[`od_control`](reference/control/index.md), and then calls the API functions it
 needs. OpenDoors initializes itself when most API functions are first called,
-but an explicit call to `od_init()` makes the program's startup sequence much
-clearer.
+but an explicit call to [`od_init()`](reference/api/od_init.md) makes the
+program's startup sequence much clearer.
 
 ```c
 #include "OpenDoor.h"
@@ -29,15 +30,15 @@ int main(int argc, char **argv)
 }
 ```
 
-Settings which affect initialization must be assigned before `od_init()` or
-before any API function which initializes OpenDoors automatically. Once the
-session is active, use the API for remote input and output rather than reading
-the console or connection directly.
+Settings which affect initialization must be assigned before
+[`od_init()`](reference/api/od_init.md) or before any API function which
+initializes OpenDoors automatically. Once the session is active, use the API for
+remote input and output rather than reading the console or connection directly.
 
 ## Build and link
 
-When OpenDoors is included with CMake, link against either
-`OpenDoors::Shared` or `OpenDoors::Static`:
+When OpenDoors is included with CMake, link against either `OpenDoors::Shared`
+or `OpenDoors::Static`:
 
 ```cmake
 add_subdirectory(path/to/OpenDoors)
@@ -45,8 +46,9 @@ target_link_libraries(mydoor PRIVATE OpenDoors::Shared)
 ```
 
 Windows programs which link the static library directly must define
-`OD_WIN32_STATIC`. See [Building and linking](guides/building.md) for the
-standalone build commands, library names, and DOS build.
+[`OD_WIN32_STATIC`](guides/building.md). See [Building and
+linking](guides/building.md) for the standalone build commands, library names,
+and DOS build.
 
 ## Where to go next
 

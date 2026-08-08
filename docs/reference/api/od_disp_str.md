@@ -12,10 +12,10 @@ void od_disp_str(const char *pszToDisplay);
 
 ## Description
 
-Unlike `od_printf()`, this function performs no C format substitution. It does
-interpret the configured OpenDoors color codes. Ordinary control characters
-such as carriage return, line feed, tab, backspace, and bell are handled by the
-screen display layer.
+Unlike [`od_printf()`](od_printf.md), this function performs no C format
+substitution. It does interpret the configured OpenDoors color codes. Ordinary
+control characters such as carriage return, line feed, tab, backspace, and bell
+are handled by the screen display layer.
 
 Use this function when the text is already complete. In particular, it is the
 safe choice for text which may contain percent characters supplied by a user.

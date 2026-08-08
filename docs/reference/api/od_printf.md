@@ -14,17 +14,18 @@ the values selected by that string.
 
 ## Description
 
-This is the usual function for displaying formatted text. It accepts the
-normal C formatting conversions and also recognizes color names delimited by
-`od_control.od_color_delimiter` (a backtick by default). For example:
+This is the usual function for displaying formatted text. It accepts the normal
+C formatting conversions and also recognizes color names delimited by
+[`od_control.od_color_delimiter`](../control/customization.md) (a backtick by
+default). For example:
 
 ```c
 od_printf("`bright cyan`Welcome, %s!`white`\n\r", od_control.user_name);
 ```
 
-Output updates the remote terminal model and is shown on the local display.
-The function returns no value. Formatting which cannot be represented is
-treated in the same manner as the library's formatted-output implementation.
+Output updates the remote terminal model and is shown on the local display. The
+function returns no value. Formatting which cannot be represented is treated in
+the same manner as the library's formatted-output implementation.
 
 ## See also
 
