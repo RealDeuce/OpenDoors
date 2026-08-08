@@ -64,6 +64,7 @@
 #endif
 #ifdef ODPLAT_DOS32
 #include <direct.h>
+#include <i86.h>
 #endif
 #ifdef ODPLAT_NIX
 #include <sys/time.h>
@@ -765,7 +766,12 @@ void ODProcessExit(INT nExitCode)
 #define OD_DOS32_TICKS_PER_DAY 0x001800b0UL
 static DWORD OD32BIOSClock(void)
 {
-   return(*(volatile DWORD *)0x0000046cUL);
+   union REGS Registers;
+
+   memset(&Registers, 0, sizeof(Registers));
+   Registers.h.ah = 0;
+   int386(0x1a, &Registers, &Registers);
+   return(((DWORD)Registers.w.cx << 16) | Registers.w.dx);
 }
 #endif /* ODPLAT_DOS32 */
 
