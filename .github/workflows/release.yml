@@ -266,7 +266,7 @@ jobs:
           dylib="$stage/lib/libODoors.6.3.0.dylib"
           test -s "$dylib"
           test -s "$stage/lib/libODoors.a"
-          lipo -verify_arch '${{ matrix.architecture }}' "$dylib"
+          lipo "$dylib" -verify_arch '${{ matrix.architecture }}'
           vtool -show-build "$dylib" | grep -Eq \
             'minos[[:space:]]+${{ matrix.deployment }}([.]0)?([[:space:]]|$)'
           otool -D "$dylib" | grep -q 'libODoors.6.3.dylib'

@@ -240,11 +240,14 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
          switch(*pszText)
          {
             case '|':
-                  paMenuItems[btCurrentNumMenuItems++].szItemText[btCount]
-                     = '\0';
+                  paMenuItems[btCurrentNumMenuItems].szItemText[btCount] = '\0';
+                  ++btCurrentNumMenuItems;
                   if(btCount > btWidth) btWidth = btCount;
                   btCount = 0;
-                  paMenuItems[btCurrentNumMenuItems].btKeyIndex = 0;
+                  if(btCurrentNumMenuItems < MAX_MENU_ITEMS)
+                  {
+                     paMenuItems[btCurrentNumMenuItems].btKeyIndex = 0;
+                  }
                break;
 
             case '^':
@@ -268,10 +271,11 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
       /* of the string, then it should form an additional menu entry. This   */
       /* handles the case of a menu string to no terminating | for the last  */
       /* entry.                                                              */
-      if(btCount != 0)
+      if(btCount != 0 && btCurrentNumMenuItems < MAX_MENU_ITEMS)
       {
          /* null-terminate current menu entry string */
-         paMenuItems[btCurrentNumMenuItems++].szItemText[btCount] = '\0';
+         paMenuItems[btCurrentNumMenuItems].szItemText[btCount] = '\0';
+         ++btCurrentNumMenuItems;
 
          /* If this is the widest entry, update he menu width appropriately  */
          if(btCount > btWidth) btWidth = btCount;
