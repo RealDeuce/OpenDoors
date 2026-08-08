@@ -123,6 +123,8 @@ and built-in personality procedures are normally selected through the
 [`INCLUDE_*`](constants/components.md) and
 [`PER_*`](constants/components.md) macros rather than called directly.
 
-The lower-level module headers are installed because historical programs may
-include them. Their interfaces are not covered by the high-level stability and
-reference guarantees described on this site.
+Installed packages contain [`OpenDoor.h`](api/index.md), the general OpenDoors
+API, and [`ODStat.h`](personality/index.md), the DOS personality SDK. Other
+module headers are private implementation interfaces. They remain in the
+source tree for building OpenDoors but are not installed or covered by the
+public compatibility guarantees described on this site.

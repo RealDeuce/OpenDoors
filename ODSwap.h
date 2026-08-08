@@ -54,7 +54,7 @@ typedef struct _vector
 extern char **environ;
 #endif
 
-/* Public functions. */
+/* Internal low-level functions. */
 int ODSWAPCALL _chkems(char *, int *);
 int ODSWAPCALL _create(char *, int *);
 int ODSWAPCALL _dskspace(int, unsigned int *, unsigned int *);

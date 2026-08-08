@@ -18,7 +18,7 @@
  *
  *        File: ODKrnl.h
  *
- * Description: Contains the public definitions related to odkrnl.c
+ * Description: Contains internal definitions related to odkrnl.c.
  *
  *   Revisions: Date          Ver   Who  Change
  *              ---------------------------------------------------------------
@@ -56,6 +56,8 @@ void ODKrnlShutdown(void);
 void ODKrnlHandleLocalKey(WORD wKeyCode);
 void ODKrnlEndChatMode(void);
 void ODKrnlForceOpenDoorsShutdown(BYTE btReasonForShutdown);
+void ODStatStartArrowUse(void);
+void ODStatEndArrowUse(void);
 #ifdef OD_MULTITHREADED
 tODResult ODKrnlStartChatThread(BOOL bTriggeredInternally);
 #endif /* OD_MULTITHREADED */

@@ -40,6 +40,7 @@ nav:
       - Building and linking: guides/building.md
       - Session lifecycle: guides/session-lifecycle.md
       - Terminal and screen model: guides/terminal-screen.md
+      - DOS personalities: guides/personalities.md
       - Configuration and command lines: guides/configuration.md
       - Multi-node operation: guides/multinode.md
   - API reference:
@@ -127,3 +128,20 @@ nav:
           - Runtime state and policy: reference/control/runtime.md
           - Customization and callbacks: reference/control/customization.md
       - Compatibility interfaces: reference/compatibility.md
+  - DOS personality SDK:
+      - Overview: reference/personality/index.md
+      - Helpers:
+          - ODStatAddKey: reference/personality/ODStatAddKey.md
+          - ODStatRemoveKey: reference/personality/ODStatRemoveKey.md
+          - ODStatGetUserAge: reference/personality/ODStatGetUserAge.md
+          - ODStatForceStatusUpdate: reference/personality/ODStatForceStatusUpdate.md
+          - szStatusText: reference/personality/szStatusText.md
+      - Local output:
+          - ODScrnDisplayChar: reference/personality/ODScrnDisplayChar.md
+          - ODScrnDisplayBuffer: reference/personality/ODScrnDisplayBuffer.md
+          - ODScrnDisplayString: reference/personality/ODScrnDisplayString.md
+          - ODScrnPrintf: reference/personality/ODScrnPrintf.md
+          - ODScrnGetText: reference/personality/ODScrnGetText.md
+          - ODScrnPutText: reference/personality/ODScrnPutText.md
+          - ODScrnSetCursorPos: reference/personality/ODScrnSetCursorPos.md
+          - ODScrnSetAttribute: reference/personality/ODScrnSetAttribute.md

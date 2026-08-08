@@ -20,8 +20,8 @@
  *
  *        File: ODCom.h
  *
- * Description: Public definitions for serial communications module, which
- *              is implemented in odcom.c
+ * Description: Internal definitions for the serial communications module,
+ *              which is implemented in odcom.c.
  *
  *   Revisions: Date          Ver   Who  Change
  *              ---------------------------------------------------------------

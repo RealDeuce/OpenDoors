@@ -59,20 +59,28 @@ if(WIN32)
 endif()
 
 set(OPENDOORS_PUBLIC_HEADERS
+    ODStat.h
+    OpenDoor.h
+)
+
+set(OPENDOORS_PRIVATE_HEADERS
     ODCom.h
     ODCore.h
+    ODFormat.h
+    ODFrame.h
     ODGen.h
     ODInEx.h
     ODInQue.h
     ODKrnl.h
     ODPlat.h
     ODRes.h
+    ODSafe.h
     ODScrn.h
-    ODStat.h
+    ODStr.h
     ODSwap.h
     ODTypes.h
     ODUtil.h
-    OpenDoor.h
+    ODVScreen.h
 )
 
 if(NOT OPENDOORS_BUILD_SHARED AND NOT OPENDOORS_BUILD_STATIC)
@@ -129,7 +137,8 @@ set(OPENDOORS_LIBRARY_TARGETS)
 if(OPENDOORS_BUILD_SHARED)
     add_library(opendoors_shared SHARED
         ${OPENDOORS_SOURCES}
-        ${OPENDOORS_PUBLIC_HEADERS})
+        ${OPENDOORS_PUBLIC_HEADERS}
+        ${OPENDOORS_PRIVATE_HEADERS})
     add_library(OpenDoors::Shared ALIAS opendoors_shared)
     opendoors_configure_library(opendoors_shared)
     set_target_properties(opendoors_shared PROPERTIES EXPORT_NAME Shared)
@@ -139,7 +148,8 @@ endif()
 if(OPENDOORS_BUILD_STATIC)
     add_library(opendoors_static STATIC
         ${OPENDOORS_SOURCES}
-        ${OPENDOORS_PUBLIC_HEADERS})
+        ${OPENDOORS_PUBLIC_HEADERS}
+        ${OPENDOORS_PRIVATE_HEADERS})
     add_library(OpenDoors::Static ALIAS opendoors_static)
     opendoors_configure_library(opendoors_static)
     set_target_properties(opendoors_static PROPERTIES EXPORT_NAME Static)

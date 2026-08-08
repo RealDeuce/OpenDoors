@@ -28,10 +28,9 @@
  *              Nov 13, 1995  6.00  BP   32-bit portability.
  *              Nov 13, 1995  6.00  BP   Created odstat.h.
  *              Nov 16, 1995  6.00  BP   Removed oddoor.h, added odcore.h.
- *              Jan 12, 1996  6.00  BP   Added ODStatStartArrowUse(), etc.
+ *              Jan 12, 1996  6.00  BP   Added arrow-use helpers.
  *              Feb 19, 1996  6.00  BP   Changed version number to 6.00.
  *              Mar 03, 1996  6.10  BP   Begin version 6.10.
- *              Mar 13, 1996  6.10  BP   bOnlyShiftArrow -> nArrowUseCount.
  *              Mar 19, 1996  6.10  BP   MSVC15 source-level compatibility.
  *              Aug 10, 2003  6.23  SH   *nix support
  */
@@ -165,33 +164,18 @@ void ODStatGetUserAge(char *pszAge)
 
 
 /* ----------------------------------------------------------------------------
- * ODStatStartArrowUse()
+ * ODStatForceStatusUpdate()
  *
- * Called by OpenDoors when it needs to use the arrow keys, and so they
- * shouldn't be used by the status line.
- *
- * Parameters: None
- *
- *     Return: void
- */
-void ODStatStartArrowUse(void)
-{
-   ++nArrowUseCount;
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODStatEndArrowUse()
- *
- * Called by OpenDoors when it no longer needs to use the arrow keys, and so
- * they can again be used by the status line.
+ * Requests an immediate incremental update of the active personality display.
  *
  * Parameters: None
  *
  *     Return: void
  */
-void ODStatEndArrowUse(void)
+#ifdef ODPLAT_DOS
+void ODStatForceStatusUpdate(void)
 {
-   ASSERT(nArrowUseCount > 0);
-   --nArrowUseCount;
+   bForceStatusUpdate = TRUE;
+   od_kernel();
 }
+#endif /* ODPLAT_DOS */

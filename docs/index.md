@@ -7,7 +7,8 @@ need to be built into every program.
 
 This site documents the current OpenDoors 6.30 source tree. The function
 reference describes the interface declared by
-[`OpenDoor.h`](reference/api/index.md); the accompanying guides explain how
+[`OpenDoor.h`](reference/api/index.md); DOS personality modules additionally
+use [`ODStat.h`](reference/personality/index.md). The accompanying guides explain how
 those functions fit together in a working door.
 
 If you are writing your first OpenDoors program, begin with [Getting

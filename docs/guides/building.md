@@ -27,8 +27,10 @@ macOS dynamic-library equivalent). On Windows, the shared build produces
 `ODoors62.dll` and `ODoorW.lib`; the static build produces
 `ODoors-static.lib`.
 
-The install step installs the selected libraries, public headers, license, and
-CMake package files. A downstream CMake project can request either installed
+The install step installs the selected libraries, [`OpenDoor.h`](../reference/api/index.md),
+the DOS-only [`ODStat.h`](../reference/personality/index.md), the license, and
+CMake package files. Other headers in the source tree are private. A downstream
+CMake project can request either installed
 variant:
 
 ```cmake

@@ -2386,6 +2386,7 @@ no_default:
       {
          pfCurrentPersonality = od_control.od_default_personality;
       }
+      bRAStatus = (pfCurrentPersonality == pdef_ra);
       (*pfCurrentPersonality)(20);
       if(bRAStatus)
       {

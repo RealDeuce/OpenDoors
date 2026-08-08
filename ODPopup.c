@@ -59,7 +59,6 @@
 #include "ODGen.h"
 #include "ODPlat.h"
 #include "ODKrnl.h"
-#include "ODStat.h"
 
 
 /* Configurable od_popup_menu() parameters. */

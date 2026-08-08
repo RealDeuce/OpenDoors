@@ -18,8 +18,8 @@
  *
  *        File: ODStat.h
  *
- * Description: Public functions provided by the odstat.c module, for status
- *              line functions shared among personalities.
+ * Description: Public interface for writing DOS status line / function key
+ *              personalities.
  *
  *   Revisions: Date          Ver   Who  Change
  *              ---------------------------------------------------------------
@@ -32,18 +32,42 @@
 #ifndef _INC_ODSTAT
 #define _INC_ODSTAT
 
+#include "OpenDoor.h"
+
+#ifdef ODPLAT_DOS
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Global working string available to all personalities for status line */
 /* generation.                                                          */
 extern char szStatusText[80];
 
 
-/* Public status line function prototypes. */
+/* Personality helper functions. */
 void ODStatAddKey(WORD wKeyCode);
 void ODStatRemoveKey(WORD wKeyCode);
 void ODStatGetUserAge(char *pszAge);
-void ODStatStartArrowUse(void);
-void ODStatEndArrowUse(void);
+void ODStatForceStatusUpdate(void);
+
+/* Local-only personality screen output. */
+void ODScrnDisplayChar(unsigned char chToOutput);
+void ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay);
+void ODScrnDisplayString(const char *pszString);
+INT ODScrnPrintf(char *pszFormat, ...);
+BOOL ODScrnGetText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
+   void *pbtBuffer);
+BOOL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
+   void *pbtBuffer);
+void ODScrnSetCursorPos(BYTE btColumn, BYTE btRow);
+void ODScrnSetAttribute(BYTE btAttribute);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* ODPLAT_DOS */
 
 
 #endif /* _INC_ODSTAT */

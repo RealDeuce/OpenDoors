@@ -42,19 +42,14 @@
 #define BUILDING_OPENDOORS
 
 #include <string.h>
-#include <ctype.h>
-#include <stddef.h>
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 #include "OpenDoor.h"
-#include "ODCore.h"
-#include "ODGen.h"
-#include "ODScrn.h"
 #include "ODStat.h"
-#include "ODInEx.h"
 
+#ifdef ODPLAT_DOS
 
 /* Private variables, local to this module. */
 static BOOL bRAPersHasBeenOn = FALSE;
@@ -65,6 +60,7 @@ static void ODRADisplayPageInfo(void);
 static void ODRADisplayDate(char *pszDateString);
 static void ODRADisplayFlags(BYTE btFlags);
 static void ODRADisplayTime(void);
+#endif /* ODPLAT_DOS */
 
 
 /* ----------------------------------------------------------------------------
@@ -79,6 +75,8 @@ static void ODRADisplayTime(void);
  */
 ODAPIDEF void ODCALL pdef_ra(BYTE btOperation)
 {
+#ifdef ODPLAT_DOS
+   static char abtGreyBlock[2] = {' ', 0x70};
    BYTE btInfoType = od_control.od_info_type;
 
    switch(btOperation)
@@ -434,7 +432,6 @@ ODAPIDEF void ODCALL pdef_ra(BYTE btOperation)
          break;
 
       case PEROP_INITIALIZE:
-         bRAStatus = TRUE;
          od_control.key_hangup = 0x2300;
          od_control.key_drop2bbs = 0x2000;
          od_control.key_dosshell = 0x2400;
@@ -455,8 +452,12 @@ ODAPIDEF void ODCALL pdef_ra(BYTE btOperation)
          od_control.key_lesstime = 0x5000;
          od_control.od_page_statusline = 5;
    }
+#else /* !ODPLAT_DOS */
+   (void)btOperation;
+#endif /* !ODPLAT_DOS */
 }
 
+#ifdef ODPLAT_DOS
 
 /* ----------------------------------------------------------------------------
  * ODRADisplayPageInfo()                               *** PRIVATE FUNCTION ***
@@ -563,7 +564,7 @@ static void ODRADisplayDate(char *pszDateString)
    INT nMonth;
    INT nTemp;
 
-   ASSERT(pszDateString != NULL);
+   if(pszDateString == NULL) return;
 
    if(strlen(pszDateString) != 8) return;
 
@@ -617,3 +618,4 @@ static void ODRADisplayFlags(BYTE btFlags)
       btMask <<= 1;
    }
 }
+#endif /* ODPLAT_DOS */

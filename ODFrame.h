@@ -18,7 +18,7 @@
  *
  *        File: ODFrame.h
  *
- * Description: Defines the public interface to the OpenDoors frame window.
+ * Description: Defines the internal interface to the OpenDoors frame window.
  *              This file is only applicable when building the Win32 version
  *              of OpenDoors.
  *

@@ -1,6 +1,7 @@
 #include <stddef.h>
 
 #include "OpenDoor.h"
+#include "ODStat.h"
 
 static DWORD (ODCALL * volatile pSaveScreenSize)(void) =
     od_save_screen_size;

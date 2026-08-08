@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(OpenDoorsPackageConsumer LANGUAGES C)
+project(OpenDoorsPackageConsumer LANGUAGES C CXX)
 
 include(CTest)
 
@@ -15,7 +15,9 @@ endif()
 
 find_package(OpenDoors 6.30 CONFIG REQUIRED COMPONENTS ${OPENDOORS_VARIANT})
 
-add_executable(opendoors_package_consumer ../link_smoke.c)
+add_executable(opendoors_package_consumer
+    ../link_smoke.c
+    personality_header_smoke.cpp)
 target_link_libraries(opendoors_package_consumer
     PRIVATE OpenDoors::${OPENDOORS_VARIANT})
 add_test(NAME package_consumer COMMAND opendoors_package_consumer)

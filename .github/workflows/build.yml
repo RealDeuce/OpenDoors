@@ -171,6 +171,13 @@ jobs:
           --install build/package
           --prefix '${{ runner.temp }}/opendoors-install'
 
+      - name: Verify installed public headers
+        run: |
+          diff -u \
+            <(printf '%s\n' ODStat.h OpenDoor.h) \
+            <(find '${{ runner.temp }}/opendoors-install/include' \
+              -maxdepth 1 -type f -printf '%f\n' | sort)
+
       - name: Build installed-package consumer
         run: |
           cmake \
@@ -224,6 +231,18 @@ jobs:
           --install build/package
           --config Release
           --prefix "$env:RUNNER_TEMP/opendoors-install"
+
+      - name: Verify installed public headers
+        shell: pwsh
+        run: |
+          $headers = Get-ChildItem -File `
+            "$env:RUNNER_TEMP/opendoors-install/include" |
+            Sort-Object Name |
+            ForEach-Object Name
+          $expected = @('ODStat.h', 'OpenDoor.h')
+          if (Compare-Object $expected $headers) {
+              throw "Unexpected installed headers: $($headers -join ', ')"
+          }
 
       - name: Build installed-package consumer
         shell: pwsh
@@ -321,10 +340,12 @@ jobs:
           test -s build/dos/ODoorl.lib
           test -s build/dos/dos_link_smoke.exe
           test -s build/dos/odtest.exe
+          test -s build/dos/odpers.exe
           test "$(od -An -tx1 -N2 build/dos/dos_link_smoke.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/odtest.exe | tr -d ' ')" = '4d5a'
+          test "$(od -An -tx1 -N2 build/dos/odpers.exe | tr -d ' ')" = '4d5a'
           file build/dos/ODoorl.lib build/dos/dos_link_smoke.exe \
-            build/dos/odtest.exe
+            build/dos/odtest.exe build/dos/odpers.exe
 
       - name: Install DOSBox runtime
         run: |
@@ -338,15 +359,22 @@ jobs:
           set -o pipefail
           rm -f build/dos/DOSPASS.OK
           rm -f build/dos/DOSFAIL.TXT
+          rm -f build/dos/PERSPASS.OK
+          rm -f build/dos/PERSFAIL.TXT
           timeout --signal=TERM --kill-after=5s 30s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos" \
               -c 'c:' \
               -c 'odtest.exe' \
+              -c 'odpers.exe' \
               -c 'exit' \
             2>&1 | tee build/dos/dosbox.log
           if ! test -s build/dos/DOSPASS.OK; then
             cat build/dos/DOSFAIL.TXT || true
+            exit 1
+          fi
+          if ! test -s build/dos/PERSPASS.OK; then
+            cat build/dos/PERSFAIL.TXT || true
             exit 1
           fi
 
@@ -359,6 +387,9 @@ jobs:
             build/dos/ODoorl.lib
             build/dos/dos_link_smoke.exe
             build/dos/odtest.exe
+            build/dos/odpers.exe
             build/dos/DOSPASS.OK
             build/dos/DOSFAIL.TXT
+            build/dos/PERSPASS.OK
+            build/dos/PERSFAIL.TXT
             build/dos/dosbox.log

@@ -40,10 +40,7 @@
 #include <stdio.h>
 
 #include "OpenDoor.h"
-#include "ODCore.h"
-#include "ODGen.h"
-#include "ODScrn.h"
-#include "ODInEx.h"
+#include "ODStat.h"
 
 
 /* ----------------------------------------------------------------------------
@@ -58,6 +55,9 @@
  */
 ODAPIDEF void ODCALL pdef_opendoors(BYTE btOperation)
 {
+#ifdef ODPLAT_DOS
+   static char abtGreyBlock[2] = {' ', 0x70};
+
    switch(btOperation)
    {
       case PEROP_DISPLAY1:
@@ -126,15 +126,8 @@ ODAPIDEF void ODCALL pdef_opendoors(BYTE btOperation)
          ODScrnSetCursorPos(1,24);
          ODScrnDisplayString(od_control.od_help_text);
          ODScrnSetCursorPos(1,25);
-         /* Display copyright inforomation. */
-         if(bUserFull)/**/
-         {
-            ODScrnDisplayString(od_control.od_help_text2);
-         }
-         else
-         {
-            ODScrnDisplayString(OD_VER_UNREG_STAT);
-         }
+         /* Display copyright information. */
+         ODScrnDisplayString(od_control.od_help_text2);
          break;
 
       case PEROP_UPDATE1:
@@ -223,4 +216,7 @@ ODAPIDEF void ODCALL pdef_opendoors(BYTE btOperation)
          od_control.od_page_statusline=-1;
          break;
    }
+#else /* !ODPLAT_DOS */
+   (void)btOperation;
+#endif /* !ODPLAT_DOS */
 }

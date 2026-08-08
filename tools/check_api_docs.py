@@ -12,7 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 HEADER = ROOT / "OpenDoor.h"
+PERSONALITY_HEADER = ROOT / "ODStat.h"
 API_DIR = ROOT / "docs" / "reference" / "api"
+PERSONALITY_DIR = ROOT / "docs" / "reference" / "personality"
 CONTROL_DIR = ROOT / "docs" / "reference" / "control"
 START_MARKER = "OpenDoors API function prototypes."
 END_MARKER = "Definitions for compatibility with previous versions."
@@ -76,6 +78,24 @@ def declared_functions() -> set[str]:
 def documented_functions() -> dict[str, list[Path]]:
     pages: dict[str, list[Path]] = defaultdict(list)
     for path in API_DIR.rglob("od_*.md"):
+        pages[path.stem].append(path)
+    return pages
+
+
+def personality_functions() -> set[str]:
+    text = PERSONALITY_HEADER.read_text(encoding="utf-8")
+    return set(
+        re.findall(
+            r"^\s*(?:void|INT|BOOL)\s+(OD(?:Stat|Scrn)[A-Za-z0-9_]+)\s*\(",
+            text,
+            flags=re.MULTILINE,
+        )
+    )
+
+
+def documented_personality_functions() -> dict[str, list[Path]]:
+    pages: dict[str, list[Path]] = defaultdict(list)
+    for path in PERSONALITY_DIR.glob("OD*.md"):
         pages[path.stem].append(path)
     return pages
 
@@ -162,7 +182,7 @@ def compatibility_aliases() -> set[str]:
 
 
 def reference_symbols(
-    declared: set[str], fields: set[str]
+    declared: set[str], fields: set[str], personality_declared: set[str]
 ) -> tuple[dict[str, Path], dict[str, set[Path]]]:
     """Return documented prose names and the pages which define each name."""
     targets: dict[str, Path] = {}
@@ -173,6 +193,14 @@ def reference_symbols(
         for spelling in (name, f"{name}()"):
             targets[spelling] = page
             definitions[spelling].add(page)
+
+    for name in personality_declared:
+        page = PERSONALITY_DIR / f"{name}.md"
+        for spelling in (name, f"{name}()"):
+            targets[spelling] = page
+            definitions[spelling].add(page)
+    targets["szStatusText"] = PERSONALITY_DIR / "szStatusText.md"
+    definitions["szStatusText"].add(PERSONALITY_DIR / "szStatusText.md")
 
     control_pages = [
         CONTROL_DIR / "connection.md",
@@ -286,6 +314,8 @@ def reference_symbols(
     definitions["od_*"] = {API_DIR / "index.md"}
     targets["OpenDoor.h"] = API_DIR / "index.md"
     definitions["OpenDoor.h"] = {API_DIR / "index.md"}
+    targets["ODStat.h"] = PERSONALITY_DIR / "index.md"
+    definitions["ODStat.h"] = {PERSONALITY_DIR / "index.md"}
     targets["OD_WIN32_STATIC"] = DOCS_DIR / "guides" / "building.md"
     definitions["OD_WIN32_STATIC"].add(DOCS_DIR / "guides" / "building.md")
     return targets, definitions
@@ -294,6 +324,8 @@ def reference_symbols(
 def main() -> int:
     declared = declared_functions()
     documented = documented_functions()
+    personality_declared = personality_functions()
+    personality_documented = documented_personality_functions()
     fields = control_fields()
     failures: list[str] = []
 
@@ -316,6 +348,29 @@ def main() -> int:
             if not re.search(rf"\b{re.escape(name)}\s*\(", text):
                 failures.append(f"{path.relative_to(ROOT)} does not name its declaration")
 
+    for name in sorted(personality_declared):
+        if name not in personality_documented:
+            failures.append(f"missing personality SDK page for {name}()")
+
+    for name, paths in sorted(personality_documented.items()):
+        if name not in personality_declared:
+            relative = ", ".join(str(path.relative_to(ROOT)) for path in paths)
+            failures.append(
+                f"personality SDK page has no current declaration: {name} ({relative})"
+            )
+            continue
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
+            if f"# `{name}()`" not in text:
+                failures.append(f"{path.relative_to(ROOT)} has no canonical heading")
+            if "## Synopsis" not in text:
+                failures.append(f"{path.relative_to(ROOT)} has no Synopsis section")
+            if not re.search(rf"\b{re.escape(name)}\s*\(", text):
+                failures.append(f"{path.relative_to(ROOT)} does not name its declaration")
+
+    if not (PERSONALITY_DIR / "szStatusText.md").is_file():
+        failures.append("missing personality SDK page for szStatusText")
+
     control_text = "\n".join(
         path.read_text(encoding="utf-8") for path in CONTROL_DIR.glob("*.md")
     )
@@ -337,7 +392,7 @@ def main() -> int:
         if not re.search(rf"\b{re.escape(name)}\b", compatibility_text):
             failures.append(f"compatibility alias is not documented: {name}")
 
-    targets, definitions = reference_symbols(declared, fields)
+    targets, definitions = reference_symbols(declared, fields, personality_declared)
     for path in sorted(DOCS_DIR.rglob("*.md")):
         for line_number, name in prose_code_spans(path.read_text(encoding="utf-8")):
             if name not in targets or path in definitions[name]:
@@ -357,6 +412,7 @@ def main() -> int:
         f"with {sum(len(paths) for paths in documented.values())} page(s); "
         f"all {len(fields)} od_control fields, {len(constants)} public "
         f"constants/macros, and {len(aliases)} compatibility aliases are named; "
+        f"all {len(personality_declared)} personality SDK functions are covered; "
         "prose API references are linked."
     )
     return 0

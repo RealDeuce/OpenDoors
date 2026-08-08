@@ -78,6 +78,39 @@ set_target_properties(opendoors_dos PROPERTIES
     OUTPUT_NAME ODoorl
     PREFIX "")
 
+set(OPENDOORS_PERSONALITY_SDK_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/personality-sdk")
+file(MAKE_DIRECTORY "${OPENDOORS_PERSONALITY_SDK_DIR}")
+foreach(personality_sdk_file IN ITEMS
+    OpenDoor.h
+    ODStat.h
+    ODStand.c
+    ODPCB.c
+    ODRA.c
+    ODWCat.c
+    tests/dos_personality_smoke.c)
+    get_filename_component(personality_sdk_name
+        "${personality_sdk_file}" NAME)
+    configure_file(
+        "${OPENDOORS_ROOT}/${personality_sdk_file}"
+        "${OPENDOORS_PERSONALITY_SDK_DIR}/${personality_sdk_name}"
+        COPYONLY)
+endforeach()
+
+add_library(dos_personality_sdk_compile OBJECT
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODStand.c"
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODPCB.c"
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODRA.c"
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/ODWCat.c")
+target_include_directories(dos_personality_sdk_compile PRIVATE
+    "${OPENDOORS_PERSONALITY_SDK_DIR}")
+target_compile_options(dos_personality_sdk_compile PRIVATE -ml -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(dos_personality_sdk_compile PRIVATE -we)
+endif()
+target_compile_definitions(dos_personality_sdk_compile PRIVATE
+    OPENDOORS_HAVE_VSNPRINTF=1)
+
 add_executable(dos_link_smoke "${OPENDOORS_ROOT}/tests/link_smoke.c")
 target_compile_options(dos_link_smoke PRIVATE -ml -zq -za99)
 if(OPENDOORS_WARNINGS_AS_ERRORS)
@@ -96,3 +129,16 @@ endif()
 target_compile_definitions(dos_runtime_smoke PRIVATE
     OPENDOORS_HAVE_VSNPRINTF=1)
 target_link_libraries(dos_runtime_smoke PRIVATE opendoors_dos)
+
+add_executable(dos_personality_smoke
+    "${OPENDOORS_PERSONALITY_SDK_DIR}/dos_personality_smoke.c")
+set_target_properties(dos_personality_smoke PROPERTIES OUTPUT_NAME odpers)
+target_include_directories(dos_personality_smoke PRIVATE
+    "${OPENDOORS_PERSONALITY_SDK_DIR}")
+target_compile_options(dos_personality_smoke PRIVATE -ml -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(dos_personality_smoke PRIVATE -we)
+endif()
+target_compile_definitions(dos_personality_smoke PRIVATE
+    OPENDOORS_HAVE_VSNPRINTF=1)
+target_link_libraries(dos_personality_smoke PRIVATE opendoors_dos)

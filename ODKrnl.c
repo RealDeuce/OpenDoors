@@ -165,6 +165,39 @@ tODSemaphoreHandle hODActiveSemaphore = NULL;
 #endif /* OD_MULTITHREADED */
 
 
+/* ----------------------------------------------------------------------------
+ * ODStatStartArrowUse()
+ *
+ * Called by OpenDoors when it needs to use the arrow keys, and so they
+ * shouldn't be used by the status line.
+ *
+ * Parameters: None
+ *
+ *     Return: void
+ */
+void ODStatStartArrowUse(void)
+{
+   ++nArrowUseCount;
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODStatEndArrowUse()
+ *
+ * Called by OpenDoors when it no longer needs to use the arrow keys, and so
+ * they can again be used by the status line.
+ *
+ * Parameters: None
+ *
+ *     Return: void
+ */
+void ODStatEndArrowUse(void)
+{
+   ASSERT(nArrowUseCount > 0);
+   --nArrowUseCount;
+}
+
+
 
 /* ========================================================================= */
 /* Core of the OpenDoors Kernel.                                             */

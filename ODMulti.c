@@ -79,7 +79,7 @@ static tPersonalityInfo aPersonalityInfo[MAX_PERSONALITIES]=
 };
 
 /* Private variables. */
-static INT nPersonalities = 5;
+static INT nPersonalities = 4;
 static INT nCurrentPersonality = 255;
 #endif
 
