@@ -23,9 +23,9 @@ queue causes an immediate zero return.
 
 Line-feed bytes are discarded. This accommodates connections which supply the
 carriage-return/line-feed pair for Enter: the carriage return is returned and
-the following line feed is silently removed by the next call. A non-waiting
-call which encounters a queued line feed currently consumes it and then waits
-for another byte instead of repeating the non-waiting queue check.
+the following line feed is silently removed by the next call. After discarding
+a line feed, a non-waiting call checks the queue again. It returns the next
+non-line-feed byte when one is already queued, or zero when the queue is empty.
 
 No extended-key translation is performed. DOS-style extended input may
 therefore appear as a zero byte followed by a scan-code byte, and a genuine
@@ -35,8 +35,10 @@ extended-key identity, or distinction between those cases is required.
 
 After a byte is accepted, OpenDoors sets
 [`od_control.od_last_input`](../control/runtime.md#od_last_input) to zero for
-remote input or one for local input. An empty non-waiting call does not change
-that field.
+remote input or one for local input. This assignment occurs before the
+line-feed test, so a discarded line feed records its source even when a
+non-waiting call subsequently returns zero. A call which finds the queue empty
+without removing an event does not change the field.
 
 ## Return value
 

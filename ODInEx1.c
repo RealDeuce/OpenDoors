@@ -350,6 +350,32 @@ safe_strcat(char *dst, const char *src, size_t sz)
 	return dst;
 }
 
+
+/* ----------------------------------------------------------------------------
+ * od_set_port()
+ *
+ * Records an explicit communications-port selection before initialization.
+ *
+ * Parameters: nPort - Zero-based port number.
+ *
+ *     Return: TRUE on success, or FALSE if the value is invalid or OpenDoors
+ *             has already been initialized.
+ */
+ODAPIDEF BOOL ODCALL od_set_port(INT nPort)
+{
+   TRACE(TRACE_API, "od_set_port()");
+
+   if(bODInitialized || nPort < 0 || nPort > 255)
+   {
+      od_control.od_error = ERR_PARAMETER;
+      return(FALSE);
+   }
+
+   od_control.port = (INT16)nPort;
+   nForcedPort = nPort;
+   return(TRUE);
+}
+
 /* ----------------------------------------------------------------------------
  * od_init()
  *
@@ -1600,7 +1626,7 @@ static BOOL ODInitReadSFDoorsDAT(void)
    nLoginMinutePart = (unsigned int)(nLoginMinutes % 60);
    nLoginHourPart = (unsigned int)(nLoginMinutes / 60);
    sprintf(od_control.user_logintime, "%02u:%02u",
-      nLoginMinutePart, nLoginHourPart);
+      nLoginHourPart, nLoginMinutePart);
 
    /* Line 16: Unused. */
    if(fgets((char *)apszDropFileInfo[3],80,pfDropFile)==NULL) return(FALSE);
@@ -1759,7 +1785,12 @@ static void ODInitReadExitInfo(void)
                ODStringPascalToC(od_control.system_last_caller,pRA2ExitInfoRecord->last_caller,35);
                ODStringPascalToC(od_control.system_last_handle,pRA2ExitInfoRecord->sLastHandle,35);
                ODStringPascalToC(od_control.timelog_start_date,pRA2ExitInfoRecord->start_date,8);
-               memcpy(&od_control.timelog_busyperhour,&pRA2ExitInfoRecord->busyperhour,62);
+               memcpy(od_control.timelog_busyperhour,
+                  pRA2ExitInfoRecord->busyperhour,
+                  sizeof(od_control.timelog_busyperhour));
+               memcpy(od_control.timelog_busyperday,
+                  pRA2ExitInfoRecord->busyperday,
+                  sizeof(od_control.timelog_busyperday));
                ODStringPascalToC(od_control.user_name,pRA2ExitInfoRecord->name,35);
                ODStringPascalToC(od_control.user_location,pRA2ExitInfoRecord->location,25);
                ODStringPascalToC(od_control.user_org,pRA2ExitInfoRecord->organisation,50);
@@ -1829,6 +1860,7 @@ static void ODInitReadExitInfo(void)
             else
             {
                free(pRA2ExitInfoRecord);
+               pRA2ExitInfoRecord = NULL;
             }
          }
       }
@@ -1874,6 +1906,11 @@ static void ODInitReadExitInfo(void)
                   od_control.od_ra_info=TRUE;
                   od_control.od_extended_info=TRUE;
                   od_control.od_info_type=RA1EXITINFO;
+               }
+               else
+               {
+                  free(pExtendedExitInfo);
+                  pExtendedExitInfo = NULL;
                }
             }
          }
@@ -1922,6 +1959,142 @@ static void ODInitReadExitInfo(void)
       fclose(pfDropFile);
    }
 }
+
+
+#ifdef ODPLAT_NIX
+/* ----------------------------------------------------------------------------
+ * ODInitTerminalSpeedToBaud()                       *** PRIVATE FUNCTION ***
+ *
+ * Converts a POSIX termios speed token to its numeric BPS value. POSIX does
+ * not require speed_t constants to contain their corresponding numeric rates.
+ *
+ * Parameters: nSpeed - A speed_t value returned by cfgetispeed() or
+ *                      cfgetospeed().
+ *
+ *     Return: The numeric BPS value, or zero when nSpeed is not recognized.
+ */
+static DWORD ODInitTerminalSpeedToBaud(speed_t nSpeed)
+{
+   if(nSpeed == B50) return(50L);
+   if(nSpeed == B75) return(75L);
+   if(nSpeed == B110) return(110L);
+   if(nSpeed == B134) return(134L);
+   if(nSpeed == B150) return(150L);
+   if(nSpeed == B200) return(200L);
+   if(nSpeed == B300) return(300L);
+   if(nSpeed == B600) return(600L);
+   if(nSpeed == B1200) return(1200L);
+   if(nSpeed == B1800) return(1800L);
+   if(nSpeed == B2400) return(2400L);
+   if(nSpeed == B4800) return(4800L);
+   if(nSpeed == B9600) return(9600L);
+   if(nSpeed == B19200) return(19200L);
+   if(nSpeed == B38400) return(38400L);
+#ifdef B7200
+   if(nSpeed == B7200) return(7200L);
+#endif
+#ifdef B14400
+   if(nSpeed == B14400) return(14400L);
+#endif
+#ifdef B28800
+   if(nSpeed == B28800) return(28800L);
+#endif
+#ifdef B57600
+   if(nSpeed == B57600) return(57600L);
+#endif
+#ifdef B76800
+   if(nSpeed == B76800) return(76800L);
+#endif
+#ifdef B115200
+   if(nSpeed == B115200) return(115200L);
+#endif
+#ifdef B230400
+   if(nSpeed == B230400) return(230400L);
+#endif
+#ifdef B460800
+   if(nSpeed == B460800) return(460800L);
+#endif
+#ifdef B500000
+   if(nSpeed == B500000) return(500000L);
+#endif
+#ifdef B576000
+   if(nSpeed == B576000) return(576000L);
+#endif
+#ifdef B921600
+   if(nSpeed == B921600) return(921600L);
+#endif
+#ifdef B1000000
+   if(nSpeed == B1000000) return(1000000L);
+#endif
+#ifdef B1152000
+   if(nSpeed == B1152000) return(1152000L);
+#endif
+#ifdef B1500000
+   if(nSpeed == B1500000) return(1500000L);
+#endif
+#ifdef B2000000
+   if(nSpeed == B2000000) return(2000000L);
+#endif
+#ifdef B2500000
+   if(nSpeed == B2500000) return(2500000L);
+#endif
+#ifdef B3000000
+   if(nSpeed == B3000000) return(3000000L);
+#endif
+#ifdef B3500000
+   if(nSpeed == B3500000) return(3500000L);
+#endif
+#ifdef B4000000
+   if(nSpeed == B4000000) return(4000000L);
+#endif
+   return(0L);
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODInitSelectTerminalBaud()                         *** PRIVATE FUNCTION ***
+ *
+ * Selects a numeric BPS value for a Unix standard-I/O session. The terminal's
+ * input speed takes precedence, followed by its output speed and the nominal
+ * 19,200 BPS fallback.
+ */
+DWORD ODInitSelectTerminalBaud(speed_t nInputSpeed, speed_t nOutputSpeed)
+{
+   DWORD dwBaud;
+
+   dwBaud = ODInitTerminalSpeedToBaud(nInputSpeed);
+   if(dwBaud == 0)
+      dwBaud = ODInitTerminalSpeedToBaud(nOutputSpeed);
+
+   return(dwBaud == 0 ? 19200L : dwBaud);
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODInitApplyUserInfo()                              *** PRIVATE FUNCTION ***
+ *
+ * Applies the available account-directory names to a Unix forced-local
+ * session. Existing values are retained when the account record or either
+ * source string is unavailable.
+ */
+void ODInitApplyUserInfo(const struct passwd *pUserInfo)
+{
+   if(pUserInfo == NULL)
+      return;
+
+   if(pUserInfo->pw_name != NULL)
+   {
+      ODStringCopy(od_control.user_handle, pUserInfo->pw_name,
+         sizeof(od_control.user_handle));
+   }
+
+   if(pUserInfo->pw_gecos != NULL)
+   {
+      ODStringCopy(od_control.user_name, pUserInfo->pw_gecos,
+         sizeof(od_control.user_name));
+   }
+}
+#endif /* ODPLAT_NIX */
 
 
 /* ----------------------------------------------------------------------------
@@ -1998,7 +2171,7 @@ static void ODInitPartTwo(void)
    od_control.od_inactivity_timeout = "\n\rMaximum user inactivity time has elapsed, please call again.\n\r\n\r";
    od_control.od_inactivity_warning = "\n\rWARNING: Inactivity timeout in 10 seconds, press a key now to remain online.\n\r\n\r";
    od_control.od_time_warning = "\n\rWARNING: You only have %d minute(s) remaining for this session.\n\r\n\r";
-   od_control.od_time_left = "%d mins   ";
+   od_control.od_time_left = "%4d mins  ";
    od_control.od_sysop_next = "[SN] ";
    od_control.od_no_keyboard = "[Keyboard]";
    od_control.od_want_chat = "[Want-Chat]";
@@ -2337,17 +2510,13 @@ malloc_error:
       od_control.baud=19200;
       gethostname(od_control.system_name,sizeof(od_control.system_name));
       od_control.system_name[sizeof(od_control.system_name)-1]=0;
-      if (isatty(STDIN_FILENO))  {
-        tcgetattr(STDIN_FILENO,&term);
-   	  od_control.baud=cfgetispeed(&term);
-        if(!od_control.baud)
-   	    od_control.baud=cfgetispeed(&term);
-        if(!od_control.baud)
-   		 od_control.baud=19200;
+      if(isatty(STDIN_FILENO) && tcgetattr(STDIN_FILENO, &term) == 0)
+      {
+         od_control.baud = ODInitSelectTerminalBaud(cfgetispeed(&term),
+            cfgetospeed(&term));
       }
       uinfo=getpwuid(getuid());
-      ODStringCopy(od_control.user_handle, uinfo->pw_name,sizeof(od_control.user_handle));
-      ODStringCopy(od_control.user_name, uinfo->pw_gecos,sizeof(od_control.user_name));
+      ODInitApplyUserInfo(uinfo);
    }
 #else
    if(bPromptForUserName)

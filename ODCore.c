@@ -124,7 +124,7 @@ tODScrnTextInfo ODTextInfo;
 
 /* Logfile function hooks. */
 BOOL (ODCALL *pfLogWrite)(INT) = NULL;
-void (ODCALL *pfLogClose)(INT) = NULL;
+BOOL (ODCALL *pfLogClose)(INT) = NULL;
 
 /* od_color_config() support for od_printf(). */
 char chColorCheck = 0;
@@ -290,10 +290,9 @@ ODAPIDEF void ODCALL od_clr_scr(void)
  *             nMaxLength - Maximum number of characters to permit the user
  *                          to input.
  *
- *             chMin      - The minimum character value to permit. This must
- *                          be at least ASCII 32.
+ *             chMin      - The minimum byte value to permit.
  *
- *             chMax      - The maximum character value to permit.
+ *             chMax      - The maximum byte value to permit.
  *
  *     Return: void
  */
@@ -302,7 +301,7 @@ ODAPIDEF void ODCALL od_input_str(char *pszInput,
    unsigned char chMin,
    unsigned char chMax)
 {
-   char chKeyPressed;
+   unsigned char chKeyPressed;
    INT nPosition;
 
    /* Log function entry if running in trace mode. */
@@ -326,7 +325,7 @@ ODAPIDEF void ODCALL od_input_str(char *pszInput,
 
    for(;;)
    {
-      chKeyPressed = od_get_key(TRUE);
+      chKeyPressed = (unsigned char)od_get_key(TRUE);
 
       /* If user pressed enter. */
       if(chKeyPressed == '\r' || chKeyPressed == '\n')
@@ -362,11 +361,11 @@ ODAPIDEF void ODCALL od_input_str(char *pszInput,
          && nPosition < nMaxLength)
       {
          /* Display key that was pressed. */
-         od_putch(chKeyPressed);
+         od_putch((char)chKeyPressed);
 
          /* Add the entered character to the string and increment our */
          /* current position in the string.                           */
-         pszInput[nPosition++] = chKeyPressed;
+         pszInput[nPosition++] = (char)chKeyPressed;
       }
    }
 }
@@ -516,13 +515,14 @@ ODAPIDEF char ODCALL od_get_key(BOOL bWait)
  *
  * Parameters: none
  *
- *     Return: TRUE if the carrier detct signal is present, FALSE if it
+ *     Return: TRUE if the carrier detect signal is present, FALSE if it
  *             isn't. When operating in local mode, this function always
  *             returns FALSE.
  */
 ODAPIDEF BOOL ODCALL od_carrier(void)
 {
-   BOOL bIsCarrier;
+   BOOL bIsCarrier = FALSE;
+   tODResult Result;
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
@@ -541,10 +541,35 @@ ODAPIDEF BOOL ODCALL od_carrier(void)
    }
 
    /* In remote mode, obtain the current state of the carrier detect signal. */
-   ODComCarrier(hSerialPort, &bIsCarrier);
+   Result = ODComCarrier(hSerialPort, &bIsCarrier);
+   bIsCarrier = ODCoreCarrierResult(Result, bIsCarrier);
 
    /* Return the current state of the carrier detect signal. */
    OD_API_EXIT();
+   return(bIsCarrier);
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODCoreCarrierResult()                                *** PRIVATE FUNCTION ***
+ *
+ * Applies the public carrier-query result for a communications-method result.
+ *
+ * Parameters: Result     - Result returned by ODComCarrier().
+ *
+ *             bIsCarrier - Carrier state supplied by the communications
+ *                          method when Result is kODRCSuccess.
+ *
+ *     Return: bIsCarrier on success, or FALSE on failure.
+ */
+BOOL ODCoreCarrierResult(tODResult Result, BOOL bIsCarrier)
+{
+   if(Result != kODRCSuccess)
+   {
+      od_control.od_error = ERR_GENERALFAILURE;
+      return(FALSE);
+   }
+
    return(bIsCarrier);
 }
 
@@ -1393,6 +1418,8 @@ ODAPIDEF void ODCALL od_putch(char chToDisplay)
  */
 ODAPIDEF void ODCALL od_set_dtr(BOOL bHigh)
 {
+   tODResult Result;
+
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_set_dtr()");
 
@@ -1410,9 +1437,26 @@ ODAPIDEF void ODCALL od_set_dtr(BOOL bHigh)
    }
 
    /* Otherwise, change the state of the DTR line. */
-   ODComSetDTR(hSerialPort, bHigh);
+   Result = ODComSetDTR(hSerialPort, bHigh);
+   ODCoreSetDTRResult(Result);
 
    OD_API_EXIT();
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODCoreSetDTRResult()                                 *** PRIVATE FUNCTION ***
+ *
+ * Applies the public error state for a communications-method DTR result.
+ *
+ * Parameters: Result - Result returned by ODComSetDTR().
+ *
+ *     Return: void
+ */
+void ODCoreSetDTRResult(tODResult Result)
+{
+   if(Result != kODRCSuccess)
+      od_control.od_error = ERR_GENERALFAILURE;
 }
 
 

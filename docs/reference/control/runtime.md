@@ -30,6 +30,16 @@ The application may inspect this field and may deliberately clear it to
 [`ERR_NONE`](../constants/errors.md#err_none) for its own bookkeeping, but OpenDoors remains free to replace it
 on the next diagnosed failure.
 
+During [`od_exit()`](../api/od_exit.md), failure to open a supported text
+door-information file for rewriting or a binary `EXITINFO.BBS` record for
+updating stores
+[`ERR_FILEOPEN`](../constants/errors.md#err_fileopen) here, and an output or
+close failure stores
+[`ERR_GENERALFAILURE`](../constants/errors.md#err_generalfailure). An activity-log
+final-write or close failure also stores the same error; an oversized final-entry
+template stores [`ERR_LIMIT`](../constants/errors.md#err_limit). Shutdown
+continues and retains the process error level requested by the application.
+
 ### `od_last_input`
 
 ```c
@@ -123,7 +133,9 @@ BOOL od_control.od_chat_active;
 
 `od_chat_active` is true while OpenDoors' line-oriented sysop chat is active.
 It begins as [`FALSE`](../constants/general.md#false); [`od_chat()`](../api/od_chat.md) and the local chat command
-set it to true, and chat cleanup restores false.
+set it to true, and chat cleanup restores false. In a multithreaded build, a
+failure to start the chat thread also restores [`FALSE`](../constants/general.md#false) before
+[`od_chat()`](../api/od_chat.md) returns.
 
 The chat loop tests this member on every iteration. Application code may set it
 to [`FALSE`](../constants/general.md#false) from an appropriate callback or cooperating execution context to

@@ -1302,6 +1302,28 @@ tODResult ODKrnlStartChatThread(BOOL bTriggeredInternally)
 }
 
 
+/* ----------------------------------------------------------------------------
+ * ODKrnlChatThreadStartSucceeded()                    *** PRIVATE FUNCTION ***
+ *
+ * Applies the public chat state for a chat-thread creation result.
+ *
+ * Parameters: Result - Result returned by ODKrnlStartChatThread().
+ *
+ *     Return: TRUE when the chat thread was started, or FALSE on failure.
+ */
+BOOL ODKrnlChatThreadStartSucceeded(tODResult Result)
+{
+   if(Result == kODRCSuccess)
+   {
+      return(TRUE);
+   }
+
+   od_control.od_chat_active = FALSE;
+   od_control.od_error = ERR_GENERALFAILURE;
+   return(FALSE);
+}
+
+
 #endif /* OD_MULTITHREADED */
 
 
@@ -1362,10 +1384,10 @@ ODAPIDEF void ODCALL od_chat(void)
    /* In multithreaded versions of OpenDoors, od_chat() causes the chat */
    /* mode thread to be started, which in turn implements chat mode.    */
    /* od_chat() only returns when this thread exits.                    */
-   if(ODKrnlStartChatThread(FALSE) != kODRCSuccess)
+   if(!ODKrnlChatThreadStartSucceeded(ODKrnlStartChatThread(FALSE)))
    {
-      od_control.od_error = ERR_GENERALFAILURE;
       OD_API_EXIT();
+      return;
    }
 
    /* Now, wait for the chat thread to exit. */

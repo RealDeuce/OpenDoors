@@ -86,15 +86,21 @@ void ODCALL ODStatAddKey(WORD wKeyCode)
 void ODCALL ODStatRemoveKey(WORD wKeyCode)
 {
    INT nCount;
+   INT nLast;
 
    for(nCount = 0; nCount < od_control.od_num_keys; ++nCount)
       if((WORD)od_control.od_hot_key[nCount] == wKeyCode)
       {
-         if(nCount != od_control.od_num_keys - 1)
+         nLast = od_control.od_num_keys - 1;
+         if(nCount != nLast)
          {
             od_control.od_hot_key[nCount] =
-               od_control.od_hot_key[od_control.od_num_keys-1];
+               od_control.od_hot_key[nLast];
+            od_control.od_hot_function[nCount] =
+               od_control.od_hot_function[nLast];
          }
+         od_control.od_hot_key[nLast] = 0;
+         od_control.od_hot_function[nLast] = NULL;
          --od_control.od_num_keys;
          return;
       }

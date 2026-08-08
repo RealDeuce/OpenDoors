@@ -51,9 +51,8 @@ size of the local console. In local mode, the rectangle is taken from the
 active local text window.
 
 The coordinates must describe an ordered rectangle entirely within the
-current window, and `pBlock` must not be `NULL`. A reversed rectangle is not
-safely rejected on every platform in the current implementation and must not
-be passed; this defect is recorded in `TODO.md`.
+current window, and `pBlock` must not be `NULL`. OpenDoors rejects the call if
+the left edge follows the right edge or the top edge follows the bottom edge.
 
 If the entire screen is to be retained, [`od_save_screen_ex()`](od_save_screen_ex.md)
 and [`od_restore_screen_ex()`](od_restore_screen_ex.md) also preserve the
@@ -67,7 +66,8 @@ fixed-width local-screen format.
 On failure, [`od_control.od_error`](../control/runtime.md#od_error) is set to:
 
 - [`ERR_PARAMETER`](../constants/errors.md#err_parameter) if `pBlock` is
-  `NULL` or a coordinate is outside the current screen;
+  `NULL`, a coordinate is outside the current screen, or the rectangle is
+  reversed;
 - [`ERR_NOGRAPHICS`](../constants/errors.md#err_nographics) if neither ANSI
   nor AVATAR operation is available.
 

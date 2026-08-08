@@ -48,8 +48,12 @@ accepted by [`od_cmd_line_flag_handler`](#od_cmd_line_flag_handler). `keyword`
 is the original argument. `options` contains the following non-option
 arguments, joined with spaces, up to the next argument beginning with `-` or
 `/`, a recognized OpenDoors option, or the end of the command line. Those
-arguments are consumed by the parser. An unknown keyword without following
-option text produces an empty string when another command-line option follows.
+arguments are consumed by the parser. The temporary buffer holds 80 bytes;
+OpenDoors retains at most the first 79 bytes of the joined text and always adds
+a terminating nul. An unknown keyword without following option text produces
+an empty string when another command-line option follows. The platform-specific
+sources of the argument array are described with
+[`od_parse_cmd_line()`](../api/od_parse_cmd_line.md#parameters).
 
 Both pointers refer to temporary parser storage and must not be retained after
 the callback returns. The callback is synchronous, its pointer is initially
@@ -87,11 +91,17 @@ void (*od_control.od_config_function)(char *keyword, char *options);
 ```
 
 This callback extends the optional OpenDoors configuration-file component. It
-is invoked for each nonblank configuration line whose keyword does not match
-an entry in [`od_cfg_text`](#od_cfg_text). `keyword` contains the uppercased
-keyword, truncated to 32 characters; `options` contains the remainder of the
-line after leading and trailing spaces and tabs have been removed. Comments
-begin with a semicolon and are removed before parsing.
+is invoked for every nonblank configuration line, including lines whose
+keywords match entries in [`od_cfg_text`](#od_cfg_text). OpenDoors processes a
+recognized built-in setting before invoking the callback, allowing the door to
+observe or separately use that setting. The callback should ignore any keyword
+it does not handle.
+
+`keyword` contains the uppercased keyword, truncated to 32 characters;
+`options` contains the remainder of the line after leading and trailing spaces
+and tabs have been removed. Comments begin with a semicolon and are removed
+before parsing. When the keyword has no option text, `options` points to a
+valid empty string rather than being `NULL`.
 
 The component saves the callback pointer when configuration processing begins,
 so it must be assigned before initialization. Both arguments point into
@@ -444,11 +454,21 @@ during initialization and does not assign this field. See
 const char *od_control.od_config_filename;
 ```
 
-This pointer begins `NULL`, selecting `DOOR.CFG`. When the optional
-configuration component is enabled, a non-`NULL` value supplies the path to
-read instead. Assign it before initialization and keep the string valid until
-configuration processing has completed. OpenDoors reads but does not copy,
-free, or assign the pointer.
+This pointer begins `NULL`, selecting the lowercase filename `door.cfg`. When
+the configuration component begins processing a `NULL` pointer, OpenDoors
+assigns it to an internal static string containing that default name. The
+application must not modify or free that string.
+
+A non-`NULL` value supplies the path to read instead. Assign it before
+initialization and keep the string valid until configuration processing has
+completed. OpenDoors first attempts the supplied path exactly. If that fails
+and the value includes a directory separator or drive, it retries the basename
+from the current directory, provided the entire basename fits in its 257-byte
+parsing buffer. It does not truncate an oversized basename for this fallback.
+An explicit empty string is not equivalent to `NULL`; it names a required file
+which cannot be opened and therefore produces the normal
+missing-configuration-file error. OpenDoors does not copy, modify, free, or
+replace a non-`NULL` value supplied by the application.
 
 ### `od_default_personality`
 
@@ -594,8 +614,11 @@ limit has been provided, uses the BBS name as the caller's location or
 `"Unknown Location"` when the BBS name is empty, and selects the sysop name as
 the default caller name. If the caller name is still absent and
 [`DIS_NAME_PROMPT`](../constants/session.md#dis_name_prompt) is clear,
-supported local interfaces prompt for a name. The final selected values are
-stored in the ordinary caller and connection fields.
+supported local interfaces obtain a local identity. The Unix interface uses
+the current account's login and GECOS names when available and otherwise
+retains the defaults already selected; other local interfaces prompt for a
+name. The final selected values are stored in the ordinary caller and
+connection fields.
 
 OpenDoors reads and may set this field while processing launch options and
 initialization. Changing it after initialization does not convert an active
@@ -668,7 +691,7 @@ To make the OpenDoors log file system available in your program, set this variab
 BOOL od_control.od_logfile_disable;
 ```
 
-This variable defaults to the value of FALSE, unless the "LogfileDisable" option is specified in the configuration file, in which case the variable will be set to TRUE. If this variable is set to TRUE, OpenDoors will not write to a logfile, even if the logfile system is enabled using [`od_control.od_logfile`](#od_logfile).
+This variable defaults to the value of FALSE, unless the "LogfileDisable" option is specified in the configuration file, in which case the variable will be set to TRUE. If this variable is set to TRUE, OpenDoors will not write to a logfile, even if the logfile system is enabled using [`od_control.od_logfile`](#od_logfile). Setting it after a logging session has opened stops subsequent entries; orderly OpenDoors shutdown still closes the active stream and releases the logging hooks.
 
 ### `od_logfile_messages`
 
@@ -680,13 +703,23 @@ This array of pointers to strings contains the messages that OpenDoors will auto
 
 [0] "Carrier lost, exiting door" [1] "System operator terminating call, exiting door" [2] "User's time limit expired, exiting door" [3] "User keyboard inactivity time limit exceeded, exiting door" [4] "System operator returning user to BBS, exiting door" [5] "Exiting door with errorlevel %d, [6] "Invoking operating system shell" [7] "Returning from operating system shell" [8] "User paging system operator" [9] "Entering sysop chat mode" [10] "Terminating sysop chat mode" [11] "%s entering door" [12] "Reason for chat: %s" [13] "Exiting door"
 
+Entries 5, 11, and 12 are `printf`-style templates receiving, respectively,
+an integer error level, the caller name, and the caller's chat reason. Their
+expanded text must fit in the internal 1,025-byte work buffer, including its
+terminating null byte. An oversized startup entry makes
+[`od_log_open()`](../api/od_log_open.md) fail with
+[`ERR_LIMIT`](../constants/errors.md#err_limit); an oversized chat-reason entry
+makes the standard-message operation fail with the same error. An oversized
+exit entry is omitted while orderly log closure continues. After successful
+expansion, the chat-reason entry retains its traditional 67-character limit.
+
 ### `od_logfile_name`
 
 ```c
 char od_control.od_logfile_name[80];
 ```
 
-This variable specifies the filename, and optionally the full path of the logfile where OpenDoors should perform logging. This variable only has an effect when set prior to calling any OpenDoors functions. If the log file name is specified in the configuration file, that name will be stored in this variable. If you do not set this variable, and the log file name is not specified in the configuration file, the default name "DOOR.LOG" will be used. If you wish to set this variable, you should do so prior to calling [`od_init()`](../api/od_init.md) or any OpenDoors function.
+This variable specifies the filename, and optionally the full path of the logfile where OpenDoors should perform logging. The array has room for 79 characters plus the terminating null byte. A longer `LogFileName` configuration setting is truncated to fit. This variable only has an effect when set prior to calling any OpenDoors functions. If the log file name is specified in the configuration file, that name will be stored in this variable. If you do not set this variable, and the log file name is not specified in the configuration file, the default name "DOOR.LOG" will be used. If you wish to set this variable, you should do so prior to calling [`od_init()`](../api/od_init.md) or any OpenDoors function.
 
 ### `od_maxtime`
 
@@ -1139,6 +1172,9 @@ normal local/remote input queue and is not passed to
 
 The array is zero-initialized. OpenDoors does not assign application entries;
 the DOS personalities may append private entries through the personality SDK.
+[`ODStatRemoveKey()`](../personality/ODStatRemoveKey.md) removes a key by moving
+the final active key and its callback into the removed position, then clearing
+the vacated pair. Consequently, removal does not preserve array order.
 
 ### `od_hot_function`
 
@@ -1155,8 +1191,10 @@ the array index known when it was installed or examine
 [`od_last_hot`](runtime.md#od_last_hot); a personality is permitted to clear
 that field before the callback runs.
 
-All pointers are initially `NULL`. OpenDoors reads but never writes
-application callback pointers.
+All pointers are initially `NULL`. OpenDoors does not install application
+callback pointers. [`ODStatRemoveKey()`](../personality/ODStatRemoveKey.md) may
+move a pointer together with its corresponding key and clears the pointer in
+the vacated final slot.
 
 For example, the following adds Page Up as an application-defined local key,
 provided fewer than 16 keys are already installed:
@@ -1684,10 +1722,11 @@ char *od_control.od_time_left;
 
 The standard DOS and DOS32 personality formats this string with
 [`user_timelimit`](caller.md#user_timelimit) at column 24 of row 25. Its default
-is `"%d mins   "`. The replacement must contain one integer conversion
-compatible with an `int`. The default occupies ten columns for a two-digit
-value, eleven for a three-digit value, and twelve for a four-digit value; the
-next status field begins at column 35.
+is `"%4d mins  "`. The replacement must contain one integer conversion
+compatible with an `int`. For values from zero through 1,440, the default
+occupies exactly eleven columns: the number is right-aligned in four columns,
+followed by a space, `mins`, and two spaces. It therefore fills columns 24
+through 34; the next status field begins at column 35.
 
 ### `od_time_warning`
 

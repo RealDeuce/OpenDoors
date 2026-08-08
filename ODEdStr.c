@@ -56,6 +56,8 @@
 #include "ODPlat.h"
 #include "ODKrnl.h"
 #include "ODStat.h"
+#include "ODScrn.h"
+#include "ODVScrn.h"
 
 
 /* Current od_edit_str() state and settings. */
@@ -72,6 +74,7 @@ static char chCurrentBlank;
 static BOOL ODEditIsCharValidForPos(char chEntered, INT nPosition);
 static char ODEditAsCharForPos(char chEntered, INT nPosition);
 static void ODEditDisplayPermaliteral(WORD nFlags);
+static void ODEditGetWindowSize(INT *pnWidth, INT *pnHeight);
 
 
 /* ----------------------------------------------------------------------------
@@ -119,6 +122,9 @@ ODAPIDEF WORD ODCALL od_edit_str(char *pszInput, char *pszFormat, INT nRow,
    char chAddAtEnd = '\0';
    BOOL bNormal = TRUE;
    tODInputEvent InputEvent;
+   INT nWindowWidth;
+   INT nWindowHeight;
+   INT nMaximumColumn;
 
    /* Log function entry if running in trace mode */
    TRACE(TRACE_API, "od_edit_str()");
@@ -227,6 +233,21 @@ ODAPIDEF WORD ODCALL od_edit_str(char *pszInput, char *pszFormat, INT nRow,
    /* Check that there is at least one character permitted in the input */
    /* string. If not, return with a parameter error.                    */
    if(nCurrentStringLength==0)
+   {
+      od_control.od_error = ERR_PARAMETER;
+      OD_API_EXIT();
+      return(EDIT_RETURN_ERROR);
+   }
+
+   /* Ensure that every field position and the trailing working cell fit in */
+   /* the active output window without writing its last physical column.    */
+   ODEditGetWindowSize(&nWindowWidth, &nWindowHeight);
+   nMaximumColumn = nWindowWidth - 1;
+   if(od_control.user_avatar && nMaximumColumn > 255)
+      nMaximumColumn = 255;
+   if(nRow > nWindowHeight || (od_control.user_avatar && nRow > 255)
+      || nColumn > nMaximumColumn
+      || (INT)nCurrentStringLength > nMaximumColumn - nColumn)
    {
       od_control.od_error = ERR_PARAMETER;
       OD_API_EXIT();
@@ -1017,6 +1038,8 @@ static BOOL ODEditIsCharValidForPos(char chEntered, INT nPosition)
       /* If only MS-DOS filename characters are to be permitted. */
       case 'F':
       case 'f':
+      case 'W':
+      case 'w':
          if(chEntered >= 'A' && chEntered <= 'Z') break;
          if(chEntered >= '0' && chEntered <= '9') break;
          if(chEntered >= 'a' && chEntered <= 'z') break;
@@ -1068,19 +1091,6 @@ static BOOL ODEditIsCharValidForPos(char chEntered, INT nPosition)
             break;
          }
          return(FALSE);
-
-      /* If filenames with wildcards are to be permitted. */
-      case 'W':
-      case 'w':
-         if(chEntered >= 'A' && chEntered <= 'Z') break;
-         if(chEntered >= 'a' && chEntered <= 'z') break;
-         if(chEntered == ':' || chEntered == '.' || chEntered == DIRSEP
-            || chEntered == '*' || chEntered == '?')
-         {
-            break;
-         }
-         return(FALSE);
-
       /* If alpha-numeric characters are to be permitted. */
       case 'X':
       case 'x':
@@ -1236,4 +1246,29 @@ static void ODEditDisplayPermaliteral(WORD nFlags)
    }
 
    if(btRepeat > 0) od_repeat(chCurrentBlank, btRepeat);
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODEditGetWindowSize()                                *** PRIVATE FUNCTION ***
+ *
+ * Obtains the dimensions of the active local or virtual output window.
+ */
+static void ODEditGetWindowSize(INT *pnWidth, INT *pnHeight)
+{
+   tODScrnTextInfo LocalInfo;
+   tODVScreenInfo SessionInfo;
+
+   if(ODSessionScreenAvailable())
+   {
+      ODSessionScreenGetInfo(&SessionInfo);
+      *pnWidth = SessionInfo.winright - SessionInfo.winleft + 1;
+      *pnHeight = SessionInfo.winbottom - SessionInfo.wintop + 1;
+   }
+   else
+   {
+      ODScrnGetTextInfo(&LocalInfo);
+      *pnWidth = LocalInfo.winright - LocalInfo.winleft + 1;
+      *pnHeight = LocalInfo.winbottom - LocalInfo.wintop + 1;
+   }
 }

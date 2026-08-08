@@ -84,9 +84,16 @@ one-based, inclusive coordinates. Their defaults are 1, 1, 80, and 23. In a
 supplied options structure, each individual zero coordinate is replaced with
 its corresponding default.
 
-The caller must supply ordered, usable coordinates within the active screen.
-The current implementation derives unsigned widths and heights directly and
-does not completely validate a custom rectangle.
+After zero values have been replaced by defaults, every coordinate must be at
+least 1, the right edge must be greater than the left edge, and the bottom edge
+must be greater than the top edge. The edit area therefore has at least two
+columns and two rows. The right and bottom edges must not exceed the active
+output window, which is the authoritative virtual session window when one is
+present and the current local output window otherwise. AVATAR coordinates
+must also fit in its byte-sized cursor commands and cannot exceed 255.
+
+An invalid rectangle returns an error before OpenDoors derives its unsigned
+dimensions or allocates editor bookkeeping.
 
 ### Text format
 
@@ -131,10 +138,16 @@ old allocation.
 
 The callback may move the buffer. After the function returns, use
 [`pszFinalBuffer`](../types.md#pszfinalbuffer), not the original pointer, to
-find the edited allocation. The current implementation writes the original
-`unBufferSize` argument to
-[`unFinalBufferSize`](../types.md#unfinalbuffersize) even after growth, so a
-growable-buffer callback must keep its own authoritative capacity.
+find the edited allocation.
+[`unFinalBufferSize`](../types.md#unfinalbuffersize) reports the complete
+capacity of that allocation, including space for the terminating null byte.
+It equals the original `unBufferSize` when no growth occurred and the most
+recent successful callback request after growth.
+
+The text buffer remains owned by the application whether it is fixed or
+growable. OpenDoors allocates its line index and redraw workspace internally
+and releases both before returning, including when setup, indexing, or editing
+ends with an error.
 
 [`dwEditFlags`](../types.md#dweditflags) is reserved. Set it to
 [`EFLAG_NORMAL`](../constants/input.md#eflag_normal); the current implementation

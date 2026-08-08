@@ -41,23 +41,23 @@ One of the most useful OpenDoors features that you can optionally choose to incl
 od_control.od_config_file = INCLUDE_CONFIG_FILE;
 ```
 
-OpenDoors will now search for and read an OpenDoors configuration file. If you do not specify the name of this file, the default name of DOOR.CFG will be used. Using this configuration file, the sysop can set a wide variety of options, such as modem and system configuration information, maximum time limits for the door, and even define custom door information (drop) file formats. The example DOOR.CFG file included in your OpenDoors package shows the format and all options that are automatically supported by the configuration file system. This configuration file format is designed to be easy to use, and the example configuration file contains comments which provide a complete description of each option. Feel free to redistribute DOOR.CFG or a modified version of this file with your door programs. In addition to the many configuration file settings already supported, you can add your own settings that are specific to your particular program.
+OpenDoors will now search for and read an OpenDoors configuration file. If you do not specify the name of this file, the default name of `door.cfg` will be used. The filename is lowercase and must be written that way on case-sensitive file systems. Using this configuration file, the sysop can set a wide variety of options, such as modem and system configuration information, maximum time limits for the door, and even define custom door information (drop) file formats. The example `door.cfg` file included in your OpenDoors package shows the format and all options that are automatically supported by the configuration file system. This configuration file format is designed to be easy to use, and the example configuration file contains comments which provide a complete description of each option. Feel free to redistribute `door.cfg` or a modified version of this file with your door programs. In addition to the many configuration file settings already supported, you can add your own settings that are specific to your particular program.
 
-To specify your own filename for the configuration file, use the od_config_filename control structure variable. For example, the following line:
+To specify your own filename for the configuration file, use the od_config_filename control structure variable. A `NULL` pointer selects the default filename; an explicit empty string instead names a required file which cannot be opened and causes the normal missing-configuration-file error. For example, the following line:
 
 [`od_control.od_config_filename`](../reference/control/customization.md#od_config_filename) = "MYDOOR.CFG"
 
-causes OpenDoors to look for the configuration file MYDOOR.CFG instead of the default DOOR.CFG.
+causes OpenDoors to look for the configuration file MYDOOR.CFG instead of the default `door.cfg`.
 
-OpenDoors fill first search for the configuration file in the directory specified in the od_config_filename variable, if a specific directory name was supplied. If not found, it will then search the current directory. If the configuration file system is unable to locate a configuration file, or if any settings are omitted from the file, the default values for these settings will be used automatically. This means that the configuration file is always optional, unless your program has custom settings that it requires in order to run.
+OpenDoors will first search for the configuration file at the path specified in the od_config_filename variable. If a directory or drive was included and the file cannot be opened there, OpenDoors will retry the complete basename in the current directory. This fallback is attempted only when the basename fits in the 257-byte configuration-line buffer; an oversized basename is not truncated. If the configuration file system is unable to locate a configuration file, or if any settings are omitted from the file, the default values for these settings will be used automatically. This means that the configuration file is always optional, unless your program has custom settings that it requires in order to run.
 
 The format for the configuration file is as follows. Blank lines and any text following the semi-colon (;) character are ignored. Configuration options are specified using a keyword, possibly followed by one or more options. The keywords are not case sensitive, but some of the options are. The order of options in the configuration file is not significant, with the exception of the "CustomFileLine" option. For more information on the "CustomFileLine" setting, see the section that begins on page 230. The built-in configuration options are as follow:
 
-BBSDir - BBS System directory. Indicates where the door information file (drop file) can be found.
+BBSDir - BBS System directory. Indicates where the door information file (drop file) can be found. The stored path is limited to 59 characters; longer values are truncated.
 
-DoorDir - The door's working directory. This is where the door's system files are located. OpenDoors will automatically perform a chdir into this directory at initialization, and will return to the original directory on exit.
+DoorDir - The door's working directory. This is where the door's system files are located. OpenDoors will automatically perform a chdir into this directory at initialization, and will return to the original directory on exit. An empty `DoorDir` is ignored and leaves the process working directory unchanged. OpenDoors also ignores the setting if it cannot save the original directory needed for restoration on exit. The stored path is limited to 79 characters; longer values are truncated before the directory change is attempted.
 
-LogFileName - Specifies the filename (path optional) where the door should record log information.
+LogFileName - Specifies the filename (path optional) where the door should record log information. The stored filename is limited to 79 characters; longer values are truncated.
 
 DisableLogging - Prevents door from writing to a log file.
 
@@ -91,15 +91,15 @@ LockedBPS -  BPS rate at which door should communicate with the modem.  Valid ra
 
 FossilPort - Specifies the FOSSIL driver port number that the modem is connected to. FOSSIL port 0 usually corresponds to COM1, port 1 to COM2, and so on. This option is not normally needed, as the information is usually available from the door information file.
 
+PortAddress - Specifies the hexadecimal base I/O address of a serial port when using direct UART communications under DOS. OpenDoors skips characters preceding the first hexadecimal digit and reads the value which follows as a 16-bit hexadecimal number. If the option contains no hexadecimal digits, the current port-address setting is left unchanged. This option is normally required only for ports above COM4 and has no effect when a FOSSIL driver is used.
+
 CustomFileName - Specifies the filename used by the custom door information file format. Described in more detail below.
 
 CustomFileLine - Specifies the contents of a particular line in the custom door information file format.
 
 The last two configuration file options, "CustomFileName" and "CustomFileLine" allow you or the system operator using your program to define your own door information (drop) file formats. For more information on this topic, see the section which begins on page 230.
 
-You can also extend OpenDoor's configuration file format to add your own options, by supplying a callback function that will be called whenever OpenDoors encounters an unrecognized
-
-configuration file keyword. The prototype of this function should be as follows:
+You can also extend OpenDoor's configuration file format to add your own options by supplying a callback function. OpenDoors calls this function for every nonblank configuration line, including lines which contain one of the built-in keywords. Built-in options are processed before the callback is called, so the callback can observe or separately use their settings as well as process options belonging only to the door. The prototype of this function should be as follows:
 
 custom_line_function(char *keyword, char *options)
 
@@ -109,7 +109,7 @@ To cause OpenDoors to use your function, you would include the following line be
 od_control.od_config_function = custom_line_function;
 ```
 
-(You can use a different function name if you wish.) When OpenDoors encounters unrecognized keyword, it will now call your function, passing a pointer to an upper case version the keyword string in the first parameter, and a pointer to any options that follow the keyword in the second parameter. For instance, if the following line were encountered in the configuration file:
+(You can use a different function name if you wish.) For each nonblank configuration line, OpenDoors calls your function after processing any matching built-in option. It passes a pointer to an upper case version of the keyword string in the first parameter, and a pointer to any options that follow the keyword in the second parameter. For instance, if the following line were encountered in the configuration file:
 
 RegisteredTo    John Smith      ; Sysop's name
 
@@ -117,7 +117,11 @@ The parameters passed to your function would be:
 
 char *keyword = "REGISTEREDTO" char *options = "John Smith"
 
-Your custom line function should be written in such a way that if OpenDoors passes a configuration option to your function that your function does not recognize, that option would simply be ignored.
+If a keyword has no following option text, the `options` argument points to an
+empty string. It is never `NULL`. This permits presence-only settings such as
+`DisplayWinners` to be handled without a dummy value.
+
+Your custom line function should be written in such a way that if OpenDoors passes a configuration option to your function that your function does not recognize, that option is simply ignored. This includes built-in options in which the door has no separate interest.
 
 The example program below demonstrates how to use the custom line function to add your own configuration file options. This program looks for three custom configuration file options, "RegistrationKey", "DefaultColor" and "DisplayWinners". If the "RegistrationKey" option is present, the numerical value following this option is stored in the global variable "key". If the "DefaultColor" option is present, the color description (such as "Bright Red on Black") is translated to an `od_set_attr()` color code using [`od_color_config()`](../reference/api/od_color_config.md). This color setting is stored in the global variable default_color. Since this variable is initialized to 0x07 (the value for dark white on black), if this option is omitted, that color is used by default. If the "DisplayWinners" option is included in the configuration file, the global variable display_winners is set to TRUE, regardless of any options that may follow this keyword.
 

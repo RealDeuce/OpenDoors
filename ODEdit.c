@@ -59,6 +59,7 @@
 #include "ODCom.h"
 #include "ODScrn.h"
 #include "ODSafe.h"
+#include "ODVScrn.h"
 
 
 /* ========================================================================= */
@@ -127,6 +128,7 @@ typedef struct
 /* High level implementation. */
 static BOOL ODEditSetupInstance(tEditInstance *pEditInstance,
    char *pszBufferToEdit, UINT unBufferSize, tODEditOptions *pUserOptions);
+static void ODEditCleanupInstance(tEditInstance *pEditInstance);
 static void ODEditRedrawArea(tEditInstance *pEditInstance);
 static void ODEditDrawAreaLine(tEditInstance *pEditInstance,
    UINT unAreaLineToDraw);
@@ -234,6 +236,7 @@ ODAPIDEF INT ODCALL od_multiline_edit(char *pszBufferToEdit, UINT unBufferSize,
    if(!ODEditSetupInstance(&EditInstance, pszBufferToEdit, unBufferSize,
       pEditOptions))
    {
+      ODEditCleanupInstance(&EditInstance);
       OD_API_EXIT();
       return(OD_MULTIEDIT_ERROR);
    }
@@ -242,6 +245,7 @@ ODAPIDEF INT ODCALL od_multiline_edit(char *pszBufferToEdit, UINT unBufferSize,
    /* conforms to the format specified by the client application.       */
    if(!ODEditBufferFormatAndIndex(&EditInstance))
    {
+      ODEditCleanupInstance(&EditInstance);
       OD_API_EXIT();
       return(OD_MULTIEDIT_ERROR);
    }
@@ -267,7 +271,10 @@ ODAPIDEF INT ODCALL od_multiline_edit(char *pszBufferToEdit, UINT unBufferSize,
    /* Set final information which will be available in the user options */
    /* structure for the client application to access.                   */
    EditInstance.pUserOptions->pszFinalBuffer = EditInstance.pszEditBuffer;
-   EditInstance.pUserOptions->unFinalBufferSize = unBufferSize;
+   EditInstance.pUserOptions->unFinalBufferSize = EditInstance.unBufferSize;
+
+   /* Release internal editor bookkeeping. */
+   ODEditCleanupInstance(&EditInstance);
 
    OD_API_EXIT();
    return(nToReturn);
@@ -294,8 +301,17 @@ ODAPIDEF INT ODCALL od_multiline_edit(char *pszBufferToEdit, UINT unBufferSize,
 static BOOL ODEditSetupInstance(tEditInstance *pEditInstance,
    char *pszBufferToEdit, UINT unBufferSize, tODEditOptions *pUserOptions)
 {
+   INT nWindowWidth;
+   INT nWindowHeight;
+   tODScrnTextInfo TextInfo;
+   tODVScreenInfo SessionInfo;
+
    ASSERT(pEditInstance != NULL);
    ASSERT(pszBufferToEdit != NULL);
+
+   /* Initialize allocated pointers before any setup operation can fail. */
+   pEditInstance->papchStartOfLine = NULL;
+   pEditInstance->pRememberBuffer = NULL;
 
    /* Setup editor instance structure. */
    pEditInstance->pszEditBuffer = pszBufferToEdit;
@@ -329,10 +345,41 @@ static BOOL ODEditSetupInstance(tEditInstance *pEditInstance,
          pUserOptions->nAreaBottom = ODEditOptionsDefault.nAreaBottom;
       }
    }
+
+   /* Obtain the dimensions of the authoritative output window. */
+   if(ODSessionScreenAvailable())
+   {
+      ODSessionScreenGetInfo(&SessionInfo);
+      nWindowWidth = SessionInfo.winright - SessionInfo.winleft + 1;
+      nWindowHeight = SessionInfo.winbottom - SessionInfo.wintop + 1;
+   }
+   else
+   {
+      ODScrnGetTextInfo(&TextInfo);
+      nWindowWidth = TextInfo.winright - TextInfo.winleft + 1;
+      nWindowHeight = TextInfo.winbottom - TextInfo.wintop + 1;
+   }
+
+   /* Validate signed coordinates before deriving unsigned dimensions. */
+   if(pEditInstance->pUserOptions->nAreaLeft < 1
+      || pEditInstance->pUserOptions->nAreaTop < 1
+      || pEditInstance->pUserOptions->nAreaRight
+         <= pEditInstance->pUserOptions->nAreaLeft
+      || pEditInstance->pUserOptions->nAreaBottom
+         <= pEditInstance->pUserOptions->nAreaTop
+      || pEditInstance->pUserOptions->nAreaRight > nWindowWidth
+      || pEditInstance->pUserOptions->nAreaBottom > nWindowHeight
+      || (od_control.user_avatar
+         && (pEditInstance->pUserOptions->nAreaRight > 255
+            || pEditInstance->pUserOptions->nAreaBottom > 255)))
+   {
+      od_control.od_error = ERR_PARAMETER;
+      return(FALSE);
+   }
+
    pEditInstance->unCurrentLine = 0;
    pEditInstance->unCurrentColumn = 0;
    pEditInstance->unLineScrolledToTop = 0;
-   pEditInstance->papchStartOfLine = NULL;
    pEditInstance->unLineArraySize = 0;
    pEditInstance->unLinesInBuffer = 0;
    pEditInstance->unAreaWidth = (UINT)pEditInstance->pUserOptions->
@@ -410,6 +457,30 @@ static BOOL ODEditSetupInstance(tEditInstance *pEditInstance,
 
    /* Return with success. */
    return(TRUE);
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODEditCleanupInstance()                             *** PRIVATE FUNCTION ***
+ *
+ * Releases memory used internally by an editor instance. The text buffer is
+ * owned by the client application and is not released here.
+ *
+ * Parameters: pEditInstance - Editor instance information structure.
+ *
+ *     Return: void
+ */
+static void ODEditCleanupInstance(tEditInstance *pEditInstance)
+{
+   ASSERT(pEditInstance != NULL);
+
+   free(pEditInstance->pRememberBuffer);
+   pEditInstance->pRememberBuffer = NULL;
+
+   free(pEditInstance->papchStartOfLine);
+   pEditInstance->papchStartOfLine = NULL;
+   pEditInstance->unLineArraySize = 0;
+   pEditInstance->unLinesInBuffer = 0;
 }
 
 

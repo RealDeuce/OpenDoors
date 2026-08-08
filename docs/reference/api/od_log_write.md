@@ -10,8 +10,10 @@ BOOL od_log_write(const char *pszMessage);
 
 ## Return value
 
-[`TRUE`](../constants/general.md#true) if logging is disabled or a log stream is available; [`FALSE`](../constants/general.md#false) if
-OpenDoors could not open the configured log file.
+[`TRUE`](../constants/general.md#true) if logging is disabled or the complete
+entry was written and flushed; [`FALSE`](../constants/general.md#false) if
+OpenDoors could not obtain the current local time, open the configured log
+file, or commit the entry.
 
 ## Description
 
@@ -25,7 +27,8 @@ To create an entry, pass the text to be written in `pszMessage`. Do not include
 line endings or other control characters. OpenDoors prefixes the message with
 the current local time and appends the newline required by the log format. A
 message of no more than 67 characters keeps the complete entry below 80
-columns. `pszMessage` must not be `NULL`.
+columns. Each completed entry is flushed to the underlying file before the
+function returns. `pszMessage` must not be `NULL`.
 
 Log file entries do not usually contain periods or other punctuation at the end of the line. Also, log file entries are usually written in the present tense. The first character of the entry is usually upper-case, with all other entries in lower case. Also, since excessive numbers or lengths of log file entries can quickly use a lot of disk space, it is best to think carefully about what events should be recorded in the log file. It is also a good idea to minimize the number of words used in the entry, without being too cryptic. As an example, "User entering options menu" should be used instead of "user entered the options menu."
 
@@ -37,9 +40,14 @@ Calling the [`od_log_write()`](od_log_write.md) function is as simple as follows
 od_log_write("Awarding user 5 additional minutes");
 ```
 
-The current implementation does not check the result of `fprintf()`. Once the
-file has been opened successfully, the function returns [`TRUE`](../constants/general.md#true) even if the
-individual entry could not be written.
+If writing or flushing fails, the function returns
+[`FALSE`](../constants/general.md#false). Standard file-I/O error state,
+including `errno` where supplied by the C runtime, remains available to the
+caller.
+
+Failure of `time()` or `localtime()` also returns
+[`FALSE`](../constants/general.md#false) before the timestamp or message is
+written.
 
 ## See also
 

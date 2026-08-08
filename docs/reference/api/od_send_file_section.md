@@ -49,18 +49,29 @@ Logoff text goes here.
 
 The marker line itself is not displayed. After finding the requested marker,
 OpenDoors displays following lines until it reaches another line beginning
-with `@#` or reaches the end of the file. Section names are compared exactly
-as supplied with respect to character case. The comparison covers the supplied
-name; for predictable results, use distinct complete names rather than names
-which are prefixes of other section names.
+with `@#` or reaches the end of the file. Comparison is case-sensitive and
+covers the `@#` marker plus the number of bytes in the supplied section name;
+it does not require the file's marker line to end there. For example, the name
+`MAIN` also matches a marker beginning `@#MAINMENU`. Use section names which
+are not prefixes of other section names when that distinction matters.
 
-If `pszFileName` includes an extension, OpenDoors opens that exact file. The
-contents are still passed through the normal terminal-emulation path; the
-extension does not prevent control sequences in the file from being
-interpreted.
+A section name may contain at most 253 bytes, excluding its terminating null
+byte. A longer name is rejected before OpenDoors opens or scans the file.
 
-If no extension is present, OpenDoors selects the most capable available file
-which the remote terminal can display:
+If the final component of `pszFileName` includes a period, OpenDoors opens that
+exact file. A period in a preceding directory component does not make a base
+name explicit. The contents are still passed through the normal
+terminal-emulation path; the extension does not prevent control sequences in
+the file from being interpreted.
+
+After an explicit path has been opened exactly as supplied, a final extension
+which is exactly `.rip`, without regard to the case of those three letters,
+selects RIP transmission. Longer or followed extensions such as `.ripple` and
+`.rip.txt` do not. This classification does not cause OpenDoors to probe any
+alternate spelling of the filename.
+
+If no period is present in the final path component, OpenDoors selects the most
+capable available file which the remote terminal can display:
 
 | Extension | Required caller capability |
 | --- | --- |
@@ -72,6 +83,11 @@ which the remote terminal can display:
 The search starts with the caller's highest enabled capability and falls back
 toward `.ASC`. Thus an ANSI caller uses an `.ANS` file when it exists and an
 `.ASC` file otherwise; it does not receive an `.AVT` or `.RIP` file.
+
+Automatic candidates are constructed in an internal 1,025-byte buffer. The
+base path, four-character extension, and terminating null byte must fit.
+Explicit filenames are passed directly to the C runtime and do not have this
+internal construction limit.
 
 When a RIP file is selected for the caller, OpenDoors separately opens an
 AVATAR, ANSI, or ASCII variant for the local presentation. If none exists, the
@@ -112,6 +128,9 @@ output to drain before removing the local transmission message.
   `NULL`.
 - [`ERR_FILEOPEN`](../constants/errors.md#err_fileopen) if an explicitly named
   file cannot be opened or automatic selection finds no compatible file.
+- [`ERR_LIMIT`](../constants/errors.md#err_limit) if an automatic base path and
+  extension cannot fit in the internal filename buffer, or if
+  `pszSectionName` exceeds 253 bytes.
 
 A missing section returns false after the file has been read but does not set a
 distinct section-not-found error code. Callers which need to distinguish that

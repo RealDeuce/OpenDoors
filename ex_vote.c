@@ -108,8 +108,8 @@ int ChooseQuestion(int nFromWhichQuestions, char *pszTitle, int *nLocation);
 void DisplayQuestionResult(tQuestionRecord *pQuestionRecord);
 int ReadOrAddCurrentUser(void);
 void WriteCurrentUser(void);
-FILE *ExclusiveFileOpen(char *pszFileName, char *pszMode, int *phHandle);
-void ExclusiveFileClose(FILE *pfFile, int hHandle);
+FILE *ExclusiveFileOpen(char *pszFileName, char *pszMode);
+void ExclusiveFileClose(FILE *pfFile);
 void WaitForEnter(void);
 
 
@@ -335,7 +335,6 @@ void VoteOnQuestion(void)
    char szNewAnswer[ANSWER_STR_SIZE];
    char szUserInput[3];
    FILE *fpFile;
-   int hFile;
    int nPageLocation = 0;
 
    /* Loop until the user chooses to return to the main menu, or until */
@@ -449,7 +448,7 @@ void VoteOnQuestion(void)
       /* Add user's vote to question. */
    
       /* Open question file for exclusive access by this node. */
-      fpFile = ExclusiveFileOpen(QUESTION_FILENAME, "r+b", &hFile);
+      fpFile = ExclusiveFileOpen(QUESTION_FILENAME, "r+b");
       if(fpFile == NULL)
       {
          /* If unable to access file, display error and return. */
@@ -464,7 +463,7 @@ void VoteOnQuestion(void)
       if(fread(&QuestionRecord, sizeof(tQuestionRecord), 1, fpFile) != 1)
       {
          /* If unable to access file, display error and return. */
-         ExclusiveFileClose(fpFile, hFile);
+         ExclusiveFileClose(fpFile);
          od_printf("Unable to read from question file.\n\r");
          WaitForEnter();
          return;
@@ -476,7 +475,7 @@ void VoteOnQuestion(void)
          /* Check that there is still room for another answer. */
          if(QuestionRecord.nTotalAnswers >= MAX_ANSWERS)
          {
-            ExclusiveFileClose(fpFile, hFile);
+            ExclusiveFileClose(fpFile);
             od_printf("Sorry, this question already has the maximum number of answers.\n\r");
             WaitForEnter();
             return;
@@ -502,20 +501,20 @@ void VoteOnQuestion(void)
       if(fwrite(&QuestionRecord, sizeof(tQuestionRecord), 1, fpFile) != 1)
       {
          /* If unable to access file, display error and return. */
-         ExclusiveFileClose(fpFile, hFile);
+         ExclusiveFileClose(fpFile);
          od_printf("Unable to write question to file.\n\r");
          WaitForEnter();
          return;
       }
    
       /* Close the question file to allow access by other nodes. */
-      ExclusiveFileClose(fpFile, hFile);
+      ExclusiveFileClose(fpFile);
    
       /* Record that user has voted on this question. */
       CurrentUserRecord.bVotedOnQuestion[nQuestion] = TRUE;
    
       /* Open user file for exclusive access by this node. */
-      fpFile = ExclusiveFileOpen(USER_FILENAME, "r+b", &hFile);
+      fpFile = ExclusiveFileOpen(USER_FILENAME, "r+b");
       if(fpFile == NULL)
       {
          /* If unable to access file, display error and return. */
@@ -529,14 +528,14 @@ void VoteOnQuestion(void)
       if(fwrite(&CurrentUserRecord, sizeof(tUserRecord), 1, fpFile) != 1)
       {
          /* If unable to access file, display error and return. */
-         ExclusiveFileClose(fpFile, hFile);
+         ExclusiveFileClose(fpFile);
          od_printf("Unable to write to user file.\n\r");
          WaitForEnter();
          return;
       }
    
       /* Close the user file to allow access by other nodes. */
-      ExclusiveFileClose(fpFile, hFile);
+      ExclusiveFileClose(fpFile);
    
       /* Display the result of voting on this question to the user. */
       DisplayQuestionResult(&QuestionRecord);
@@ -588,11 +587,9 @@ void ViewResults(void)
 int GetQuestion(int nQuestion, tQuestionRecord *pQuestionRecord)
 {
    FILE *fpQuestionFile;
-   int hQuestionFile;
 
    /* Open the question file for exculsive access by this node. */
-   fpQuestionFile = ExclusiveFileOpen(QUESTION_FILENAME, "r+b",
-      &hQuestionFile);
+   fpQuestionFile = ExclusiveFileOpen(QUESTION_FILENAME, "r+b");
    if(fpQuestionFile == NULL)
    {
       /* If unable to access file, display error and return. */
@@ -608,14 +605,14 @@ int GetQuestion(int nQuestion, tQuestionRecord *pQuestionRecord)
    if(fread(pQuestionRecord, sizeof(tQuestionRecord), 1, fpQuestionFile) != 1)
    {
       /* If unable to access file, display error and return. */
-      ExclusiveFileClose(fpQuestionFile, hQuestionFile);
+      ExclusiveFileClose(fpQuestionFile);
       od_printf("Unable to read from question file.\n\r");
       WaitForEnter();
       return(FALSE);;
    }
    
    /* Close the question file to allow access by other nodes. */
-   ExclusiveFileClose(fpQuestionFile, hQuestionFile);
+   ExclusiveFileClose(fpQuestionFile);
 
    /* Return with success. */
    return(TRUE);
@@ -630,7 +627,6 @@ void AddQuestion(void)
 {
    tQuestionRecord QuestionRecord;
    FILE *fpQuestionFile;
-   int hQuestionFile;
    char szLogMessage[100];
 
    /* Clear the screen. */
@@ -730,8 +726,7 @@ void AddQuestion(void)
    QuestionRecord.lCreationTime = time(NULL);
    
    /* Open question file for exclusive access by this node. */
-   fpQuestionFile = ExclusiveFileOpen(QUESTION_FILENAME, "a+b",
-      &hQuestionFile);
+   fpQuestionFile = ExclusiveFileOpen(QUESTION_FILENAME, "a+b");
    if(fpQuestionFile == NULL)
    {
       od_printf("Unable to access the question file.\n\r");
@@ -746,7 +741,7 @@ void AddQuestion(void)
    /* after closing file.                                               */
    if(ftell(fpQuestionFile) / sizeof(tQuestionRecord) >= MAX_QUESTIONS)
    {
-      ExclusiveFileClose(fpQuestionFile, hQuestionFile);
+      ExclusiveFileClose(fpQuestionFile);
       od_printf("Cannot add another question, Vote is limited to %d questions.\n\r", MAX_QUESTIONS);
       WaitForEnter();
       return;
@@ -755,14 +750,14 @@ void AddQuestion(void)
    /* Add new question to file. */
    if(fwrite(&QuestionRecord, sizeof(QuestionRecord), 1, fpQuestionFile) != 1)
    {
-      ExclusiveFileClose(fpQuestionFile, hQuestionFile);
+      ExclusiveFileClose(fpQuestionFile);
       od_printf("Unable to write to question file.\n\r");
       WaitForEnter();
       return;
    }
    
    /* Close question file, allowing other nodes to access file. */
-   ExclusiveFileClose(fpQuestionFile, hQuestionFile);
+   ExclusiveFileClose(fpQuestionFile);
 
    /* Record in the logfile that user has added a new question. */
    sprintf(szLogMessage, "User adding questions: %s",
@@ -787,13 +782,11 @@ int ChooseQuestion(int nFromWhichQuestions, char *pszTitle, int *nLocation)
    char chCurrent;
    tQuestionRecord QuestionRecord;
    FILE *fpQuestionFile;
-   int hQuestionFile;
    static char szQuestionName[MAX_QUESTIONS][QUESTION_STR_SIZE];
    static int nQuestionNumber[MAX_QUESTIONS];
    
    /* Attempt to open question file. */
-   fpQuestionFile = ExclusiveFileOpen(QUESTION_FILENAME, "r+b",
-      &hQuestionFile);
+   fpQuestionFile = ExclusiveFileOpen(QUESTION_FILENAME, "r+b");
 
    /* If unable to open question file, assume that no questions have been */
    /* created.                                                            */
@@ -834,7 +827,7 @@ int ChooseQuestion(int nFromWhichQuestions, char *pszTitle, int *nLocation)
    }   
    
    /* Close question file to allow other nodes to access the file. */
-   ExclusiveFileClose(fpQuestionFile, hQuestionFile);
+   ExclusiveFileClose(fpQuestionFile);
 
    /* If there are no questions for the user to choose, display an */
    /* appropriate message and return. */
@@ -1101,14 +1094,13 @@ void DisplayQuestionResult(tQuestionRecord *pQuestionRecord)
 int ReadOrAddCurrentUser(void)
 {
    FILE *fpUserFile;
-   int hUserFile;
    int bGotUser = FALSE;
    int nQuestion;
 
    /* Attempt to open the user file for exclusize access by this node.     */
    /* This function will wait up to the pre-set amount of time (as defined */   
    /* near the beginning of this file) for access to the user file.        */
-   fpUserFile = ExclusiveFileOpen(USER_FILENAME, "a+b", &hUserFile);
+   fpUserFile = ExclusiveFileOpen(USER_FILENAME, "a+b");
 
    /* If unable to open user file, return with failure. */   
    if(fpUserFile == NULL)
@@ -1158,7 +1150,7 @@ int ReadOrAddCurrentUser(void)
    }
 
    /* Close the user file to allow other nodes to access it. */
-   ExclusiveFileClose(fpUserFile, hUserFile);
+   ExclusiveFileClose(fpUserFile);
 
    /* Return, indciating whether or not a valid user record now exists for */
    /* the user that is currently online.                                   */   
@@ -1171,12 +1163,11 @@ int ReadOrAddCurrentUser(void)
 void WriteCurrentUser(void)
 {
    FILE *fpUserFile;
-   int hUserFile;
 
    /* Attempt to open the user file for exclusize access by this node.     */
    /* This function will wait up to the pre-set amount of time (as defined */   
    /* near the beginning of this file) for access to the user file.        */
-   fpUserFile = ExclusiveFileOpen(USER_FILENAME, "r+b", &hUserFile);
+   fpUserFile = ExclusiveFileOpen(USER_FILENAME, "r+b");
 
    /* If unable to access the user file, display an error message and */
    /* return.                                                         */
@@ -1192,17 +1183,17 @@ void WriteCurrentUser(void)
    fseek(fpUserFile, (long)nCurrentUserNumber * sizeof(tUserRecord), SEEK_SET);
 
    /* Write the new record to the file. */
-   if(fwrite(&CurrentUserRecord, sizeof(tUserRecord), 1, fpUserFile) == 1)
+   if(fwrite(&CurrentUserRecord, sizeof(tUserRecord), 1, fpUserFile) != 1)
    {
       /* If unable to write the record, display an error message. */
-      ExclusiveFileClose(fpUserFile, hUserFile);
+      ExclusiveFileClose(fpUserFile);
       od_printf("Unable to update your user record file.\n\r");
       WaitForEnter();
       return;
    }
    
    /* Close the user file to allow other nodes to access it again. */
-   ExclusiveFileClose(fpUserFile, hUserFile);
+   ExclusiveFileClose(fpUserFile);
 }
 
 
@@ -1211,7 +1202,7 @@ void WriteCurrentUser(void)
 /* file), file access is performed in a multinode-aware way. This implies  */
 /* that the file is opened of exclusive access, using share-aware open     */
 /* functions that may not be available using all compilers.                */
-FILE *ExclusiveFileOpen(char *pszFileName, char *pszMode, int *phHandle)
+FILE *ExclusiveFileOpen(char *pszFileName, char *pszMode)
 {
 #ifdef MULTINODE_AWARE
    /* If Vote is being compiled for multinode-aware file access, then   */
@@ -1252,15 +1243,9 @@ FILE *ExclusiveFileOpen(char *pszFileName, char *pszMode, int *phHandle)
       }
    }
 
-   /* Pass file handle back to the caller. */
-   *phHandle = hFile;
-
    /* Return FILE pointer for opened file, if any. */   
    return(fpFile);
 #else
-   /* Ignore unused parameters. */
-   (void)phHandle;
-
    /* If Vote is not being compiled for multinode-aware mode, then just */
    /* use fopen to access the file.                                     */
    return(fopen(pszFileName, pszMode));
@@ -1270,15 +1255,9 @@ FILE *ExclusiveFileOpen(char *pszFileName, char *pszMode, int *phHandle)
 
 /* The ExclusiveFileClose() function closes a file that was opened using */
 /* ExclusiveFileOpen().                                                  */
-void ExclusiveFileClose(FILE *pfFile, int hHandle)
+void ExclusiveFileClose(FILE *pfFile)
 {
    fclose(pfFile);
-#ifdef MULTINODE_AWARE
-   close(hHandle);
-#else
-   /* Ignore unused parameters. */
-   (void)hHandle;
-#endif
 }
 
 

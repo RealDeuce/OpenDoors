@@ -1056,6 +1056,7 @@ od_control;
  *    od_exit()               - Ends OpenDoors program
  *    od_carrier()            - Indicates whether remote connection is present
  *    od_set_dtr()            - Raises / lowers the DTR signal to the modem
+ *    od_set_port()           - Selects a port before initialization
  *    od_chat()               - Manually starts chat mode
  *    od_sleep()              - Yield to other processes
  *    od_control_get()        - Returns a pointer to the od_control structure.
@@ -1128,6 +1129,7 @@ ODAPIDEF void ODCALL   od_set_attrib(INT nColour);
 ODAPIDEF void ODCALL   od_set_color(INT nForeground, INT nBackground);
 ODAPIDEF void ODCALL   od_set_cursor(INT nRow, INT nColumn);
 ODAPIDEF void ODCALL   od_set_dtr(BOOL bHigh);
+ODAPIDEF BOOL ODCALL   od_set_port(INT nPort);
 ODAPIDEF BOOL ODCALL   od_set_personality(const char *pszName);
 ODAPIDEF void ODCALL   od_set_statusline(INT nSetting);
 ODAPIDEF void ODCALL   od_sleep(tODMilliSec Milliseconds);

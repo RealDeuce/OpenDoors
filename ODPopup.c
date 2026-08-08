@@ -63,7 +63,7 @@
 
 /* Configurable od_popup_menu() parameters. */
 
-/* Maximum menu level. */
+/* Number of available menu levels. */
 #define MENU_LEVELS        11
 
 /* Maximum number of items in a menu. */
@@ -142,8 +142,8 @@ static void ODPopupDisplayMenuItem(BYTE btLeft, BYTE btTop,
  *             nTop     - The 1-based row number of the upper right corner of
  *                        the menu.
  *
- *             nLevel   - Menu level, which must be a value between 0 and
- *                        MENU_LEVELS.
+ *             nLevel   - Menu level, which must be a value from 0 through
+ *                        10.
  *
  *             uFlags   - One or more flags, combined by the bitwise or (|)
  *                        operator.
@@ -166,7 +166,7 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
    BYTE btCursor;
    BYTE btLeft;
    BYTE btTop;
-   void *pWindow;
+   void *pWindow = NULL;
    BYTE btBetweenSize;
    BYTE btTitleSize;
    BYTE btRemaining;
@@ -197,7 +197,7 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
 
 
    /* check level bounds */
-   if(nLevel < 0 || nLevel > MENU_LEVELS)
+   if(nLevel < 0 || nLevel >= MENU_LEVELS)
    {
       od_control.od_error = ERR_LIMIT;
       OD_API_EXIT();
@@ -223,13 +223,11 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
       {
          if((paMenuItems = malloc(sizeof(tMenuItem) * MAX_MENU_ITEMS)) == NULL)
          {
-            od_control.od_error = ERR_PARAMETER;
+            od_control.od_error = ERR_MEMORY;
             OD_API_EXIT();
             return(POPUP_ERROR);
          }
       }
-      MenuLevelInfo[nLevel].paMenuItems = paMenuItems;
-
       btCurrentNumMenuItems = 0;
       btWidth = 0;
       btCount = 0;
@@ -286,8 +284,7 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
       {
          /* Return with parameter error */
          od_control.od_error = ERR_PARAMETER;
-         OD_API_EXIT();
-         return(POPUP_ERROR);
+         goto creation_error;
       }
 
       /* Adjust menu width to allow title to fit, if possible               */
@@ -311,8 +308,7 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
       if(!(od_control.user_ansi || od_control.user_avatar))
       {
          od_control.od_error = ERR_NOGRAPHICS;
-         OD_API_EXIT();
-         return(POPUP_ERROR);
+         goto creation_error;
       }
 
       /* If menu would "fall off" edge of screen, return with an error */
@@ -321,8 +317,7 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
          || btBottom - btTop < 2)
       {
          od_control.od_error = ERR_PARAMETER;
-         OD_API_EXIT();
-         return(POPUP_ERROR);
+         goto creation_error;
       }
 
       /* Allocate space to store window information. If unable to allocate */
@@ -331,20 +326,15 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
          + (btBottom - btTop + 1) * 160)) == NULL)
       {
          od_control.od_error = ERR_MEMORY;
-         OD_API_EXIT();
-         return(POPUP_ERROR);
+         goto creation_error;
       }
 
       /* Store contents of screen where memu will be drawn in the temporary */
       /* buffer.                                                            */
       if(!od_gettext(btLeft, btTop, btRight, btBottom, pWindow))
       {
-         free(pWindow);
-         pWindow = NULL;
-
          /* Note that od_error code has been set in od_gettext(). */
-         OD_API_EXIT();
-         return(POPUP_ERROR);
+         goto creation_error;
       }
 
       /* Determine number of characters of title to be displayed */
@@ -383,6 +373,7 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
 
       btLineCount = btTop + 1;
       btCorrectItem = 0;
+      MenuLevelInfo[nLevel].paMenuItems = paMenuItems;
       ODPopupCheckForKey(FALSE);
       btCursor = btCorrectItem;
       for(btCount = 0; btCount < btCurrentNumMenuItems
@@ -504,6 +495,15 @@ destroy:
 
    OD_API_EXIT();
    return(nCommand);
+
+creation_error:
+   if(pWindow != NULL)
+   {
+      free(pWindow);
+   }
+   free(paMenuItems);
+   OD_API_EXIT();
+   return(POPUP_ERROR);
 }
 
 

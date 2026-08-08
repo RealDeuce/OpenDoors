@@ -29,11 +29,14 @@ the control structure by the top-edge character and a zero right-edge
 character is replaced by the left-edge character.
 
 `pszTitle` points to the title, or may be null or point to an empty string when
-no title is wanted. A title which does not fit is truncated. `btBorderCol`,
-`btTitleCol`, and `btInsideCol` are complete IBM text attributes for the
-border, title, and interior respectively. `nReserved` is ignored by this
-version; pass zero so that the call remains compatible if a later version
-assigns it a meaning.
+no title is wanted. OpenDoors places one space on each side of a displayed
+title and retains at least one top-border character between each title space
+and corner. A window must therefore be at least seven columns wide to display
+a title. Narrower windows omit it. A title which does not fit is truncated to
+the available bytes and remains centered. `btBorderCol`, `btTitleCol`, and
+`btInsideCol` are complete IBM text attributes for the border, title, and
+interior respectively. `nReserved` is ignored by this version; pass zero so
+that the call remains compatible if a later version assigns it a meaning.
 
 In AVATAR mode, OpenDoors uses the AVATAR clear-area command to fill the
 interior. Otherwise it uses the ANSI-compatible cursor and display path. RIP

@@ -8,7 +8,7 @@ As is mentioned in the previous section, the OpenDoors configuration file system
 
 The "CustomFileName" option specifies the filename used to distinguish this file format from other file formats. This filename should not include a path. To specify the path where the door information file is located, the sysop should use the BBSDir configuration file setting. If the filename of the custom format is the same as that of one of the built-in formats, the custom format will override the built-in format.
 
-The actual format of the custom file is specified using a number of lines that begin with the keyword "CustomFileLine". Each of these lines will correspond to a single line in the door information file, with the option following the "CustomFileLine" keyword specifying the information that can be found on that line. This can be one of the following keywords:
+The actual format of the custom file is specified using a number of lines that begin with the keyword "CustomFileLine". Each of these lines will correspond to a single physical line in the door information file, with the option following the "CustomFileLine" keyword specifying the information that can be found on that line. LF and CRLF line endings are removed before the contents are interpreted. An empty line is still consumed by its corresponding `CustomFileLine`; it supplies an empty string rather than being skipped. This can be one of the following keywords:
 
 Ignore - Causes the next line in the door information file to be ignored. Use on lines for which none of the options below apply.
 

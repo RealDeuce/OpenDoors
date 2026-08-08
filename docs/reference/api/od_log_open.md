@@ -10,8 +10,11 @@ BOOL od_log_open(void);
 
 ## Return value
 
-[`TRUE`](../constants/general.md#true) if logging is disabled or the log was opened successfully; [`FALSE`](../constants/general.md#false) if
-the log file could not be opened.
+[`TRUE`](../constants/general.md#true) if logging is disabled or the log was
+opened and its initial records were written successfully;
+[`FALSE`](../constants/general.md#false) if the file could not be opened,
+the current local time could not be obtained, or the initial records could not
+be written or flushed.
 
 ## Description
 
@@ -32,9 +35,17 @@ when the component was not enabled before [`od_init()`](od_init.md).
 If [`od_control.od_logfile_disable`](../control/customization.md#od_logfile_disable)
 is [`TRUE`](../constants/general.md#true), the function performs no file operation and returns [`TRUE`](../constants/general.md#true). If the
 field is [`FALSE`](../constants/general.md#false), the configured file is opened with the C append mode `"a"`.
-Failure to open it returns [`FALSE`](../constants/general.md#false); the current implementation does not assign
-an [`ERR_*`](../constants/errors.md) value to
+Failure to obtain or convert the current time, open the file, or commit the
+separator and startup entry closes the new stream and returns
+[`FALSE`](../constants/general.md#false). Standard
+file-I/O error state, including `errno` where supplied by the C runtime, remains
+available to the caller. The function does not assign an
+[`ERR_*`](../constants/errors.md) value to
 [`od_control.od_error`](../control/runtime.md#od_error) for this failure.
+If expansion of the configurable startup template would exceed the internal
+1,025-byte work buffer, the function instead sets
+[`ERR_LIMIT`](../constants/errors.md#err_limit), closes the new stream, and
+returns [`FALSE`](../constants/general.md#false).
 
 The separator uses the current local date, the configurable day and month
 names, and [`od_control.od_prog_name`](../control/customization.md#od_prog_name).
@@ -44,9 +55,12 @@ and [`od_control.user_name`](../control/caller.md#user_name). See the
 [log-file system](../../guides/logging.md) for the complete format and the
 events recorded automatically.
 
-[`od_log_open()`](od_log_open.md) is intended to begin one logging session. It does not test
-whether a log file is already open before replacing its internal file pointer;
-an application must not use it to reopen or switch an active log.
+If a logging session is already open, another call returns
+[`TRUE`](../constants/general.md#true) without opening another stream or writing
+another separator and startup entry. The active stream remains associated with
+the filename used by the first successful call; changing
+[`od_control.od_logfile_name`](../control/customization.md#od_logfile_name) does
+not switch an open logging session.
 
 ## See also
 

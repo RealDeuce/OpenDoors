@@ -23,11 +23,11 @@ application buffer.
 
 The active local output window must begin at column 1 and end at column 80. If
 the current window is taller than the saved window, only the saved number of
-rows is restored. The current implementation is unsafe when the current
-window is shorter than the saved window; it calculates an address before the
-snapshot while attempting to select its final rows. Until the defect recorded
-in `TODO.md` is corrected, restore a legacy snapshot only into an 80-column
-window at least as tall as the window from which it was saved.
+rows is restored. If the current window is shorter, OpenDoors skips the rows
+at the beginning of the snapshot and restores as many of its final rows as the
+window can contain. The saved cursor row is moved upward by the number of
+skipped rows. If the saved cursor was above the retained portion, its row is
+clamped to the first restored row; its saved column is retained.
 
 When ANSI, AVATAR, or RIP operation is available, OpenDoors clears the screen,
 displays the saved character-and-attribute cells with
@@ -38,11 +38,21 @@ local presentation, however, it may not contain portions of a remote screen
 which were outside the local console.
 
 In plain-ASCII mode, color attributes cannot be transmitted. OpenDoors clears
-the display and reconstructs text from the top row through the saved cursor
-position, omitting trailing blank cells and stopping before output which would
-pass the saved cursor. The saved display attribute is not applied in this
-path. A current implementation defect also mishandles a preceding row whose
-80 cells are all nonblank; this limitation is recorded in `TODO.md`.
+the display and reconstructs the retained text from its first row through the
+mapped cursor position, omitting trailing blank cells and stopping before
+output which would pass the saved cursor. The saved display attribute is not
+applied in this path.
+
+Each saved row remains 80 cells wide regardless of the current destination
+width. After a shorter row, OpenDoors sends line feed followed by carriage
+return. If a row reaches the destination's final column, OpenDoors sends the
+first printable character of the following row before assuming that a wrap
+occurred. This works with terminals which wrap immediately and terminals
+which retain a DEC last-column flag until the next printable character. When
+the mapped cursor belongs at column 1, a space and backspace settle a pending
+wrap without restoring text at or beyond the saved cursor. On a destination
+wider than the 80-column snapshot, OpenDoors sends the line-feed and
+carriage-return pair because cell 80 did not reach the destination margin.
 
 The legacy buffer is not compatible with [`od_puttext()`](od_puttext.md),
 [`od_restore_screen_ex()`](od_restore_screen_ex.md), or any application-defined

@@ -11,8 +11,8 @@ BOOL od_spawn(const char *pszCommandLine);
 ## Return value
 
 [`TRUE`](../constants/general.md#true) when the platform launcher reports that the command was started;
-[`FALSE`](../constants/general.md#false) when it reports a launch failure. A nonzero child exit status is not
-uniformly treated as failure, as described below.
+[`FALSE`](../constants/general.md#false) when it reports a launch failure. The
+child's ordinary nonzero exit status does not make the call fail.
 
 ## Description
 
@@ -53,16 +53,24 @@ The manner in which `pszCommandLine` is interpreted is platform dependent:
   [`od_spawnvpe()`](od_spawnvpe.md). This simple split does not recognize a
   quoted program path containing spaces.
 - On Unix-like targets, the complete string is passed to `system()`. OpenDoors
-  blocks `SIGALRM`, the signal used by its kernel timer, until `system()`
-  returns.
+  temporarily blocks `SIGALRM`, the signal used by its kernel timer, while
+  `system()` is running and then restores the caller's complete signal mask.
 
-DOS and Windows return [`FALSE`](../constants/general.md#false) only when the spawn runtime returns `-1`; the
-child's own nonzero exit status does not make the call fail. The current Unix
-implementation returns [`FALSE`](../constants/general.md#false) when `system()` returns `-1` or the raw value
-127. It does not decode the wait status returned by `system()`. Consequently,
-a shell exit status of 127, and other ordinary nonzero exit statuses, are
-normally reported as [`TRUE`](../constants/general.md#true). The function does not assign an
+DOS and Windows return [`FALSE`](../constants/general.md#false) only when the
+spawn runtime returns `-1`. On Unix-like targets, OpenDoors decodes the wait
+status returned by `system()` and returns [`FALSE`](../constants/general.md#false)
+when `system()` itself fails or the command shell exits with status 127. Status
+127 is the result specified by `system()` when its command shell could not be
+executed; a command which deliberately returns the same status cannot be
+distinguished from that condition. Other child exit statuses report
+[`TRUE`](../constants/general.md#true), consistently with the DOS and Windows
+launch-success result. The function does not assign an
 [`ERR_*`](../constants/errors.md) value of its own.
+
+On Unix-like targets, failure to block `SIGALRM` prevents the command from
+being launched and returns [`FALSE`](../constants/general.md#false). Failure to
+restore the caller's signal mask after the command returns also produces a
+[`FALSE`](../constants/general.md#false) result.
 
 ## Examples
 

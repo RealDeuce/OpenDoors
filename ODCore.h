@@ -68,7 +68,7 @@ extern tODScrnTextInfo ODTextInfo;
 
 /* Logfile function hooks. */
 extern BOOL (ODCALL *pfLogWrite)(INT);
-extern void (ODCALL *pfLogClose)(INT);
+extern BOOL (ODCALL *pfLogClose)(INT);
 
 /* od_colour_config() support for od_printf(). */
 extern char chColorCheck;
@@ -97,6 +97,8 @@ void ODStoreTextInfo(void);
 void ODRestoreTextInfo(void);
 void ODStringToName(char *pszToConvert);
 BOOL ODPagePrompt(BOOL *pbPausing);
+BOOL ODCoreCarrierResult(tODResult Result, BOOL bIsCarrier);
+void ODCoreSetDTRResult(tODResult Result);
 
 
 /* Number of built-in configuration file options. */

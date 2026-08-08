@@ -254,11 +254,14 @@ command-line processing enabled, run a door with `-LOCAL`, or set
 [`od_control.od_force_local`](../reference/control/customization.md#od_force_local)
 before initialization.
 
-Local mode sets [`od_control.baud`](../reference/control/connection.md#baud) to
-zero. There is no remote carrier or modem object, but the normal screen and
-input functions remain available. Terminal behavior which depends on a real
-byte stream, latency, a particular emulator, Door32, a socket, or FOSSIL I/O
-must still be tested in an appropriate remote environment.
+On DOS and Windows, local mode sets
+[`od_control.baud`](../reference/control/connection.md#baud) to zero. A
+Unix-like local login uses standard input and output and records the terminal
+speed, with a nominal 19,200 BPS value when that information is unavailable.
+There is no remote carrier or modem object, but the normal screen and input
+functions remain available. Terminal behavior which depends on a real byte
+stream, latency, a particular emulator, Door32, a socket, or FOSSIL I/O must
+still be tested in an appropriate remote environment.
 
 In remote mode, the BBS normally writes a drop file and then starts the door in
 the corresponding node directory or passes its location on the command line.
@@ -494,12 +497,11 @@ to [`od_control.od_config_file`](../reference/control/customization.md#od_config
 The default configuration filename and complete keyword set are described in
 [Configuration files](configuration.md).
 
-An application can handle its own keywords through
-[`od_control.od_config_function`](../reference/control/customization.md#od_config_function)
-or observe recognized settings through
-[`od_control.od_config_callback`](../reference/control/customization.md#od_config_callback).
-Callbacks run during initialization; they must honor the argument-lifetime and
-re-entry rules in the field reference.
+An application can handle its own keywords or observe built-in settings through
+[`od_control.od_config_function`](../reference/control/customization.md#od_config_function).
+The callback receives every nonblank configuration line after OpenDoors has
+processed any matching built-in option. It runs during initialization and must
+honor the argument-lifetime and re-entry rules in the field reference.
 
 The activity logger is selected with
 [`INCLUDE_LOGFILE`](../reference/constants/components.md#include_logfile) in
@@ -634,7 +636,8 @@ od_control.od_before_exit = BeforeExitFunction;
 [`INCLUDE_CONFIG_FILE`](../reference/constants/components.md#include_config_file)
 enables the configuration reader. The
 [`od_config_function`](../reference/control/customization.md#od_config_function)
-callback receives settings not recognized by the built-in keyword table.
+callback receives every nonblank setting after the configuration reader has
+processed any matching built-in keyword.
 [`INCLUDE_MPS`](../reference/constants/components.md#include_mps) enables the
 DOS personality selector; it has no effect on the remote terminal or on
 non-DOS local presentation. [`INCLUDE_LOGFILE`](../reference/constants/components.md#include_logfile)
@@ -690,13 +693,12 @@ a false hangup argument so the caller returns to the BBS.
 
 ### Configuration and logging callbacks
 
-`CustomConfigFunction` is invoked for application keywords which the OpenDoors
-configuration component does not recognize. Vote compares the normalized
-keyword with `ViewUnanswered` and accepts `Yes` or `No` to update its local
-policy. The callback does not retain either argument because both point into
-temporary parser storage. A larger door should also diagnose invalid values
-rather than silently treating every unrecognized value as the existing
-default.
+`CustomConfigFunction` is invoked for every nonblank configuration line. Vote
+ignores keywords it does not use, compares the normalized keyword with
+`ViewUnanswered`, and accepts `Yes` or `No` to update its local policy. The
+callback does not retain either argument because both point into temporary
+parser storage. A larger door should also diagnose invalid values for its own
+keywords rather than silently treating them as the existing default.
 
 `BeforeExitFunction` formats the session's vote count and passes it to
 [`od_log_write()`](../reference/api/od_log_write.md). OpenDoors invokes this
@@ -751,6 +753,17 @@ before returning to caller interaction. Its user lookup cannot safely scan an
 unlocked snapshot and lock only for the append: another node could add the
 same caller between those operations. Likewise, a question total must be read
 again under the same lock which protects the increment.
+
+Vote writes these fixed-size structures one record at a time. For such a call,
+`fwrite()` reports success only by returning one; a return of zero is a short
+or failed write and must take the error path before the caller is told that the
+update succeeded.
+
+In the multi-node wrapper, `fdopen()` transfers ownership of the share-aware
+descriptor to the returned `FILE` stream. The raw descriptor is closed
+directly only when `fdopen()` fails. After a successful conversion,
+`ExclusiveFileClose` calls `fclose()` once; closing the stream closes its
+underlying descriptor and releases the sharing lock.
 
 Calling [`od_kernel()`](../reference/api/od_kernel.md) during a bounded lock
 wait keeps carrier and time handling responsive, but it also means OpenDoors

@@ -101,8 +101,7 @@ ODAPIDEF void ODVCALL od_printf(const char *pszFormat,...)
    if(nRequired < 0 || !ODSizeAdd((size_t)nRequired, 1, &nRequiredSize))
    {
       od_control.od_error = ERR_LIMIT;
-      OD_API_EXIT();
-      return;
+      goto exit_now;
    }
 
    if(nRequiredSize > nWorkBufferSize)
@@ -112,8 +111,7 @@ ODAPIDEF void ODVCALL od_printf(const char *pszFormat,...)
       if(pszNewBuffer == NULL)
       {
          od_control.od_error = ERR_MEMORY;
-         OD_API_EXIT();
-         return;
+         goto exit_now;
       }
       pszWorkBuffer = pszNewBuffer;
       nWorkBufferSize = MAX(nRequiredSize, (size_t)WORK_BUFFER_SIZE);
@@ -131,8 +129,7 @@ ODAPIDEF void ODVCALL od_printf(const char *pszFormat,...)
    if(nWritten != nRequired)
    {
       od_control.od_error = ERR_GENERALFAILURE;
-      OD_API_EXIT();
-      return;
+      goto exit_now;
    }
 
    /* If no color characters are defined, then just display the entire */
@@ -159,22 +156,17 @@ ODAPIDEF void ODVCALL od_printf(const char *pszFormat,...)
 
          if(!*(++pchCurrent))
          {
-            chColorCheck = 0;
-            OD_API_EXIT();
-            return;
+            goto exit_now;
          }
          od_set_attrib(od_color_config(pchCurrent));
          if(!*(pchCurrent = (char *)pchColorEndPos))
          {
-            chColorCheck = 0;
-            OD_API_EXIT();
-            return;
+            goto exit_now;
          }
 
          if(!*(++pchCurrent))
          {
-            OD_API_EXIT();
-            return;
+            goto exit_now;
          }
          pchStart = (char *)pchCurrent;
          nCharCount = 0;
@@ -191,15 +183,13 @@ ODAPIDEF void ODVCALL od_printf(const char *pszFormat,...)
 
          if(!*(++pchCurrent))
          {
-            OD_API_EXIT();
-            return;
+            goto exit_now;
          }
          od_set_attrib(*pchCurrent);
 
          if(!*(++pchCurrent))
          {
-            OD_API_EXIT();
-            return;
+            goto exit_now;
          }
          pchStart = (char *)pchCurrent;
          nCharCount = 0;
@@ -225,5 +215,7 @@ quick_print:
       od_disp(pchStart, nCharCount, TRUE);
    }
 
+exit_now:
+   chColorCheck = 0;
    OD_API_EXIT();
 }

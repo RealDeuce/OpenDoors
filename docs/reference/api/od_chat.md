@@ -45,9 +45,11 @@ records the chat-end log message, restores the display attribute which was
 active on entry, and clears [`od_chat_active`](../control/runtime.md#od_chat_active).
 
 Multithreaded builds run the same chat processing in a dedicated thread and
-wait for that thread before returning. The current failure path after that
-thread cannot be started continues to wait on the invalid thread handle; this
-known defect is recorded in `TODO.md`.
+wait for that thread before returning. If the thread cannot be started,
+[`od_chat()`](od_chat.md) returns immediately, clears
+[`od_control.od_chat_active`](../control/runtime.md#od_chat_active), and sets
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_GENERALFAILURE`](../constants/errors.md#err_generalfailure).
 
 ## Examples
 

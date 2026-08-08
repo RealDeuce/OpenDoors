@@ -196,8 +196,14 @@ typedef tODHandle tODDirHandle;
 #define DIR_ATTRIB_DIREC    0x10
 #define DIR_ATTRIB_ARCH     0x20
 
+/* Directory searches follow DOS find-first attribute rules. Normal files are
+ * always included; HIDDEN, SYSTEM, LABEL, and DIREC opt those entry types into
+ * a search; RDONLY and ARCH do not affect whether an entry matches. */
+
 typedef struct
 {
+   /* Entry basename without a directory prefix. A name too long for this
+    * array is truncated and remains null-terminated. */
    char szFileName[DIR_FILENAME_SIZE];
    WORD wAttributes;
    time_t LastWriteTime;
@@ -208,6 +214,7 @@ typedef struct
 tODResult ODDirOpen(CONST char *pszPath, WORD wAttributes, tODDirHandle *phDir);
 tODResult ODDirRead(tODDirHandle hDir, tODDirEntry *pDirEntry);
 void ODDirClose(tODDirHandle hDir);
+BOOL ODDirAttributesMatch(WORD wEntryAttributes, WORD wSearchAttributes);
 void ODDirChangeCurrent(char *pszPath);
 void ODDirGetCurrent(char *pszPath, INT nMaxPathChars);
 

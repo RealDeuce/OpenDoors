@@ -397,7 +397,8 @@ ODAPIDEF BOOL ODCALL od_gettext(INT nLeft, INT nTop, INT nRight, INT nBottom,
       nMaxBottom = ODTextInfo.winbottom - ODTextInfo.wintop + 1;
    }
 
-   if(nLeft<1 || nTop<1 || nRight>nMaxRight || nBottom>nMaxBottom || !pBlock)
+   if(nLeft<1 || nTop<1 || nRight>nMaxRight || nBottom>nMaxBottom
+      || nLeft>nRight || nTop>nBottom || !pBlock)
    {
       od_control.od_error = ERR_PARAMETER;
       OD_API_EXIT();
@@ -810,12 +811,17 @@ ODAPIDEF BOOL ODCALL od_restore_screen(void *pBuffer)
    char btPos;
    char chLast;
    char *pchTextBuffer;
-   char btHeight;
    int nToReturn=TRUE;
    tODScrnTextInfo TextState;
-   char btLine;
-   char btDistance=0;
-   char btCursorRow;
+   INT nCurrentHeight;
+   INT nSavedHeight;
+   INT nRestoreHeight;
+   INT nRowsSkipped=0;
+   INT nLine;
+   INT nCursorRow;
+   INT nOutputWidth;
+   BOOL bLastColumnWritten=FALSE;
+   tODVScreenInfo SessionInfo;
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_restore_screen()");
@@ -834,22 +840,38 @@ ODAPIDEF BOOL ODCALL od_restore_screen(void *pBuffer)
       return(FALSE);
    }
 
-   /* Determine current window height were text will be restored. */
-   btHeight=TextState.winbottom-TextState.wintop+1;
+   /* Determine the saved and current window heights. */
+   nCurrentHeight=TextState.winbottom-TextState.wintop+1;
+   nSavedHeight=((BYTE *)pBuffer)[3];
+   nRestoreHeight=nCurrentHeight;
 
    /* If current display window height is too small for entire buffer */
    /* to be re-displayed.                                             */
-   if(btHeight<((char *)pBuffer)[3])
+   if(nCurrentHeight<nSavedHeight)
    {
       /* Then we will always display as much of the END of the buffer */
       /* as possible.                                                 */
-      btDistance = btHeight - ((char *)pBuffer)[3];
+      nRowsSkipped=nSavedHeight-nCurrentHeight;
    }
-   else if(btHeight > ((char *)pBuffer)[3])
+   else if(nCurrentHeight>nSavedHeight)
    {
       /* Otherwise, ensure that we don't try to display more lines that */
       /* are in the buffer.                                             */
-      btHeight=((char *)pBuffer)[3];
+      nRestoreHeight=nSavedHeight;
+   }
+
+   /* Select the first saved row that fits in the current window. */
+   pchTextBuffer=(char *)pBuffer+4+(nRowsSkipped*160);
+
+   /* Map the saved cursor row into the retained portion of the screen. */
+   nCursorRow=((BYTE *)pBuffer)[1]-nRowsSkipped;
+   if(nCursorRow<1)
+   {
+      nCursorRow=1;
+   }
+   else if(nCursorRow>nRestoreHeight)
+   {
+      nCursorRow=nRestoreHeight;
    }
 
    /* Clear the remote and local screens. */
@@ -860,11 +882,11 @@ ODAPIDEF BOOL ODCALL od_restore_screen(void *pBuffer)
    {
       /* Then we can efficiently display the buffer using od_puttext(). */
       bScrollAction=FALSE;
-      nToReturn=od_puttext(1,1,80,btHeight,(char *)pBuffer+(4+((int)btDistance*160)));
+      nToReturn=od_puttext(1,1,80,nRestoreHeight,pchTextBuffer);
       bScrollAction=TRUE;
 
       /* Restore original cursor location. */
-      od_set_cursor(((char *)pBuffer)[1],((char *)pBuffer)[0]);
+      od_set_cursor(nCursorRow,((BYTE *)pBuffer)[0]);
 
       /* Restore original display attribute. */
       od_set_attrib(((char *)pBuffer)[2]);
@@ -876,14 +898,18 @@ ODAPIDEF BOOL ODCALL od_restore_screen(void *pBuffer)
       /* Then the buffer is displayed one line at a time, beginning  */
       /* at the top of the screen, up to the saved cusrsor location. */
 
-      /* Set pointer to beginning of buffer to be displayed. */
-      pchTextBuffer=(char *)pBuffer+4;
-
-      /* Get final cursor row number. */
-      btCursorRow=((char *)pBuffer)[1];
+      if(ODSessionScreenAvailable())
+      {
+         ODSessionScreenGetInfo(&SessionInfo);
+         nOutputWidth=SessionInfo.winright-SessionInfo.winleft+1;
+      }
+      else
+      {
+         nOutputWidth=80;
+      }
 
       /* Loop for each line in the buffer. */
-      for(btLine=1;btLine<=btHeight;++btLine)
+      for(nLine=1;nLine<=nRestoreHeight;++nLine)
       {
          /* Set pointer to last character of line. */
          pch=(char *)pchTextBuffer+158;
@@ -908,7 +934,7 @@ ODAPIDEF BOOL ODCALL od_restore_screen(void *pBuffer)
          }
 
          /* If this is the line on which the cursor resides. */
-         if(btLine==btCursorRow)
+         if(nLine==nCursorRow)
          {
             /* If last non-blank character of line is at or past the final */
             /* cursor location, then we backup the last character to be    */
@@ -923,9 +949,29 @@ ODAPIDEF BOOL ODCALL od_restore_screen(void *pBuffer)
             }
          }
 
-         /* Display all characters on this line */
+         /* If the previous row ended in the destination's last column,
+          * send a printable character before assuming whether the terminal
+          * wrapped immediately or retained a last-column flag. */
          pch = (char *)pchTextBuffer;
-         for(btPos=1;btPos<=chLast;++btPos)
+         btPos=1;
+         if(bLastColumnWritten)
+         {
+            if(chLast>=1)
+            {
+               od_putch(*pch);
+               pch+=2;
+               btPos=2;
+            }
+            else
+            {
+               od_putch(' ');
+               od_putch('\b');
+            }
+            bLastColumnWritten=FALSE;
+         }
+
+         /* Display the remaining characters on this line. */
+         for(;btPos<=chLast;++btPos)
          {
             od_putch(*pch);
             pch+=2;
@@ -933,17 +979,39 @@ ODAPIDEF BOOL ODCALL od_restore_screen(void *pBuffer)
 
          /* If this is the row where the cursor should be left, then we */
          /* stop displaying now.                                        */
-         if(btLine==btCursorRow)
+         if(nLine==nCursorRow)
          {
             break;
          }
 
-         /* If cursor hasn't been wrapped, then we should send a C/R - */
-         /* L/F sequence.                                              */
-         if(chLast != 80)
+         /* Advance to the next fixed-width row in the saved buffer. */
+         pchTextBuffer+=160;
+
+         if(ODSessionScreenAvailable())
+         {
+            if(chLast==nOutputWidth)
+            {
+               bLastColumnWritten=TRUE;
+            }
+            else
+            {
+               od_disp_str("\n\r");
+            }
+         }
+         else if(chLast==80)
+         {
+            /* The local 80-column display may have a pending wrap. If the
+             * remote screen is wider, advance only the remote cursor now;
+             * the next printable character will settle the local wrap. */
+            bLastColumnWritten=TRUE;
+            if(od_control.baud!=0 && od_control.user_screenwidth>80)
+            {
+               od_disp("\n\r",2,FALSE);
+            }
+         }
+         else
          {
             od_disp_str("\n\r");
-            pchTextBuffer+=160;
          }
       }
    }

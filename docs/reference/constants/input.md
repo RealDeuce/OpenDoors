@@ -350,8 +350,6 @@ and do not assume that `pszFinalBuffer` contains an accepted result.
 ### `OD_MULTIEDIT_SUCCESS`
 
 Editing completed successfully. Read `pszFinalBuffer` from the options
-structure because reallocation may have changed the pointer. The current
-implementation incorrectly writes the original input capacity to
-`unFinalBufferSize` after a successful growth; retain the actual capacity in
-the reallocation callback as described under
-[`tODEditOptions`](../types.md#unfinalbuffersize).
+structure because reallocation may have changed the pointer.
+`unFinalBufferSize` gives the complete capacity of the returned allocation as
+described under [`tODEditOptions`](../types.md#unfinalbuffersize).

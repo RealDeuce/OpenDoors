@@ -36,6 +36,17 @@ Local mode has no remote connection. In that mode the function returns
 [`FALSE`](../constants/general.md#false) and places [`ERR_NOREMOTE`](../constants/errors.md#err_noremote) in
 [`od_control.od_error`](../control/runtime.md#od_error).
 
+If the communications method cannot determine the connection state, the
+function returns [`FALSE`](../constants/general.md#false) and places
+[`ERR_GENERALFAILURE`](../constants/errors.md#err_generalfailure) in
+[`od_control.od_error`](../control/runtime.md#od_error). Because an ordinary
+loss of carrier also returns [`FALSE`](../constants/general.md#false), an
+application which must distinguish the two cases should set
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_NONE`](../constants/errors.md#err_none) before calling
+[`od_carrier()`](od_carrier.md), then inspect it if the function returns
+[`FALSE`](../constants/general.md#false).
+
 ## Example
 
 A callback door can lower DTR and wait a limited time for carrier to disappear.
@@ -47,11 +58,18 @@ BOOL hangup_and_wait(void)
    unsigned int tenths;
    BOOL disconnected = FALSE;
 
+   od_control.od_error = ERR_NONE;
    od_set_dtr(FALSE);
+   if(od_control.od_error != ERR_NONE)
+      return FALSE;
+
    for(tenths = 0; tenths < 300; ++tenths)
    {
+      od_control.od_error = ERR_NONE;
       if(!od_carrier())
       {
+         if(od_control.od_error != ERR_NONE)
+            break;
          disconnected = TRUE;
          break;
       }

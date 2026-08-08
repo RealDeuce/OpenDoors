@@ -60,7 +60,7 @@ static BYTE btTimeNumVals;
 /* Local functions. */
 static WORD ODCfgGetWordDecimal(char *pszConfigText);
 static DWORD ODCfgGetDWordDecimal(char *pszConfigText);
-static WORD ODCfgGetWordHex(char *pszConfigText);
+static BOOL ODCfgGetWordHex(char *pszConfigText, WORD *pwValue);
 static void ODCfgGetNextTime(char **ppchConfigText);
 static BOOL ODCfgIsTrue(char *pszConfigText);
 
@@ -88,9 +88,12 @@ ODAPIDEF void ODCALL ODConfigInit(void)
       = od_control.config_function;
 #endif
    char *pchConfigText;
+   size_t nOptionLength;
    WORD wCurrent;
    INT nConfigOption;
+   WORD wPortAddress;
    BOOL bConfigFileRequired = TRUE;
+   BOOL bDropFileLineComplete;
    static FILE *pfConfigFile;
    static FILE *pfCustomDropFile = NULL;
    static char szConfigLine[257];
@@ -111,6 +114,14 @@ ODAPIDEF void ODCALL ODConfigInit(void)
    static char *apszFileNames[1];
 
    bIsCallbackActive = TRUE;
+   pfCustomDropFile = NULL;
+   bWorkDirSet = FALSE;
+   bPageSet = FALSE;
+   bInactivitySet = FALSE;
+   bPageLengthSet = FALSE;
+   bSysopNameSet = FALSE;
+   bSystemNameSet = FALSE;
+   szDesiredPersonality[0] = '\0';
 
    nUnixTime = time(NULL);
    TimeBlock = localtime(&nUnixTime);
@@ -133,18 +144,18 @@ ODAPIDEF void ODCALL ODConfigInit(void)
          {
             if(*pchConfigText == DIRSEP || *pchConfigText == ':')
             {
-               strcpy(szConfigLine, (char *)pchConfigText + 1);
-               pfConfigFile = fopen(szConfigLine, "rt");
+               if(strlen((char *)pchConfigText + 1) < sizeof(szConfigLine))
+               {
+                  ODStringCopy(szConfigLine, (char *)pchConfigText + 1,
+                     sizeof(szConfigLine));
+                  pfConfigFile = fopen(szConfigLine, "rt");
+               }
                break;
             }
 
             --pchConfigText;
             --wCurrent;
          }
-      }
-      else
-      {
-         strcpy(szConfigLine, od_control.od_config_filename);
       }
    }
 
@@ -214,12 +225,13 @@ ODAPIDEF void ODCALL ODConfigInit(void)
          }
 
          /* Trim trailing spaces from setting string. */
-         for(wCurrent = strlen(pchConfigText) - 1; wCurrent > 0; --wCurrent)
+         wCurrent = strlen(pchConfigText);
+         while(wCurrent > 0)
          {
-            if(pchConfigText[wCurrent] == ' '
-               || pchConfigText[wCurrent] == '\t')
+            if(pchConfigText[wCurrent - 1] == ' '
+               || pchConfigText[wCurrent - 1] == '\t')
             {
-               pchConfigText[wCurrent] = '\0';
+               pchConfigText[--wCurrent] = '\0';
             }
             else
             {
@@ -239,29 +251,51 @@ ODAPIDEF void ODCALL ODConfigInit(void)
                      break;
 
                   case 1:
-                     strcpy(od_control.info_path,pchConfigText);
+                     ODStringCopy(od_control.info_path, pchConfigText,
+                        sizeof(od_control.info_path));
                      break;
 
                   case 2:
-                     if(pchConfigText[strlen(pchConfigText) - 1] == DIRSEP
-                        && pchConfigText[strlen(pchConfigText) - 2] != ':'
-                        && strlen(pchConfigText) > 1)
+                     nOptionLength = strlen(pchConfigText);
+                     if(nOptionLength == 0)
                      {
-                        pchConfigText[strlen(pchConfigText) - 1] = '\0';
+                        break;
                      }
 
-                     szOriginalDir = (char *)malloc(256);
+                     if(nOptionLength > 1
+                        && pchConfigText[nOptionLength - 1] == DIRSEP
+                        && pchConfigText[nOptionLength - 2] != ':')
+                     {
+                        pchConfigText[nOptionLength - 1] = '\0';
+                     }
+
+                     if(szOriginalDir == NULL)
+                     {
+                        szOriginalDir = (char *)malloc(sizeof(szConfigLine));
+                        if(szOriginalDir != NULL)
+                        {
+                           szOriginalDir[0] = '\0';
+                           ODDirGetCurrent(szOriginalDir,
+                              sizeof(szConfigLine));
+                           if(szOriginalDir[0] == '\0')
+                           {
+                              free(szOriginalDir);
+                              szOriginalDir = NULL;
+                           }
+                        }
+                     }
+
                      if(szOriginalDir != NULL)
                      {
-                        ODDirGetCurrent(szOriginalDir, 256);
+                        ODStringCopy(szWorkDir, pchConfigText,
+                           sizeof(szWorkDir));
+                        bWorkDirSet = TRUE;
                      }
-
-                     strcpy(szWorkDir, pchConfigText);
-                     bWorkDirSet = TRUE;
                      break;
 
                   case 3:
-                     strcpy(od_control.od_logfile_name, pchConfigText);
+                     ODStringCopy(od_control.od_logfile_name, pchConfigText,
+                        sizeof(od_control.od_logfile_name));
                      break;
 
                   case 4:
@@ -355,21 +389,15 @@ ODAPIDEF void ODCALL ODConfigInit(void)
                      {
                         if(fgets(szTempString, 255, pfCustomDropFile)!=NULL)
                         {
-                           if(szTempString[strlen(szTempString) - 1] == '\n')
-                           {
-                              szTempString[strlen(szTempString) - 1] = '\0';
-                           }
-                           else
+                           ODStringNormalizeLine(szTempString,
+                              &bDropFileLineComplete);
+                           if(!bDropFileLineComplete)
                            {
                               INT ch;
                               do
                               {
                                  ch = fgetc(pfCustomDropFile);
                               } while(ch != '\n' && ch != EOF);
-                           }
-                           if(szTempString[strlen(szTempString) - 1] == '\r')
-                           {
-                              szTempString[strlen(szTempString) - 1] = '\0';
                            }
 
                            strupr(pchConfigText);
@@ -614,7 +642,10 @@ ODAPIDEF void ODCALL ODConfigInit(void)
 
                   case 33:
                      /* "PortAddress" */
-                     od_control.od_com_address = ODCfgGetWordHex(pchConfigText);
+                     if(ODCfgGetWordHex(pchConfigText, &wPortAddress))
+                     {
+                        od_control.od_com_address = (INT16)wPortAddress;
+                     }
                      break;
 
                   case 34:
@@ -715,7 +746,9 @@ ODAPIDEF void ODCALL ODConfigInit(void)
       }
 
       /* Close the configuration file. */
-      fclose(pfConfigFile);}
+      fclose(pfConfigFile);
+      pfConfigFile = NULL;
+   }
    else
    {
       if(bConfigFileRequired)
@@ -730,6 +763,7 @@ ODAPIDEF void ODCALL ODConfigInit(void)
    if(pfCustomDropFile != NULL)
    {
       fclose(pfCustomDropFile);
+      pfCustomDropFile = NULL;
    }
 
    bIsCallbackActive = FALSE;
@@ -766,7 +800,7 @@ ODAPIDEF void ODCALL ODConfigInit(void)
       od_control.od_page_len = btPageLength;
    }
 
-   if(bWorkDirSet)
+   if(bWorkDirSet && szOriginalDir != NULL)
    {
       ODDirChangeCurrent(szWorkDir);
    }
@@ -826,29 +860,35 @@ static DWORD ODCfgGetDWordDecimal(char *pszConfigText)
 /* ----------------------------------------------------------------------------
  * ODCfgGetWordHex()                                   *** PRIVATE FUNCTION ***
  *
- * Obtains the value of the next hexidecimal number in the provided string, in
+ * Obtains the value of the next hexadecimal number in the provided string, in
  * the form of a WORD (16 bit value).
  *
  * Parameters: pszConfigText - String to examine.
  *
- *     Return: The first number obtained from the string.
+ *             pwValue       - Pointer to the variable where the parsed value
+ *                             is stored.
+ *
+ *     Return: TRUE on successful conversion, or FALSE if the string contains
+ *             no hexadecimal number.
  */
-static WORD ODCfgGetWordHex(char *pszConfigText)
+static BOOL ODCfgGetWordHex(char *pszConfigText, WORD *pwValue)
 {
-   WORD wToReturn;
-
    ASSERT(pszConfigText != NULL);
+   ASSERT(pwValue != NULL);
 
-   /* Skip any initial non-hexidecimal characters. */
+   /* Skip any initial non-hexadecimal characters. */
    while(*pszConfigText && (*pszConfigText < '0' || *pszConfigText > '9')
       && (toupper(*pszConfigText) < 'A' || toupper(*pszConfigText) > 'F'))
    {
       ++pszConfigText;
    }
 
-   sscanf(pszConfigText, "%hx", &wToReturn);
+   if(*pszConfigText == '\0')
+   {
+      return(FALSE);
+   }
 
-   return(wToReturn);
+   return(sscanf(pszConfigText, "%hx", pwValue) == 1 ? TRUE : FALSE);
 }
 
 

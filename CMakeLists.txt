@@ -354,6 +354,88 @@ if(BUILD_TESTING)
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
         add_test(NAME safety COMMAND opendoors_safety_test)
 
+        add_executable(opendoors_command_line_values_test
+            tests/command_line_values_test.c)
+        target_link_libraries(opendoors_command_line_values_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_command_line_values_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME command_line_values
+            COMMAND opendoors_command_line_values_test)
+
+        add_executable(opendoors_exitinfo_traffic_test
+            tests/exitinfo_traffic_test.c)
+        target_link_libraries(opendoors_exitinfo_traffic_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_exitinfo_traffic_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME exitinfo_traffic COMMAND opendoors_exitinfo_traffic_test)
+
+        add_executable(opendoors_draw_box_bounds_test
+            tests/draw_box_bounds_test.c)
+        target_link_libraries(opendoors_draw_box_bounds_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_draw_box_bounds_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME draw_box_bounds COMMAND opendoors_draw_box_bounds_test)
+
+        add_executable(opendoors_window_title_test
+            tests/window_title_test.c)
+        target_link_libraries(opendoors_window_title_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_window_title_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME window_title COMMAND opendoors_window_title_test)
+
+        add_executable(opendoors_get_key_poll_test
+            tests/get_key_poll_test.c)
+        target_link_libraries(opendoors_get_key_poll_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_get_key_poll_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME get_key_poll COMMAND opendoors_get_key_poll_test)
+        set_tests_properties(get_key_poll PROPERTIES TIMEOUT 5)
+
+        add_executable(opendoors_input_str_range_test
+            tests/input_str_range_test.c)
+        target_link_libraries(opendoors_input_str_range_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_input_str_range_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME input_str_range COMMAND opendoors_input_str_range_test)
+
+        add_executable(opendoors_edit_rectangle_test
+            tests/edit_rectangle_test.c)
+        target_link_libraries(opendoors_edit_rectangle_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_edit_rectangle_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME edit_rectangle COMMAND opendoors_edit_rectangle_test)
+
+        add_executable(opendoors_edit_format_test
+            tests/edit_format_test.c)
+        target_link_libraries(opendoors_edit_format_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_edit_format_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME edit_format COMMAND opendoors_edit_format_test)
+
+        add_executable(opendoors_display_path_test
+            tests/display_path_test.c)
+        target_link_libraries(opendoors_display_path_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_display_path_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME display_path COMMAND opendoors_display_path_test)
+
+        add_executable(opendoors_ra_substitution_test
+            tests/ra_substitution_test.c)
+        target_link_libraries(opendoors_ra_substitution_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_ra_substitution_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME ra_substitution COMMAND opendoors_ra_substitution_test)
+
         add_executable(opendoors_virtual_screen_test
             tests/virtual_screen_test.c)
         target_link_libraries(opendoors_virtual_screen_test
@@ -369,6 +451,203 @@ if(BUILD_TESTING)
         set_target_properties(opendoors_multiline_format_test PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
         add_test(NAME multiline_format COMMAND opendoors_multiline_format_test)
+
+        add_executable(opendoors_multiline_growth_test
+            tests/multiline_growth_test.c)
+        target_link_libraries(opendoors_multiline_growth_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_multiline_growth_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME multiline_growth COMMAND opendoors_multiline_growth_test)
+
+        add_executable(opendoors_multiline_bounds_test
+            tests/multiline_bounds_test.c)
+        target_link_libraries(opendoors_multiline_bounds_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_multiline_bounds_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME multiline_bounds COMMAND opendoors_multiline_bounds_test)
+
+        add_executable(opendoors_popup_bounds_test
+            tests/popup_bounds_test.c)
+        target_link_libraries(opendoors_popup_bounds_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_popup_bounds_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME popup_bounds COMMAND opendoors_popup_bounds_test)
+
+        add_executable(opendoors_printf_color_test
+            tests/printf_color_test.c)
+        target_link_libraries(opendoors_printf_color_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_printf_color_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME printf_color COMMAND opendoors_printf_color_test)
+
+        add_executable(opendoors_list_line_test
+            tests/list_line_test.c)
+        target_link_libraries(opendoors_list_line_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_list_line_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME list_line COMMAND opendoors_list_line_test)
+
+        add_executable(opendoors_dir_attributes_test
+            tests/dir_attributes_test.c)
+        target_link_libraries(opendoors_dir_attributes_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_dir_attributes_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME dir_attributes COMMAND opendoors_dir_attributes_test)
+
+        add_executable(opendoors_log_open_test
+            tests/log_open_test.c)
+        target_link_libraries(opendoors_log_open_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_log_open_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME log_open COMMAND opendoors_log_open_test)
+
+        if(UNIX)
+            add_executable(opendoors_config_callback_test
+                tests/config_callback_test.c)
+            target_link_libraries(opendoors_config_callback_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_config_callback_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME config_callback COMMAND opendoors_config_callback_test)
+            set_tests_properties(config_callback PROPERTIES TIMEOUT 10)
+
+            add_executable(opendoors_config_paths_test
+                tests/config_paths_test.c)
+            target_link_libraries(opendoors_config_paths_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_config_paths_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME config_paths COMMAND opendoors_config_paths_test)
+            set_tests_properties(config_paths PROPERTIES TIMEOUT 10)
+
+            add_executable(opendoors_config_directory_failure_test
+                tests/config_directory_failure_test.c)
+            target_link_libraries(opendoors_config_directory_failure_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_config_directory_failure_test
+                PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME config_directory_failure
+                COMMAND opendoors_config_directory_failure_test)
+            set_tests_properties(config_directory_failure PROPERTIES
+                TIMEOUT 10)
+
+            add_executable(opendoors_custom_drop_lines_test
+                tests/custom_drop_lines_test.c)
+            target_link_libraries(opendoors_custom_drop_lines_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_custom_drop_lines_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME custom_drop_lines
+                COMMAND opendoors_custom_drop_lines_test)
+            set_tests_properties(custom_drop_lines PROPERTIES TIMEOUT 10)
+
+            add_executable(opendoors_config_reinit_test
+                tests/config_reinit_test.c)
+            target_link_libraries(opendoors_config_reinit_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_config_reinit_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME config_reinit COMMAND opendoors_config_reinit_test)
+            set_tests_properties(config_reinit PROPERTIES TIMEOUT 10)
+
+            add_executable(opendoors_default_config_test
+                tests/default_config_test.c)
+            target_link_libraries(opendoors_default_config_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_default_config_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME default_config COMMAND opendoors_default_config_test)
+            set_tests_properties(default_config PROPERTIES TIMEOUT 10)
+
+            add_executable(opendoors_sfdoors_login_time_test
+                tests/sfdoors_login_time_test.c)
+            target_link_libraries(opendoors_sfdoors_login_time_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_sfdoors_login_time_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME sfdoors_login_time
+                COMMAND opendoors_sfdoors_login_time_test)
+            set_tests_properties(sfdoors_login_time PROPERTIES TIMEOUT 10)
+        endif()
+
+        add_executable(opendoors_text_drop_writer_test
+            tests/text_drop_writer_test.c)
+        target_link_libraries(opendoors_text_drop_writer_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_text_drop_writer_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME text_drop_writer COMMAND opendoors_text_drop_writer_test)
+
+        if(WIN32)
+            add_executable(opendoors_windows_dir_test
+                tests/windows_dir_test.c)
+            target_link_libraries(opendoors_windows_dir_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_windows_dir_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME windows_dir COMMAND opendoors_windows_dir_test)
+            set_tests_properties(windows_dir PROPERTIES TIMEOUT 10)
+
+            add_executable(opendoors_windows_chat_failure_test
+                tests/windows_chat_failure_test.c)
+            target_link_libraries(opendoors_windows_chat_failure_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_windows_chat_failure_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME windows_chat_failure
+                COMMAND opendoors_windows_chat_failure_test)
+        endif()
+
+        add_executable(opendoors_list_files_test
+            tests/list_files_test.c)
+        target_link_libraries(opendoors_list_files_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_list_files_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME list_files COMMAND opendoors_list_files_test)
+
+        if(UNIX)
+            add_executable(opendoors_dir_basename_test
+                tests/dir_basename_test.c)
+            target_link_libraries(opendoors_dir_basename_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_dir_basename_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME dir_basename COMMAND opendoors_dir_basename_test)
+
+            add_executable(opendoors_dir_stat_test
+                tests/dir_stat_test.c)
+            target_link_libraries(opendoors_dir_stat_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_dir_stat_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME dir_stat COMMAND opendoors_dir_stat_test)
+
+            add_executable(opendoors_dir_file_type_test
+                tests/dir_file_type_test.c)
+            target_link_libraries(opendoors_dir_file_type_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_dir_file_type_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME dir_file_type COMMAND opendoors_dir_file_type_test)
+
+            add_executable(opendoors_unix_spawn_test
+                tests/unix_spawn_test.c)
+            target_link_libraries(opendoors_unix_spawn_test
+                PRIVATE OpenDoors::Static)
+            set_target_properties(opendoors_unix_spawn_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME unix_spawn COMMAND opendoors_unix_spawn_test)
+            set_tests_properties(unix_spawn PROPERTIES TIMEOUT 10)
+        endif()
     endif()
 
     if(NOT WIN32)

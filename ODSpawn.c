@@ -57,6 +57,7 @@
 
 #include "OpenDoor.h"
 #ifdef ODPLAT_NIX
+#include <fcntl.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -224,21 +225,39 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   sigset_t		block;
+   sigset_t block;
+   sigset_t OriginalMask;
    int retval;
+   int nSystemError;
 
    /* Suspend kernel */
-   sigemptyset(&block);
-   sigaddset(&block,SIGALRM);
-   sigprocmask(SIG_BLOCK,&block,NULL);
-   retval=system(pszCommandLine);
+   if(sigemptyset(&block) == -1 || sigaddset(&block, SIGALRM) == -1)
+   {
+      return(FALSE);
+   }
+   if(sigprocmask(SIG_BLOCK, &block, &OriginalMask) == -1)
+   {
+      return(FALSE);
+   }
+   retval = system(pszCommandLine);
+   nSystemError = errno;
 
    /* Restore kernel */
-   sigemptyset(&block);
-   sigaddset(&block,SIGALRM);
-   sigprocmask(SIG_UNBLOCK,&block,NULL);
+   if(sigprocmask(SIG_SETMASK, &OriginalMask, NULL) == -1)
+   {
+      return(FALSE);
+   }
 
-   return(retval!=-1 && retval != 127);
+   if(retval == -1)
+   {
+      errno = nSystemError;
+      return(FALSE);
+   }
+   if(WIFEXITED(retval) && WEXITSTATUS(retval) == 127)
+   {
+      return(FALSE);
+   }
+   return(TRUE);
 #endif
 }
 
@@ -1052,6 +1071,149 @@ int _spawnve(int nModeFlag, const char *pszPath,
 #endif /* ODPLAT_DOS */
 
 #ifdef ODPLAT_NIX
+extern char **environ;
+
+/* Executes an explicit path directly. For a bare filename, checks the current
+ * directory first and then each directory in the caller's PATH. */
+static int ODUnixExecProgram(const char *pszPath,
+   const char *const papszArgs[], char *const papszEnviron[],
+   const char *pszSearchPath, char *pszPathBuffer)
+{
+   const char *pszComponent;
+   const char *pszEnd;
+   size_t nComponentLength;
+   size_t nPathLength;
+   int nAccessError = 0;
+   int nExecError;
+
+   execve(pszPath, (char *const *)papszArgs, papszEnviron);
+   nExecError = errno;
+
+   if(strchr(pszPath, '/') != NULL)
+   {
+      return(nExecError);
+   }
+   if(nExecError == EACCES)
+   {
+      nAccessError = EACCES;
+   }
+   else if(nExecError != ENOENT && nExecError != ENOTDIR)
+   {
+      return(nExecError);
+   }
+
+   pszComponent = pszSearchPath;
+   while(pszComponent != NULL)
+   {
+      pszEnd = strchr(pszComponent, ':');
+      nComponentLength = pszEnd == NULL ? strlen(pszComponent)
+         : (size_t)(pszEnd - pszComponent);
+
+      /* An empty PATH component denotes the current directory, which was
+       * already checked above. */
+      if(nComponentLength != 0)
+      {
+         memcpy(pszPathBuffer, pszComponent, nComponentLength);
+         nPathLength = nComponentLength;
+         if(pszPathBuffer[nPathLength - 1] != '/')
+         {
+            pszPathBuffer[nPathLength++] = '/';
+         }
+         strcpy(pszPathBuffer + nPathLength, pszPath);
+
+         execve(pszPathBuffer, (char *const *)papszArgs, papszEnviron);
+         nExecError = errno;
+         if(nExecError == EACCES)
+         {
+            nAccessError = EACCES;
+         }
+         else if(nExecError != ENOENT && nExecError != ENOTDIR)
+         {
+            return(nExecError);
+         }
+      }
+
+      pszComponent = pszEnd == NULL ? NULL : pszEnd + 1;
+   }
+
+   return(nAccessError != 0 ? nAccessError : ENOENT);
+}
+
+/* Reports an exec or fork error to the parent without invoking any child-side
+ * stdio or exit handlers. */
+static void ODUnixReportSpawnError(int nFile, int nError)
+{
+   const char *pchError = (const char *)&nError;
+   size_t nRemaining = sizeof(nError);
+
+   while(nRemaining > 0)
+   {
+      ssize_t nWritten = write(nFile, pchError, nRemaining);
+
+      if(nWritten > 0)
+      {
+         pchError += nWritten;
+         nRemaining -= (size_t)nWritten;
+      }
+      else if(nWritten == -1 && errno == EINTR)
+      {
+         continue;
+      }
+      else
+      {
+         break;
+      }
+   }
+
+   _exit(127);
+}
+
+/* Returns zero when exec closed the pipe, one when the child reported an
+ * error, or -1 when the pipe itself could not be read. */
+static int ODUnixReadSpawnError(int nFile, int *pnChildError)
+{
+   char *pchError = (char *)pnChildError;
+   size_t nRead = 0;
+
+   while(nRead < sizeof(*pnChildError))
+   {
+      ssize_t nResult = read(nFile, pchError + nRead,
+         sizeof(*pnChildError) - nRead);
+
+      if(nResult > 0)
+      {
+         nRead += (size_t)nResult;
+      }
+      else if(nResult == 0)
+      {
+         if(nRead == 0)
+         {
+            return(0);
+         }
+         errno = EIO;
+         return(-1);
+      }
+      else if(errno != EINTR)
+      {
+         return(-1);
+      }
+   }
+
+   return(1);
+}
+
+static int ODUnixWaitForChild(pid_t Child, int *pnStatus)
+{
+   pid_t Result;
+
+   do
+   {
+      Result = waitpid(Child, pnStatus, 0);
+   } while(Result == -1 && errno == EINTR);
+
+   return(Result == Child ? 0 : -1);
+}
+
 /* ----------------------------------------------------------------------------
  * _spawnvpe()                                         *** PRIVATE FUNCTION ***
  *
@@ -1071,40 +1233,161 @@ int _spawnve(int nModeFlag, const char *pszPath,
 int _spawnvpe(int nModeFlag, const char *pszPath, const char *const papszArgs[],
    const char *const papszEnviron[])
 {
-   pid_t	child;
-   int		status;
-   struct sigaction act;
+   int anErrorPipe[2];
+   int nChildError;
+   int nPipeResult;
+   int nSavedError;
+   int nStatus;
+   int nFlags;
+   size_t nDefaultPathSize;
+   size_t nPathBufferSize;
+   const char *pszSearchPath = NULL;
+   char *pszDefaultPath = NULL;
+   char *pszPathBuffer = NULL;
+   char *const *papszExecEnvironment;
+   pid_t Child;
 
+   papszExecEnvironment = papszEnviron == NULL ? environ
+      : (char *const *)papszEnviron;
 
-   child=fork();
+   if(strchr(pszPath, '/') == NULL)
+   {
+      pszSearchPath = getenv("PATH");
+      if(pszSearchPath == NULL)
+      {
+         nDefaultPathSize = confstr(_CS_PATH, NULL, 0);
+         if(nDefaultPathSize == 0
+            || (pszDefaultPath = malloc(nDefaultPathSize)) == NULL)
+         {
+            return(-1);
+         }
+         if(confstr(_CS_PATH, pszDefaultPath, nDefaultPathSize) == 0)
+         {
+            nSavedError = errno;
+            free(pszDefaultPath);
+            errno = nSavedError;
+            return(-1);
+         }
+         pszSearchPath = pszDefaultPath;
+      }
 
-   if(nModeFlag == P_WAIT)  {
-      /* require wait for child */
-      act.sa_handler=SIG_IGN;
-      sigemptyset(&(act.sa_mask));
-      act.sa_flags=SA_NOCLDSTOP;
-      sigaction(SIGCHLD,&act,NULL);
-   }
-   else  {
-      /* Ignore SIGCHLD for backgrounded spawned processes */
-      act.sa_handler=SIG_IGN;
-      sigemptyset(&(act.sa_mask));
-      act.sa_flags=SA_NOCLDSTOP|SA_NOCLDWAIT;
-      sigaction(SIGCHLD,&act,NULL);
+      if(strlen(pszSearchPath) > (size_t)-1 - strlen(pszPath) - 2)
+      {
+         free(pszDefaultPath);
+         errno = ENAMETOOLONG;
+         return(-1);
+      }
+      nPathBufferSize = strlen(pszSearchPath) + strlen(pszPath) + 2;
+      pszPathBuffer = malloc(nPathBufferSize);
+      if(pszPathBuffer == NULL)
+      {
+         nSavedError = errno;
+         free(pszDefaultPath);
+         errno = nSavedError;
+         return(-1);
+      }
    }
 
-   if(!child)  {
-      /* Do the exec stuff here */
-	  execve(pszPath,(char *const *)papszArgs,(char *const *)papszEnviron);
-	  exit(-1); /* this should never happen! */
+   if(pipe(anErrorPipe) == -1)
+   {
+      nSavedError = errno;
+      free(pszPathBuffer);
+      free(pszDefaultPath);
+      errno = nSavedError;
+      return(-1);
    }
-   if(nModeFlag == P_WAIT)  {
-      waitpid(child,&status,0);
-	  if(WIFEXITED(status))  {
-	     return(WEXITSTATUS(status));
-	  }
-	  return(-1);
+
+   nFlags = fcntl(anErrorPipe[1], F_GETFD);
+   if(nFlags == -1 || fcntl(anErrorPipe[1], F_SETFD,
+      nFlags | FD_CLOEXEC) == -1)
+   {
+      nSavedError = errno;
+      close(anErrorPipe[0]);
+      close(anErrorPipe[1]);
+      free(pszPathBuffer);
+      free(pszDefaultPath);
+      errno = nSavedError;
+      return(-1);
    }
-   return(0);
+
+   Child = fork();
+   if(Child == -1)
+   {
+      nSavedError = errno;
+      close(anErrorPipe[0]);
+      close(anErrorPipe[1]);
+      free(pszPathBuffer);
+      free(pszDefaultPath);
+      errno = nSavedError;
+      return(-1);
+   }
+
+   if(Child == 0)
+   {
+      close(anErrorPipe[0]);
+
+      if(nModeFlag != P_WAIT)
+      {
+         pid_t Grandchild = fork();
+
+         if(Grandchild == -1)
+         {
+            ODUnixReportSpawnError(anErrorPipe[1], errno);
+         }
+         if(Grandchild != 0)
+         {
+            _exit(0);
+         }
+      }
+
+      nChildError = ODUnixExecProgram(pszPath, papszArgs,
+         papszExecEnvironment, pszSearchPath, pszPathBuffer);
+      ODUnixReportSpawnError(anErrorPipe[1], nChildError);
+   }
+
+   free(pszPathBuffer);
+   free(pszDefaultPath);
+   close(anErrorPipe[1]);
+
+   if(ODUnixWaitForChild(Child, &nStatus) == -1)
+   {
+      nSavedError = errno;
+      close(anErrorPipe[0]);
+      errno = nSavedError;
+      return(-1);
+   }
+
+   nPipeResult = ODUnixReadSpawnError(anErrorPipe[0], &nChildError);
+   nSavedError = errno;
+   close(anErrorPipe[0]);
+
+   if(nPipeResult == 1)
+   {
+      errno = nChildError;
+      return(-1);
+   }
+   if(nPipeResult == -1)
+   {
+      errno = nSavedError;
+      return(-1);
+   }
+
+   if(!WIFEXITED(nStatus))
+   {
+      errno = ECHILD;
+      return(-1);
+   }
+
+   if(nModeFlag != P_WAIT)
+   {
+      if(WEXITSTATUS(nStatus) != 0)
+      {
+         errno = ECHILD;
+         return(-1);
+      }
+      return(0);
+   }
+
+   return(WEXITSTATUS(nStatus));
 }
 #endif /* ODPLAT_NIX */

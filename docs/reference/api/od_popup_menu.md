@@ -82,8 +82,14 @@ and [`od_menu_highkey_col`](../control/customization.md#od_menu_highkey_col).
 
 ANSI or AVATAR support is required. A null or empty menu definition, a menu
 which does not fit on the 80-by-25 display, or invalid coordinates produce
-[`POPUP_ERROR`](../constants/display.md#popup_error). Failure to save the underlying screen may also prevent the menu
-from being created. Consult
+[`POPUP_ERROR`](../constants/display.md#popup_error) with
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter). A level outside the
+range 0 through 10 produces [`ERR_LIMIT`](../constants/errors.md#err_limit),
+and the absence of ANSI and AVATAR support produces
+[`ERR_NOGRAPHICS`](../constants/errors.md#err_nographics). If OpenDoors cannot
+allocate either the menu-item array or the storage used to save the underlying
+screen, it reports [`ERR_MEMORY`](../constants/errors.md#err_memory). Saving
+the underlying screen may also fail for a screen-related reason. Consult
 [`od_control.od_error`](../control/runtime.md#od_error) after [`POPUP_ERROR`](../constants/display.md#popup_error) for
 the reported reason.
 

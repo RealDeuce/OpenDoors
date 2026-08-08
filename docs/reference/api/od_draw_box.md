@@ -39,11 +39,9 @@ on the remote screen and on the library's local or virtual screen. Unlike
 restores the cells it replaces.
 
 Coordinates must be within columns 1 through 80 and rows 1 through 25. The
-legacy implementation does not verify that the left edge precedes the right
-edge or that the top edge precedes the bottom edge. The caller must provide an
-ordered rectangle large enough to contain its edges; reversed or degenerate
-coordinates cause unsigned size calculations to wrap and have no defined
-interface behavior.
+right edge must follow the left edge, and the bottom edge must follow the top
+edge. The smallest valid box is therefore two columns by two rows. Adjacent
+edges are permitted; such a box has no interior cells between those edges.
 
 ## Return value
 
@@ -51,7 +49,7 @@ The function returns [`TRUE`](../constants/general.md#true) after the box has
 been drawn. It returns [`FALSE`](../constants/general.md#false) and sets
 [`od_control.od_error`](../control/runtime.md#od_error) to
 [`ERR_PARAMETER`](../constants/errors.md#err_parameter) for a coordinate
-outside the 80-column by 25-row range, or to
+outside the 80-column by 25-row range or for equal or reversed edges, or to
 [`ERR_NOGRAPHICS`](../constants/errors.md#err_nographics) when neither ANSI nor
 AVATAR is enabled.
 

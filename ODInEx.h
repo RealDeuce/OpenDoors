@@ -42,6 +42,10 @@
 #define _INC_ODINEX
 
 #include "ODPlat.h"
+#ifdef ODPLAT_NIX
+#include <pwd.h>
+#include <termios.h>
+#endif
 
 /* Drop file structures. */
 
@@ -393,9 +397,15 @@ void ODAtExitCallback(void);
 #endif /* !ODPLAT_WIN32 */
 INT ODWriteExitInfoPrimitive(FILE *pfDropFile, INT nCount);
 BOOL ODReadExitInfoPrimitive(FILE *pfDropFile, INT nCount);
+BOOL ODCALL ODGetElapsedMinutes(DWORD *pdwMinutes, time_t nStartTime,
+   time_t nEndTime);
 INT ODSearchForDropFile(char **papszFileNames, INT nNumFileNames,
    char *pszFound, char *pszDirectory);
 void ODInitError(char *pszErrorText);
+#ifdef ODPLAT_NIX
+DWORD ODInitSelectTerminalBaud(speed_t nInputSpeed, speed_t nOutputSpeed);
+void ODInitApplyUserInfo(const struct passwd *pUserInfo);
+#endif
 #ifdef ODPLAT_WIN32
 INT_PTR CALLBACK ODInitLoginDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
    LPARAM lParam);

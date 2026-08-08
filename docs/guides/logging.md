@@ -65,3 +65,14 @@ automatic entries are configurable through
 and the day and month names are taken from
 [`od_control.od_day`](../reference/control/customization.md#od_day) and
 [`od_control.od_month`](../reference/control/customization.md#od_month).
+Each complete separator or log entry is flushed before the writing function
+reports success, so a reported file-I/O failure is not deferred until orderly
+shutdown.
+
+During orderly shutdown, OpenDoors attempts the final entry and then closes
+the stream even if that entry fails. A formatting limit retains
+[`ERR_LIMIT`](../reference/constants/errors.md#err_limit) in
+[`od_control.od_error`](../reference/control/runtime.md#od_error); a final
+write, flush, or close failure records
+[`ERR_GENERALFAILURE`](../reference/constants/errors.md#err_generalfailure).
+The stream and its internal hooks are released in every case.

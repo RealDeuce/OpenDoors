@@ -76,6 +76,12 @@
 #define LEVEL_AVATAR    3
 #define LEVEL_RIP       4
 
+static const char szRIPExtension[] = ".rip";
+static const char szAVTExtension[] = ".avt";
+static const char szANSIExtension[] = ".ans";
+static const char szASCIIExtension[] = ".asc";
+static const char szSectionMarker[] = "@#";
+
 
 /* Local helper function prototypes. */
 static void ODEmulateFromBuffer(const char *pszBuffer, BOOL bRemoteEcho,
@@ -84,6 +90,11 @@ static void ODEmulateGetTextInfo(tODVScreenInfo *pInfo);
 static void ODEmulateSetCursorPos(INT nColumn, INT nRow);
 static void ODEmulateCopyText(INT nLeft, INT nTop, INT nRight, INT nBottom,
    INT nDestColumn, INT nDestRow);
+static const char *ODEmulatePathExtension(const char *pszPath);
+static BOOL ODEmulateExtensionIsRIP(const char *pszExtension);
+static BOOL ODEmulateAutoNameFits(const char *pszBaseName);
+static void ODEmulateBuildRIPMessage(char *pszMessage, INT nMessageSize,
+   const char *pszFileName);
 static FILE *ODEmulateFindCompatFile(const char *pszBaseName, INT *pnLevel);
 static void ODEmulateFillArea(BYTE btLeft, BYTE btTop, BYTE btRight,
    BYTE btBottom, char chToFillWith);
@@ -305,8 +316,15 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
    bPausing = od_control.od_page_pausing;
 
    /* If operating in auto-filename mode (no extension specified). */
-   if(strchr(pszFileName, '.') == NULL)
+   if(ODEmulatePathExtension(pszFileName) == NULL)
    {                                
+      if(!ODEmulateAutoNameFits(pszFileName))
+      {
+         od_control.od_error = ERR_LIMIT;
+         OD_API_EXIT();
+         return(FALSE);
+      }
+
       /* Begin by searching for a .RIP file. */
       nFileLevel = LEVEL_RIP;
 
@@ -344,10 +362,6 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
          return(FALSE);
       }
 
-      /* Get filename of remote file. */
-      strcpy(szODWorkString, pszFileName);
-      strcat(szODWorkString, ".rip");
-      strupr(szODWorkString);
    }
    else
    {
@@ -360,10 +374,7 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
          return(FALSE);
       }
 
-      strcpy(szODWorkString, pszFileName);
-      strupr(szODWorkString);
-
-      if(strstr(szODWorkString, ".rip"))
+      if(ODEmulateExtensionIsRIP(ODEmulatePathExtension(pszFileName)))
       {
          /* No page pausing during .RIP display. */
          bPausing = FALSE;
@@ -388,9 +399,7 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
 
    if(!bAnythingLocal)
    {
-      strcpy(szODWorkString, od_control.od_sending_rip);
-      strcat(szODWorkString, pszFileName);
-      ODStringCopy(szMessage, szODWorkString, sizeof(szMessage));
+      ODEmulateBuildRIPMessage(szMessage, sizeof(szMessage), pszFileName);
 
       pWindow = ODScrnShowMessage(szMessage, 0);
    }
@@ -621,6 +630,7 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
    char szFullSectionName[256];
    BOOL bSectionFound = FALSE;
    UINT uSectionNameLength;
+   size_t nSectionNameLength;
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_send_file_section()");
@@ -637,6 +647,15 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
       return(FALSE);
    }
 
+   nSectionNameLength = strlen(pszSectionName);
+   if(nSectionNameLength
+      > sizeof(szFullSectionName) - sizeof(szSectionMarker))
+   {
+      od_control.od_error = ERR_LIMIT;
+      OD_API_EXIT();
+      return(FALSE);
+   }
+
    /* Initialize local variables. */
    btCount = 2;
 
@@ -644,8 +663,15 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
    bPausing = od_control.od_page_pausing;
 
    /* If operating in auto-filename mode (no extension specified). */
-   if(strchr(pszFileName, '.') == NULL)
+   if(ODEmulatePathExtension(pszFileName) == NULL)
    {                                
+      if(!ODEmulateAutoNameFits(pszFileName))
+      {
+         od_control.od_error = ERR_LIMIT;
+         OD_API_EXIT();
+         return(FALSE);
+      }
+
       /* Begin by searching for a .RIP file. */
       nFileLevel = LEVEL_RIP;
 
@@ -683,10 +709,6 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
          return(FALSE);
       }
 
-      /* Get filename of remote file. */
-      strcpy(szODWorkString, pszFileName);
-      strcat(szODWorkString, ".rip");
-      strupr(szODWorkString);
    }
    else
    {
@@ -699,10 +721,7 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
          return(FALSE);
       }
 
-      strcpy(szODWorkString, pszFileName);
-      strupr(szODWorkString);
-
-      if(strstr(szODWorkString, ".rip"))
+      if(ODEmulateExtensionIsRIP(ODEmulatePathExtension(pszFileName)))
       {
          /* No page pausing during .RIP display. */
          bPausing = FALSE;
@@ -727,19 +746,17 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
 
    if(!bAnythingLocal)
    {
-      strcpy(szODWorkString, od_control.od_sending_rip);
-      strcat(szODWorkString, pszFileName);
-      ODStringCopy(szMessage, szODWorkString, sizeof(szMessage));
+      ODEmulateBuildRIPMessage(szMessage, sizeof(szMessage), pszFileName);
 
       pWindow = ODScrnShowMessage(szMessage, 0);
    }
 
-   /* Create section name information */
-   strcpy(szFullSectionName, "@#");
-   strncat(szFullSectionName, pszSectionName, 254);
-
-   /* Get the length of the section name in it's full form */
-   uSectionNameLength = strlen(szFullSectionName); 
+   /* Create section marker and obtain its complete length. */
+   memcpy(szFullSectionName, szSectionMarker, sizeof(szSectionMarker) - 1);
+   memcpy(szFullSectionName + sizeof(szSectionMarker) - 1, pszSectionName,
+      nSectionNameLength + 1);
+   uSectionNameLength = (UINT)(sizeof(szSectionMarker) - 1
+      + nSectionNameLength);
 
    /* Loop to display each line in the file(s) with page pausing, etc. */
    for(;;)
@@ -830,7 +847,8 @@ abort_send:
                   /* Section not found yet, continue loop */
                   continue;
                } 
-               else if (bSectionFound && strncmp(szODWorkString, "@#", 2) == 0) 
+               else if (bSectionFound && strncmp(szODWorkString,
+                  szSectionMarker, sizeof(szSectionMarker) - 1) == 0)
                {
                   /* New Section Intercepted */
                   goto end_transmission;
@@ -857,7 +875,8 @@ abort_send:
          /* Section hasn't been found yet */
          continue;
       } 
-      else if (bSectionFound && strncmp(szODWorkString, "@#", 2) == 0) 
+      else if (bSectionFound && strncmp(szODWorkString, szSectionMarker,
+         sizeof(szSectionMarker) - 1) == 0)
       {
          /* New section found, terminate send */
          goto end_transmission;
@@ -973,6 +992,120 @@ end_transmission:
 
 
 /* ----------------------------------------------------------------------------
+ * ODEmulatePathExtension()                            *** PRIVATE FUNCTION ***
+ *
+ * Locates the last extension in the final component of a path.
+ *
+ * Parameters: pszPath - Path to examine.
+ *
+ *     Return: A pointer to the last period in the final component, or NULL if
+ *             the final component contains no period.
+ */
+static const char *ODEmulatePathExtension(const char *pszPath)
+{
+   const char *pszComponent = pszPath;
+   const char *pszCurrent = pszPath;
+
+   ASSERT(pszPath != NULL);
+
+   while(*pszCurrent != '\0')
+   {
+#ifdef ODPLAT_NIX
+      if(*pszCurrent == '/')
+#else
+      if(*pszCurrent == '/' || *pszCurrent == '\\')
+#endif
+         pszComponent = pszCurrent + 1;
+      ++pszCurrent;
+   }
+
+   return(strrchr(pszComponent, '.'));
+}
+
+
+
+/* ----------------------------------------------------------------------------
+ * ODEmulateExtensionIsRIP()                          *** PRIVATE FUNCTION ***
+ *
+ * Determines whether a complete filename extension denotes RIP data.
+ *
+ * Parameters: pszExtension - Extension beginning with a period, or NULL.
+ *
+ *     Return: TRUE for the complete extension .rip, without regard to the
+ *             case of its letters; otherwise FALSE.
+ */
+static BOOL ODEmulateExtensionIsRIP(const char *pszExtension)
+{
+   const char *pszRIP = szRIPExtension;
+
+   if(pszExtension == NULL)
+      return(FALSE);
+
+   while(*pszExtension != '\0' && *pszRIP != '\0'
+      && tolower((unsigned char)*pszExtension)
+         == tolower((unsigned char)*pszRIP))
+   {
+      ++pszExtension;
+      ++pszRIP;
+   }
+
+   return(*pszExtension == '\0' && *pszRIP == '\0');
+}
+
+
+
+/* ----------------------------------------------------------------------------
+ * ODEmulateAutoNameFits()                             *** PRIVATE FUNCTION ***
+ *
+ * Determines whether a base path and automatic display-file extension fit in
+ * the global work string.
+ *
+ * Parameters: pszBaseName - Base path to examine.
+ *
+ *     Return: TRUE if the complete candidate fits, otherwise FALSE.
+ */
+static BOOL ODEmulateAutoNameFits(const char *pszBaseName)
+{
+   ASSERT(pszBaseName != NULL);
+
+   return(strlen(pszBaseName)
+      <= sizeof(szODWorkString) - sizeof(szRIPExtension));
+}
+
+
+
+/* ----------------------------------------------------------------------------
+ * ODEmulateBuildRIPMessage()                         *** PRIVATE FUNCTION ***
+ *
+ * Builds the bounded local message displayed during RIP transmission.
+ *
+ * Parameters: pszMessage   - Destination message buffer.
+ *
+ *             nMessageSize - Complete size of the destination buffer.
+ *
+ *             pszFileName  - Name of the RIP file being transmitted.
+ *
+ *     Return: void
+ */
+static void ODEmulateBuildRIPMessage(char *pszMessage, INT nMessageSize,
+   const char *pszFileName)
+{
+   INT nPrefixLength;
+
+   ASSERT(pszMessage != NULL);
+   ASSERT(nMessageSize > 0);
+   ASSERT(pszFileName != NULL);
+   ASSERT(od_control.od_sending_rip != NULL);
+
+   ODStringCopy(pszMessage, od_control.od_sending_rip, nMessageSize);
+   nPrefixLength = (INT)strlen(pszMessage);
+   ODStringCopy(pszMessage + nPrefixLength, pszFileName,
+      nMessageSize - nPrefixLength);
+}
+
+
+
+/* ----------------------------------------------------------------------------
  * ODEmulateFindCompatFile()                           *** PRIVATE FUNCTION ***
  *
  * Searches for an .ASC/.ANS/.AVT/.RIP file that is compatible with the
@@ -989,39 +1122,44 @@ end_transmission:
 static FILE *ODEmulateFindCompatFile(const char *pszBaseName, INT *pnLevel)
 {
    FILE *pfCompatibleFile;
+   const char *pszExtension;
+   size_t nBaseLength;
 
    ASSERT(pszBaseName != NULL);
    ASSERT(pnLevel != NULL);
    ASSERT(*pnLevel >= 0 && *pnLevel <= 4);
+   ASSERT(ODEmulateAutoNameFits(pszBaseName));
+
+   nBaseLength = strlen(pszBaseName);
 
    /* Loop though .RIP/.AVT/.ANS/.ASC extensions. */
    for(;*pnLevel > LEVEL_NONE; --*pnLevel)
    {
-      /* Get base-filename passed in. */
-      strcpy(szODWorkString, pszBaseName);
-
       /* Try current extension. */
       switch(*pnLevel)
       {
          case LEVEL_RIP:
             if(!od_control.user_rip) continue;
-            strcat(szODWorkString, ".rip");
+            pszExtension = szRIPExtension;
             break;
 
          case LEVEL_AVATAR:
             if(!od_control.user_avatar) continue;
-            strcat(szODWorkString, ".avt");
+            pszExtension = szAVTExtension;
             break;
 
          case LEVEL_ANSI:
             if(!od_control.user_ansi) continue;
-            strcat(szODWorkString, ".ans");
+            pszExtension = szANSIExtension;
             break;
 
          case LEVEL_ASCII:
-            strcat(szODWorkString, ".asc");
+            pszExtension = szASCIIExtension;
             break;
       }
+
+      memcpy(szODWorkString, pszBaseName, nBaseLength);
+      strcpy(szODWorkString + nBaseLength, pszExtension);
 
       /* If we are able to open this file, then return a pointer to */
       /* the file.                                                  */
@@ -1643,31 +1781,38 @@ static void ODEmulateFromBuffer(const char *pszBuffer, BOOL bRemoteEcho,
                               od_disp_str(szToRepeat);
                               break;
                            case 'L':
-                              od_printf("%lu", od_control.user_net_credit);
+                              od_printf("%lu",
+                                 (unsigned long)od_control.user_net_credit);
                               break;
                            case 'M':
                               od_printf("%u", od_control.user_messages);
                               break;
                            case 'N':
-                              od_printf("%u", od_control.user_lastread);
+                              od_printf("%lu",
+                                 (unsigned long)od_control.user_lastread);
                               break;
                            case 'O':
                               od_printf("%u", od_control.user_security);
                               break;
                            case 'P':
-                              od_printf("%u", od_control.user_numcalls);
+                              od_printf("%lu",
+                                 (unsigned long)od_control.user_numcalls);
                               break;
                            case 'Q':
-                              od_printf("%ul", od_control.user_uploads);
+                              od_printf("%lu",
+                                 (unsigned long)od_control.user_uploads);
                               break;
                            case 'R':
-                              od_printf("%ul", od_control.user_upk);
+                              od_printf("%lu",
+                                 (unsigned long)od_control.user_upk);
                               break;
                            case 'S':
-                              od_printf("%ul", od_control.user_downloads);
+                              od_printf("%lu",
+                                 (unsigned long)od_control.user_downloads);
                               break;
                            case 'T':
-                              od_printf("%ul", od_control.user_downk);
+                              od_printf("%lu",
+                                 (unsigned long)od_control.user_downk);
                               break;
                            case 'U':
                               od_printf("%d", od_control.user_time_used);
@@ -1777,13 +1922,13 @@ static void ODEmulateFromBuffer(const char *pszBuffer, BOOL bRemoteEcho,
                               break;
                            case '9':
                               od_printf("%lu:%lu",
-                                 od_control.user_uploads,
-                                 od_control.user_downloads);
+                                 (unsigned long)od_control.user_uploads,
+                                 (unsigned long)od_control.user_downloads);
                               break;
                            case ':':
                               od_printf("%lu:%lu",
-                                 od_control.user_upk,
-                                 od_control.user_downk);
+                                 (unsigned long)od_control.user_upk,
+                                 (unsigned long)od_control.user_downk);
                               break;
                            case ';':
                               if(od_control.user_attrib2 & 0x04)
@@ -1804,7 +1949,8 @@ static void ODEmulateFromBuffer(const char *pszBuffer, BOOL bRemoteEcho,
                         switch(chCurrent)
                         {
                            case 'A':
-                              od_printf("%lu", od_control.system_calls);
+                              od_printf("%lu",
+                                 (unsigned long)od_control.system_calls);
                               break;
                            case 'B':
                               od_disp_str(od_control.system_last_caller);

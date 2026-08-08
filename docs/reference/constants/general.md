@@ -241,13 +241,12 @@ described by the spawn function and
 ### `P_NOWAIT`
 
 `P_NOWAIT` requests asynchronous process creation on targets which support it.
-The exact return follows OpenDoors' platform wrapper. On the current Unix-like
-implementation, a successful `fork()` returns `0` to the caller and OpenDoors
-sets `SIGCHLD` to `SIG_IGN` with `SA_NOCLDWAIT`; no child identifier is returned
-and the application does not wait or reap that child through this API. On
-Windows, the value comes from the C runtime `_spawnvpe()` call, narrowed to the
-public [`INT16`](../types.md#int16) return type. Passing this value on DOS, which supports only
-`P_WAIT`, returns `-1` and sets [`od_control.od_error`](../control/runtime.md#od_error) to `ERR_PARAMETER`.
+[`od_spawnvpe()`](../api/od_spawnvpe.md) returns `-1` when the asynchronous
+child cannot be launched; any other value reports a successful launch. The
+successful value is platform dependent and is not a portable process
+identifier. Passing this value on DOS, which supports only `P_WAIT`, returns
+`-1` and sets [`od_control.od_error`](../control/runtime.md#od_error) to
+`ERR_PARAMETER`.
 
 On Windows and DOS32 these names are obtained from `<process.h>`; OpenDoors
 defines compatible values where the C runtime does not provide them.

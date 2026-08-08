@@ -197,10 +197,15 @@ members are outputs.
 These inclusive coordinates define the screen rectangle occupied by the
 editor. Their defaults are left 1, top 1, right 80, and bottom 23. OpenDoors
 replaces any individual coordinate whose value is zero with its corresponding
-default. The current implementation then derives the edit width and height
-directly from the four values; it does not perform a complete public rectangle
-validation. Applications must therefore supply ordered, usable coordinates
-within the active terminal screen.
+default. After that substitution, all coordinates must be positive,
+`nAreaRight` must be greater than `nAreaLeft`, and `nAreaBottom` must be greater
+than `nAreaTop`. The right and bottom edges must fit within the authoritative
+virtual session window, or within the current local output window when no
+session window is present. In AVATAR mode they must not exceed 255. Invalid
+coordinates cause [`od_multiline_edit()`](api/od_multiline_edit.md) to return
+[`OD_MULTIEDIT_ERROR`](constants/input.md#od_multiedit_error) with
+[`od_control.od_error`](control/runtime.md#od_error) set to
+[`ERR_PARAMETER`](constants/errors.md#err_parameter).
 
 #### `TextFormat`
 
@@ -228,6 +233,11 @@ The allocation and callback must use compatible ownership rules. In a Windows
 DLL build, keeping allocation and reallocation in the application avoids
 crossing incompatible C runtime heaps.
 
+The application retains ownership of the text buffer. The editor's line index
+and redraw workspace are separate internal allocations which OpenDoors
+releases before [`od_multiline_edit()`](api/od_multiline_edit.md) returns,
+including on an error return.
+
 #### `dwEditFlags`
 
 Set this member to [`EFLAG_NORMAL`](constants/input.md#eflag_normal). No other
@@ -243,12 +253,10 @@ application allocator's rules.
 
 #### `unFinalBufferSize`
 
-This member is intended to report the capacity associated with
-`pszFinalBuffer`, not the string length. In the current implementation,
-however, [`od_multiline_edit()`](api/od_multiline_edit.md) writes the original `unBufferSize` argument here
-even if `pfBufferRealloc` enlarged the buffer. A caller which permits growth
-must have its reallocation callback retain the actual allocation size; it must
-not rely on `unFinalBufferSize` to discover the enlarged capacity.
+This member reports the complete capacity associated with `pszFinalBuffer`,
+including space for the terminating null byte; it is not the edited string
+length. It equals the original capacity if the buffer was not grown, or the
+size supplied to the most recent successful `pfBufferRealloc` call.
 
 ## Personality and component callbacks
 

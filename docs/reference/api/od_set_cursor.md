@@ -24,23 +24,24 @@ window and need not match the local console. The local cursor follows the
 virtual cursor when the selected position is within the portion presented
 locally.
 
-In AVATAR mode the coordinates are carried in single-byte fields and must not
-exceed 255. This is also the maximum representable value of the public caller
-screen-dimension fields. ANSI output writes the coordinates in decimal.
-
-The current implementation diagnoses coordinates below 1 but does not
-consistently reject coordinates beyond the current window. Depending on the
-display path, an excessive value may be clamped, narrowed, or transmitted
-unchanged. Applications must keep both coordinates within the documented
-bounds. The missing validation and an API-state imbalance in the existing
-invalid-low-coordinate path are recorded in `TODO.md`.
+In AVATAR mode the coordinates are carried in single-byte fields and neither
+may exceed 255, even when the active window is taller. ANSI output writes the
+coordinates in decimal and can address rows above 255 when the active window
+contains them. The public
+[`od_control.user_screenwidth`](../control/caller.md#user_screenwidth) field
+is a [`BYTE`](../types.md#byte), while
+[`od_control.user_screen_length`](../control/caller.md#user_screen_length)
+is a [`WORD`](../types.md#word).
 
 If neither ANSI nor AVATAR operation is available,
 [`ERR_NOGRAPHICS`](../constants/errors.md#err_nographics) is placed in
 [`od_control.od_error`](../control/runtime.md#od_error). A coordinate below 1
-sets [`ERR_PARAMETER`](../constants/errors.md#err_parameter). The function
-returns no value, so applications which need to preserve the previous
-position should first call [`od_get_cursor()`](od_get_cursor.md).
+or beyond the active window sets
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter). The same error is
+reported for an AVATAR coordinate above 255. Invalid coordinates do not move
+the local or virtual cursor and are not transmitted to the remote terminal.
+The function returns no value, so applications which need to preserve the
+previous position should first call [`od_get_cursor()`](od_get_cursor.md).
 
 ## Example
 

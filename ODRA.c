@@ -250,7 +250,8 @@ ODAPIDEF void ODCALL pdef_ra(BYTE btOperation)
          {
             ODScrnSetCursorPos(1, 24);
             ODScrnPrintf("Last Caller: %s    Total System Calls: %lu",
-               od_control.system_last_caller, od_control.system_calls);
+               od_control.system_last_caller,
+               (unsigned long)od_control.system_calls);
          }
          ODRADisplayTime();
 

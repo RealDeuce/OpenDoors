@@ -34,13 +34,19 @@ A door which intends to continue after lowering DTR must first set
 For a FOSSIL, direct UART, or native Windows serial connection, this function
 changes the actual DTR state. A socket has no DTR signal: lowering it closes
 the socket, while raising it is unsupported. Door32 and standard-input/output
-connections do not implement the operation. The public function ignores the
-method-specific result and has no return value, so unsupported operations and
-driver failures are not reported in
-[`od_control.od_error`](../control/runtime.md#od_error).
+connections do not implement the operation.
 
 In local mode, no remote object exists. The function makes no change and sets
 [`ERR_NOREMOTE`](../constants/errors.md#err_noremote).
+
+If the active communications method does not support the requested operation,
+or if its driver reports a failure, the function sets
+[`ERR_GENERALFAILURE`](../constants/errors.md#err_generalfailure) in
+[`od_control.od_error`](../control/runtime.md#od_error). Because the function
+has no return value, applications which need to detect failure should set
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_NONE`](../constants/errors.md#err_none) before calling it and inspect the
+field afterward.
 
 ## Example
 

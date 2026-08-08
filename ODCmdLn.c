@@ -108,6 +108,9 @@ static void ODAdvanceToNextArg(INT *pnCurrentArg, INT nArgCount,
 static void ODGetNextArgName(INT *pnCurrentArg, INT nArgCount,
    char *papszArguments[], char *pszString, size_t nStringSize);
 static tCommandLineParameter ODGetCommandLineParameter(char *pszArgument);
+#if defined(ODPLAT_WIN32) || defined(ODPLAT_NIX)
+static BOOL ODParseOpenHandle(const char *pszValue, DWORD_PTR *pdwValue);
+#endif
 
 
 /* Private variables. */
@@ -360,6 +363,7 @@ ODAPIDEF void ODCALL od_parse_cmd_line(INT nArgCount, char *papszArguments[])
             {
                od_control.port = atoi(papszArguments[nCurrentArg]);
             }
+            nForcedPort = od_control.port;
             wPreSetInfo |= PRESET_PORT;
             break;
 
@@ -516,12 +520,34 @@ ODAPIDEF void ODCALL od_parse_cmd_line(INT nArgCount, char *papszArguments[])
             break;
 
          case kParamSocketDescriptor:
-				od_control.od_use_socket = TRUE;
-				/* fall through */
-
          case kParamPortHandle:
             ODAdvanceToNextArg(&nCurrentArg, nArgCount, pszCurrentArg);
+#if defined(ODPLAT_WIN32) || defined(ODPLAT_NIX)
+            {
+               DWORD_PTR dwOpenHandle;
+
+               if(!ODParseOpenHandle(papszArguments[nCurrentArg],
+                  &dwOpenHandle))
+               {
+                  od_control.od_error = ERR_PARAMETER;
+                  break;
+               }
+
+               od_control.od_open_handle = dwOpenHandle;
+               if(ODGetCommandLineParameter(pszCurrentArg)
+                  == kParamSocketDescriptor)
+               {
+                  od_control.od_use_socket = TRUE;
+               }
+            }
+#else
+            if(ODGetCommandLineParameter(pszCurrentArg)
+               == kParamSocketDescriptor)
+            {
+               od_control.od_use_socket = TRUE;
+            }
             od_control.od_open_handle = atoi(papszArguments[nCurrentArg]);
+#endif
             break;
 
          case kParamSilentMode:
@@ -564,6 +590,54 @@ ODAPIDEF void ODCALL od_parse_cmd_line(INT nArgCount, char *papszArguments[])
 }
 
 
+#if defined(ODPLAT_WIN32) || defined(ODPLAT_NIX)
+/* ----------------------------------------------------------------------------
+ * ODParseOpenHandle()                                 *** PRIVATE FUNCTION ***
+ *
+ * Converts the unsigned decimal representation of a native communications
+ * object without narrowing it through INT. This interface is meaningful only
+ * on platforms which can adopt such an object.
+ *
+ * Parameters: pszValue  - Pointer to the decimal representation.
+ *
+ *             pdwValue - Receives the converted value on success.
+ *
+ *     Return: TRUE on success or FALSE if the complete string is not a valid
+ *             DWORD_PTR value.
+ */
+static BOOL ODParseOpenHandle(const char *pszValue, DWORD_PTR *pdwValue)
+{
+   DWORD_PTR dwResult = 0;
+   DWORD_PTR dwMaximum = (DWORD_PTR)-1;
+   unsigned int nDigit;
+
+   ASSERT(pszValue != NULL);
+   ASSERT(pdwValue != NULL);
+
+   if(*pszValue == '+')
+      ++pszValue;
+
+   if(*pszValue == '\0')
+      return(FALSE);
+
+   do
+   {
+      if(*pszValue < '0' || *pszValue > '9')
+         return(FALSE);
+
+      nDigit = (unsigned int)(*pszValue - '0');
+      if(dwResult > (dwMaximum - nDigit) / 10)
+         return(FALSE);
+
+      dwResult = dwResult * 10 + nDigit;
+   } while(*++pszValue != '\0');
+
+   *pdwValue = dwResult;
+   return(TRUE);
+}
+#endif
+
+
 /* ----------------------------------------------------------------------------
  * ODAdvanceToNextArg()                                *** PRIVATE FUNCTION ***
  *
@@ -594,18 +668,18 @@ static void ODAdvanceToNextArg(INT *pnCurrentArg, INT nArgCount,
 /* ----------------------------------------------------------------------------
  * ODGetNextArgName()                                  *** PRIVATE FUNCTION ***
  *
- * Obtains a multi-word name from command-line.
+ * Obtains a multi-word value from the parser's argument array.
  *
  * Parameters: pnCurrentArg   - Pointer to integer storing current argument
  *                              number.
  *
- *             nArgCount      - The total number of command-line argument
+ *             nArgCount      - The total number of command-line arguments.
  *
- *             papszArguments - Pointer to array of pointers to string
- *                              arguments, as passed to main() in argv.
+ *             papszArguments - Pointer to array of pointers to the arguments
+ *                              produced for the current platform.
  *
- *             pszString      - Pointer to string in which name will string
- *                              be stored.
+ *             pszString      - Pointer to string in which the value will be
+ *                              stored.
  *
  *             nStringSize    - Size of the string.
  *
@@ -615,6 +689,8 @@ static void ODGetNextArgName(INT *pnCurrentArg, INT nArgCount,
    char *papszArguments[], char *pszString, size_t nStringSize)
 {
    BOOL bFirst = TRUE;
+   size_t nStringLength = 0;
+   char *pszSource;
 
    ASSERT(pnCurrentArg != NULL);
    ASSERT(papszArguments != NULL);
@@ -639,19 +715,17 @@ static void ODGetNextArgName(INT *pnCurrentArg, INT nArgCount,
          break;
       }
 
-      if(strlen(pszString) >= nStringSize - 1)
+      if(!bFirst && nStringLength < nStringSize - 1)
       {
-         break;
+         pszString[nStringLength++] = ' ';
       }
 
-      if(!bFirst)
+      pszSource = papszArguments[*pnCurrentArg];
+      while(*pszSource != '\0' && nStringLength < nStringSize - 1)
       {
-         strcat(pszString, " ");
+         pszString[nStringLength++] = *pszSource++;
       }
-
-      strncat(pszString, papszArguments[*pnCurrentArg],
-         strlen(pszString) - nStringSize - 1);
-      pszString[nStringSize - 1] = '\0';
+      pszString[nStringLength] = '\0';
 
       bFirst = FALSE;
    }

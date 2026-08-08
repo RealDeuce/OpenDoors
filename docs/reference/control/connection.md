@@ -32,9 +32,10 @@ the terminating null byte.
 The application may assign this field before initialization. The
 [`-D`](../api/od_parse_cmd_line.md#recognized-options) and `-DROPFILE`
 command-line options copy their following argument into it, and the
-configuration component's `BBSDir` setting can also assign it. OpenDoors reads
-the field during discovery but does not replace it with the path ultimately
-selected. It may therefore remain empty even when a file was found elsewhere.
+configuration component's `BBSDir` setting can also assign it. Values supplied
+by either interface are truncated to fit the array. OpenDoors reads the field
+during discovery but does not replace it with the path ultimately selected. It
+may therefore remain empty even when a file was found elsewhere.
 
 ### `od_info_type`
 
@@ -154,9 +155,14 @@ options provide the same override.
 
 On DOS and Windows, zero after initialization denotes conventional local mode.
 Unix-like builds may use standard input and output as the session transport
-even for an explicitly local launch; that path assigns a nonzero nominal
-speed. Portable code should use the configured session behavior rather than
-assuming that every Unix terminal with nonzero `baud` is attached to a modem.
+even for an explicitly local launch. When the local-login prompt is used,
+OpenDoors selects [`COM_STDIO`](../constants/session.md#com_stdio) and records
+the terminal's nonzero input speed, or its output speed when no distinct input
+speed is available. POSIX `speed_t` values are translated to numeric BPS. If
+the terminal attributes or speeds are unavailable, the field receives the
+nominal value 19,200. Portable code should use the configured session behavior
+rather than assuming that every Unix terminal with nonzero `baud` is attached
+to a modem.
 
 Door-information parsers populate this field from their reported port speed.
 When a drop file uses `COM0` or another local-mode marker, the result is zero
@@ -200,10 +206,12 @@ by several door-information formats. The static-storage default is zero.
 Most supported drop files populate the field. The [`-P`](../api/od_parse_cmd_line.md#recognized-options)
 and `-PORT` command-line options accept either a zero-based integer or a
 `COMn` spelling and mark the result as an explicit override. An application
-may also assign the field before initialization; however, the legacy direct
-assignment detection treats only nonzero values as overrides. Code which must
-force zero should use the command-line parser or otherwise prevent a drop-file
-value from replacing it.
+may also assign a nonzero value before initialization. Because zero is both
+the static default and the value for `COM1`, use
+[`od_set_port(0)`](../api/od_set_port.md) to make that override explicit. The
+same function may be used for every numbered port from 0 through 255. The -1
+local-port marker continues to be supplied by supported door-information
+formats.
 
 After communications initialization, OpenDoors continues to expose the chosen
 number and uses it when rewriting supported text drop files. Changing it does
@@ -221,16 +229,19 @@ Windows and Unix-like builds, OpenDoors adopts a nonzero value instead of
 opening a numbered serial port itself; it does not close a caller-supplied
 object during normal communications shutdown.
 
-The [`-HANDLE`](../api/od_parse_cmd_line.md#recognized-options) option stores a
-decimal value here. [`-SOCKET`](../api/od_parse_cmd_line.md#recognized-options)
-stores the socket descriptor here and also enables `od_use_socket`. `DOOR.SYS`
-and `DOOR32.SYS` can supply a handle or descriptor in their supported extended
+The [`-HANDLE`](../api/od_parse_cmd_line.md#recognized-options) option accepts
+an unsigned decimal value through the full width of [`DWORD_PTR`](../types.md#dword_ptr).
+[`-SOCKET`](../api/od_parse_cmd_line.md#recognized-options) stores a socket
+descriptor in the same fashion and also enables `od_use_socket`. Invalid or
+out-of-range values leave both fields unchanged and set
+[`od_control.od_error`](runtime.md#od_error) to
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter). `DOOR.SYS` and
+`DOOR32.SYS` can supply a handle or descriptor in their supported extended
 forms.
 
-This is an initialization input and later a report of the adopted value. The
-command-line parser currently obtains it with `atoi()`, even though
-[`DWORD_PTR`](../types.md#dword_ptr) may be wider than `int`; that limitation is described under
-[`od_parse_cmd_line()`](../api/od_parse_cmd_line.md).
+This is an initialization input and later a report of the adopted value. DOS
+does not adopt communications objects through this field; its serial and
+FOSSIL connections use the numbered-port settings.
 
 ### `od_use_socket`
 
@@ -315,8 +326,11 @@ INT16 od_control.od_com_address;
 This optional initialization setting supplies the hexadecimal base I/O
 address of a direct DOS UART. Zero requests the normal address associated with
 the selected port. The `-ADDRESS` command-line option parses hexadecimal, and
-the configuration `PortAddress` keyword supplies the same setting. An
-extended `EXITINFO.BBS` record can also populate it.
+the configuration `PortAddress` keyword supplies the same setting. The
+configuration parser skips leading non-hexadecimal characters and reads the
+first hexadecimal number as a 16-bit value. A setting which contains no
+hexadecimal digits leaves the existing value unchanged. An extended
+`EXITINFO.BBS` record can also populate it.
 
 OpenDoors applies a nonzero value before opening the internal UART. FOSSIL,
 Windows, socket, Door32, and standard-I/O methods do not use it. The library

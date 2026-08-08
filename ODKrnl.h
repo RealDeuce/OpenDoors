@@ -60,6 +60,7 @@ void ODStatStartArrowUse(void);
 void ODStatEndArrowUse(void);
 #ifdef OD_MULTITHREADED
 tODResult ODKrnlStartChatThread(BOOL bTriggeredInternally);
+BOOL ODKrnlChatThreadStartSucceeded(tODResult Result);
 #endif /* OD_MULTITHREADED */
 
 /* Macro used to generate the appropriate code (if any) to call */

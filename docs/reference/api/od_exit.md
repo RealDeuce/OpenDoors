@@ -21,6 +21,18 @@ door-information files, closes the activity log, optionally disconnects the
 caller, shuts down the kernel and communications objects, restores the local
 display, and terminates the process with `nErrorLevel`.
 
+Failure of the activity log's final entry, flush, or close does not prevent the
+remaining shutdown work and does not replace `nErrorLevel`. OpenDoors records
+the logging diagnosis in
+[`od_control.od_error`](../control/runtime.md#od_error) before continuing.
+The same rule applies when a supported door-information file cannot be opened,
+written, flushed, or closed. Failure to open the file records
+[`ERR_FILEOPEN`](../constants/errors.md#err_fileopen); an output or close
+failure records
+[`ERR_GENERALFAILURE`](../constants/errors.md#err_generalfailure). Because the
+text formats are opened in replacement mode and `EXITINFO.BBS` is updated in
+place, a failed rewrite may leave a truncated or partially updated file.
+
 If `bTermCall` is [`TRUE`](../constants/general.md#true), OpenDoors treats the operation as termination of the
 call. For a remote session it waits up to ten seconds for pending output,
 lowers DTR or performs the equivalent disconnect operation supplied by the
@@ -45,8 +57,10 @@ available in that record are copied back. Several supported text formats are
 rewritten from the values retained during initialization and the current
 values in [`od_control`](../control/index.md). Fields which are written for
 each format are identified individually in the control-structure reference.
-The current text-format rewrite paths do not safely report an output-file open
-or write failure; this defect is recorded in `TODO.md`.
+When the system clock is unavailable or has moved backwards, OpenDoors retains
+the existing used-time value. A primitive `EXITINFO.BBS` rewrite also retains
+the time limit read from the BBS rather than deriving an adjustment from an
+invalid elapsed interval; the remaining fields are still rewritten.
 
 Setting [`DIS_INFOFILE`](../constants/session.md#dis_infofile) in
 [`od_control.od_disable`](../control/customization.md#od_disable) before
@@ -55,7 +69,11 @@ file. Setting
 [`od_control.od_noexit`](../control/customization.md#od_noexit) causes
 [`od_exit()`](od_exit.md) to perform the complete OpenDoors shutdown and then return instead
 of terminating the process. In that case OpenDoors is no longer initialized,
-and the application may continue or begin another session deliberately.
+and the application may continue or begin another session deliberately. A
+later initialization rereads the selected configuration file without retaining
+private pending values or an open custom drop-file handle from the preceding
+session; exposed [`od_control`](../control/index.md) fields retain whatever
+values the application leaves in them.
 
 On non-Windows text-mode targets, the local output window is reset to the full
 80-by-25 display and the attribute is reset to grey on black. If

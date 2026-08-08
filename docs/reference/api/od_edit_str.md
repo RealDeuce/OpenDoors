@@ -37,10 +37,14 @@ masks each stored character and spaces fill the unused positions.
 
 Unless [`EDIT_FLAG_SHOW_SIZE`](../constants/input.md#edit_flag_show_size) is
 set, the displayed field includes one extra cursor cell after its maximum
-stored length. The function checks only that `nRow` and `nColumn` are at least
-one; it does not verify that the entire field, including that extra cell, fits
-the active screen. A field which reaches the terminal's last column can wrap
-the cursor, and output at the lower-right cell can scroll the screen.
+stored length. The complete field must fit within the active local or virtual
+screen window, and its trailing working cell must remain before the window's
+last column. OpenDoors reserves that final column because writing it can wrap
+the terminal cursor and writing the lower-right cell can scroll the screen.
+The same placement requirement applies with
+[`EDIT_FLAG_SHOW_SIZE`](../constants/input.md#edit_flag_show_size) and
+[`EDIT_FLAG_NO_REDRAW`](../constants/input.md#edit_flag_no_redraw), since
+editing and exceptional redraw paths can still address the trailing cell.
 
 ## Format string
 
@@ -49,25 +53,36 @@ each position. Format letters are case-insensitive. Unquoted spaces are ignored
 and may be inserted to make a format more readable; they do not occupy field
 positions. At most 80 editable or literal positions may be represented.
 
-| Character | Accepted input and conversion |
-| --- | --- |
-| `#` | Decimal digit `0` through `9` |
-| `%` | Decimal digit or space |
-| `9` | Decimal digit, `.`, `+`, or `-` |
-| `?` | Any input byte not already handled as an editor command |
-| `*` | Any value which the implementation treats as 32 or greater |
-| `A` | ASCII letter or space |
-| `C` | ASCII letter, space, comma, period, `*`, or `?`; word capitalization is applied |
-| `D` | Decimal digit, `-`, or `/` |
-| `F` | ASCII letter or digit, the platform directory separator, or one of `: . ? * # $ & ' ( > - @ _ ! { } ~`; letters are converted to upper case |
-| `H` | Hexadecimal digit `0` through `9`, `A` through `F`, or `a` through `f` |
-| `L` | ASCII letter or space; letters are converted to lower case |
-| `M` | ASCII letter or space; the first letter of each word is upper case and remaining letters are lower case |
-| `T` | Decimal digit, space, `-`, `+`, `(`, or `)` |
-| `U` | ASCII letter or space; letters are converted to upper case |
-| `W` | ASCII letter, the platform directory separator, `:`, `.`, `*`, or `?` |
-| `X` | ASCII letter, decimal digit, or space |
-| `Y` | `Y`, `N`, `y`, or `n`; the stored value is upper case |
+The format character should describe the meaning of the field position, not
+merely the characters which happen to pass validation. For example, `F` is
+intended for a filename or path, while `W` is intended for a filename or path
+pattern containing wildcards.
+
+| Character | Intended input | Accepted input and conversion |
+| --- | --- | --- |
+| `#` | Numeric position | Decimal digit `0` through `9` |
+| `%` | Numeric position which may be blank | Decimal digit or space |
+| `9` | Floating-point number position | Decimal digit, `.`, `+`, or `-` |
+| `?` | Unrestricted position | Any input byte not already handled as an editor command |
+| `*` | Printable-text position | Any value which the implementation treats as 32 or greater |
+| `A` | Alphabetic-text position | ASCII letter or space |
+| `C` | City or location-name position | ASCII letter, space, comma, period, `*`, or `?`; the first letter of each word is converted to upper case and remaining letters to lower case |
+| `D` | Date position | Decimal digit, `-`, or `/` |
+| `F` | Filename or path position | ASCII letter or digit, the platform directory separator, or one of `: . ? * # $ & ' ( > - @ _ ! { } ~`; letters are converted to upper case |
+| `H` | Hexadecimal-number position | Hexadecimal digit `0` through `9`, `A` through `F`, or `a` through `f` |
+| `L` | Lower-case alphabetic position | ASCII letter or space; letters are converted to lower case |
+| `M` | Name position | ASCII letter or space; the first letter of each word is converted to upper case and remaining letters to lower case |
+| `T` | Telephone-number position | Decimal digit, space, `-`, `+`, `(`, or `)` |
+| `U` | Upper-case alphabetic position | ASCII letter or space; letters are converted to upper case |
+| `W` | Wildcard filename or path-pattern position | The same characters accepted by `F`, including `*` and `?`; letter case is retained |
+| `X` | Alphanumeric-text position | ASCII letter, decimal digit, or space |
+| `Y` | Yes-or-no position | `Y`, `N`, `y`, or `n`; the stored value is converted to upper case |
+
+The accepted character sets of `F` and `W` overlap: both currently permit
+`*` and `?`. Their intended uses and conversion differ. Use `F` for ordinary
+filename or path input where upper-case storage is wanted. Use `W` for a file
+selection pattern, such as `FILE2.*`, and when the entered letter case should
+be retained.
 
 An otherwise unrecognized unquoted format character behaves like an
 unrestricted editable position in the current implementation. Applications
@@ -148,8 +163,9 @@ Always inspect the result before using the edited value:
 | [`EDIT_RETURN_PREVIOUS`](../constants/input.md#edit_return_previous) | Field mode accepted the value and requested the previous field. |
 | [`EDIT_RETURN_NEXT`](../constants/input.md#edit_return_next) | Field mode accepted the value and requested the next field. |
 
-A null input or format pointer, a row or column below one, an empty format, or
-a format representing more than 80 positions returns
+A null input or format pointer, a row or column below one, an empty format, a
+format representing more than 80 positions, or a field which does not fit the
+active screen as described above returns
 [`EDIT_RETURN_ERROR`](../constants/input.md#edit_return_error) and sets
 [`od_control.od_error`](../control/runtime.md#od_error) to
 [`ERR_PARAMETER`](../constants/errors.md#err_parameter).

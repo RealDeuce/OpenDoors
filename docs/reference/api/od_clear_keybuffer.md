@@ -23,10 +23,8 @@ that field is zero, OpenDoors uses its default queue size.
 
 [`od_clear_keybuffer()`](od_clear_keybuffer.md) first gives the OpenDoors kernel an opportunity to move
 newly received input into the common queue. It then empties that queue. In a
-remote session it also asks the active communications method to discard bytes
-which remain in its inbound buffer. Some non-serial methods do not provide a
-separate clear operation; the public function does not report that
-method-specific result.
+remote session, OpenDoors also discards pending contents from any distinct
+inbound buffer maintained by the active communications method.
 
 Only input which arrived before the buffers were cleared is discarded. Keys
 which arrive afterward remain available to [`od_get_key()`](od_get_key.md),

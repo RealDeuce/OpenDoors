@@ -116,6 +116,7 @@ nav:
           - od_exit: reference/api/od_exit.md
           - od_carrier: reference/api/od_carrier.md
           - od_set_dtr: reference/api/od_set_dtr.md
+          - od_set_port: reference/api/od_set_port.md
           - od_chat: reference/api/od_chat.md
           - od_sleep: reference/api/od_sleep.md
           - od_control_get: reference/api/od_control_get.md

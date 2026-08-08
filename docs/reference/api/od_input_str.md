@@ -21,12 +21,18 @@ existing contents are neither displayed nor edited. `nMaxLength` is the
 largest number of input bytes which can be stored, excluding the terminating
 null byte. The array must therefore provide at least `nMaxLength + 1` bytes.
 
-`chMin` and `chMax` specify the inclusive range of character values which may
-be entered. Characters outside the range are ignored, as are additional
-characters after `nMaxLength` has been reached. Carriage return and line feed
-finish input, and backspace edits input, before the range test is applied;
-those control characters cannot be stored as ordinary data through this
-function.
+`chMin` and `chMax` specify the inclusive range of unsigned byte values which
+may be entered. The entire range from 0 through 255 may be specified,
+including values above 127. Characters outside the range are ignored, as are
+additional characters after `nMaxLength` has been reached. Carriage return and
+line feed finish input, and backspace edits input, before the range test is
+applied; those control characters cannot be stored as ordinary data through
+this function.
+
+Accepted bytes are stored unchanged in the `char` array. On an implementation
+where plain `char` is signed, a stored byte above 127 consequently has a
+negative value when read as `char`; convert it to `unsigned char` when its
+numeric byte value is required.
 
 For example, to accept at most two decimal digits:
 

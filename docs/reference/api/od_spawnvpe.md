@@ -1,6 +1,7 @@
 # `od_spawnvpe()`
 
-Runs a child program with an explicit argument vector and environment.
+Executes a child program with an argument vector and an optional replacement
+environment, searching for the executable when necessary.
 
 ## Synopsis
 
@@ -18,80 +19,89 @@ INT16 od_spawnvpe(INT16 nModeFlag, const char *pszPath,
   [`P_WAIT`](../constants/general.md#p_wait).
 
 `pszPath`
-: Name or path of the executable. Path searching is platform dependent, as
-  described below.
+: Name or path of the executable. If this value does not include a directory,
+  OpenDoors checks the current directory and then the directories named by the
+  current `PATH` environment variable.
 
 `papszArg`
-: Null-terminated array of argument-string pointers. The platform launcher
-  receives this array as the child's argument vector. Supply the executable
-  name in element zero when required by the target program or C runtime.
+: Null-terminated array of argument-string pointers. Supply the executable
+  name in element zero when required by the child program or host C runtime.
 
 `papszEnv`
-: Null-terminated array of `name=value` environment strings, or `NULL` where
-  the target implementation supports inheritance of the current environment.
-  The Unix implementation is an important exception described below.
+: Null-terminated array of `name=value` environment strings to be given to the
+  child. Pass `NULL` to give the child a copy of the current environment.
 
 ## Return value
 
-For [`P_WAIT`](../constants/general.md#p_wait), DOS, DOS32 and Windows return the child result supplied by the
-platform spawn runtime. `-1` reports a launch failure. The public return type
-is [`INT16`](../types.md#int16), so a wider native result is narrowed.
+With [`P_WAIT`](../constants/general.md#p_wait), the function returns `-1` if
+the child could not be launched. Otherwise, it returns the exit status supplied
+by the child process. The public return type is
+[`INT16`](../types.md#int16), so a wider native result is narrowed.
 
-For [`P_NOWAIT`](../constants/general.md#p_nowait), the result is platform specific. The Microsoft runtime returns
-a process handle, which is narrowed to [`INT16`](../types.md#int16) by this interface. The current
-Unix implementation returns zero after calling `fork()`; it does not return a
-process ID and also returns zero if `fork()` fails.
+With [`P_NOWAIT`](../constants/general.md#p_nowait), `-1` reports that the
+asynchronous child could not be launched. Any other value reports a successful
+launch. The successful value is platform dependent and must not be treated as
+a portable process identifier.
 
 ## Description
 
-[`od_spawnvpe()`](od_spawnvpe.md) is the vector-and-environment form of
-[`od_spawn()`](od_spawn.md). Before a waited-for launch, OpenDoors drains
-pending output, suspends the communications/kernel resources which cannot
-remain active across the child, and saves the DOS local screen where
-applicable. After the child finishes it reopens those resources, clears stale
-input, restores the DOS screen and current directory, and adjusts the caller's
+[`od_spawnvpe()`](od_spawnvpe.md) is the full-featured counterpart of
+[`od_spawn()`](od_spawn.md). It accepts an argument vector, can replace the
+child's environment, searches for an executable named without a directory, and
+returns the child's exit status when called with
+[`P_WAIT`](../constants/general.md#p_wait).
+
+Before a waited-for launch, OpenDoors drains pending output and suspends the
+communications and kernel resources which cannot remain active across the
+child. On platforms with a local screen, it preserves the screen state as
+described below. After the child finishes, OpenDoors reopens those resources,
+clears stale input, restores the saved local state, and adjusts the caller's
 remaining-time accounting according to
 [`od_spawn_freeze_time`](../control/customization.md#od_spawn_freeze_time).
 
-The executable and environment rules are not uniform:
+The strings in `papszArg` become the child's argument vector in the same order.
+The strings in a non-null `papszEnv` become the complete child environment;
+they are not additions to the current environment. Each environment entry must
+have the form `name=value`, and the final array element must be `NULL`.
 
-- On 16-bit DOS, OpenDoors searches the current directory and `PATH`. If the
-  supplied name has no extension, it tries `.COM` and then `.EXE`. A null
-  `papszEnv` inherits the parent DOS environment. DOS32 delegates the actual
-  launch to the Open Watcom `spawnvpe()` runtime after applying the same
-  OpenDoors wait-only and screen/session handling.
-- On Windows, OpenDoors calls the Microsoft-compatible `_spawnvpe()` runtime.
-  Its normal `PATH`, suffix, argument-vector, and null-environment rules apply.
-- On Unix-like targets, the child calls `execve()` with `pszPath`, `papszArg`,
-  and `papszEnv` exactly as supplied. There is no `PATH` search. OpenDoors does
-  not substitute the process `environ` array when `papszEnv` is `NULL`; an
-  application which wants inheritance must pass `environ` itself. With
-  [`P_NOWAIT`](../constants/general.md#p_nowait), OpenDoors also installs a process-wide `SIGCHLD` disposition
-  with the `SIG_IGN` handler and `SA_NOCLDWAIT` flag, so the child is reaped
-  automatically and cannot later be waited for through this interface. Any
-  mode other than [`P_WAIT`](../constants/general.md#p_wait) is treated as [`P_NOWAIT`](../constants/general.md#p_nowait) on this target.
+## Platform notes
 
-The Unix [`P_WAIT`](../constants/general.md#p_wait) implementation has a known process-handling defect. It sets
-the process-wide `SIGCHLD` disposition to `SIG_IGN` before calling `waitpid()`,
-does not check the result of `waitpid()`, and does not restore the previous
-signal disposition. On systems which automatically reap children while
-`SIGCHLD` is ignored, the wait fails and the function inspects an uninitialized
-status value. A failed `fork()` is likewise not detected correctly. Until this
-is corrected, applications must not depend on a meaningful Unix [`P_WAIT`](../constants/general.md#p_wait)
-result from this function.
-
-On 16-bit DOS and DOS32, a mode other than [`P_WAIT`](../constants/general.md#p_wait) returns `-1` and sets
+On 16-bit DOS and DOS32, only [`P_WAIT`](../constants/general.md#p_wait) is
+valid. A different mode returns `-1` and sets
 [`od_control.od_error`](../control/runtime.md#od_error) to
-[`ERR_PARAMETER`](../constants/errors.md#err_parameter). Allocation of the DOS
-screen or directory buffers can fail with
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter). OpenDoors saves the
+80-by-25 local screen and current directory around the child. If an executable
+name has no extension, the 16-bit DOS launcher tries `.COM` and then `.EXE`;
+DOS32 delegates the launch to the Open Watcom runtime. The 16-bit build can
+also swap the door to EMS or disk while the child is running.
+
+On Windows, OpenDoors delegates process creation and executable lookup to the
+Microsoft-compatible `_spawnvpe()` runtime. A successful
+[`P_NOWAIT`](../constants/general.md#p_nowait) value originates as a native
+process handle, but the public interface narrows it to
+[`INT16`](../types.md#int16); portable code must use it only as a success
+result. A waited-for child is accompanied by a local "Running sub-program..."
+message.
+
+On Unix-like targets, executable names do not receive DOS `.COM` or `.EXE`
+suffixes. A bare name is checked in the current directory and then in the
+current `PATH`; a name containing `/` is used directly. Failure of the final
+execution attempt is returned as `-1` with its error in `errno`. For
+[`P_NOWAIT`](../constants/general.md#p_nowait), OpenDoors uses a double fork
+and reaps the intermediate process, so the asynchronous process cannot leave a
+zombie owned by the door. This operation does not change the application's
+`SIGCHLD` disposition, and a successful asynchronous launch returns zero.
+
+Allocation of the DOS screen or directory buffers can fail with
 [`ERR_MEMORY`](../constants/errors.md#err_memory). Other native launch failures
 are represented by the return value and the platform runtime's error state;
-this function does not translate every native failure into [`od_error`](../control/runtime.md#od_error).
+this function does not translate every native failure into
+[`od_control.od_error`](../control/runtime.md#od_error).
 
 ## Example
 
-This example supplies a complete vector and inherits the current environment
-on the platforms which implement null-environment inheritance:
+This example searches for `TEST.EXE`, supplies two arguments, and gives the
+child a copy of the current environment:
 
 ```c
 const char *args[] = { "TEST.EXE", "--check", NULL };
@@ -102,10 +112,6 @@ if(result == -1)
 else
     od_printf("TEST.EXE returned %d\n\r", (int)result);
 ```
-
-On Unix-like targets, use an executable path containing a slash and pass an
-environment array, for example the process's `environ`, instead of using the
-example's null `papszEnv`.
 
 ## See also
 

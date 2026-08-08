@@ -1130,18 +1130,30 @@ static BOOL ODDirWinMatchesAttributes(tODDirInfo *pDirInfo);
  *                           are no matching files, ODDirOpen() returns with
  *                           kODRCNoMatch.
  *
- *             nAttributes - One or more of the DIR_ATTRIB_... constants,
- *                           connected by the bitmap-OR (|) operator.
+ *             wAttributes - One or more of the DIR_ATTRIB_... constants,
+ *                           connected by the bitmap-OR (|) operator. Normal
+ *                           files are always included. DIR_ATTRIB_HIDDEN,
+ *                           DIR_ATTRIB_SYSTEM, DIR_ATTRIB_LABEL, and
+ *                           DIR_ATTRIB_DIREC include those entry types.
+ *                           DIR_ATTRIB_RDONLY and DIR_ATTRIB_ARCH do not
+ *                           affect matching.
  *
  *             phDir       - Pointer to a tODDirHandle, into which ODDirOpen()
  *                           will place a valid directory handle if and only
  *                           if it returns kODRCSuccess.
  *
- *     Return: A tODResult indicating success or reason for failure.
+ *     Return: kODRCSuccess when a matching search is ready, kODRCNoMemory if
+ *             the directory information cannot be allocated, or
+ *             kODRCNoMatch if the platform search fails or finds no paths.
+ *             UNIX path-expansion storage and Windows search handles are
+ *             released before a failed setup returns.
  */
 tODResult ODDirOpen(CONST char *pszPath, WORD wAttributes, tODDirHandle *phDir)
 {
    tODDirInfo *pDirInfo;
+#ifdef ODPLAT_NIX
+   INT nGlobResult;
+#endif
 
    ASSERT(pszPath != NULL);
    ASSERT(phDir != NULL);
@@ -1192,6 +1204,7 @@ tODResult ODDirOpen(CONST char *pszPath, WORD wAttributes, tODDirHandle *phDir)
       {
          /* If unable to find matching directory entry, then release       */
          /* structure, return indicating that there are no matching files. */
+         FindClose(pDirInfo->hWindowsDir);
          free(pDirInfo);
          return(kODRCNoMatch);
       }
@@ -1199,10 +1212,12 @@ tODResult ODDirOpen(CONST char *pszPath, WORD wAttributes, tODDirHandle *phDir)
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   if(glob(pszPath,GLOB_NOSORT,NULL,&(pDirInfo->g)))
-      return(kODRCNoMatch);
-   if(pDirInfo->g.gl_pathc==0)  {
-      globfree(&(pDirInfo->g));
+   memset(&pDirInfo->g, 0, sizeof(pDirInfo->g));
+   nGlobResult = glob(pszPath, GLOB_NOSORT, NULL, &pDirInfo->g);
+   if(nGlobResult != 0 || pDirInfo->g.gl_pathc == 0)
+   {
+      globfree(&pDirInfo->g);
+      free(pDirInfo);
       return(kODRCNoMatch);
    }
    pDirInfo->pos=0;
@@ -1219,6 +1234,29 @@ tODResult ODDirOpen(CONST char *pszPath, WORD wAttributes, tODDirHandle *phDir)
 
 
 /* ----------------------------------------------------------------------------
+ * ODDirAttributesMatch()                             *** PRIVATE FUNCTION ***
+ *
+ * Applies the attribute-selection rules used by the DOS find-first service.
+ *
+ * Parameters: wEntryAttributes  - Attributes of the directory entry.
+ *
+ *             wSearchAttributes - Attributes included in the search.
+ *
+ *     Return: TRUE if the entry is included, or FALSE otherwise.
+ */
+BOOL ODDirAttributesMatch(WORD wEntryAttributes, WORD wSearchAttributes)
+{
+   WORD wSelectiveAttributes;
+
+   wSelectiveAttributes = wEntryAttributes
+      & (DIR_ATTRIB_HIDDEN | DIR_ATTRIB_SYSTEM | DIR_ATTRIB_LABEL
+         | DIR_ATTRIB_DIREC);
+   return((wSelectiveAttributes & wSearchAttributes)
+      == wSelectiveAttributes);
+}
+
+
+/* ----------------------------------------------------------------------------
  * ODDirRead()
  *
  * Reads the next directory entry from an open directory, placing the directory
@@ -1228,11 +1266,16 @@ tODResult ODDirOpen(CONST char *pszPath, WORD wAttributes, tODDirHandle *phDir)
  *                         ODDirOpen().
  *
  *             pDirEntry - Pointer to structure into which directory entry
- *                         information should be placed.
+ *                         information should be placed. szFileName receives
+ *                         the entry basename without a directory prefix. On
+ *                         UNIX, wAttributes includes DIR_ATTRIB_DIREC only
+ *                         when the entry is a directory.
  *
- *     Return: A tODResult indicating success or reason for failure. After the
- *             last directory entry has been read, all subsequent calls to
- *             ODDirRead() will return kODRCEndOfFile.
+ *     Return: A tODResult indicating success or reason for failure. On UNIX,
+ *             entries whose metadata cannot be read are skipped. Exhausting
+ *             the directory search, including skipped or filtered entries,
+ *             marks the search complete. That call and all subsequent calls
+ *             return kODRCEndOfFile.
  */
 tODResult ODDirRead(tODDirHandle hDir, tODDirEntry *pDirEntry)
 {
@@ -1243,6 +1286,8 @@ tODResult ODDirRead(tODDirHandle hDir, tODDirEntry *pDirEntry)
 #endif /* ODPLAT_WIN32 */
 #ifdef ODPLAT_NIX
    struct stat st;
+   CONST char *pszPath;
+   CONST char *pszBaseName;
 #endif
    
    ASSERT(pDirEntry != NULL);
@@ -1325,39 +1370,57 @@ tODResult ODDirRead(tODDirHandle hDir, tODDirEntry *pDirEntry)
       &wDOSTime);
    pDirEntry->LastWriteTime = DOSToCTime(wDOSDate, wDOSTime);
 
-   /* Find next matching entry, if any. */
-   do
+   /* Find the next entry accepted by the attribute filter. If the search is */
+   /* exhausted while filtering entries, mark it complete immediately.      */
+   for(;;)
    {
       if(!FindNextFile(pDirInfo->hWindowsDir, &pDirInfo->WindowsDirEntry))
       {
          pDirInfo->bEOF = TRUE;
+         break;
       }
-   } while(!ODDirWinMatchesAttributes(pDirInfo));
+      if(ODDirWinMatchesAttributes(pDirInfo))
+      {
+         break;
+      }
+   }
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   while(!pDirInfo->bEOF)  {
-      if(strrchr(pDirInfo->g.gl_pathv[pDirInfo->pos],DIRSEP)==NULL)
-	     strcpy(pDirEntry->szFileName,pDirInfo->g.gl_pathv[pDirInfo->pos]);
-	  else
-	     strcpy(pDirEntry->szFileName,strrchr(pDirInfo->g.gl_pathv[pDirInfo->pos],DIRSEP));
-	  stat(pDirInfo->g.gl_pathv[pDirInfo->pos],&st);
-	  pDirEntry->wAttributes=DIR_ATTRIB_NORMAL;
-	  if(st.st_mode & S_IFDIR)
-	  	 pDirEntry->wAttributes |= DIR_ATTRIB_DIREC;
-	  if(!(st.st_mode & S_IWUSR))
-	  	 pDirEntry->wAttributes |= DIR_ATTRIB_RDONLY;
-	  if(!(st.st_mode & S_IRUSR))
-	  	 pDirEntry->wAttributes |= DIR_ATTRIB_SYSTEM;
-	  pDirEntry->LastWriteTime=st.st_mtime;
-	  pDirEntry->dwFileSize=st.st_size;
-	  pDirInfo->pos++;
-	  if(pDirInfo->pos==pDirInfo->g.gl_pathc)
-	     pDirInfo->bEOF=TRUE;
-	  if(pDirEntry->wAttributes==pDirInfo->wAttributes)
-	     return(kODRCSuccess);
-	  if(pDirInfo->bEOF==TRUE)
-	    return(kODRCEndOfFile);
+   while(!pDirInfo->bEOF)
+   {
+      pszPath = pDirInfo->g.gl_pathv[pDirInfo->pos];
+      ++pDirInfo->pos;
+      if(pDirInfo->pos == pDirInfo->g.gl_pathc)
+         pDirInfo->bEOF = TRUE;
+
+      if(stat(pszPath, &st) != 0)
+      {
+         if(pDirInfo->bEOF)
+            return(kODRCEndOfFile);
+         continue;
+      }
+
+      pszBaseName = strrchr(pszPath, DIRSEP);
+      if(pszBaseName == NULL)
+         pszBaseName = pszPath;
+      else
+         ++pszBaseName;
+      ODStringCopy(pDirEntry->szFileName, pszBaseName, DIR_FILENAME_SIZE);
+      pDirEntry->wAttributes = DIR_ATTRIB_NORMAL;
+      if(S_ISDIR(st.st_mode))
+         pDirEntry->wAttributes |= DIR_ATTRIB_DIREC;
+      if(!(st.st_mode & S_IWUSR))
+         pDirEntry->wAttributes |= DIR_ATTRIB_RDONLY;
+      if(!(st.st_mode & S_IRUSR))
+         pDirEntry->wAttributes |= DIR_ATTRIB_SYSTEM;
+      pDirEntry->LastWriteTime = st.st_mtime;
+      pDirEntry->dwFileSize = st.st_size;
+      if(ODDirAttributesMatch(pDirEntry->wAttributes,
+         pDirInfo->wAttributes))
+         return(kODRCSuccess);
+      if(pDirInfo->bEOF)
+         return(kODRCEndOfFile);
    }
 #endif
 
@@ -1570,7 +1633,7 @@ after_result:
  * ODDirWinMatchesAttributes()                         *** PRIVATE FUNCTION ***
  *
  * Determines whether or not the directory entry pDirInfo->WindowsDirEntry
- * meets the attribute requirements specified in pDirInfo->nAttributes
+ * meets the attribute requirements specified in pDirInfo->wAttributes.
  *
  * Parameters: pDirInfo - Pointer to a directory information structure with
  *                        attribute and directory entry values.
@@ -1579,37 +1642,35 @@ after_result:
  */
 static BOOL ODDirWinMatchesAttributes(tODDirInfo *pDirInfo)
 {
-   if((pDirInfo->WindowsDirEntry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-      && !(pDirInfo->wAttributes & DIR_ATTRIB_DIREC))
-   {
-      return(FALSE);
-   }
+   WORD wEntryAttributes = DIR_ATTRIB_NORMAL;
 
    if((pDirInfo->WindowsDirEntry.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE)
-      && !(pDirInfo->wAttributes & DIR_ATTRIB_ARCH))
+      != 0)
    {
-      return(FALSE);
+      wEntryAttributes |= DIR_ATTRIB_ARCH;
    }
-
    if((pDirInfo->WindowsDirEntry.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)
-      && !(pDirInfo->wAttributes & DIR_ATTRIB_HIDDEN))
+      != 0)
    {
-      return(FALSE);
+      wEntryAttributes |= DIR_ATTRIB_HIDDEN;
    }
-
    if((pDirInfo->WindowsDirEntry.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
-      && !(pDirInfo->wAttributes & DIR_ATTRIB_RDONLY))
+      != 0)
    {
-      return(FALSE);
+      wEntryAttributes |= DIR_ATTRIB_RDONLY;
    }
-
    if((pDirInfo->WindowsDirEntry.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM)
-      && !(pDirInfo->wAttributes & DIR_ATTRIB_SYSTEM))
+      != 0)
    {
-      return(FALSE);
+      wEntryAttributes |= DIR_ATTRIB_SYSTEM;
+   }
+   if((pDirInfo->WindowsDirEntry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+      != 0)
+   {
+      wEntryAttributes |= DIR_ATTRIB_DIREC;
    }
 
-   return(TRUE);
+   return(ODDirAttributesMatch(wEntryAttributes, pDirInfo->wAttributes));
 }
 #endif /* ODPLAT_WIN32 */
 

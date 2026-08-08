@@ -166,6 +166,10 @@ ODAPIDEF void ODCALL od_clr_line(void)
 ODAPIDEF void ODCALL od_set_cursor(INT nRow, INT nColumn)
 {
    static char szControlSequence[40];
+   tODScrnTextInfo TextInfo;
+   tODVScreenInfo SessionInfo;
+   INT nWindowWidth;
+   INT nWindowHeight;
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_set_cursor()");
@@ -179,6 +183,31 @@ ODAPIDEF void ODCALL od_set_cursor(INT nRow, INT nColumn)
    if(nRow < 1 || nColumn < 1)
    {
       od_control.od_error = ERR_PARAMETER;
+      OD_API_EXIT();
+      return;
+   }
+
+   /* Obtain the dimensions of the active output window. */
+   if(ODSessionScreenAvailable())
+   {
+      ODSessionScreenGetInfo(&SessionInfo);
+      nWindowWidth = SessionInfo.winright - SessionInfo.winleft + 1;
+      nWindowHeight = SessionInfo.winbottom - SessionInfo.wintop + 1;
+   }
+   else
+   {
+      ODScrnGetTextInfo(&TextInfo);
+      nWindowWidth = TextInfo.winright - TextInfo.winleft + 1;
+      nWindowHeight = TextInfo.winbottom - TextInfo.wintop + 1;
+   }
+
+   /* Reject positions outside the window, as well as positions which cannot */
+   /* be represented by the single-byte AVATAR cursor-position command.      */
+   if(nColumn > nWindowWidth || nRow > nWindowHeight
+      || (od_control.user_avatar && (nColumn > 255 || nRow > 255)))
+   {
+      od_control.od_error = ERR_PARAMETER;
+      OD_API_EXIT();
       return;
    }
 

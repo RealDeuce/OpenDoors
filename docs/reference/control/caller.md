@@ -139,8 +139,8 @@ INT32 od_control.system_calls;
 This is the BBS-wide call count stored in `EXITINFO.BBS`. It begins at zero and
 is populated only from that format. The RemoteAccess-style DOS status
 personality and the RemoteAccess/QuickBBS display-file substitutions may show
-it; OpenDoors does not increment it. Application changes are written back to
-`EXITINFO.BBS`.
+it as an unsigned decimal count. OpenDoors does not increment it. Application
+changes are written back to `EXITINFO.BBS`.
 
 ### `system_last_caller`
 
@@ -434,7 +434,13 @@ The [`od_control.user_flags`](#user_flags) variable is an array of four sysop de
 char od_control.user_handle[36];
 ```
 
-This variable contains the user's alias or handle name, if any. If the user does not have and alias or handle, this variable will be blank. This variable is only available under systems that produce a CHAIN.TXT, RA 1.00 and later extended EXITINFO.BBS or Wildcat style DOOR.SYS door information file.
+This variable contains the user's alias or handle name, if any. If the user does not have an alias or handle, this variable will be blank. Door-information formats which supply it include `CHAIN.TXT`, RA 1.00 and later extended `EXITINFO.BBS`, and Wildcat-style `DOOR.SYS`.
+
+During a Unix forced-local login, OpenDoors replaces this field with the login
+name from the current user's account record. If that record or its login name
+is unavailable, the existing field is retained. OpenDoors reads the handle for
+status display and writes it back to supported door-information formats. An
+application may supply a value before initialization or change it afterward.
 
 ### `user_homephone`
 
@@ -516,7 +522,13 @@ This variable contains the user's security at login, and can be used to detect c
 char od_control.user_logintime[6];
 ```
 
-This variable contains a string representing the time of day at which the current call to the BBS began. This variable is in the same format as the [`od_control.user_lasttime`](#user_lasttime) variable, which is also described below. This variable is available under systems which produce an EXITINFO.BBS, a Wildcat style DOOR.SYS, or an SFDOORS.DAT file.
+This variable contains the time of day at which the current call to the BBS
+began, in the same 24-hour `"HH:MM"` format as
+[`od_control.user_lasttime`](#user_lasttime). For `SFDOORS.DAT`, line 15 is a
+decimal count of minutes: OpenDoors divides it by 60 for `HH` and uses the
+remainder for `MM`. Thus, a value of 754 becomes `"12:34"`. This variable is
+available under systems which produce an `EXITINFO.BBS`, a Wildcat-style
+`DOOR.SYS`, or an `SFDOORS.DAT` file.
 
 ### `user_logonpassword`
 
@@ -556,7 +568,22 @@ This variable contains a value representing the total number of messages that ha
 char od_control.user_name[36];
 ```
 
-This string contains the name of the user that is currently on- line, and is used by OpenDoors to display the current user name on the status line, and will most likely be used by your door for differentiating among different users. In most cases, you should probably not change the value of this variable, as a user's name does not usually change, and doing so could results in problems when returning to some BBS systems. For an example of using this variable, see the EX_VOTE.C example program. This variable is available under all BBS systems.
+This string contains the name of the user who is currently online. OpenDoors
+uses it on the status line, and a door will commonly use it to distinguish
+among callers. All supported door-information formats provide a caller name.
+The field begins empty when the control structure has static storage and is
+populated during initialization unless the application supplied the session
+information itself.
+
+Forced-local initialization uses the configured sysop name as its initial
+caller name. On Unix, OpenDoors replaces that value with the GECOS name from
+the current user's account record when one is available. If the account record
+or its GECOS string is unavailable, the existing caller name is retained.
+
+In most cases, a door should not change this value because a user's name does
+not normally change and some BBS formats write the modified value back when
+the door exits. For an example of reading this field, see the `EX_VOTE.C`
+example program.
 
 ### `user_net_credit`
 
@@ -689,6 +716,13 @@ INT16 od_control.user_timelimit;
 
 This variable contains the amount of time, in minutes, that the user has left in the door. Note that this value may or may not be equal to the total amount of time that the user has left on the BBS, depending upon whether the BBS or a third-party door manager program only allows a limited amount of time in this door. This variable contains a valid value after [`od_init()`](../api/od_init.md) or some OpenDoors function has been called. OpenDoors uses this variable to keep track of how much time the user has left in the door, and will automatically warn the user when nearly all of his or her time has been used up. OpenDoors will also force the user out of the door when their time in the door has expired. OpenDoors automatically subtracts one minute from this variable every minute that OpenDoors is active, unless chat mode has been activated (in which case the user's time will freeze), and also adjusts the value of this variable when the sysop uses the time adjustment function keys. Hence, you will not normally have any need to alter the value of this variable yourself. However, there may be some cases in which you wish to subtract a penalty or add a bonus to the user's time, such as in a "timebank" door or a door game that permits the user to "gamble time". Depending on which BBS system your door is running under, the value of this variable may or may not effect the user's time left upon return to the BBS. The BBS system will either reset the user's time to the value re-written to the door information file (this variable), or will always subtract the amount of time spent in the door from the user's remaining time.
 
+When rewriting a primitive `EXITINFO.BBS` record, OpenDoors compensates for
+the elapsed time in the door so that only a sysop or application adjustment is
+applied to the time limit stored by the BBS. If the system clock was
+unavailable at initialization or write-back, OpenDoors cannot distinguish
+elapsed time from an adjustment and leaves the record's original time limit
+unchanged. The same fallback applies if the system clock has moved backwards.
+
 This variable is available under all door information file formats.
 
 ### `user_todayk`
@@ -745,8 +779,9 @@ Each element contains the count recorded by `EXITINFO.BBS` for the corresponding
 hour of the day: element 0 covers 00:00 through 00:59, element 1 covers 01:00
 through 01:59, and so forth through element 23. The array is zero-initialized
 and is populated only when OpenDoors reads an `EXITINFO.BBS` record containing
-the traffic log. OpenDoors does not otherwise use these counts; they are
-provided for the application and are included when the record is rewritten.
+the traffic log. OpenDoors does not otherwise use these counts. All 24 values
+are copied back when a standard, RemoteAccess 1.x, QuickBBS 2.75, or
+RemoteAccess 2.x `EXITINFO.BBS` record is rewritten.
 
 ### `timelog_busyperday`
 
@@ -757,9 +792,10 @@ INT16 od_control.timelog_busyperday[7];
 These are the `EXITINFO.BBS` traffic counts for Sunday through Saturday, in
 that order. The array is zero-initialized and unavailable values therefore
 cannot be distinguished from valid zero counts. OpenDoors does not interpret
-the counts. Historic RemoteAccess versions were known not to maintain this
-array consistently, so the presence of an `EXITINFO.BBS` record does not imply
-that nonzero data will be present.
+the counts. All seven values are copied back with the hourly values when a
+supported `EXITINFO.BBS` record is rewritten. Historic RemoteAccess versions
+were known not to maintain this array consistently, so the presence of an
+`EXITINFO.BBS` record does not imply that nonzero data will be present.
 
 ## Extended RemoteAccess identity
 
@@ -1104,6 +1140,9 @@ WORD od_control.user_time_used;
 This field begins with the `elapsed` minutes from `EXITINFO.BBS`; other formats
 leave it zero. During [`od_exit()`](../api/od_exit.md), OpenDoors adds its
 calculated change in used time before rewriting the door-information record.
+If either session timestamp is unavailable, or the system clock has moved
+backwards, OpenDoors cannot calculate that change and retains the existing
+value.
 The terminal-emulation control-code path can also display the current numeric
 value. Applications may read or adjust it, but a zero value is ambiguous when
 no `EXITINFO.BBS` elapsed field was available.

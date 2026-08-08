@@ -66,14 +66,21 @@ when diagnosing relative paths.
 `ERR_FILEOPEN` says that an open or initial file-discovery step failed. The
 current display-file functions do not distinguish a later `fgets()` failure
 from end of file and therefore do not change the error to `ERR_FILEREAD`.
+[`od_exit()`](../api/od_exit.md) assigns `ERR_FILEOPEN` when it cannot open a
+supported text door-information file for rewriting or cannot reopen a binary
+`EXITINFO.BBS` record for updating.
 
 ### `ERR_LIMIT`
 
 An established implementation, platform, or representation limit would be
 exceeded. Current examples include too many registered personalities, a screen
 snapshot whose size cannot be represented, an AVATAR block coordinate above
-255, or formatted output beyond an internal representable size. The command-line
-splitter silently stops at its argument limit and does not set this error.
+255, a file specification longer than 99 characters passed to
+[`od_list_files()`](../api/od_list_files.md), a FILES.BBS filename token longer
+than 79 characters, a FILES.BBS directory component longer than 69 characters,
+an assembled FILES.BBS path longer than 99 characters, or formatted output
+beyond an internal representable size. The command-line splitter silently
+stops at its argument limit and does not set this error.
 
 The limit is not necessarily available system memory. Read the individual
 function reference for the applicable maximum. Repeating the same request
@@ -99,7 +106,15 @@ operations.
 The operation failed but OpenDoors has no more specific public diagnosis. This
 value should be reported together with the function, arguments, platform,
 transport, and any operating-system diagnostic captured at the failure point.
-It is not interchangeable with `ERR_NONE`.
+It is not interchangeable with `ERR_NONE`. In a multithreaded build,
+[`od_chat()`](../api/od_chat.md) assigns this error when the chat thread cannot
+be started. Activity-log shutdown also assigns it when the final entry cannot
+be written or flushed, or when the log stream cannot be closed. An oversized
+configurable final-entry template uses the more specific
+[`ERR_LIMIT`](#err_limit). [`od_exit()`](../api/od_exit.md) assigns
+`ERR_GENERALFAILURE` when output to a supported text door-information file or
+binary `EXITINFO.BBS` record fails, or when either file cannot be closed
+successfully.
 
 ### `ERR_NOTHINGWAITING`
 
