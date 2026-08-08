@@ -723,8 +723,10 @@ jobs:
             build/dos32/*.log
             build/dos32/*PASS.OK
             build/dos32/*FAIL.TXT
+            build/dos32/D32STEP.TXT
             build/dos32a/*.exe
             build/dos32a/*.EXE
             build/dos32a/*.log
             build/dos32a/*PASS.OK
             build/dos32a/*FAIL.TXT
+            build/dos32a/D32STEP.TXT

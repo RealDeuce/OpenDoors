@@ -64,7 +64,7 @@
 #endif
 #ifdef ODPLAT_DOS32
 #include <direct.h>
-#include <i86.h>
+#include "OD32DPMI.h"
 #endif
 #ifdef ODPLAT_NIX
 #include <sys/time.h>
@@ -766,12 +766,7 @@ void ODProcessExit(INT nExitCode)
 #define OD_DOS32_TICKS_PER_DAY 0x001800b0UL
 static DWORD OD32BIOSClock(void)
 {
-   union REGS Registers;
-
-   memset(&Registers, 0, sizeof(Registers));
-   Registers.h.ah = 0;
-   int386(0x1a, &Registers, &Registers);
-   return(((DWORD)Registers.w.cx << 16) | Registers.w.dx);
+   return(*(volatile DWORD *)0x0000046cUL);
 }
 #endif /* ODPLAT_DOS32 */
 
@@ -1029,10 +1024,15 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 #endif /* ODPLAT_DOS */
 
 #ifdef ODPLAT_DOS32
-   /* DPMI hosts disagree on whether simulating INT 2Fh/AX=1680h is safe;
-    * some terminate the client. A zero-duration sleep therefore returns
-    * without attempting a real-mode yield. */
-   if(Milliseconds != 0)
+   if(Milliseconds == 0)
+   {
+      tOD32RealModeRegisters Registers;
+
+      memset(&Registers, 0, sizeof(Registers));
+      Registers.eax = 0x1680;
+      OD32DPMIRealModeInterrupt(0x2f, &Registers);
+   }
+   else
    {
       tODTimer SleepTimer;
 
