@@ -109,7 +109,7 @@ def dos32(args):
             raise SystemExit(
                 f"DOS32 example is missing: {examples_source / name}")
         if b"DOS/32A" not in source.read_bytes():
-            raise SystemExit(f"DOS32 example is not bound with DOS/32A: {source}")
+            raise SystemExit(f"DOS32 example does not embed DOS/32A: {source}")
         shutil.copy2(source, examples / name.upper())
     shutil.copy2(ROOT / "LICENSE", licenses / "OpenDoors.txt")
     shutil.copy2(args.dos32a_license, licenses / "DOS32A.txt")
@@ -124,9 +124,10 @@ def dos32(args):
         "Link lib/ODOOR32R.LIB when compiling with -3r (register calling "
         "convention), or lib/ODOOR32S.LIB when compiling with -3s (stack "
         "calling convention). Do not mix conventions.\n\n"
-        "The example programs use the register convention and have DOS/32A "
-        "bound into each executable. The libraries are also compatible with "
-        "DOS/4GW-style LE executables.\n\n"
+        "The example programs use the register convention and are native "
+        "DOS/32A LX executables with the extender embedded. The libraries "
+        "are validated with both Open Watcom's DOS/4GW and DOS/32A linker "
+        "systems.\n\n"
         "The DOS32 serial implementation supports FOSSIL drivers. Direct UART "
         "access (COM_INTERNAL) is not supported. FOSSIL block transfers use a "
         "DPMI conventional-memory buffer when available and automatically "

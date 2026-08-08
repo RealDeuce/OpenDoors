@@ -716,10 +716,10 @@ jobs:
           test -s build/dos32a/D32SPASS.OK
           test -s build/dos32a/PERSRPAS.OK
           test -s build/dos32a/PERSSPAS.OK
-          bound_count=$(find build/dos32a -maxdepth 1 -type f \
+          embedded_count=$(find build/dos32a -maxdepth 1 -type f \
             \( -iname 'od32test.exe' -o -iname 'ex_*.exe' \) \
             -exec grep -aFl 'DOS/32A' {} \; | wc -l)
-          test "$bound_count" -eq 5
+          test "$embedded_count" -eq 5
 
       - name: Upload OpenDoors DOS32 outputs
         if: always()
@@ -732,12 +732,8 @@ jobs:
             build/dos32/*.log
             build/dos32/*PASS.OK
             build/dos32/*FAIL.TXT
-            build/dos32/D32STEP.TXT
-            build/dos32/FOSSSTEP.TXT
             build/dos32a/*.exe
             build/dos32a/*.EXE
             build/dos32a/*.log
             build/dos32a/*PASS.OK
             build/dos32a/*FAIL.TXT
-            build/dos32a/D32STEP.TXT
-            build/dos32a/FOSSSTEP.TXT

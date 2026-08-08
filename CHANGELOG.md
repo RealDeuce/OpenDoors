@@ -10,8 +10,8 @@ traditional OpenDoors notation.
   and stack-convention libraries.
 - Added DOS/32A- and DOS/4GW-tested runtime, ABI, personality, and FOSSIL
   coverage, including DPMI-buffered block calls with byte-call fallback.
-- Added a DOS32 release SDK containing both libraries and DOS/32A-bound
-  register-convention examples.
+- Added a DOS32 release SDK containing both libraries and native DOS/32A LX
+  register-convention examples with the extender embedded.
 
 ## 6.3.0 - 2026-08-08
 

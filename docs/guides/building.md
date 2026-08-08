@@ -94,6 +94,19 @@ CC=wcl386 cmake -S dos -B build/dos32 -G "Unix Makefiles" \
 cmake --build build/dos32
 ```
 
+This defaults to Open Watcom's `dos4g` linker system and produces
+DOS/4GW-compatible LE executables. For native DOS/32A LX executables with the
+extender embedded, configure a separate directory with:
+
+```sh
+CC=wcl386 cmake -S dos -B build/dos32a -G "Unix Makefiles" \
+  -D CMAKE_SYSTEM_NAME=DOS \
+  -D CMAKE_SYSTEM_PROCESSOR=I386 \
+  -D CMAKE_BUILD_TYPE=Release \
+  -D OPENDOORS_DOS32_EXTENDER=DOS32A
+cmake --build build/dos32a
+```
+
 The build creates two libraries. `ODOOR32R.lib` is for applications compiled
 with Open Watcom's `-3r` register convention; `ODOOR32S.lib` is for the `-3s`
 stack convention. Every object in an application must use the convention
@@ -102,10 +115,11 @@ selects the matching API callback convention from the compiler mode and scopes
 its enumeration and structure layout so unrelated compiler defaults cannot
 change the DOS32 ABI.
 
-The libraries target ordinary 32-bit flat-model LE executables. CI verifies
-them under both DOS/4GW and DOS/32A. Release example executables have DOS/32A
-bound into them and do not require a separate extender file. This product uses
-DOS/32 Advanced DOS Extender technology.
+The libraries target ordinary 32-bit flat-model DOS applications and do not
+fix the executable format or extender. CI links and runs them as both
+DOS/4GW LE and native DOS/32A LX programs. Release example executables use the
+native DOS/32A link system and do not require a separate extender file. This
+product uses DOS/32 Advanced DOS Extender technology.
 
 The 32-bit DOS communication implementation supports
 [`COM_FOSSIL`](../reference/constants/session.md#communication-methods).

@@ -23,31 +23,15 @@ static int Fail(const char *name, int line)
 #define CHECK(file, condition) \
    do { if(!(condition)) return(Fail(file, __LINE__)); } while(0)
 
-static void Checkpoint(const char *stage)
-{
-   FILE *checkpoint = fopen("FOSSSTEP.TXT", "w");
-
-   if(checkpoint != NULL)
-   {
-      fprintf(checkpoint, "%s\n", stage);
-      fclose(checkpoint);
-   }
-}
-
 static int NoFossilTest(void)
 {
    tPortHandle port;
 
-   Checkpoint("allocating port");
    CHECK("NOFSFAIL.TXT", ODComAlloc(&port) == kODRCSuccess);
-   Checkpoint("setting port number");
    CHECK("NOFSFAIL.TXT", ODComSetPort(port, 0) == kODRCSuccess);
-   Checkpoint("selecting FOSSIL method");
    CHECK("NOFSFAIL.TXT",
       ODComSetPreferredMethod(port, kComMethodFOSSIL) == kODRCSuccess);
-   Checkpoint("probing absent FOSSIL");
    CHECK("NOFSFAIL.TXT", ODComOpen(port) != kODRCSuccess);
-   Checkpoint("absent FOSSIL probe returned");
    CHECK("NOFSFAIL.TXT",
       ODComSetPreferredMethod(port, kComMethodUART) == kODRCSuccess);
    CHECK("NOFSFAIL.TXT", ODComOpen(port) == kODRCUnsupported);
@@ -59,7 +43,6 @@ static int NoFossilTest(void)
          fputs("OpenDoors DOS32 absent-FOSSIL test passed\n", sentinel) >= 0);
       CHECK("NOFSFAIL.TXT", fclose(sentinel) == 0);
    }
-   remove("FOSSSTEP.TXT");
    return(0);
 }
 
@@ -75,14 +58,11 @@ static int FossilTest(void)
    tComMethod method;
    tPortHandle port;
 
-   Checkpoint("allocating port");
    CHECK("FOSSFAIL.TXT", ODComAlloc(&port) == kODRCSuccess);
    CHECK("FOSSFAIL.TXT", ODComSetPort(port, 0) == kODRCSuccess);
    CHECK("FOSSFAIL.TXT",
       ODComSetPreferredMethod(port, kComMethodFOSSIL) == kODRCSuccess);
-   Checkpoint("opening installed FOSSIL");
    CHECK("FOSSFAIL.TXT", ODComOpen(port) == kODRCSuccess);
-   Checkpoint("installed FOSSIL opened");
    CHECK("FOSSFAIL.TXT", ODComGetMethod(port, &method) == kODRCSuccess);
    CHECK("FOSSFAIL.TXT", method == kComMethodFOSSIL);
    CHECK("FOSSFAIL.TXT", ODComCarrier(port, &carrier) == kODRCSuccess);
@@ -127,13 +107,11 @@ static int FossilTest(void)
          fputs("OpenDoors DOS32 FOSSIL tests passed\n", sentinel) >= 0);
       CHECK("FOSSFAIL.TXT", fclose(sentinel) == 0);
    }
-   remove("FOSSSTEP.TXT");
    return(0);
 }
 
 int main(int argc, char **argv)
 {
-   Checkpoint("entered main");
    if(argc == 2 && strcmp(argv[1], "nofossil") == 0)
       return(NoFossilTest());
    return(FossilTest());

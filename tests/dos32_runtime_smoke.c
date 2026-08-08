@@ -26,18 +26,6 @@ static int Fail(int line)
 
 #define CHECK(condition) do { if(!(condition)) return(Fail(__LINE__)); } while(0)
 
-static void Checkpoint(const char *stage)
-{
-   FILE *checkpoint;
-
-   checkpoint = fopen("D32STEP.TXT", "w");
-   if(checkpoint != NULL)
-   {
-      fprintf(checkpoint, "%s\n", stage);
-      fclose(checkpoint);
-   }
-}
-
 int main(void)
 {
    const char *spawn_arguments[] = {"OD32CHLD.EXE", NULL};
@@ -50,7 +38,6 @@ int main(void)
    tODTimer timer;
    FILE *sentinel;
 
-   Checkpoint("entered main");
    od_control.od_force_local = TRUE;
    od_control.od_silent_mode = TRUE;
    od_control.od_disable |= DIS_NAME_PROMPT;
@@ -66,16 +53,11 @@ int main(void)
    CHECK(large_block[256U * 1024U - 1U] == 0x5a);
    free(large_block);
 
-   Checkpoint("large allocation passed");
    ODTimerStart(&timer, 20);
-   Checkpoint("timer started");
    ODTimerWaitForElapse(&timer);
-   Checkpoint("timer wait returned");
    CHECK(ODTimerElapsed(&timer));
-   Checkpoint("timer elapsed check passed");
    od_sleep(0);
 
-   Checkpoint("zero-duration sleep returned");
    memset(current_directory, 0, sizeof(current_directory));
    ODDirGetCurrent(current_directory, sizeof(current_directory));
    CHECK(current_directory[0] != '\0');
@@ -90,7 +72,6 @@ int main(void)
    ODDirClose(directory);
    CHECK(ODFileDelete("D32DIR.TMP") == kODRCSuccess);
 
-   Checkpoint("directory operations passed");
    od_control.baud = 1;
    od_control.user_screenwidth = 255;
    od_control.user_screen_length = 129;
@@ -107,22 +88,16 @@ int main(void)
    ODSessionScreenShutdown();
    od_control.baud = 0;
 
-   Checkpoint("virtual screen operations passed");
-   Checkpoint("calling child process");
    CHECK(od_spawnvpe(P_WAIT, "OD32CHLD.EXE", spawn_arguments, NULL) == 0);
-   Checkpoint("child process returned");
    sentinel = fopen("D32CHILD.OK", "r");
    CHECK(sentinel != NULL);
    CHECK(fclose(sentinel) == 0);
    CHECK(ODFileDelete("D32CHILD.OK") == kODRCSuccess);
-   Checkpoint("calling od_exit");
    od_exit(0, FALSE);
 
-   Checkpoint("od_exit returned");
    sentinel = fopen("D32PASS.OK", "w");
    CHECK(sentinel != NULL);
    CHECK(fputs("OpenDoors DOS32 runtime tests passed\n", sentinel) >= 0);
    CHECK(fclose(sentinel) == 0);
-   remove("D32STEP.TXT");
    return(0);
 }

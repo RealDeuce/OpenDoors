@@ -22,8 +22,9 @@ See the repository `CHANGELOG.md` and the online versioning guide for details.
 - DOS large-model SDKs are supplied for Open Watcom and Turbo C 2.01. The
   Turbo C compiler is not redistributed.
 - The Open Watcom 32-bit DOS SDK contains `-3r` and `-3s` flat-model libraries
-  plus DOS/32A-bound `-3r` examples. The libraries are also tested with
-  DOS/4GW. This product uses DOS/32 Advanced DOS Extender technology.
+  plus native DOS/32A LX `-3r` examples with the extender embedded. The
+  libraries are tested with both the DOS/4GW and DOS/32A linker systems. This
+  product uses DOS/32 Advanced DOS Extender technology.
 - Reference documentation and example/personality source are supplied in one
   platform-neutral offline bundle.
 

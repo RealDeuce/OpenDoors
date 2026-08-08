@@ -127,11 +127,16 @@ CC=wcl386 cmake -S dos -B build/dos32 -G "Unix Makefiles" \
 cmake --build build/dos32
 ```
 
+The default links DOS/4GW-compatible LE executables. To link native DOS/32A
+LX executables with the extender embedded, add
+`-D OPENDOORS_DOS32_EXTENDER=DOS32A` and use a separate build directory.
+
 This produces `ODOOR32R.lib` for Open Watcom's `-3r` register convention and
 `ODOOR32S.lib` for its `-3s` stack convention. The DOS32 examples use `-3r`.
-CI runs both library conventions with DOS/4GW and DOS/32A, and exercises the
-FOSSIL serial path through a DPMI conventional-memory buffer. Direct UART
-access is not supported on the flat-model target.
+CI builds and runs both library conventions with the native DOS/4GW and
+DOS/32A linker systems, and exercises the FOSSIL serial path through a DPMI
+conventional-memory buffer. Direct UART access is not supported on the
+flat-model target.
 
 ## Legacy builds
 
