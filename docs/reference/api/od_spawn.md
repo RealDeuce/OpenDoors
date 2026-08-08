@@ -10,8 +10,8 @@ BOOL od_spawn(const char *pszCommandLine);
 
 ## Return value
 
-`TRUE` when the platform launcher reports that the command was started;
-`FALSE` when it reports a launch failure. A nonzero child exit status is not
+[`TRUE`](../constants/general.md#true) when the platform launcher reports that the command was started;
+[`FALSE`](../constants/general.md#false) when it reports a launch failure. A nonzero child exit status is not
 uniformly treated as failure, as described below.
 
 ## Description
@@ -40,7 +40,7 @@ operations.
 On the DOS, DOS32 and Windows paths, the user's remaining time normally
 continues to decrease while the child is running. Set
 [`od_control.od_spawn_freeze_time`](../control/customization.md#od_spawn_freeze_time)
-to freeze the caller's time during that period. The Unix `od_spawn()` path
+to freeze the caller's time during that period. The Unix [`od_spawn()`](od_spawn.md) path
 calls `system()` directly and does not apply this accounting option.
 
 The manner in which `pszCommandLine` is interpreted is platform dependent:
@@ -56,17 +56,17 @@ The manner in which `pszCommandLine` is interpreted is platform dependent:
   blocks `SIGALRM`, the signal used by its kernel timer, until `system()`
   returns.
 
-DOS and Windows return `FALSE` only when the spawn runtime returns `-1`; the
+DOS and Windows return [`FALSE`](../constants/general.md#false) only when the spawn runtime returns `-1`; the
 child's own nonzero exit status does not make the call fail. The current Unix
-implementation returns `FALSE` when `system()` returns `-1` or the raw value
+implementation returns [`FALSE`](../constants/general.md#false) when `system()` returns `-1` or the raw value
 127. It does not decode the wait status returned by `system()`. Consequently,
 a shell exit status of 127, and other ordinary nonzero exit statuses, are
-normally reported as `TRUE`. The function does not assign an
+normally reported as [`TRUE`](../constants/general.md#true). The function does not assign an
 [`ERR_*`](../constants/errors.md) value of its own.
 
 ## Examples
 
-Below are a few examples of various uses of the `od_spawn()` function:
+Below are a few examples of various uses of the [`od_spawn()`](od_spawn.md) function:
 
 To run the command processor from within your door program, to allow the sysop access to the DOS shell, simply use the following line of code:
 
@@ -74,7 +74,7 @@ To run the command processor from within your door program, to allow the sysop a
 od_spawn(getenv("COMSPEC"));
 ```
 
-The following function is an example of using the `od_spawn()` function to call DSZ, allowing the user to download a file. You pass the name of the file that you wish to send to the user. This function will then ask the user what transfer protocol they would like to use, generate the appropriate DSZ command line, and then transmit the file to the user. Note that in order to use a door which implements this function, the external file transfer program "DSZ" must be available in the current search path. As an alternative, you may want to allow the sysop to specify the location of the DSZ file from within a configuration program. If you wish to receive a file (allow the user to upload), instead of sending one, simply change the "s" in the command line to a "r".
+The following function is an example of using the [`od_spawn()`](od_spawn.md) function to call DSZ, allowing the user to download a file. You pass the name of the file that you wish to send to the user. This function will then ask the user what transfer protocol they would like to use, generate the appropriate DSZ command line, and then transmit the file to the user. Note that in order to use a door which implements this function, the external file transfer program "DSZ" must be available in the current search path. As an alternative, you may want to allow the sysop to specify the location of the DSZ file from within a configuration program. If you wish to receive a file (allow the user to upload), instead of sending one, simply change the "s" in the command line to a "r".
 
 ```c
 BOOL download(const char *filename)

@@ -21,7 +21,7 @@ number of events configured by
 [`od_control.od_in_buf_size`](../control/customization.md#od_in_buf_size); when
 that field is zero, OpenDoors uses its default queue size.
 
-`od_clear_keybuffer()` first gives the OpenDoors kernel an opportunity to move
+[`od_clear_keybuffer()`](od_clear_keybuffer.md) first gives the OpenDoors kernel an opportunity to move
 newly received input into the common queue. It then empties that queue. In a
 remote session it also asks the active communications method to discard bytes
 which remain in its inbound buffer. Some non-serial methods do not provide a

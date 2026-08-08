@@ -14,7 +14,7 @@ N/A
 
 ## Description
 
-`od_set_attrib()` selects the attribute used for subsequently displayed text
+[`od_set_attrib()`](od_set_attrib.md) selects the attribute used for subsequently displayed text
 and for cells cleared by OpenDoors. `nColor` is normally a value from 0 through
 255 containing the traditional IBM-PC text attribute:
 
@@ -41,7 +41,7 @@ value differs from the value recorded in
 [`od_control.od_full_color`](../control/customization.md#od_full_color) is
 enabled. In ANSI mode it emits only the reset, intensity, blink, foreground,
 and background parameters needed to reach the new value. Enabling
-`od_full_color` causes a complete ANSI attribute sequence to be sent each
+[`od_full_color`](../control/customization.md#od_full_color) causes a complete ANSI attribute sequence to be sent each
 time. The virtual and local screen attributes are updated to the same byte.
 
 When neither ANSI nor AVATAR operation is available, no attribute is changed

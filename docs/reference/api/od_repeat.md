@@ -14,7 +14,7 @@ N/A
 
 ## Description
 
-`od_repeat()` displays `chValue` exactly `btTimes` times on the current
+[`od_repeat()`](od_repeat.md) displays `chValue` exactly `btTimes` times on the current
 OpenDoors screen and, in a remote session, on the caller's terminal. A count
 of zero has no effect. Since `btTimes` is a [`BYTE`](../types.md#byte), one
 call can request from 0 through 255 copies.

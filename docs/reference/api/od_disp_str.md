@@ -14,7 +14,7 @@ N/A
 
 ## Description
 
-`od_disp_str()` displays every byte preceding the terminating null in
+[`od_disp_str()`](od_disp_str.md) displays every byte preceding the terminating null in
 `pszToDisplay`. In a remote session the string is sent to the caller and
 applied to OpenDoors' virtual session screen; the portion which fits is also
 shown on the local presentation. In local mode it is displayed on the local

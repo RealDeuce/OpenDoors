@@ -11,12 +11,12 @@ BOOL od_puttext(INT nLeft, INT nTop, INT nRight, INT nBottom,
 
 ## Return value
 
-Returns [`TRUE`](../types.md#true-and-false) when the complete rectangle has
-been displayed, or [`FALSE`](../types.md#true-and-false) on failure.
+Returns [`TRUE`](../constants/general.md#true) when the complete rectangle has
+been displayed, or [`FALSE`](../constants/general.md#false) on failure.
 
 ## Description
 
-`od_puttext()` displays a rectangular block of characters and color
+[`od_puttext()`](od_puttext.md) displays a rectangular block of characters and color
 attributes. The block is normally obtained from [`od_gettext()`](od_gettext.md),
 but it may also be constructed by the application.
 
@@ -42,7 +42,7 @@ cells with the cells previously present and transmits only the portions which
 must change. Long runs of unchanged cells are skipped by repositioning the
 remote cursor. Setting
 [`od_control.od_full_put`](../control/customization.md#od_full_put) to
-[`TRUE`](../types.md#true-and-false) disables the comparison and causes all
+[`TRUE`](../constants/general.md#true) disables the comparison and causes all
 cells to be transmitted.
 
 The virtual session screen is not limited by the size of the local console.
@@ -51,7 +51,7 @@ complete rectangle remains available to later OpenDoors screen operations. In
 local mode, the block is copied directly to the local text screen.
 
 Except while it is being used internally by [`od_scroll()`](od_scroll.md),
-`od_puttext()` restores the original cursor position after transmitting the
+[`od_puttext()`](od_puttext.md) restores the original cursor position after transmitting the
 block. It also restores the original display attribute. Direct block output to
 the local text screen does not move the local cursor.
 
@@ -63,7 +63,7 @@ and scrolling commands represent them in single bytes.
 If the entire display and its state are to be retained, use
 [`od_save_screen_ex()`](od_save_screen_ex.md) and
 [`od_restore_screen_ex()`](od_restore_screen_ex.md). The block used by those
-functions is opaque and is not interchangeable with an `od_puttext()` buffer.
+functions is opaque and is not interchangeable with an [`od_puttext()`](od_puttext.md) buffer.
 
 ## Errors
 

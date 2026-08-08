@@ -14,7 +14,7 @@ N/A
 
 ## Description
 
-`od_putch()` applies `chToDisplay` to the current OpenDoors screen and, in a
+[`od_putch()`](od_putch.md) applies `chToDisplay` to the current OpenDoors screen and, in a
 remote session, sends the same byte to the caller. Printable characters are
 displayed at the current cursor position using the current attribute. The
 cursor then advances; output at the end of a row wraps, and output at the end

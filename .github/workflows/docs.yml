@@ -12,8 +12,6 @@ on:
       - 'OpenDoor.h'
       - 'README.md'
       - 'tools/check_api_docs.py'
-      - 'tools/check_manual_docs.py'
-      - 'tools/import_opendoor_manual.py'
       - 'tools/check_version.py'
       - 'VERSION'
       - 'release/examples/**'
@@ -28,8 +26,6 @@ on:
       - 'OpenDoor.h'
       - 'README.md'
       - 'tools/check_api_docs.py'
-      - 'tools/check_manual_docs.py'
-      - 'tools/import_opendoor_manual.py'
       - 'tools/check_version.py'
       - 'VERSION'
       - 'release/examples/**'
@@ -59,7 +55,6 @@ jobs:
       - name: Check API reference coverage
         run: |
           python tools/check_api_docs.py
-          python tools/check_manual_docs.py
           python tools/check_version.py
 
       - name: Build site

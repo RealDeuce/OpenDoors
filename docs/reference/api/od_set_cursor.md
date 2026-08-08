@@ -14,7 +14,7 @@ N/A
 
 ## Description
 
-`od_set_cursor()` moves the cursor to one-based row `nRow` and column
+[`od_set_cursor()`](od_set_cursor.md) moves the cursor to one-based row `nRow` and column
 `nColumn` within the active OpenDoors window. ANSI, AVATAR, or RIP operation
 is required.
 

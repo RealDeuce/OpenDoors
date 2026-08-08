@@ -17,7 +17,7 @@ N/A
 This function initializes OpenDoors. It must be called explicitly if the
 application needs caller or system information before calling another function
 which performs initialization. Otherwise, most OpenDoors functions call
-`od_init()` automatically when first used. A later explicit call returns
+[`od_init()`](od_init.md) automatically when first used. A later explicit call returns
 without repeating initialization.
 
 The settings which control initialization must be assigned first. In
@@ -30,7 +30,7 @@ pure command-line allocation helpers
 that time. [`od_control_get()`](od_control_get.md) merely returns the address of
 [`od_control`](../control/index.md) and does not initialize OpenDoors.
 
-`od_init()` supplies defaults for unset program strings, color names,
+[`od_init()`](od_init.md) supplies defaults for unset program strings, color names,
 configuration keywords, prompts, colors and other customization fields. It
 then runs the enabled configuration and personality components, reads the
 available door-information file, establishes communications, allocates the
@@ -41,7 +41,7 @@ activity log when that component is enabled. The individual
 are unconditional, which preserve a value supplied by the application, and
 which depend upon a particular door-information format.
 
-The `od_init()` function searches for door information at the location in
+The [`od_init()`](od_init.md) function searches for door information at the location in
 [`od_control.info_path`](../control/connection.md#info_path). The value may
 identify a directory to search or a recognized door-information filename. If
 it is empty, OpenDoors searches the current directory. A door which runs with a
@@ -53,7 +53,7 @@ The bit flags in
 [`od_control.od_disable`](../control/customization.md#od_disable) can suppress
 selected initialization and runtime activities. For example,
 [`DIS_INFOFILE`](../constants/session.md#dis_infofile) prevents the
-door-information search. [`od_control.od_force_local`](../control/connection.md#od_force_local)
+door-information search. [`od_control.od_force_local`](../control/customization.md#od_force_local)
 selects local operation without a drop file. The complete meaning and timing of
 each flag is given in the [session constants](../constants/session.md).
 
@@ -66,12 +66,12 @@ initialization error and terminate with the configured value in
 [`od_control.od_errorlevel`](../control/customization.md#od_errorlevel).
 
 Initialization is not reentrant. If an OpenDoors callback is currently active,
-`od_init()` returns without doing anything. Applications must not use such a
+[`od_init()`](od_init.md) returns without doing anything. Applications must not use such a
 return as evidence that initialization completed.
 
 ## Examples
 
-At times, you may wish to write a door program which will require a maintenance utility to be run on a regular basis. For example, a game door may have to have its system files updated on a daily basis, by having a utility program run in a system event each day at midnight. One way of accomplishing this would be to have your door package include two .EXE files, one being the actual door program, and the other being a utility program. However, another option would be to have both the door and maintenance functions to be accessible from a single .EXE file, in order to simplify use of the door for the sysop. In this case, you would want to test the command line to determine whether your program should run in door mode or maintenance mode. You would then only execute the `od_init()` function, along with the rest of your door code, if you program were running in "door mode".
+At times, you may wish to write a door program which will require a maintenance utility to be run on a regular basis. For example, a game door may have to have its system files updated on a daily basis, by having a utility program run in a system event each day at midnight. One way of accomplishing this would be to have your door package include two .EXE files, one being the actual door program, and the other being a utility program. However, another option would be to have both the door and maintenance functions to be accessible from a single .EXE file, in order to simplify use of the door for the sysop. In this case, you would want to test the command line to determine whether your program should run in door mode or maintenance mode. You would then only execute the [`od_init()`](od_init.md) function, along with the rest of your door code, if you program were running in "door mode".
 
 The program below demonstrates one method of doing just this. In this case, the program would include two functions, door(), which would carry out all of the door-related activities, and maint(), which would carry out all of the maintenance-related activities. In this simple example, if the command line includes a "-M" or "/M", the program will run in maintenance mode, otherwise it will run in door mode. Also, if it is running in door mode, the program will take the first command-line parameter, if any, as a path to the location of the door information file.
 

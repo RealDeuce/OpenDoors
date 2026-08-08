@@ -102,7 +102,7 @@ the connection number as a DOS COM port.
 
 No door-information file was selected. This is the expected result in an
 explicit local or application-supplied session, but normally indicates a setup
-problem when the BBS was meant to provide caller data. Inspect `info_path`, the
+problem when the BBS was meant to provide caller data. Inspect [`info_path`](../control/connection.md#info_path), the
 working directory, command-line options, and `DIS_INFOFILE`.
 
 ## Communication methods
@@ -132,7 +132,7 @@ the operating system's normal serial API.
 
 Use the Windows serial communications implementation. The active object is a
 Windows communications handle. OpenDoors either opens the selected `COMn`
-device itself or uses `od_open_handle` when the launcher supplies an existing
+device itself or uses [`od_open_handle`](../control/connection.md#od_open_handle) when the launcher supplies an existing
 handle. It closes handles it opens itself; it does not close a caller-supplied
 handle when the communications object is closed.
 
@@ -141,7 +141,7 @@ handle when the communications object is closed.
 Use the Windows `DOOR32.DLL` interface. OpenDoors loads that DLL, resolves its
 initialize, shutdown, read, write, available-event, and offline-event entry
 points, and uses those callbacks for communications. This is distinct from the
-socket method selected by `od_use_socket`.
+socket method selected by [`od_use_socket`](../control/connection.md#od_use_socket).
 
 ### `COM_SOCKET`
 
@@ -197,7 +197,7 @@ door can use this temporarily when the sysop must not be disturbed.
 
 Paging is available regardless of configured hours. A caller can still cancel
 the page by submitting an empty reason, and the page ends normally if the sysop
-does not answer within `od_page_len` seconds.
+does not answer within [`od_page_len`](../control/customization.md#od_page_len) seconds.
 
 ### `PAGE_USE_HOURS`
 
@@ -221,7 +221,7 @@ od_control.od_disable |= DIS_NAME_PROMPT;
 
 Do not read or rewrite a door-information file. The application or command line
 must supply all connection and caller values needed by the session. This is
-stronger than merely setting `info_path` to an empty string.
+stronger than merely setting [`info_path`](../control/connection.md#info_path) to an empty string.
 
 ### `DIS_CARRIERDETECT`
 

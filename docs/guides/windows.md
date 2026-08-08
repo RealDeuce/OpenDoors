@@ -91,10 +91,10 @@ compatible architectures: a 64-bit process cannot load a 32-bit DLL, and a
 32-bit process cannot load a 64-bit DLL.
 
 When linking `OpenDoors::Static`, the OpenDoors code is incorporated into the
-door executable. CMake propagates the `OD_WIN32_STATIC` definition through the
+door executable. CMake propagates the [`OD_WIN32_STATIC`](../reference/constants/general.md#od_win32_static) definition through the
 target. If a non-CMake build links the static library directly, it must define
-`OD_WIN32_STATIC` while compiling every translation unit which includes
-`OpenDoor.h`; otherwise the header declares imported DLL symbols and the final
+[`OD_WIN32_STATIC`](../reference/constants/general.md#od_win32_static) while compiling every translation unit which includes
+[`OpenDoor.h`](../reference/api/index.md); otherwise the header declares imported DLL symbols and the final
 link will fail or use the wrong linkage attributes.
 
 Use one C runtime model consistently across all static objects in an
@@ -123,7 +123,7 @@ files and network protocols, write a defined byte order, and version records
 whose representation may change.
 
 The public [`tODControl`](../reference/types.md#todcontrol) layout is produced
-by `OpenDoor.h` for the selected compiler; MSVC receives explicit byte packing,
+by [`OpenDoor.h`](../reference/api/index.md) for the selected compiler; MSVC receives explicit byte packing,
 while the header does not apply a universal packed attribute to every Windows
 compiler. Include the header rather than reproducing the layout. An application
 built with a different ABI or architecture must use the matching OpenDoors
@@ -187,7 +187,7 @@ use [`od_save_screen_size()`](../reference/api/od_save_screen_size.md),
 query lets the caller allocate exactly the storage required by the current
 virtual screen and lets restoration validate the snapshot before using it.
 
-[`od_control.od_silent_mode`](../reference/control/customization.md#od_silent_mode)
+[`od_control.od_silent_mode`](../reference/control/runtime.md#od_silent_mode)
 suppresses the normal local user interface. It does not make the remote session
 local, and it does not suppress output to the caller. Conversely,
 [`od_control.od_force_local`](../reference/control/customization.md#od_force_local)
@@ -208,7 +208,7 @@ hand results back to the owner before displaying text or accepting door input.
 This rule prevents output interleaving, input-queue races, callback re-entry,
 and shutdown while another call is active.
 
-Callbacks configured through `od_control` run as part of OpenDoors processing.
+Callbacks configured through [`od_control`](../reference/control/index.md) run as part of OpenDoors processing.
 They should return promptly and must not wait for a background thread which is
 itself waiting to call OpenDoors. A callback that needs lengthy application
 work can record a request for the main loop to handle after the current API call
@@ -234,7 +234,7 @@ the application and constructs its About information.
 accepts an application-provided `HICON`. The application owns the icon and must
 keep it valid while OpenDoors may display it. A resource icon can be loaded
 before initialization with the normal Windows resource APIs. The field exists
-only when `ODPLAT_WIN32` is selected, so portable source must guard direct
+only when [`ODPLAT_WIN32`](../reference/constants/general.md#odplat_win32) is selected, so portable source must guard direct
 access to it.
 
 [`od_control.od_help_callback`](../reference/control/customization.md#od_help_callback)

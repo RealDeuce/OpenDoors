@@ -15,7 +15,7 @@ INT16 od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 : [`P_WAIT`](../constants/general.md#p_wait) waits for the child to finish.
   [`P_NOWAIT`](../constants/general.md#p_nowait) requests asynchronous
   execution on targets which support it. The DOS implementations accept only
-  `P_WAIT`.
+  [`P_WAIT`](../constants/general.md#p_wait).
 
 `pszPath`
 : Name or path of the executable. Path searching is platform dependent, as
@@ -33,18 +33,18 @@ INT16 od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 
 ## Return value
 
-For `P_WAIT`, DOS, DOS32 and Windows return the child result supplied by the
+For [`P_WAIT`](../constants/general.md#p_wait), DOS, DOS32 and Windows return the child result supplied by the
 platform spawn runtime. `-1` reports a launch failure. The public return type
 is [`INT16`](../types.md#int16), so a wider native result is narrowed.
 
-For `P_NOWAIT`, the result is platform specific. The Microsoft runtime returns
-a process handle, which is narrowed to `INT16` by this interface. The current
+For [`P_NOWAIT`](../constants/general.md#p_nowait), the result is platform specific. The Microsoft runtime returns
+a process handle, which is narrowed to [`INT16`](../types.md#int16) by this interface. The current
 Unix implementation returns zero after calling `fork()`; it does not return a
 process ID and also returns zero if `fork()` fails.
 
 ## Description
 
-`od_spawnvpe()` is the vector-and-environment form of
+[`od_spawnvpe()`](od_spawnvpe.md) is the vector-and-environment form of
 [`od_spawn()`](od_spawn.md). Before a waited-for launch, OpenDoors drains
 pending output, suspends the communications/kernel resources which cannot
 remain active across the child, and saves the DOS local screen where
@@ -66,27 +66,27 @@ The executable and environment rules are not uniform:
   and `papszEnv` exactly as supplied. There is no `PATH` search. OpenDoors does
   not substitute the process `environ` array when `papszEnv` is `NULL`; an
   application which wants inheritance must pass `environ` itself. With
-  `P_NOWAIT`, OpenDoors also installs a process-wide `SIGCHLD` disposition
+  [`P_NOWAIT`](../constants/general.md#p_nowait), OpenDoors also installs a process-wide `SIGCHLD` disposition
   with the `SIG_IGN` handler and `SA_NOCLDWAIT` flag, so the child is reaped
   automatically and cannot later be waited for through this interface. Any
-  mode other than `P_WAIT` is treated as `P_NOWAIT` on this target.
+  mode other than [`P_WAIT`](../constants/general.md#p_wait) is treated as [`P_NOWAIT`](../constants/general.md#p_nowait) on this target.
 
-The Unix `P_WAIT` implementation has a known process-handling defect. It sets
+The Unix [`P_WAIT`](../constants/general.md#p_wait) implementation has a known process-handling defect. It sets
 the process-wide `SIGCHLD` disposition to `SIG_IGN` before calling `waitpid()`,
 does not check the result of `waitpid()`, and does not restore the previous
 signal disposition. On systems which automatically reap children while
 `SIGCHLD` is ignored, the wait fails and the function inspects an uninitialized
 status value. A failed `fork()` is likewise not detected correctly. Until this
-is corrected, applications must not depend on a meaningful Unix `P_WAIT`
+is corrected, applications must not depend on a meaningful Unix [`P_WAIT`](../constants/general.md#p_wait)
 result from this function.
 
-On 16-bit DOS and DOS32, a mode other than `P_WAIT` returns `-1` and sets
+On 16-bit DOS and DOS32, a mode other than [`P_WAIT`](../constants/general.md#p_wait) returns `-1` and sets
 [`od_control.od_error`](../control/runtime.md#od_error) to
 [`ERR_PARAMETER`](../constants/errors.md#err_parameter). Allocation of the DOS
 screen or directory buffers can fail with
 [`ERR_MEMORY`](../constants/errors.md#err_memory). Other native launch failures
 are represented by the return value and the platform runtime's error state;
-this function does not translate every native failure into `od_error`.
+this function does not translate every native failure into [`od_error`](../control/runtime.md#od_error).
 
 ## Example
 

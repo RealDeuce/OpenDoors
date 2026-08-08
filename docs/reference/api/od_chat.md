@@ -29,20 +29,20 @@ the remote caller does not end chat.
 On entry, OpenDoors clears
 [`od_control.user_wantchat`](../control/caller.md#user_wantchat), forces a
 status update, and sets
-[`od_control.od_chat_active`](../control/runtime.md#od_chat_active) to `TRUE`.
+[`od_control.od_chat_active`](../control/runtime.md#od_chat_active) to [`TRUE`](../constants/general.md#true).
 It then invokes
 [`od_control.od_cbefore_chat`](../control/customization.md#od_cbefore_chat), if
 one has been installed. The callback may cancel chat by setting
-`od_chat_active` to `FALSE`. Otherwise, OpenDoors displays
+[`od_chat_active`](../control/runtime.md#od_chat_active) to [`FALSE`](../constants/general.md#false). Otherwise, OpenDoors displays
 [`od_control.od_before_chat`](../control/customization.md#od_before_chat) and
 records the chat-start log message when logging is active.
 
 Chat continues until the sysop presses Escape or application code sets
-`od_chat_active` to `FALSE`. During cleanup OpenDoors displays
+[`od_chat_active`](../control/runtime.md#od_chat_active) to [`FALSE`](../constants/general.md#false). During cleanup OpenDoors displays
 [`od_control.od_after_chat`](../control/customization.md#od_after_chat), invokes
 [`od_control.od_cafter_chat`](../control/customization.md#od_cafter_chat),
 records the chat-end log message, restores the display attribute which was
-active on entry, and clears `od_chat_active`.
+active on entry, and clears [`od_chat_active`](../control/runtime.md#od_chat_active).
 
 Multithreaded builds run the same chat processing in a dedicated thread and
 wait for that thread before returning. The current failure path after that

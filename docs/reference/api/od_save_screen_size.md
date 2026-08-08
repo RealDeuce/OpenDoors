@@ -21,7 +21,7 @@ The original [`od_save_screen()`](od_save_screen.md) and
 [`od_restore_screen()`](od_restore_screen.md) interfaces use a fixed historical
 buffer format with four state bytes followed by as many as 25 rows of 80
 character/attribute pairs. They must retain that format for source and binary
-compatibility. `od_save_screen_size()` is the first step in the size-aware
+compatibility. [`od_save_screen_size()`](od_save_screen_size.md) is the first step in the size-aware
 interface used when the current caller's screen may be wider or taller.
 
 The returned size accounts for every character and IBM-PC text attribute on
@@ -38,7 +38,7 @@ In local mode, the active local text-screen dimensions are used.
 Call this function after OpenDoors has been initialized and after the caller's
 screen dimensions have reached their intended values. The result is valid for
 the dimensions in effect at the time of the call. If the session screen is
-later resized, call `od_save_screen_size()` again before taking another
+later resized, call [`od_save_screen_size()`](od_save_screen_size.md) again before taking another
 snapshot.
 
 The snapshot format is opaque. Applications may allocate, retain, and later
@@ -46,7 +46,7 @@ return the buffer to OpenDoors, but must not depend on the size of its header,
 the ordering of fields, or the representation of individual cells. A snapshot
 should be treated as one indivisible binary object.
 
-`od_save_screen_size()` does not alter the screen, move the cursor, transmit
+[`od_save_screen_size()`](od_save_screen_size.md) does not alter the screen, move the cursor, transmit
 output, or allocate the caller's buffer. It initializes OpenDoors if necessary,
 so initialization settings must be assigned before calling it.
 

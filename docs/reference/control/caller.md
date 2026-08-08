@@ -61,7 +61,7 @@ formats can supply them:
 | `user_readthru`, `user_numpages`, `user_wantchat` | Format-specific read, page, and chat status. |
 | `user_menustack`, `user_menustackpointer` | BBS menu return stack. |
 | `user_combinedrecord`, `user_xi_record` | Raw format-specific extension records. |
-| `user_forward_to`, `sysop_next` | Message forwarding and sysop-next flags. |
+| `user_forward_to`, [`sysop_next`](runtime.md#sysop_next) | Message forwarding and sysop-next flags. |
 | `user_emsi_session`, `user_emsi_crtdef`, `user_emsi_protocols` | EMSI session and terminal/protocol descriptions. |
 | `user_emsi_capabilities`, `user_emsi_requests`, `user_emsi_software` | Remaining EMSI negotiation strings. |
 | `user_hold_attr1`, `user_hold_attr2`, `user_hold_len` | Format-specific held-message attributes. |
@@ -484,10 +484,10 @@ INT32 user_credit; /* physical member in tODControl */
 ```
 
 `tODControl` physically contains this member, but after the structure
-declaration `OpenDoor.h` defines the source-compatibility macro
+declaration [`OpenDoor.h`](../api/index.md) defines the source-compatibility macro
 `user_credit` as `user_net_credit`. Consequently, ordinary source such as
 `od_control.user_credit` is preprocessed into
-`od_control.user_net_credit` and does not access this physical `INT32` member.
+`od_control.user_net_credit` and does not access this physical [`INT32`](../types.md#int32) member.
 
 The current drop-file readers and writers do not populate or consume the
 physical member. It remains part of the structure layout for binary
@@ -719,9 +719,9 @@ writes its current value back when updating those records. The public
 compatibility name `user_credit` expands to this member, as do the applicable
 older caller-credit aliases.
 
-The value is a `DWORD` in `tODControl`. Individual legacy records can store a
+The value is a [`DWORD`](../types.md#dword) in `tODControl`. Individual legacy records can store a
 narrower credit field; for example, the primitive `EXITINFO.BBS` writer casts
-the value to `WORD`. A door targeting such a format must not assume that a
+the value to [`WORD`](../types.md#word). A door targeting such a format must not assume that a
 value above 65,535 will survive the write-back conversion.
 
 #### `user_netmailentered`
@@ -889,3 +889,406 @@ unsigned int od_control.user_xi_record;
 ```
 
 This variable contains the number of the user's record in the USERXI.BBS file, if any. This variable is only available under system that produce a Remote Access 1.00 and later style extended door information file.
+
+### Traffic-log fields
+
+#### `timelog_busyperhour`
+
+```c
+INT16 od_control.timelog_busyperhour[24];
+```
+
+Each element contains the count recorded by `EXITINFO.BBS` for the corresponding
+hour of the day: element 0 covers 00:00 through 00:59, element 1 covers 01:00
+through 01:59, and so forth through element 23. The array is zero-initialized
+and is populated only when OpenDoors reads an `EXITINFO.BBS` record containing
+the traffic log. OpenDoors does not otherwise use these counts; they are
+provided for the application and are included when the record is rewritten.
+
+#### `timelog_busyperday`
+
+```c
+INT16 od_control.timelog_busyperday[7];
+```
+
+These are the `EXITINFO.BBS` traffic counts for Sunday through Saturday, in
+that order. The array is zero-initialized and unavailable values therefore
+cannot be distinguished from valid zero counts. OpenDoors does not interpret
+the counts. Historic RemoteAccess versions were known not to maintain this
+array consistently, so the presence of an `EXITINFO.BBS` record does not imply
+that nonzero data will be present.
+
+### Extended RemoteAccess identity
+
+#### `user_org`
+
+```c
+char od_control.user_org[51];
+```
+
+This is the caller's organization from a RemoteAccess 2.x extended
+`EXITINFO.BBS` record, converted from a Pascal string of at most 50 bytes to a
+null-terminated C string. It is empty for formats which do not provide the
+field. OpenDoors does not display or interpret it, but writes an application
+replacement back to a RemoteAccess 2.x record.
+
+#### `user_address`
+
+```c
+char od_control.user_address[3][51];
+```
+
+These are the three postal-address lines in a RemoteAccess 2.x extended
+`EXITINFO.BBS` record. Each source Pascal string can contain at most 50 bytes;
+OpenDoors exposes it as a null-terminated C string. All elements are empty when
+the active format does not supply them. OpenDoors does not otherwise read the
+address and writes all three elements back only to the RemoteAccess 2.x
+record.
+
+#### `user_pwd_crc`
+
+```c
+INT32 od_control.user_pwd_crc;
+```
+
+This is the signed 32-bit `password_crc` value stored in a RemoteAccess 2.x
+extended `EXITINFO.BBS` user record. OpenDoors copies the value without
+calculating, validating, or using it. Its initial zero can be either an
+unavailable value or a value supplied by the BBS; only
+[`od_info_type`](connection.md#od_info_type) establishes whether the RA2 field
+was read. Application changes are written back to that format.
+
+#### `user_logon_pwd_crc`
+
+```c
+INT32 od_control.user_logon_pwd_crc;
+```
+
+This is the RemoteAccess 2.x `logonpasswordcrc` value captured at the start of
+the current BBS session. It permits an application which understands that BBS
+field to compare the login value with [`user_pwd_crc`](#user_pwd_crc).
+OpenDoors does not calculate or compare either checksum. The field begins at
+zero, is populated only by a full RemoteAccess 2.x record, and is written back
+to the same format.
+
+#### `user_last_cost_menu`
+
+```c
+char od_control.user_last_cost_menu[9];
+```
+
+This is the base menu name stored in the RemoteAccess 2.x
+`last_cost_menu` field, exposed as a C string of at most eight bytes plus the
+terminator. It is empty when unavailable. OpenDoors does not use the name and
+writes an application replacement back only to the RemoteAccess 2.x record.
+
+#### `user_menu_cost`
+
+```c
+WORD od_control.user_menu_cost;
+```
+
+This is the unsigned 16-bit RemoteAccess 2.x `menu_cost_per_min` value
+associated with [`user_last_cost_menu`](#user_last_cost_menu). OpenDoors
+preserves the numeric value but does not apply it to time or credit accounting.
+It is zero-initialized and written back only to the full RemoteAccess 2.x
+record.
+
+### Areas, groups, and preferences
+
+#### `user_group`
+
+```c
+WORD od_control.user_group;
+```
+
+This is the caller's RemoteAccess group number. It is populated by
+`EXITINFO.BBS` formats which contain the group field and otherwise remains
+zero. The RemoteAccess personality displays the value on one local status
+screen; the remainder of OpenDoors treats it as application data. On write-back
+to the older record layout it is narrowed to one byte, while the RemoteAccess
+2.x layout retains the full [`WORD`](../types.md#word).
+
+#### `user_msg_area`
+
+```c
+WORD od_control.user_msg_area;
+```
+
+This is the number of the caller's current message area. OpenDoors can obtain
+it from SFDOORS.DAT and from the extended RemoteAccess 1.x and 2.x
+`EXITINFO.BBS` layouts. It is zero when unavailable. OpenDoors does not use it
+outside door-information input and output; the RemoteAccess 1.x extended
+layout stores only one byte and therefore narrows values above 255.
+
+#### `user_file_area`
+
+```c
+WORD od_control.user_file_area;
+```
+
+This is the number of the caller's current file area. Its sources and
+write-back behavior are the same as [`user_msg_area`](#user_msg_area):
+SFDOORS.DAT and extended RemoteAccess `EXITINFO.BBS`, with a one-byte field in
+the RemoteAccess 1.x extension. OpenDoors otherwise leaves the value for the
+application.
+
+#### `user_file_group`
+
+```c
+WORD od_control.user_file_group;
+```
+
+This is the current file-group number from a full RemoteAccess 2.x extended
+`EXITINFO.BBS` record. It is copied as an unsigned 16-bit value, is not used by
+OpenDoors, and is written back to that record. Zero means either group zero or
+that the active format did not provide the field.
+
+#### `user_msg_group`
+
+```c
+WORD od_control.user_msg_group;
+```
+
+This is the current message-group number from a full RemoteAccess 2.x extended
+`EXITINFO.BBS` record. OpenDoors preserves it as an unsigned 16-bit value but
+does not otherwise read it. It is written back to that format; zero is
+ambiguous when another format is active.
+
+#### `user_protocol`
+
+```c
+char od_control.user_protocol;
+```
+
+This is the single-byte `default_protocol` selector from a RemoteAccess 2.x
+extended `EXITINFO.BBS` record. It is the BBS's protocol-selection character,
+not an OpenDoors enumeration. OpenDoors neither selects a transfer protocol
+from it nor changes it automatically; application changes are written back to
+the same format.
+
+#### `user_last_birthday_check`
+
+```c
+BYTE od_control.user_last_birthday_check;
+```
+
+This is the raw one-byte `last_dob_check` value from RemoteAccess 2.x. The
+current OpenDoors implementation defines no date conversion or constants for
+the field and does not inspect it. It remains zero for other formats and is
+preserved when the RA2 record is rewritten.
+
+#### `user_language`
+
+```c
+BYTE od_control.user_language;
+```
+
+This is the RemoteAccess language-table index from an extended 1.x or 2.x
+`EXITINFO.BBS` record. OpenDoors does not use the index to translate its own
+prompts; an application must select any corresponding strings itself. The
+field begins at zero and is written back to either extended layout.
+
+#### `user_date_format`
+
+```c
+BYTE od_control.user_date_format;
+```
+
+This is the RemoteAccess `dateformat` selector from an extended 1.x or 2.x
+`EXITINFO.BBS` record. OpenDoors copies the one-byte value without interpreting
+or normalizing date strings and supplies no manifest constants for its values.
+It begins at zero and is written back to either extended layout.
+
+#### `user_forward_to`
+
+```c
+char od_control.user_forward_to[36];
+```
+
+This is the RemoteAccess message-forwarding destination, converted from a
+Pascal string of at most 35 bytes. Extended RemoteAccess 1.x and 2.x records
+provide and accept it. OpenDoors does not perform forwarding or validate the
+name; the application receives an empty string when the field is unavailable.
+
+#### `user_expert`
+
+```c
+BOOL od_control.user_expert;
+```
+
+TRIBBS.SYS line 5 supplies [`TRUE`](../constants/general.md#true) when its first character is `Y` and [`FALSE`](../constants/general.md#false)
+otherwise. OpenDoors writes it back as `Y` or `N` when rewriting that format,
+but does not alter menus, prompts, or other behavior in response to the value.
+It remains the static value [`FALSE`](../constants/general.md#false) for formats which do not supply it unless
+the application assigns it.
+
+### IEMSI and held-message data
+
+#### `user_emsi_session`
+
+```c
+BYTE od_control.user_emsi_session;
+```
+
+This is the one-byte IEMSI-session flag supplied by extended RemoteAccess 1.x
+and 2.x `EXITINFO.BBS` records. A nonzero value reports that the BBS had an
+interactive EMSI session; OpenDoors does not establish or negotiate the
+session itself. The value is zero when unavailable and is written back with
+the other extended fields.
+
+#### `user_emsi_crtdef`
+
+```c
+char od_control.user_emsi_crtdef[41];
+```
+
+This is the IEMSI terminal-definition string from extended RemoteAccess
+`EXITINFO.BBS`, converted from a Pascal field of at most 40 bytes. OpenDoors
+does not parse the IEMSI token and writes the C string back to either supported
+extended layout.
+
+#### `user_emsi_protocols`
+
+```c
+char od_control.user_emsi_protocols[41];
+```
+
+This is the IEMSI protocols string from the same extended records. It is a
+null-terminated copy of the BBS's at-most-40-byte Pascal field. OpenDoors does
+not use it for protocol selection.
+
+#### `user_emsi_capabilities`
+
+```c
+char od_control.user_emsi_capabilities[41];
+```
+
+This is the IEMSI capabilities string from the same extended records,
+preserved as at most 40 bytes plus a null terminator. Capability interpretation
+is left to the application; OpenDoors only reads and writes the field.
+
+#### `user_emsi_requests`
+
+```c
+char od_control.user_emsi_requests[41];
+```
+
+This is the IEMSI requests string from the same extended records, converted to
+a null-terminated C string. OpenDoors does not act on the requests.
+
+#### `user_emsi_software`
+
+```c
+char od_control.user_emsi_software[41];
+```
+
+This is the IEMSI client-software identification string from the same extended
+records. It can contain at most 40 bytes before the terminator. OpenDoors does
+not parse it.
+
+#### `user_hold_attr1`
+
+```c
+BYTE od_control.user_hold_attr1;
+```
+
+This is the first raw held-message attribute byte from extended RemoteAccess
+1.x and 2.x `EXITINFO.BBS`. OpenDoors defines no bit masks for it and does not
+inspect it; the value is preserved on write-back.
+
+#### `user_hold_attr2`
+
+```c
+BYTE od_control.user_hold_attr2;
+```
+
+This is the second raw held-message attribute byte. Its availability and
+handling are identical to [`user_hold_attr1`](#user_hold_attr1).
+
+#### `user_hold_len`
+
+```c
+BYTE od_control.user_hold_len;
+```
+
+This is the raw held-message length byte adjacent to the two held-message
+attributes in extended RemoteAccess `EXITINFO.BBS`. OpenDoors copies it but
+does not use it to address or allocate any buffer.
+
+### Session and terminal extensions
+
+#### `user_logindate`
+
+```c
+char od_control.user_logindate[9];
+```
+
+This is the date on which the current BBS session began, from
+`EXITINFO.BBS`, stored as an eight-character string plus its terminator. The
+representation is supplied by the BBS and is normally the same as
+[`user_lastdate`](#user_lastdate). OpenDoors does not parse it and writes a
+replacement back when the active `EXITINFO.BBS` layout supports the field.
+
+#### `user_timeofcreation`
+
+```c
+char od_control.user_timeofcreation[6];
+```
+
+This is the creation time stored in an `EXITINFO.BBS` record, exposed as five
+characters plus a terminator. It normally has the `HH:MM` form used by
+[`user_lasttime`](#user_lasttime). OpenDoors does not parse the string and
+writes it back with supported `EXITINFO.BBS` variants.
+
+#### `user_readthru`
+
+```c
+INT16 od_control.user_readthru;
+```
+
+This is the signed 16-bit `readthru` value from `EXITINFO.BBS`. It is copied
+without interpretation and written back with that record. The field is
+initially zero, and OpenDoors itself does not read it outside the format
+conversion path.
+
+#### `user_time_used`
+
+```c
+WORD od_control.user_time_used;
+```
+
+This field begins with the `elapsed` minutes from `EXITINFO.BBS`; other formats
+leave it zero. During [`od_exit()`](../api/od_exit.md), OpenDoors adds its
+calculated change in used time before rewriting the door-information record.
+The terminal-emulation control-code path can also display the current numeric
+value. Applications may read or adjust it, but a zero value is ambiguous when
+no `EXITINFO.BBS` elapsed field was available.
+
+#### `user_rip`
+
+```c
+BYTE od_control.user_rip;
+```
+
+This Boolean reports whether RIP graphics are active for the caller. Several
+text drop-file formats, custom configuration definitions, QuickBBS and
+RemoteAccess `EXITINFO.BBS` variants can supply it; otherwise it begins as
+[`FALSE`](../constants/general.md#false). [`od_autodetect()`](../api/od_autodetect.md) can set it to [`TRUE`](../constants/general.md#true) after
+a successful RIP probe.
+
+OpenDoors reads this field when selecting RIP-specific clear-screen behavior,
+terminal-emulation commands, status-line indicators, and `.RIP` file handling.
+Application changes take effect immediately and are written back only by
+door-information formats which have a RIP field.
+
+#### `user_rip_ver`
+
+```c
+BYTE od_control.user_rip_ver;
+```
+
+This is the raw RIP version byte supplied by a full RemoteAccess 2.x extended
+`EXITINFO.BBS` record. OpenDoors preserves it on write-back but does not use it
+to select or reject RIP commands; [`user_rip`](#user_rip) is the active-mode
+switch. The field remains zero when the version is unavailable.

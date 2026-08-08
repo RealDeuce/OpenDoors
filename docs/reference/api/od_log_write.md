@@ -10,16 +10,16 @@ BOOL od_log_write(const char *pszMessage);
 
 ## Return value
 
-`TRUE` if logging is disabled or a log stream is available; `FALSE` if
+[`TRUE`](../constants/general.md#true) if logging is disabled or a log stream is available; [`FALSE`](../constants/general.md#false) if
 OpenDoors could not open the configured log file.
 
 ## Description
 
 This function writes an application entry to the OpenDoors activity log. If
-the log has not already been opened, `od_log_write()` first calls
+the log has not already been opened, [`od_log_write()`](od_log_write.md) first calls
 [`od_log_open()`](od_log_open.md). If
 [`od_control.od_logfile_disable`](../control/customization.md#od_logfile_disable)
-is `TRUE`, it performs no file operation and returns `TRUE`.
+is [`TRUE`](../constants/general.md#true), it performs no file operation and returns [`TRUE`](../constants/general.md#true).
 
 To create an entry, pass the text to be written in `pszMessage`. Do not include
 line endings or other control characters. OpenDoors prefixes the message with
@@ -31,14 +31,14 @@ Log file entries do not usually contain periods or other punctuation at the end 
 
 ## Examples
 
-Calling the `od_log_write()` function is as simple as follows:
+Calling the [`od_log_write()`](od_log_write.md) function is as simple as follows:
 
 ```c
 od_log_write("Awarding user 5 additional minutes");
 ```
 
 The current implementation does not check the result of `fprintf()`. Once the
-file has been opened successfully, the function returns `TRUE` even if the
+file has been opened successfully, the function returns [`TRUE`](../constants/general.md#true) even if the
 individual entry could not be written.
 
 ## See also

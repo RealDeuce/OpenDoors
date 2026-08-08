@@ -14,21 +14,21 @@ TRUE if the file was successfully sent FALSE if OpenDoors was unable to send the
 
 ## Description
 
-This powerful function will display any ASCII, ANSI, AVATAR or RIP file. The `od_send_file()` function can be used to display existing BBS text files, such as a "logoff screen", before your door hangs up on the user. You can also make use of the `od_send_file()` function to build many of your door screens as external files. This will allow you to easily create these screens in an ANSI editor program, such as "TheDraw". It will could also optionally allow sysops to customize your door for use on their own BBS.
+This powerful function will display any ASCII, ANSI, AVATAR or RIP file. The [`od_send_file()`](od_send_file.md) function can be used to display existing BBS text files, such as a "logoff screen", before your door hangs up on the user. You can also make use of the [`od_send_file()`](od_send_file.md) function to build many of your door screens as external files. This will allow you to easily create these screens in an ANSI editor program, such as "TheDraw". It will could also optionally allow sysops to customize your door for use on their own BBS.
 
-The `od_send_file()` function is called with the full path and filename of the file you wish to have displayed. Thus, if you wished to send the ANSI file MAINMENU.SCR, you would simply call:
+The [`od_send_file()`](od_send_file.md) function is called with the full path and filename of the file you wish to have displayed. Thus, if you wished to send the ANSI file MAINMENU.SCR, you would simply call:
 
 ```text
 od_send_file("MAINMENU.SCR");
 ```
 
-In many cases, instead of having just one file that you want displayed in particular, you will have several different files, and will want a different one displayed according to the user's graphics mode. For example, you might have the four files, MAINMENU.ASC, MAINMENU.ANS, MAINMENU.AVT and MAINMENU.RIP; the .ASC file containing no special control codes, the .ANS file containing ANSI control codes, the .AVT file containing AVATAR control codes, and the .RIP file containing RIP graphics control codes. In this case, you can have the `od_send_file()` function automatically select the appropriate file according to the user's current display mode, by omitting the extension altogether. Thus, a call to:
+In many cases, instead of having just one file that you want displayed in particular, you will have several different files, and will want a different one displayed according to the user's graphics mode. For example, you might have the four files, MAINMENU.ASC, MAINMENU.ANS, MAINMENU.AVT and MAINMENU.RIP; the .ASC file containing no special control codes, the .ANS file containing ANSI control codes, the .AVT file containing AVATAR control codes, and the .RIP file containing RIP graphics control codes. In this case, you can have the [`od_send_file()`](od_send_file.md) function automatically select the appropriate file according to the user's current display mode, by omitting the extension altogether. Thus, a call to:
 
 ```text
 od_send_file("MAINMENU");
 ```
 
-would cause OpenDoors to automatically send the appropriate file, according to the user's graphics mode settings. When the `od_send_file()` function is used in this "automatic mode" (where you do not specify a filename extension), it will look for one of the four filename extensions listed below.
+would cause OpenDoors to automatically send the appropriate file, according to the user's graphics mode settings. When the [`od_send_file()`](od_send_file.md) function is used in this "automatic mode" (where you do not specify a filename extension), it will look for one of the four filename extensions listed below.
 
 ```text
 +----------------------------------------------------------+
@@ -41,11 +41,11 @@ would cause OpenDoors to automatically send the appropriate file, according to t
 +----------------------------------------------------------+
 ```
 
-If the user has RIP graphics enabled, `od_send_file()` will first search for the .RIP file. If no file exists with the specified filename and a .RIP extension, `od_send_file()` will then search for .AVT, then .ANS, and if not found .ASC. If the user has only ANSI graphics enabled, `od_send_file()` will attempt first to display the .ANS file, and if not found will search for .ASC. In the case that the user is using plain-ASCII mode, this function will attempt only to display the .ASC file.
+If the user has RIP graphics enabled, [`od_send_file()`](od_send_file.md) will first search for the .RIP file. If no file exists with the specified filename and a .RIP extension, [`od_send_file()`](od_send_file.md) will then search for .AVT, then .ANS, and if not found .ASC. If the user has only ANSI graphics enabled, [`od_send_file()`](od_send_file.md) will attempt first to display the .ANS file, and if not found will search for .ASC. In the case that the user is using plain-ASCII mode, this function will attempt only to display the .ASC file.
 
 When displaying a .RIP file to the remote system, OpenDoors will attempt to locate and display a corresponding .AVT/.ANS/.ASC file on the local system. If no such file can be found, a window will be displayed, indicating the name of the .RIP file that is being sent to the remote system. When a .RIP file is being displayed, page pausing is disabled.
 
-When displaying .AVT/.ANS/.ASC files, `od_send_file()` will send any ANSI or AVATAR codes in the file directly to the remote terminal, and interpret them to display on the local screen (regardless of the actual filename extension). This interpretation is accomplished by OpenDoor's built in terminal emulator. The terminal emulator fully supports all ANSI and AVATAR level 0 and level 0+ control codes. The terminal emulator will also translate Remote Access/QuickBBS style control codes, if enabled by setting od_control.od_no_ra_codes to FALSE. The control codes supported by OpenDoors are listed in the chart on the following pages. When these control codes are inserted into the file, OpenDoors will replace them with various pieces of user or system information.
+When displaying .AVT/.ANS/.ASC files, [`od_send_file()`](od_send_file.md) will send any ANSI or AVATAR codes in the file directly to the remote terminal, and interpret them to display on the local screen (regardless of the actual filename extension). This interpretation is accomplished by OpenDoor's built in terminal emulator. The terminal emulator fully supports all ANSI and AVATAR level 0 and level 0+ control codes. The terminal emulator will also translate Remote Access/QuickBBS style control codes, if enabled by setting od_control.od_no_ra_codes to FALSE. The control codes supported by OpenDoors are listed in the chart on the following pages. When these control codes are inserted into the file, OpenDoors will replace them with various pieces of user or system information.
 
 ```text
   +-----------------------------------------------------+
@@ -127,7 +127,7 @@ When displaying .AVT/.ANS/.ASC files, `od_send_file()` will send any ANSI or AVA
 
 ## Examples
 
-For an example of the use of the `od_send_file()` function in displaying a custom door menu, see the EX_VOTE.C example program.
+For an example of the use of the [`od_send_file()`](od_send_file.md) function in displaying a custom door menu, see the EX_VOTE.C example program.
 
 ## Additional details
 
@@ -140,7 +140,7 @@ settings.
 The function returns false with [`ERR_FILEOPEN`](../constants/errors.md) when no
 suitable file can be opened and with [`ERR_PARAMETER`](../constants/errors.md)
 for a null name. The implementation reads display files with `fgets()` and
-treats a failed read like end of file; it does not set `ERR_FILEREAD`.
+treats a failed read like end of file; it does not set [`ERR_FILEREAD`](../constants/errors.md#err_fileread).
 
 ## See also
 

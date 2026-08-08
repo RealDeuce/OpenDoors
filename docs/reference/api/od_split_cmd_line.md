@@ -31,7 +31,7 @@ is valid.
 
 The Windows form of [`od_parse_cmd_line()`](od_parse_cmd_line.md) receives the
 single command-line string passed to `WinMain`, while the other platform forms
-receive the `argc` and `argv` values passed to `main`. `od_split_cmd_line()`
+receive the `argc` and `argv` values passed to `main`. [`od_split_cmd_line()`](od_split_cmd_line.md)
 provides the conversion from a single string to the latter representation. It
 is public so applications which need the same conversion can use OpenDoors'
 rules rather than duplicating them.

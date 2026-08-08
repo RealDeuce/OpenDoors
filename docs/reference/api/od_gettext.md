@@ -11,12 +11,12 @@ BOOL od_gettext(INT nLeft, INT nTop, INT nRight, INT nBottom,
 
 ## Return value
 
-Returns [`TRUE`](../types.md#true-and-false) when the complete rectangle has
-been stored, or [`FALSE`](../types.md#true-and-false) on failure.
+Returns [`TRUE`](../constants/general.md#true) when the complete rectangle has
+been stored, or [`FALSE`](../constants/general.md#false) on failure.
 
 ## Description
 
-`od_gettext()` copies the characters and color attributes in a rectangular
+[`od_gettext()`](od_gettext.md) copies the characters and color attributes in a rectangular
 portion of the current OpenDoors screen into the buffer addressed by
 `pBlock`. The saved rectangle may subsequently be displayed by
 [`od_puttext()`](od_puttext.md).

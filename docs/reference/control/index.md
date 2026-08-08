@@ -39,7 +39,7 @@ format normally retain their initialization value.
 
 The header requests byte alignment for supported Turbo C versions, MSVC, and
 the Open Watcom DOS32 target. Other compilers use the layout produced by their
-normal ABI because `OpenDoor.h` does not apply a universal packed attribute.
+normal ABI because [`OpenDoor.h`](../api/index.md) does not apply a universal packed attribute.
 Do not calculate offsets from this documentation or copy offsets from a
 different compiler, platform, or architecture; bind the current header or use
 a deliberately maintained foreign-function definition for the exact build.

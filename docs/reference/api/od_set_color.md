@@ -14,7 +14,7 @@ N/A
 
 ## Description
 
-`od_set_color()` selects the foreground and background used for subsequently
+[`od_set_color()`](od_set_color.md) selects the foreground and background used for subsequently
 displayed text. It combines both arguments into an IBM-PC attribute and passes
 the result to [`od_set_attrib()`](od_set_attrib.md). ANSI, AVATAR, or RIP
 operation is required for the color change to take effect on the caller's
@@ -41,8 +41,8 @@ The foreground may be any of the following values:
 | [`L_YELLOW`](../constants/colors.md#l_yellow) | Yellow |
 | [`L_WHITE`](../constants/colors.md#l_white) | Bright white |
 
-An ordinary background uses one of the eight `D_*` values. A blinking
-background uses the corresponding `B_*` name:
+An ordinary background uses one of the eight [`D_*`](../constants/colors.md#dark-foreground-colors) values. A blinking
+background uses the corresponding [`B_*`](../constants/colors.md#blinking-background-names) name:
 
 | Ordinary | Blinking |
 | --- | --- |
@@ -55,7 +55,7 @@ background uses the corresponding `B_*` name:
 | [`D_BROWN`](../constants/colors.md#d_brown) | [`B_BROWN`](../constants/colors.md#b_brown) |
 | [`D_GREY`](../constants/colors.md#d_grey) | [`B_GREY`](../constants/colors.md#b_grey) |
 
-The `B_*` values set the traditional IBM-PC blink bit. A modern terminal may
+The [`B_*`](../constants/colors.md#blinking-background-names) values set the traditional IBM-PC blink bit. A modern terminal may
 display that bit as a bright background or may ignore blinking; OpenDoors
 cannot control that terminal preference.
 

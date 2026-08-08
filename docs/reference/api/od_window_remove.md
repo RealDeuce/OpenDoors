@@ -14,17 +14,17 @@ TRUE on success FALSE on failure
 
 ## Description
 
-The `od_window_remove()` function removes a window from the screen which was previously created by [`od_window_create()`](od_window_create.md), and deallocates the memory which was allocated to store the window information. The contents of the screen beneath the window is restored to appear as it did prior to the call to [`od_window_create()`](od_window_create.md). pWinInfo must point to the value returned by [`od_window_create()`](od_window_create.md).
+The [`od_window_remove()`](od_window_remove.md) function removes a window from the screen which was previously created by [`od_window_create()`](od_window_create.md), and deallocates the memory which was allocated to store the window information. The contents of the screen beneath the window is restored to appear as it did prior to the call to [`od_window_create()`](od_window_create.md). pWinInfo must point to the value returned by [`od_window_create()`](od_window_create.md).
 
 Note that overlapping windows must be removed in the reverse order from which they were created for proper display results. The last window to be created must be the first window to be removed.
 
-If `od_window_remove()` fails, it returns
-[`FALSE`](../types.md#true-and-false) and records the reason in
+If [`od_window_remove()`](od_window_remove.md) fails, it returns
+[`FALSE`](../constants/general.md#false) and records the reason in
 [`od_control.od_error`](../control/runtime.md#od_error).
 
 ## Examples
 
-For an example of the use of the `od_window_remove()` function, see the included ex_chat.c example program.
+For an example of the use of the [`od_window_remove()`](od_window_remove.md) function, see the included ex_chat.c example program.
 
 ## Additional details
 

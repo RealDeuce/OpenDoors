@@ -24,7 +24,7 @@ blank response cancels the operation before the availability test, page count,
 log entry, and paging signal are produced.
 
 For a nonblank response, OpenDoors sets
-[`od_control.user_wantchat`](../control/caller.md#user_wantchat) to `TRUE` and
+[`od_control.user_wantchat`](../control/caller.md#user_wantchat) to [`TRUE`](../constants/general.md#true) and
 then applies the policy selected by
 [`od_control.od_okaytopage`](../control/runtime.md#od_okaytopage):
 
@@ -70,7 +70,7 @@ using the documented state and callback interfaces.
 
 ## Examples
 
-For an example of the use of `od_page()`, see the `ex_vote.c` example program
+For an example of the use of [`od_page()`](od_page.md), see the `ex_vote.c` example program
 included with the source distribution.
 
 ## See also

@@ -10,12 +10,12 @@ BOOL od_restore_screen(void *pBuffer);
 
 ## Return value
 
-Returns [`TRUE`](../types.md#true-and-false) when restoration succeeds, or
-[`FALSE`](../types.md#true-and-false) on failure.
+Returns [`TRUE`](../constants/general.md#true) when restoration succeeds, or
+[`FALSE`](../constants/general.md#false) on failure.
 
 ## Description
 
-`od_restore_screen()` clears the current display and restores a screen saved
+[`od_restore_screen()`](od_restore_screen.md) clears the current display and restores a screen saved
 by [`od_save_screen()`](od_save_screen.md). `pBuffer` must contain an unchanged
 legacy snapshot, including its four-byte state header and the saved 80-column
 cell rows. The function cannot determine the size or validity of an arbitrary

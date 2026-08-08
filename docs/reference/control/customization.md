@@ -201,6 +201,181 @@ od_status_on             Controls whether the status line sub- system is active.
 
 od_time_msg_func         Called instead of displaying time limit warning messages.
 
+### Command-line extensions
+
+The command-line extension fields are read only by
+[`od_parse_cmd_line()`](../api/od_parse_cmd_line.md). Because that function is
+normally called before OpenDoors initialization, these fields must be assigned
+before the call.
+
+#### `od_cmd_line_flag_handler`
+
+```c
+BOOL (*od_control.od_cmd_line_flag_handler)(const char *keyword);
+```
+
+This callback receives each command-line argument which is not one of the
+built-in OpenDoors options. The argument is passed exactly as it appears in the
+argument vector, including any leading `-` or `/`. Return [`TRUE`](../constants/general.md#true) to accept the
+argument as a complete flag. Return [`FALSE`](../constants/general.md#false) to let
+[`od_cmd_line_handler`](#od_cmd_line_handler) process it instead. No following
+arguments are consumed when this callback returns [`TRUE`](../constants/general.md#true).
+
+The pointer is initially `NULL`. OpenDoors calls it synchronously and never
+assigns it.
+
+#### `od_cmd_line_handler`
+
+```c
+void (*od_control.od_cmd_line_handler)(char *keyword, char *options);
+```
+
+This compatibility callback handles an unknown command-line keyword not
+accepted by [`od_cmd_line_flag_handler`](#od_cmd_line_flag_handler). `keyword`
+is the original argument. `options` contains the following non-option
+arguments, joined with spaces, up to the next argument beginning with `-` or
+`/`, a recognized OpenDoors option, or the end of the command line. Those
+arguments are consumed by the parser. An unknown keyword without following
+option text produces an empty string when another command-line option follows.
+
+Both pointers refer to temporary parser storage and must not be retained after
+the callback returns. The callback is synchronous, its pointer is initially
+`NULL`, and OpenDoors never assigns it.
+
+#### `od_cmd_line_help_func`
+
+```c
+void (*od_control.od_cmd_line_help_func)(void);
+```
+
+When the parser encounters `-?`, `-H`, or `-HELP`, it invokes this callback in
+place of all built-in command-line help and then terminates the process with
+exit status zero. The callback cannot return control to command-line parsing.
+The pointer is initially `NULL` and is read only by OpenDoors.
+
+#### `od_cmd_line_help`
+
+```c
+const char *od_control.od_cmd_line_help;
+```
+
+If no [`od_cmd_line_help_func`](#od_cmd_line_help_func) is installed, this
+field may point to replacement help text. OpenDoors displays it on standard
+output on non-Windows platforms or in a message box on Win32, then terminates
+the process. A `NULL` pointer selects the built-in help text. OpenDoors reads
+the pointer but does not copy, free, or assign the string.
+
+### General callbacks
+
+#### `od_config_function`
+
+```c
+void (*od_control.od_config_function)(char *keyword, char *options);
+```
+
+This callback extends the optional OpenDoors configuration-file component. It
+is invoked for each nonblank configuration line whose keyword does not match
+an entry in [`od_cfg_text`](#od_cfg_text). `keyword` contains the uppercased
+keyword, truncated to 32 characters; `options` contains the remainder of the
+line after leading and trailing spaces and tabs have been removed. Comments
+begin with a semicolon and are removed before parsing.
+
+The component saves the callback pointer when configuration processing begins,
+so it must be assigned before initialization. Both arguments point into
+temporary mutable parser buffers and must not be retained. The pointer is
+initially `NULL`; OpenDoors reads it but never assigns it.
+
+#### `od_config_callback`
+
+```c
+void (*od_control.od_config_callback)(void);
+```
+
+On Win32, a non-`NULL` pointer retains the application's Config command in the
+local window's Door menu. OpenDoors invokes the callback synchronously when the
+operator chooses that command. If the pointer is `NULL` when the frame window
+is created, OpenDoors removes the menu item; assigning it later does not add
+the item again. Other platforms do not read this field. The pointer is
+initially `NULL` and is never assigned by OpenDoors.
+
+#### `od_help_callback`
+
+```c
+void (*od_control.od_help_callback)(void);
+```
+
+On Win32, a non-`NULL` pointer retains the Contents command in the local
+window's Help menu. OpenDoors invokes the callback synchronously when the
+operator chooses that command. If the pointer is `NULL` when the frame window
+is created, OpenDoors removes the menu item; assigning it later does not add
+the item again. Other platforms do not read this field. The pointer is
+initially `NULL` and is never assigned by OpenDoors.
+
+#### `od_ker_exec`
+
+```c
+void (*od_control.od_ker_exec)(void);
+```
+
+OpenDoors invokes this callback near the beginning of every non-recursive
+[`od_kernel()`](../api/od_kernel.md) execution. It provides a regular service
+point for application work in both single-threaded and multithreaded builds.
+The callback executes synchronously while the kernel is marked active; a
+recursive [`od_kernel()`](../api/od_kernel.md) call returns without invoking it again. The pointer is
+initially `NULL` and is read only by OpenDoors.
+
+#### `od_local_input`
+
+```c
+void (*od_control.od_local_input)(INT16 key);
+```
+
+This callback receives a local operator keystroke which was not consumed by a
+built-in command or an entry in [`od_hot_key`](#od_hot_key). The key uses the
+IBM scan-code/ASCII representation described under [function
+keys](#function-keys). OpenDoors calls the function before placing that same
+key in the common local/remote input queue. Up and Down Arrow are also passed
+to it while an API operation has reserved those keys for ordinary input.
+
+Remote input never invokes this callback. The pointer is initially `NULL` and
+is read only by OpenDoors.
+
+#### `od_no_file_func`
+
+```c
+void (*od_control.od_no_file_func)(void);
+```
+
+OpenDoors invokes this callback when it cannot read any supported
+door-information file. Before the call,
+[`od_info_type`](connection.md#od_info_type) is [`NO_DOOR_FILE`](../constants/session.md#no_door_file). The callback
+may provide a local-login path by setting [`od_force_local`](#od_force_local)
+to [`TRUE`](../constants/general.md#true), or may read another
+format, populate the required control fields, and set [`od_info_type`](connection.md#od_info_type) to
+[`CUSTOM`](../constants/session.md#custom). If neither action supplies sufficient startup information,
+initialization reports that no door-information file could be read and exits.
+
+The callback executes synchronously during initialization. Its pointer is
+initially `NULL` and is read only by OpenDoors.
+
+#### `od_time_msg_func`
+
+```c
+void (*od_control.od_time_msg_func)(char *message);
+```
+
+This callback replaces OpenDoors' normal display of four time-related
+messages: the inactivity warning, inactivity timeout, warning at three, two,
+or one minute remaining, and expiration of the caller's session time. The
+argument is the exact string OpenDoors would otherwise pass to
+[`od_disp_str()`](../api/od_disp_str.md); the remaining-time warning has already
+been formatted with the number of minutes. The storage may be a prompt string
+or an internal work buffer and must not be modified or retained.
+
+The callback changes only how the message is delivered. OpenDoors still
+performs the warning bookkeeping and timeout shutdown. The pointer is initially
+`NULL` and is read only by OpenDoors.
+
 #### `od_app_icon`
 
 ```c
@@ -219,101 +394,139 @@ This variable allows you to specify which character the [`od_draw_box()`](../api
 
 od_box_chars[BOX_UPPERLEFT]  - Upper left corner of box od_box_chars[BOX_TOP]        - Top horizontal line od_box_chars[BOX_UPPERRIGHT] - Upper right corner of box od_box_chars[BOX_LEFT]       - Left Vertical line od_box_chars[BOX_LOWERLEFT]  - Lower left corner of box od_box_chars[BOX_LOWERRIGHT] - Lower right corner of box od_box_chars[BOX_BOTTOM]     - Bottom horizontal line od_box_chars[BOX_RIGHT]      - Right horizontal line
 
-```c
-od_before      void (*od_control.od_before_exit)();
-_exit
-This variable contains a pointer to a function which OpenDoors
-should call prior to exiting, or NULL if you do not wish to have
-any function called at exit time. For an example of the use of
-this variable, see the description of the EX_VOTE.C example
-program, which begins on page 38.
-```
+#### `od_before_exit`
 
 ```c
-od_cafter      void (*od_control.od_cafter_chat)();
-_chat
-The function pointed to by this variable will be called after
-sysop chat mode has ended. This may be useful for allowing you
-to save the user's screen contents prior to chat, and restoring
-the afterwards. If this variable contains its default value of
-NULL, no function will be called. To alter the string of text
-which is displayed after sysop chat, see the
-od_control.od_after_chat variable, which is described in the
-section on the prompts customization portion of the control
-structure.
+void (*od_control.od_before_exit)(void);
 ```
+
+This callback is invoked during [`od_exit()`](../api/od_exit.md), after the
+maximum-door-time deduction has been restored and elapsed time has been
+accounted for, but before OpenDoors displays its shutdown message, closes the
+connection, or rewrites the door-information file. It can therefore perform
+application cleanup and make final changes to fields which must be written
+back to the BBS. The pointer is initially `NULL`; OpenDoors reads it but never
+assigns it.
+
+#### `od_cafter_chat`
 
 ```c
-od_cafter      void (*od_control.od_cafter_shell)();
-_shell
-The function pointed to by this variable will be called after
-the sysop has returned from a DOS shell. If this variable
-contains its default value of NULL, no function will be called.
-To alter the string of text which is displayed after a DOS
-shell, see the od_control.od_after_shell variable, which is
-described in the section on the prompts customization portion of
-the control structure.
+void (*od_control.od_cafter_chat)(void);
 ```
+
+This callback is invoked while chat cleanup is in progress, after
+[`od_after_chat`](#od_after_chat) has been displayed, but before the original
+display attribute is restored and before
+[`od_chat_active`](runtime.md#od_chat_active) is reset to [`FALSE`](../constants/general.md#false). It can
+restore screen contents saved by [`od_cbefore_chat`](#od_cbefore_chat). The
+pointer is initially `NULL` and is read only by OpenDoors.
+
+#### `od_cafter_shell`
 
 ```c
-od_cbefore     void (*od_control.od_cbefore_chat)();
-_chat
-The function pointed to by this variable will be called prior to
-entering sysop chat mode. This may be useful for allowing you to
-save the user's screen contents prior to chat, and restoring the
-afterwards. If this variable contains its default value of NULL,
-no function will be called. To alter the string of text which is
-displayed prior to sysop chat, see the od_control.od_before_chat
-variable, which is described in the section on the prompts
-customization portion of the control structure. To replace the
-OpenDoors sysop chat facility with your own, simply activate
-your chat mode when this function is called. Your chat mode
-facility should remain active until OpenDoors sets the
-od_control.od_chat_active variable to FALSE. If you wish to
-terminate chat mode prior to this variable being set to FALSE,
-you should set this variable to FALSE yourself if you do not
-wish OpenDoors to activate its own chat mode.
+void (*od_control.od_cafter_shell)(void);
 ```
+
+This callback is invoked after the command interpreter returns and after
+OpenDoors displays [`od_after_shell`](#od_after_shell). It can restore screen
+state saved by [`od_cbefore_shell`](#od_cbefore_shell). The pointer is initially
+`NULL` and is read only by OpenDoors.
+
+#### `od_cbefore_chat`
 
 ```c
-od_cbefore     void (*od_control.od_cbefore_shell)();
-_shell
-The function pointed to by this variable will be called prior to
-executing a sysop DOS shell. If this variable contains its
-default value of NULL, no function will be called. To alter the
-string of text which is displayed before a DOS shell, see the
-od_control.od_before_shell variable, which is described in the
-section on the prompts customization portion of the control
-structure.
+void (*od_control.od_cbefore_chat)(void);
 ```
+
+This callback is invoked after OpenDoors has set
+[`od_chat_active`](runtime.md#od_chat_active) to [`TRUE`](../constants/general.md#true), but before it displays
+[`od_before_chat`](#od_before_chat) or enters its chat input loop. It is
+commonly used to save or rearrange the application's screen. The callback may
+set [`od_chat_active`](runtime.md#od_chat_active) to [`FALSE`](../constants/general.md#false) to suppress the built-in chat loop; OpenDoors
+then proceeds through its normal chat cleanup. The pointer is initially `NULL`
+and is read only by OpenDoors.
+
+#### `od_cbefore_shell`
 
 ```c
-od_cfg_lines   char od_control.cfg_lines[25][33];
+void (*od_control.od_cbefore_shell)(void);
 ```
 
-This array contains the strings for the keywords that represent various lines in the definition of a custom door information file. Each keyword must be 32 character or less in length. These keywords are not case sensitive. See page 230 for more information on defining custom door information (drop) file formats. The default values for this array are as follows:
+This callback is invoked immediately before OpenDoors displays
+[`od_before_shell`](#od_before_shell) and runs the local command interpreter.
+It can save screen state or prepare application resources for the shell. The
+pointer is initially `NULL` and is read only by OpenDoors.
 
-[0]  "Ignore" [1]  "ComPort" [2]  "FossilPort" [3]  "ModemBPS" [4]  "LocalMode" [5]  "UserName" [6]  "UserFirstName" [7]  "UserLastName" [8]  "Alias" [9]  "HoursLeft" [10] "MinutesLeft" [11] "SecondsLeft" [12] "ANSI" [13] "AVATAR" [14] "PagePausing" [15] "ScreenLength" [16] "ScreenClearing" [17] "Security" [18] "City" [19] "Node" [20] "SysopName" [21] "SysopFirstName" [22] "SysopLastName" [23] "SystemName" [24] "RIP"
+The chat and shell callbacks execute synchronously inside OpenDoors. A chat or
+shell operation requested recursively from one of these callbacks is deferred
+or suppressed until the current operation has completed.
 
-If you wish to change any of these variable, you must do so before calling any OpenDoors functions.
+#### `od_cfg_lines`
+
+```c
+char od_control.od_cfg_lines[25][33];
+```
+
+This array contains the 25 keywords used in a custom door-information file
+definition. Each element has room for a keyword of up to 32 characters plus
+its terminating null byte. Matching is case-insensitive. The effective
+defaults, in array order, are:
+
+```text
+Ignore           ComPort          FossilPort       ModemBPS
+LocalMode        UserName         UserFirstName    UserLastName
+Alias            HoursLeft        MinutesLeft      SecondsLeft
+ANSI             AVATAR           PagePausing      ScreenLength
+ScreenClearing   Security         City             Node
+SysopName        SysopFirstName   SysopLastName    SystemName
+RIP
+```
+
+OpenDoors supplies a default only when an element's first byte is zero, then
+uppercases all elements when the configuration component begins reading a
+file. An application which changes these keywords must do so before
+initialization. OpenDoors reads them while interpreting `CustomFileLine`
+configuration entries; it does not modify them after the initial defaulting
+and uppercasing step.
 
 #### `od_cfg_text`
 
 ```c
-char od_control.od_cfg_text[47][33];
+char od_control.od_cfg_text[49][33];
 ```
 
-This array of strings contains the built-in configuration file keywords that are recognized by OpenDoors. These keywords may be up to 32 characters in size, and are not case sensitive. If you wish to change any of these settings, you must do so before calling any OpenDoors functions. The default values for this array are as follows:
+This array contains the 49 built-in keywords recognized by the optional
+configuration-file component. Each element has room for a keyword of up to 32
+characters plus its terminating null byte. Matching is case-insensitive. The
+effective defaults, in array order, are:
 
-[0]  "Node" [1]  "BBSDir" [2]  "DoorDir" [3]  "LogFileName" [4]  "DisableLogging" [5]  "SundayPagingHours" [6]  "MondayPagingHours" [7]  "TuesdayPagingHours" [8]  "WednesdayPagingHours" [9]  "ThursdayPagingHours" [10] "FridayPagingHours" [11] "SaturdayPagingHours" [12] "MaximumDoorTime" [13] "SysopName" [14] "SystemName" [15] "SwappingDisable" [16] "SwappingDir" [17] "SwappingNoEMS" [18] "LockedBPS" [19] "SerialPort" [20] "CustomFileName" [21] "CustomFileLine" [22] "InactivityTimeout" [23] "PageDuration" [24] "ChatUserColor" [25] "ChatSysopColor" [26] "FileListTitleColor" [27] "FileListNameColor" [28] "FileListSizeColor" [29] "FileListDescriptionColor" [30] "FileListOfflineColor" [31] "Personality" [32] "NoFossil" [33] "PortAddress" [34] "PortIRQ" [35] "ReceiveBuffer" [36] "TransmitBuffer" [37] "PagePromptColor" [38] "LocalMode" [39] "PopupMenuTitleColor" [40] "PopupMenuBorderColor" [41] "PopupMenuTextColor" [42] "PopupMenuKeyColor" [43] "PopupMenuHighlightColor" [44] "PopupMenuHighKeyColor" [45] "NoFIFO" [46] "FIFOTriggerSize" [47] "DiableDTR" [48] "NoDTRDisable"
-
-#### `od_chat_active`
-
-```c
-char od_control.od_chat_active;
+```text
+Node                       BBSDir                     DoorDir
+LogFileName                DisableLogging             SundayPagingHours
+MondayPagingHours          TuesdayPagingHours         WednesdayPagingHours
+ThursdayPagingHours        FridayPagingHours          SaturdayPagingHours
+MaximumDoorTime            SysopName                  SystemName
+SwappingDisable            SwappingDir                SwappingNoEMS
+LockedBPS                  SerialPort                 CustomFileName
+CustomFileLine             InactivityTimeout          PageDuration
+ChatUserColour             ChatSysopColour            FileListTitleColour
+FileListNameColour         FileListSizeColour         FileListDescriptionColour
+FileListOfflineColour      Personality                NoFossil
+PortAddress                PortIRQ                    ReceiveBuffer
+TransmitBuffer             PagePromptColour           LocalMode
+PopupMenuTitleColour       PopupMenuBorderColour      PopupMenuTextColour
+PopupMenuKeyColour         PopupMenuHighlightColour   PopupMenuHighKeyColour
+NoFIFO                     FIFOTriggerSize             DisableDTR
+NoDTRDisable
 ```
 
-This variable is set to TRUE when sysop chat mode is active, and is set to FALSE when sysop chat mode is not active. This variable can be used to determine whether or not chat mode is active, and to force chat mode to end. When the sysop presses the chat mode key ([ALT]-[C] if the default personality is being used) while chat mode is active, this variable is set to FALSE.
+The spelling shown above is the spelling installed by the library; matching is
+case-insensitive but does not otherwise normalize alternate spellings.
+OpenDoors supplies a default only when an element's first byte is zero, then
+uppercases the complete array when the configuration component begins reading
+a file. An application which replaces a keyword must do so before
+initialization. OpenDoors subsequently reads these strings to identify built-in
+options and does not restore their original case.
 
 #### `od_clear_on_exit`
 
@@ -357,23 +570,25 @@ char *od_control.od_config_filename;
 
 If set, this variable should point to a string containing the filename that you wish the OpenDoors configuration file system to read. If this variable has its default value of NULL, the filename DOOR.CFG will be used by default.
 
-```c
-od_config      void (*od_control.od_config_function)(char *keyword, char
-_function      *options);
-```
-
-If set, this variable should point to the function that OpenDoors should call when lines with unrecognized keywords are encountered in the configuration file. This allows you to add your own configuration file keywords. The first parameter to this function will be a pointer to a string containing the unrecognized keywords, and the second parameter will be a pointer to a string containing any options that were specified after the keyword. If no options were specified after the keyword, this string will have a length of 0.
+#### `od_default_personality`
 
 ```c
-od_default     void (*od_control.od_default_personality)(unsigned char
-_personality   operation);
+void (*od_control.od_default_personality)(BYTE operation);
 ```
 
-This variable sets the default personality that OpenDoors will use if the multiple personality system is active. If the multiple personality system is not active, the personality set by this variable will be the only personality available. This variable should only be set prior to calling an OpenDoors function. This variable can be set to point to your own personality function, or it can be set to one of the manifest constants that represent one of the built-in personalities:
+On DOS and DOS32, this field selects the status-line personality used when the
+multiple-personality component is absent or does not select a requested
+personality. It may point to an application-supplied personality procedure or
+to one of the built-in procedures named by [`PER_OPENDOORS`](../constants/components.md#per_opendoors), [`PER_PCBOARD`](../constants/components.md#per_pcboard),
+[`PER_RA`](../constants/components.md#per_ra), and [`PER_WILDCAT`](../constants/components.md#per_wildcat).
 
-PER_OPENDOORS PER_PCBOARD PER_RA PER_WILDCAT
-
-For more information on the OpenDoors Multiple Personality System, see page 230.
+The pointer is initially `NULL`, which selects the standard OpenDoors
+personality. OpenDoors reads it during initialization and then calls the
+selected procedure with [`PEROP_INITIALIZE`](../constants/components.md#perop_initialize); the personality supplies function
+key mappings, status-line behavior, and its paging status-line default. Assign
+the pointer before the first OpenDoors API call. The personality system is not
+implemented on the other platforms, where this field is retained for
+structure compatibility but is not read.
 
 #### `od_default_rip_win`
 
@@ -453,15 +668,6 @@ The default OpenDoors settings when [`od_control.od_force_local`](#od_force_loca
 
 You may wish to add a "-local" type parameter to your program's command line, which will permit the sysop to easily operate the door in local mode, as an interface to the [`od_control.od_force_local`](#od_force_local) setting.
 
-```c
-od_help        void (*od_control.od_help_callback)(void);
-_callback
-If this variable is set to a non-NULL value, the Win32 version
-of OpenDoors will provide a Contents item on the help menu, and
-call the function pointed to by this variable when the user
-chooses the Contents menu item.
-```
-
 #### `od_in_buf_size`
 
 ```c
@@ -482,20 +688,6 @@ OpenDoors has a built in user-inactivity timeout facility, which will automatica
 
 od_inactive    int [`od_control.od_inactive_warning`](runtime.md#od_inactive_warning). _warning This variable sets the number of seconds prior to hanging up that OpenDoors displays the inactivity timeout warning. This variable should only be changed after your first call to an OpenDoors API function. If not explicitly set by your program, this setting defaults to 10 seconds.
 
-```c
-od_ker_exec    void (*od_control.od_ker_exec)(void);
-```
-
-When od_control.od_ker_exec is set to point to a function, OpenDoors will call this function whenever [`od_kernel()`](../api/od_kernel.md) executes. This provides any easy way for you to perform your own processing on a regular basis during door execution. The od_control.od_ker_exec variable defaults to NULL.
-
-#### `od_last_input`
-
-```c
-char od_control.od_last_input;
-```
-
-Indicates whether the last key retrieved using the [`od_get_key()`](../api/od_get_key.md) function originated from the remote user, or the local sysop. If the input originated from the remote, this variable is set to 0. If the input originated from the local keyboard, this variables is set to 1.
-
 #### `od_list_pause`
 
 ```c
@@ -511,15 +703,6 @@ char od_control.od_list_stop;
 ```
 
 This variable contains a Boolean value, which allows you to control whether or not the user may abort displaying within the [`od_list_files()`](../api/od_list_files.md) and [`od_send_file()`](../api/od_send_file.md) function. When this variable is set to its default value of TRUE, the user will be able to pause the display by pressing the [S], [CTRL]-[K] or [CTRL]-[C] keys. However, the stop feature may be disabled by setting this variable to FALSE.
-
-```c
-od_local       void (*od_control.od_local_input)(int);
-_input
-If set, this function is called whenever the sysop presses a
-non-sysop-function key on the local keyboard. The key pressed is
-passed to the function in the single int parameter that it
-accepts.
-```
 
 #### `od_logfile`
 
@@ -563,14 +746,6 @@ unsigned int od_control.od_maxtime;
 
 This variable specifies the maximum length of time that any user is permitted to use the door, and is normally set from a configuration file option. If upon entering the door, the user's time remaining online is greater than the od_maxtime setting, their time remaining is temporarily decreased to the maximum value. Then upon exit of the door, the number of subtracted minutes is added back onto the user's remaining time. If the user's remaining time is less than this value, then the setting has no effect. A value of 0 disables the maximum time setting altogether.
 
-#### `od_maxtime_deduction`
-
-```c
-int od_control.od_maxtime_deduction;
-```
-
-This variable store the amount of time that should be added to the user's time upon exit of the door, as a result of the maximum time deduction, described above. If the maximum time feature is not used, this variable will be given a value of 0.
-
 #### `od_mps`
 
 ```c
@@ -578,23 +753,6 @@ void (*od_control.od_mps)(void);
 ```
 
 To make the OpenDoors Multiple Personality system available in your program, set this variable to INCLUDE_MPS before calling any OpenDoors functions. If this variable is not set, or is set to NO_MPS, the Multiple Personality System will be disabled. For more information on the OpenDoors Multiple Personality System, see page 233.
-
-```c
-od_no_         void (*od_control.od_no_file_func)();
-file_func
-If od_no_file_func is set to point to a function, that function
-will be called whenever a door information (drop) file cannot be
-located or read. This provides an easy mechanism to add your own
-door information file reader, or to provide a local login prompt
-when no drop file is present. If you wish the door to operate in
-local mode, you should set od_control.od_force_local to TRUE
-prior to returning from your function. If you have successfully
-read your own door information file format, you should set
-od_control.od_info_type to CUSTOM. If neither of these variables
-are set by the od_no_file_function, OpenDoors will report that
-it is unable to find or read a door information file and will
-exit immediately.
-```
 
 #### `od_no_ra_codes`
 
@@ -612,7 +770,7 @@ char od_control.od_nocopyright;
 
 This member is retained in `tODControl` for source and binary compatibility.
 The current OpenDoors implementation does not read it, so setting it to either
-`TRUE` or `FALSE` does not change startup output, colors, or any other behavior.
+[`TRUE`](../constants/general.md#true) or [`FALSE`](../constants/general.md#false) does not change startup output, colors, or any other behavior.
 Applications must not use the field to determine whether startup identification
 was displayed.
 
@@ -631,34 +789,6 @@ char od_control.od_page_len;
 ```
 
 This variable allows you to control the length, in seconds, of the sysop page beep produced when the user pages the sysop via the [`od_page()`](../api/od_page.md) function.
-
-#### `od_page_pausing`
-
-```c
-char od_control.od_page_pausing;
-```
-
-This variable contains a Boolean value that indicates whether or not page pausing is enabled in the [`od_send_file()`](../api/od_send_file.md), [`od_hotkey_menu()`](../api/od_hotkey_menu.md) and [`od_list_files()`](../api/od_list_files.md) functions. The default value of TRUE indicates that page pausing is enabled. A value of FALSE indicates that page pausing is disabled.
-
-#### `od_pagestartmin`
-
-```c
-int od_control.od_pagestartmin;
-```
-
-```c
-int od_control.od_pageendmin;
-```
-
-These variables indicate the start and end times for sysop paging, expressed as the number of minutes past midnight. Sysop paging will be available through the [`od_page()`](../api/od_page.md) function from the start time, up to but not including the end time.
-
-#### `od_page_statusline`
-
-```c
-char od_control.od_page_statusline;
-```
-
-This variable controls which status line, if any, is activated when the user pages the system operator (via the [`od_page()`](../api/od_page.md) function). A value between 0 and 9 causes the corresponding status line to be activated. A value of -1 prevents any change from being made to the current status line setting. This variable will normally be set by personality functions (see page 233).
 
 #### `od_prog_copyright`
 
@@ -750,297 +880,864 @@ This variable is a Boolean value which allows your program to completely disable
 
 It is important that you do not confuse the use of this variable with the [`od_set_statusline()`](../api/od_set_statusline.md) function, which is described on page 137. When the status line is enabled, the sysop can change which status line, if any, is being displayed, using the function keys [F1] through [F10]. The [`od_set_statusline()`](../api/od_set_statusline.md) function allows your program to make the same changes to the status line setting which the sysop can make by pressing one of the function keys. The status line can be removed from the screen, allowing a full 25 lines of text to be displayed, by pressing the [F10] key, or by making the appropriate call to the [`od_set_statusline()`](../api/od_set_statusline.md) function. Note, however, than when this is done, the status line is still enabled, and can be turned on by pressing any of the other function keys. On the other hand, if the status line is turned off using this variable ([`od_control.od_status_on`](#od_status_on)), the status line sub-system will be disabled, and pressing function keys will not "bring it back". So, if you were writing a program where a status line would be undesirable - such as a non-door communications program, you would use the [`od_control.od_status_on`](#od_status_on) variable. On the other hand, if you only wanted to temporarily remove the status line - say in order that all 25 lines of a door program's output could be viewed - while still allowing the status line to be turned on with the sysop function keys, you would use the [`od_set_statusline()`](../api/od_set_statusline.md) function. For more information on the [`od_set_statusline()`](../api/od_set_statusline.md) function, see page 137.
 
-od_time        void (*od_control.od_time_msg_func)(char *string) _msg_func This variable defaults to a value of NULL. If set to point to a function, OpenDoors will call this function INSTEAD OF displaying time limit warning messages to the user. The messages redirected to this function are:
+### Output and diagnostic controls
 
-\- Inactivity timeout warning - Inactivity timeout expired - Less than 4 minutes left today - Daily time limit expired
-
-### Function Keys
-
-Within OpenDoors, as with most BBS software and doors, the sysop has access to a number of function keys, which permits the sysop to carry out various functions such as entering chat mode, hanging up on the user, shelling to DOS, and so on. The variables in this section allow you to customize which keys carry out the standard sysop functions, allowing you to customize your door's interface to mimic any BBS package. By default, OpenDoors emulates the function keys used by the Remote Access BBS package, but you may choose, for example, to have your door use the key combinations used by PC-Board. In addition, OpenDoors provides an interface which allows you to add your own function keys which will be accepted by the door. This could allow you to add additional features, such as giving the sysop access to a status screen which displays information about your door.
-
-Many of the variables in this section are unsigned ints, which represent a sysop key combination such as [ALT]-[H], [F8], or [CTRL]-[P]. These values are in the same format as is returned by the Turbo C(++) / Borland C++ bioskey() function. The high- order byte represents the scan code of the key, and the low- order byte represents the ASCII value, if any, of the key combination. Note that a complete tutorial on these key codes is beyond the scope of this manual. For more information on these key codes, you should see the documentation on the bioskey() function, which accompanies your compiler. If you wish to determine the key code which corresponds to a particular keystroke, there is a simple program, listed below, which you can compile and use. This program will simply display the key code for any key pressed, until you press the [ESCape] key. So, in order to determine the code for [SHIFT]-[F8], you would simply run this program, press the [SHIFT]-[F8] key combination on your keyboard, and record the value displayed on your screen.
+#### `od_always_clear`
 
 ```c
-#include <stdio.h>
-#include <bios.h>
-main()
-{
-   int nKey;
+BOOL od_control.od_always_clear;
 ```
 
+This field determines how [`od_clr_scr()`](../api/od_clr_scr.md) treats the
+caller's screen-clearing preference. Initialization unconditionally sets it to
+[`TRUE`](../constants/general.md#true), which makes every call clear the screen. Set it to [`FALSE`](../constants/general.md#false) after
+initialization to honor bit `0x02` of
+[`user_attribute`](caller.md#user_attribute) when an extended
+`EXITINFO.BBS` record or a [`CUSTOM`](../constants/session.md#custom) door-information reader supplies that
+field: OpenDoors clears when the bit is set and leaves the screen unchanged
+when it is clear.
+
+For other door-information formats, OpenDoors has no screen-clearing
+preference to honor and clears the screen even when this field is [`FALSE`](../constants/general.md#false).
+The field affects both local and remote clearing as one operation; it does not
+cause either screen to be cleared independently.
+
+#### `od_color_char`
+
 ```c
-   do
-      {
-      nKey = bioskey(0);
-      printf("%d (from: %x, %x)\n",
-         nKey, nKey>>8, nKey&0xff);
-      } while((nKey & 0xff) != 27);
-}
+char od_control.od_color_char;
 ```
 
-BUILT IN       These variable allow you to customize the sysop function keys FUNCTION       which control functions such as hanging up on the user, shelling KEYS           to DOS, and so on. All of these variable will be assigned default values, which correspond to the same function keys used by the RemoteAccess BBS package. However, you may change the values of these variables in order to customize the key combinations which carry out these functions in your own door program. Remember that if you wish to change the value of any of these variables, you must do so after having called [`od_init()`](../api/od_init.md) or some OpenDoors function. Each of these variables contain a scan- code / ASCII-code combination representing a keystroke, as is described above. These variables are as follows:
+This field enables the compact binary color form accepted by
+[`od_printf()`](../api/od_printf.md). When the configured marker is encountered
+in formatted output, the immediately following byte is passed as an IBM-PC
+attribute to [`od_set_attrib()`](../api/od_set_attrib.md); neither byte is
+displayed. For example, if the marker is `1`, the byte sequence `1, 0x0e`
+selects yellow on black.
+
+Initialization unconditionally sets this field to zero, disabling the binary
+form. Assign a nonzero marker afterward. This mechanism is independent of the
+delimited color-name syntax selected by
+[`od_color_delimiter`](#od_color_delimiter); setting both fields to zero
+disables all inline color processing in [`od_printf()`](../api/od_printf.md).
+
+#### `od_disable_inactivity`
 
 ```c
-+---------------------+----------------------------------------+
-| VARIABLE            | CORRESPONDING FUNCTION                 |
-+---------------------+----------------------------------------+
-| od_control.         | Enter sysop chat mode                  |
-| key_chat            | (Normally [ALT]-[C]                    |
-|                     |                                        |
-| od_control.         | Invoke sysop DOS shell                 |
-| key_dosshell        | (Normally [ALT]-[J]                    |
-|                     |                                        |
-| od_control.         | Return to the BBS without hanging up   |
-| key_drop2bbs        | (Normally [ALT]-[D])                   |
-|                     |                                        |
-| od_control.         | Hangup on the user                     |
-| key_hangup          | (Normally [ALT]-[H])                   |
-|                     |                                        |
-| od_control.         | Turn off the user's keyboard           |
-| key_keyboardoff     | (Normally [ALT]-[K])                   |
-|                     |                                        |
-| od_control.         | Decreases the user's remaining time    |
-| key_lesstime        | (Normally [DOWN-ARROW])                |
-|                     |                                        |
-| od_control.         | Lock the user out of the BBS system    |
-| key_lockout         | (Normally [ALT]-[L])                   |
-|                     |                                        |
-| od_control.         | Increases the user's remaining time    |
-| key_moretime        | (Normally [UP-ARROW])                  |
-|                     |                                        |
-| od_control.         | Array of eight function keys to set the|
-| key_status[8]       | current status line.                   |
-|                     | (Normally [F1], [F2], [F3], [F4], [F5],|
-|                     |  [F6], [F9], [F10])                    |
-|                     |                                        |
-| od_control.         | "Sysop next" toggle key                |
-| key_sysopnext       | (Normally [ALT]-[N])                   |
-+---------------------+----------------------------------------+
+BOOL od_control.od_disable_inactivity;
 ```
 
-CUSTOM         In addition to the sysop function keys built into OpenDoors, you FUNCTION       may wish to add your own function keys to your door. For KEYS           example, you might wish to have the [ALT]-[Z] combination display a window of information about your door, or you may wish to add your own user editor to your door, accessible through the [ALT]-[E] combination. The four variables:
+When [`TRUE`](../constants/general.md#true), this field temporarily suppresses both the inactivity warning and
+inactivity shutdown without changing [`od_inactivity`](#od_inactivity) or its
+last-activity timestamp. It is initially [`FALSE`](../constants/general.md#false). The Win32 local User menu can
+toggle it, and application code may change it at runtime. Re-enabling the timer
+after its deadline has passed can cause timeout processing on the next kernel
+update.
+
+#### `od_full_color`
 
 ```c
-unsigned char od_control.od_num_keys;
-unsigned int od_control.od_hot_key[16];
-unsigned int od_control.od_last_hot;
+BOOL od_control.od_full_color;
+```
+
+OpenDoors normally compares a requested attribute with
+[`od_cur_attrib`](runtime.md#od_cur_attrib) and transmits only the ANSI or
+AVATAR changes which are required. Setting this initially false field to
+[`TRUE`](../constants/general.md#true) makes each [`od_set_attrib()`](../api/od_set_attrib.md) call transmit a
+complete color selection even when OpenDoors believes the attribute is already
+active. This can resynchronize a terminal whose state was changed outside the
+OpenDoors output interfaces, at the cost of additional output.
+
+#### `od_full_put`
+
+```c
+BOOL od_control.od_full_put;
+```
+
+When [`od_puttext()`](../api/od_puttext.md) updates a remote screen, OpenDoors
+normally compares the new block with the saved virtual screen and skips runs
+whose characters and effective backgrounds are already identical. Setting
+this initially false field to [`TRUE`](../constants/general.md#true) disables that optimization and transmits
+the complete requested rectangle. Local virtual-screen storage is updated in
+either mode.
+
+#### `od_internal_debug`
+
+```c
+BOOL od_control.od_internal_debug;
+```
+
+This field is read only by builds compiled with the private `OD_DIAGNOSTICS`
+instrumentation. In the diagnostic Win32 build, setting it to [`TRUE`](../constants/general.md#true) enables
+modal progress and modem-command message boxes during shutdown. It is
+initially [`FALSE`](../constants/general.md#false); ordinary distributed builds compile out these checks, so
+assigning it has no effect there. The field remains public for structure and
+diagnostic-build compatibility.
+
+#### `od_cmd_show`
+
+```c
+int od_control.od_cmd_show;
+```
+
+This field exists only in the Win32 structure layout. A GUI application should
+copy the `nCmdShow` value received by `WinMain()` into it before initialization.
+If the value is `SW_MINIMIZE`, `SW_SHOWMINIMIZED`, or `SW_SHOWMINNOACTIVE`,
+OpenDoors initially shows its local frame minimized without activating it; all
+other values cause the frame to be restored. The static value is zero, which
+therefore follows the restore path. OpenDoors reads but never writes the field.
+
+### Function keys
+
+The local system operator can enter chat mode, invoke a command shell, change
+the caller's remaining time, and perform the other operations described below
+without those keystrokes being passed to the caller. The fields in this section
+use the IBM BIOS key representation: the high byte is the keyboard scan code,
+and the low byte is the ASCII character when the key produces one. Thus
+`0x2e00` identifies Alt-C and `0x4800` identifies Up Arrow.
+
+The DOS and DOS32 personalities assign the built-in mappings during
+initialization. Consequently, an application which replaces one of these
+mappings must do so after [`od_init()`](../api/od_init.md), or after the first
+API call which causes initialization. A value of zero leaves an operation
+without an ordinary keyboard mapping. On platforms which do not provide the
+DOS personality system, these fields retain their zero-initialized values
+unless the application assigns them.
+
+OpenDoors tests built-in operations before application-defined hot keys. A
+custom hot key which duplicates a built-in mapping therefore does not receive
+the keystroke.
+
+#### `key_chat`
+
+```c
+WORD od_control.key_chat;
+```
+
+This field selects the key which enters or leaves sysop chat. The standard and
+RemoteAccess personalities use Alt-C (`0x2e00`), PCBoard uses F10 (`0x4400`),
+and Wildcat uses Alt-A (`0x4100`). While chat is active, the Escape key also
+ends chat independently of this setting.
+
+#### `key_dosshell`
+
+```c
+WORD od_control.key_dosshell;
+```
+
+This field selects the key which invokes the local command shell. The standard
+and RemoteAccess personalities use Alt-J (`0x2400`), PCBoard uses F5
+(`0x3f00`), and Wildcat uses Alt-D (`0x2000`). OpenDoors processes the before
+and after shell strings and callbacks around the shell operation.
+
+#### `key_drop2bbs`
+
+```c
+WORD od_control.key_drop2bbs;
+```
+
+This field selects the key which terminates the door and returns the connected
+caller to the BBS without dropping the connection. The standard and
+RemoteAccess personalities use Alt-D (`0x2000`), PCBoard uses Alt-X
+(`0x2d00`), and Wildcat uses F10 (`0x4400`). OpenDoors performs the shutdown;
+the application may change the mapping but does not otherwise read this field.
+
+#### `key_hangup`
+
+```c
+WORD od_control.key_hangup;
+```
+
+This field selects the key which terminates the caller's connection and shuts
+down the door with the configured hangup error level. The standard and
+RemoteAccess personalities use Alt-H (`0x2300`), PCBoard uses F8 (`0x4200`),
+and Wildcat leaves the operation unassigned.
+
+#### `key_keyboardoff`
+
+```c
+WORD od_control.key_keyboardoff;
+```
+
+This field selects the key which toggles
+[`od_user_keyboard_on`](runtime.md#od_user_keyboard_on), thereby enabling or
+disabling input from the remote caller. All four built-in personalities use
+Alt-K (`0x2500`). Local sysop keys remain active; to disable local keyboard
+processing, use the appropriate [`od_disable`](#od_disable) flag.
+
+#### `key_lesstime`
+
+```c
+WORD od_control.key_lesstime;
+```
+
+This field selects the key which subtracts one minute from
+[`user_timelimit`](caller.md#user_timelimit). The value is never reduced below
+zero. The standard and RemoteAccess personalities use Down Arrow (`0x5000`);
+PCBoard and Wildcat leave this built-in operation unassigned. The Wildcat
+personality separately installs Down Arrow as a personality hot key and uses it
+to subtract five minutes.
+
+#### `key_lockout`
+
+```c
+WORD od_control.key_lockout;
+```
+
+This field selects the key which sets
+[`user_security`](caller.md#user_security) to zero, terminates the connection,
+and shuts down the door with the hangup error level. The standard and
+RemoteAccess personalities use Alt-L (`0x2600`), PCBoard uses F2 (`0x3c00`),
+and Wildcat uses Alt-0 (`0x8100`).
+
+#### `key_moretime`
+
+```c
+WORD od_control.key_moretime;
+```
+
+This field selects the key which adds one minute to
+[`user_timelimit`](caller.md#user_timelimit), up to 1,440 minutes. The standard
+and RemoteAccess personalities use Up Arrow (`0x4800`); PCBoard and Wildcat
+leave this built-in operation unassigned. The Wildcat personality separately
+installs Up Arrow as a personality hot key and uses it to add five minutes.
+
+#### `key_status`
+
+```c
+WORD od_control.key_status[9];
+```
+
+Each element selects the key which activates the status-line number having the
+same array index. There are nine elements, for lines 0 through 8. The mapping
+has no visible effect while [`od_status_on`](#od_status_on) is [`FALSE`](../constants/general.md#false), and
+pressing the key for the already active line does not redraw it.
+
+The RemoteAccess personality maps F1 through F7 to elements 0 through 6, F9 to
+element 7, and F10 to element 8. The standard personality maps F1, F9, and F10
+to elements 0, 7, and 8 and leaves the others unassigned. PCBoard maps Alt-H
+to element 1 and may exchange the element 0 and element 1 mappings as its
+display changes. Wildcat leaves all nine elements unassigned. The compatibility
+macros [`key_nohelp`](../compatibility.md) and [`key_help`](../compatibility.md) name elements 0 and 6 respectively.
+
+#### `key_sysopnext`
+
+```c
+WORD od_control.key_sysopnext;
+```
+
+This field selects the key which toggles
+[`sysop_next`](runtime.md#sysop_next). The standard, RemoteAccess, and PCBoard
+personalities use Alt-N (`0x3100`); Wildcat uses F1 (`0x3b00`).
+
+#### `od_num_keys`
+
+```c
+BYTE od_control.od_num_keys;
+```
+
+This field is the number of active entries in [`od_hot_key`](#od_hot_key) and
+[`od_hot_function`](#od_hot_function). It is initially zero, but a personality
+may add its own entries during initialization. The maximum is 16; assigning a
+larger value causes OpenDoors to read beyond both arrays.
+
+An application which installs custom local keys should do so after
+initialization, preserve any entries already installed by the personality, and
+never increment this field beyond 16.
+
+#### `od_hot_key`
+
+```c
+INT16 od_control.od_hot_key[16];
+```
+
+The first [`od_num_keys`](#od_num_keys) elements contain application- or
+personality-defined local key codes. OpenDoors compares each otherwise
+unhandled local keystroke with these entries. A match is not placed in the
+normal local/remote input queue and is not passed to
+[`od_local_input`](#od_local_input).
+
+The array is zero-initialized. OpenDoors does not assign application entries;
+the DOS personalities may append private entries through the personality SDK.
+
+#### `od_hot_function`
+
+```c
 void (*od_control.od_hot_function[16])(void);
 ```
 
-provide your program with an interface to add your own sysop function keys (not accessible by the remote user) to the door you have written.
+Each element is the optional callback for the corresponding
+[`od_hot_key`](#od_hot_key) entry. After a matching key is stored in
+[`od_last_hot`](runtime.md#od_last_hot), OpenDoors first notifies the active
+personality with [`PEROP_CUSTOMKEY`](../constants/components.md#perop_customkey), then calls this function if the pointer is
+not `NULL`. The callback is synchronous and receives no arguments. It may use
+the array index known when it was installed or examine
+[`od_last_hot`](runtime.md#od_last_hot); a personality is permitted to clear
+that field before the callback runs.
 
-OpenDoors allows you to define up to sixteen custom sysop function keys. The key codes (as described at the beginning of this section) are stored in the [`od_control.od_hot_key`](#od_hot_key)[] array, and the [`od_control.od_num_keys`](#od_num_keys) variable records the number of keys which have been defined. The [`od_control.od_num_keys`](#od_num_keys) variable defaults to a value of 0. So, in order to add your own function keys, simply place the key codes for these keys in the first n elements of the [`od_control.od_hot_key`](#od_hot_key)[] array, and set the [`od_control.od_num_keys`](#od_num_keys) variable to the number of keys you have defined. OpenDoors will then watch the keyboard for any of your predefined sysop function keys being pressed. If one of these keys is pressed, OpenDoors will place the key code of the pressed key in the [`od_control.od_last_hot`](runtime.md#od_last_hot) variable. Your program will then be able to respond to one of your custom function keys being pressed by checking the value of the [`od_control.od_last_hot`](runtime.md#od_last_hot) variable. At any time this variable contains a non-zero value. If this is the case, you will then be able to determine which of your function keys has been pressed by checking the key code contained in this variable. After taking the appropriate action for the key pressed, you should be sure to reset the value of the [`od_control.od_last_hot`](runtime.md#od_last_hot) variable back to zero, which will indicate to OpenDoors that your program has received and responded to the function key which was pressed.
+All pointers are initially `NULL`. OpenDoors reads but never writes
+application callback pointers.
+
+For example, the following adds Page Up as an application-defined local key,
+provided fewer than 16 keys are already installed:
 
 ```c
-As an alternative to testing the contents of the
-od_control.od_last_hot variable, you  can also have your program
-respond to custom sysop function keys by providing a callback
-function in the array: void
-(*od_control.od_hot_function[16])(void);
-```
-
-The Nth element in this array corresponds to the Nth element in the [`od_control.od_hot_key`](#od_hot_key) array. To use this mechanism, simply set the appropriate element of this array to point to the function that you wish to have OpenDoors call when the sysop presses the corresponding function key. For instance, assume that the following function is included in your program's source code:
-
-```c
-void addPoints(void)
+static void add_points(void)
 {
-   /* add ten points to the user's score */
-   currentUser->points += 10;
+    current_user->points += 10;
+}
+
+if (od_control.od_num_keys < 16) {
+    unsigned int key = od_control.od_num_keys++;
+    od_control.od_hot_key[key] = 0x4900;
+    od_control.od_hot_function[key] = add_points;
 }
 ```
 
-If you wanted to have this function called when the sysop presses the [Page Up] key, you could do the following:
+### Color customization
+
+These fields contain IBM-PC text attributes in the format accepted by
+[`od_set_attrib()`](../api/od_set_attrib.md): the low four bits select the
+foreground, bits 4 through 6 select the background, and bit 7 selects blinking
+when that mode is supported. The optional configuration component can set most
+of them through the corresponding `Colour` keyword.
+
+During initialization, OpenDoors replaces every zero-valued color field with
+the default given below. Consequently, a nonzero application override may be
+assigned before initialization, but attribute zero (black on black) must be
+assigned afterward.
+
+#### `od_chat_color1`
 
 ```c
-/* get number of new sysop function key, and increment */
-/* total number of keys */
-int new_key = od_control.od_num_keys++;
+BYTE od_control.od_chat_color1;
 ```
+
+This is the attribute used for text entered by the local sysop in built-in chat
+mode. It is also used for the before- and after-chat messages and as the common
+chat attribute outside typed text. Its default is `0x0c` (light red on black).
+The `ChatSysopColour` configuration setting can replace it. OpenDoors reads
+the field whenever it selects the sysop chat color.
+
+#### `od_chat_color2`
 
 ```c
-/* Set next sysop hotkey to Page Up */
-od_control.od_hot_key[new_key] = 0x4900;
+BYTE od_control.od_chat_color2;
 ```
+
+This is the attribute used for text entered by the remote caller in built-in
+chat mode. Its default is `0x0f` (bright white on black). The
+`ChatUserColour` configuration setting can replace it.
+
+#### `od_list_title_col`
 
 ```c
-/* Set corresponding function to addPoints() */
-od_control.od_hot_function[new_key] = addPoints;
+BYTE od_control.od_list_title_col;
 ```
 
-### Color Customization
+[`od_list_files()`](../api/od_list_files.md) uses this attribute for blank
+lines and lines beginning with a space, which serve as headings or comments in
+a `FILES.BBS` listing. Its default is `0x0f`. The `FileListTitleColour`
+configuration setting can replace it.
 
-These variables allow you to customize the color of text displayed by OpenDoors. Each of these variables are assigned color attributes, in the format used by [`od_set_attrib()`](../api/od_set_attrib.md) (described on page 128). These variables are as follows:
+#### `od_list_name_col`
 
 ```c
-+---------------------+----------------------------------------+
-| VARIABLE            | WHERE COLOR IS USED                    |
-+---------------------+----------------------------------------+
-| od_control.         | Text typed by the sysop and user in    |
-| od_chat_color1 & 2  | chat mode.                             |
-|                     |                                        |
-| od_control.         | File description fields in FILES.BBS   |
-| od_list_comment_col | listings                               |
-|                     |                                        |
-| od_control.         | Color of page pausing prompt that is   |
-| od_continue_col     | displayed at the end of each page      |
-|                     |                                        |
-| od_control.         | Filename fields in FILES.BBS listings  |
-| od_list_name_col    |                                        |
-|                     |                                        |
-| od_control.         | "Missing" string in FILES.BBS listings |
-| od_list_offline_col |                                        |
-|                     |                                        |
-| od_control.         | File size fields in FILES.BBS listings |
-| od_list_size_col    |                                        |
-|                     |                                        |
-| od_control.         | Title fields in FILES.BBS listings     |
-| od_list_title_col   |                                        |
-|                     |                                        |
-| od_control.         | Color of the window title as displayed |
-| od_menu_title_col   | by od_popup_menu()                     |
-|                     |                                        |
-| od_control.         | Color of the window border as          |
-| od_menu_border_col  | displayed by od_popup_menu()           |
-|                     |                                        |
-| od_control.         | Color of the normal text displayed     |
-| od_menu_text_col    | by od_popup_menu()                     |
-|                     |                                        |
-| od_control.         | Color of the shortcut keys displayed   |
-| od_menu_key_col     | by od_popup_menu()                     |
-|                     |                                        |
-| od_control.         | Color of the selection bar as          |
-| od_menu_highlight_  | displayed by od_popup_menu()           |
-| col                 |                                        |
-|                     |                                        |
-| od_control.         | Color of the shortcut keys displayed   |
-| od_menu_highkey_col | on the selected line by od_popup_menu()|
-+---------------------+----------------------------------------+
+BYTE od_control.od_list_name_col;
 ```
 
-### Text Customization
+This is the filename attribute in a `FILES.BBS` listing, including entries
+whose referenced file is unavailable. Its default is `0x0e`. The
+`FileListNameColour` configuration setting can replace it.
 
-In addition to the other aspects of OpenDoors which may be customized by use of the OpenDoors control structure, all of the text displayed by OpenDoors may also be customized. This may be done either to create doors with OpenDoors that use languages other than English, or to simply give your doors a "personal touch". The variables described in this section allow you to define what text you want to have displayed by OpenDoors at any time. All of these variables are pointers to strings, and are set to default values in the [`od_init()`](../api/od_init.md) function. Thus, if you wish to change the string pointed to by any of these variables, you must do so after [`od_init()`](../api/od_init.md) or some OpenDoors API function has been called. To set any of these variables, you can simply set them to point to a string-constant in your program. For example, to set the text displayed by OpenDoors prior to a DOS shell, you could:
+#### `od_list_size_col`
+
+```c
+BYTE od_control.od_list_size_col;
+```
+
+This is the file-size attribute for available files in a `FILES.BBS` listing.
+Its default is `0x0d`. The `FileListSizeColour` configuration setting can
+replace it.
+
+#### `od_list_comment_col`
+
+```c
+BYTE od_control.od_list_comment_col;
+```
+
+This is the file-description attribute in a `FILES.BBS` listing. Its default
+is `0x03`. The `FileListDescriptionColour` configuration setting can replace
+it.
+
+#### `od_list_offline_col`
+
+```c
+BYTE od_control.od_list_offline_col;
+```
+
+This is the attribute used for [`od_offline`](#od_offline) when a
+`FILES.BBS` entry names a file which cannot be found. Its default is `0x0c`.
+The `FileListOfflineColour` configuration setting can replace it.
+
+#### `od_continue_col`
+
+```c
+BYTE od_control.od_continue_col;
+```
+
+This is the attribute used for the [`od_continue`](#od_continue) page prompt.
+OpenDoors restores the previous attribute before reading the response or
+erasing the prompt. Its default is `0x0f`. The `PagePromptColour`
+configuration setting can replace it.
+
+#### `od_local_win_col`
+
+```c
+BYTE od_control.od_local_win_col;
+```
+
+This attribute supplies both the text and border colors for local message
+windows, including the startup information-file message and the shutdown
+message. Its default is `0x19`. No built-in configuration-file keyword changes
+it; application code may assign it.
+
+#### `od_menu_title_col`
+
+```c
+BYTE od_control.od_menu_title_col;
+```
+
+This is the title attribute used by
+[`od_popup_menu()`](../api/od_popup_menu.md). Its default is `0x74`. The
+`PopupMenuTitleColour` configuration setting can replace it.
+
+#### `od_menu_border_col`
+
+```c
+BYTE od_control.od_menu_border_col;
+```
+
+This is the popup-menu border and separator attribute. Its default is `0x70`.
+The `PopupMenuBorderColour` configuration setting can replace it.
+
+#### `od_menu_text_col`
+
+```c
+BYTE od_control.od_menu_text_col;
+```
+
+This is the ordinary text attribute for an unselected popup-menu item. Its
+default is `0x70`. The `PopupMenuTextColour` configuration setting can replace
+it.
+
+#### `od_menu_key_col`
+
+```c
+BYTE od_control.od_menu_key_col;
+```
+
+This is the shortcut-key attribute within an unselected popup-menu item. Its
+default is `0x7f`. The `PopupMenuKeyColour` configuration setting can replace
+it.
+
+#### `od_menu_highlight_col`
+
+```c
+BYTE od_control.od_menu_highlight_col;
+```
+
+This is the text attribute for the selected popup-menu item. Its default is
+`0x07`. The `PopupMenuHighlightColour` configuration setting can replace it.
+
+#### `od_menu_highkey_col`
+
+```c
+BYTE od_control.od_menu_highkey_col;
+```
+
+This is the shortcut-key attribute within the selected popup-menu item. Its
+default is `0x0f`. The `PopupMenuHighKeyColour` configuration setting can
+replace it.
+
+### Text customization
+
+The prompts in this section allow the application's local interface and caller
+messages to be translated or otherwise customized. Initialization assigns all
+of their defaults unconditionally, so replacements must be installed after
+[`od_init()`](../api/od_init.md), or after another API call has caused
+initialization. For example:
 
 ```c
 od_control.od_before_shell=(char *)"\n\rJust a moment...\n\r";
 ```
 
-The chart below lists each of the text customization variables (without the "od_control." prefix, for the sake of brevity), along with their default strings.
+The detailed entries below give the current default from the implementation,
+the field's exact consumer, any required formatting conversions, and the cases
+in which a fixed display width or `NULL` value has special meaning.
 
-Note that some of these strings MUST always be the same length as their default string. You may not display longer text within these strings, and if you wish to display shorter text, you must pad the remaining space in the string with spaces, in order to preserve its length. Those string which must be of fixed length also have their length listed in the chart below. Any strings which have an asterisk (*) in their length column may be any length.
 
-Also keep in mind that any string with "printf-style" formatting sequences, such as "%s", must retain the same sequences in the same order.
-
-In addition, four of these pointers - od_after_chat, od_after_shell, od_before_chat and od_before_shell - can be set to a value of NULL. In this case, OpenDoors will not display any string where this variable's string is normally displayed.
+#### `od_after_chat`
 
 ```c
-+-----------------------+-----+----------------------------------------------+
-| VARIABLE NAME         | LEN | DEFAULT VALUE                                |
-+-----------------------+-----+----------------------------------------------+
-| od_after_chat         |  *  | "\n\rChat mode ended...\n\r\n\r"             |
-|                       |     |                                              |
-| od_after_shell        |  *  | "\n\r...Thanks for waiting\n\r\n\r"          |
-|                       |     |                                              |
-| od_before_chat        |  *  | "\n\rSysop breaking in for chat...\n\r\n\r"  |
-|                       |     |                                              |
-| od_before_shell       |  *  | "\n\rPlease wait a moment...\n\r"            |
-|                       |     |                                              |
-| od_chat_reason        |  *  | "                          Why would you "   |
-|                       |     | "like to chat?\n\r"                          |
-|                       |     |                                              |
-| od_continue           |  *  | "Continue? [Y/n/=]"                          |
-|                       |     |                                              |
-| od_continue_no        | char| 'N'                                          |
-|                       |     |                                              |
-| od_continue_nonstop   | char| '='                                          |
-|                       |     |                                              |
-| od_continue_yes       | char| 'Y'                                          |
-|                       |     |                                              |
-| od_day[0]             |  3  | "Sun"                                        |
-|                       |     |                                              |
-| od_day[1]             |  3  | "Mon"                                        |
-|                       |     |                                              |
-| od_day[2]             |  3  | "Tue"                                        |
-|                       |     |                                              |
-| od_day[3]             |  3  | "Wed"                                        |
-|                       |     |                                              |
-| od_day[4]             |  3  | "Thu"                                        |
-|                       |     |                                              |
-| od_day[5]             |  3  | "Fri"                                        |
-|                       |     |                                              |
-| od_day[6]             |  3  | "Sat"                                        |
-|                       |     |                                              |
-| od_hanging_up         |  *  | "Terminating Call"                           |
-|                       |     |                                              |
-| od_help_text          |  80 | "  Alt: [C]hat [H]angup [L]ockout [J]Dos "   |
-|                       |     | "[K]eyboard-Off [D]rop to BBS            "   |
-|                       |     |                                              |
-| od_help_text2         |  79 | "  OpenDoors 6.00 - (C)Copyright 1992, "     |
-|                       |     | "Brian Pirie - Registered Version         "  |
-|                       |     |                                              |
-| od_inactivity_timeout |  *  | "User sleeping at keyboard, inactivity "     |
-|                       |     | "timeout...\n\r\n\r"                         |
-|                       |     |                                              |
-| od_inactivity_warning |  *  | "Warning, only %d minute(s) remaining "      |
-|                       |     | "today...\n\r\n\r"                           |
-|                       |     |                                              |
-| od_month[0]           |  3  | "Jan"                                        |
-|                       |     |                                              |
-| od_month[1]           |  3  | "Feb"                                        |
-|                       |     |                                              |
-| od_month[2]           |  3  | "Mar"                                        |
-|                       |     |                                              |
-| od_month[3]           |  3  | "Apr"                                        |
-|                       |     |                                              |
-| od_month[4]           |  3  | "May"                                        |
-|                       |     |                                              |
-| od_month[5]           |  3  | "Jun"                                        |
-|                       |     |                                              |
-| od_month[6]           |  3  | "Jul"                                        |
-|                       |     |                                              |
-| od_month[7]           |  3  | "Aug"                                        |
-|                       |     |                                              |
-| od_month[8]           |  3  | "Sep"                                        |
-|                       |     |                                              |
-| od_month[9]           |  3  | "Oct"                                        |
-|                       |     |                                              |
-| od_month[10]          |  3  | "Nov"                                        |
-|                       |     |                                              |
-| od_month[11]          |  3  | "Dec"                                        |
-|                       |     |                                              |
-| od_no_keyboard        |  10 | "[Keyboard]"                                 |
-|                       |     |                                              |
-| od_no_sysop           |  *  | "\n\rI'm afraid the sysop is not available " |
-|                       |     | "at this time.\n\r"                          |
-|                       |     |                                              |
-| od_no_response        |  *  | " No response.\n\r\n\r"                      |
-|                       |     |                                              |
-| od_no_time            |  *  | "Sorry, you have used up your time for "     |
-|                       |     | "today...\n\r\n\r"                           |
-|                       |     |                                              |
-| od_offline            |  10 | "[OFFLINE] "                                 |
-|                       |     |                                              |
-| od_paging             |  *  | "\n\rPaging Sysop for Chat"                  |
-|                       |     |                                              |
-| od_press_key          |  *  | "Press [Enter] to continue..."               |
-|                       |     |                                              |
-| od_sending_rip        |  *  | "\xb4 Sending RIP File \xc3"                 |
-|                       |     |                                              |
-| od_status_line[0]     |  80 | "                                        "   |
-|                       |     | "                             [Node:     "   |
-|                       |     |                                              |
-| od_status_line[1]     |  *  | "%s of %s at %u BPS"                         |
-|                       |     |                                              |
-| od_status_line[2]     |  79 | "Security:        Time:                  "   |
-|                       |     | "                             [F9]=Help "    |
-|                       |     |                                              |
-| od_sysop_next         |  5  | "[SN] "                                      |
-|                       |     |                                              |
-| od_time_left          |  10 | "%d mins   "                                 |
-|                       |     |                                              |
-| od_time_warning       |  *  | "Warning, only %d minute(s) remaining tod"   |
-|                       |     | "ay...\n\r\n\r"                              |
-|                       |     |                                              |
-| od_want_chat          |  11 | "[Want-Chat]"                                |
-+-----------------------+-----+----------------------------------------------+
+char *od_control.od_after_chat;
 ```
+
+This string is displayed when built-in chat cleanup begins, before
+[`od_cafter_chat`](#od_cafter_chat) is called. Its default is
+`"\n\rChat mode ended.\n\r\n\r"`. Assign `NULL` after initialization to suppress
+the message. OpenDoors reads the string but does not modify or free it.
+
+#### `od_after_shell`
+
+```c
+char *od_control.od_after_shell;
+```
+
+This string is displayed after the local command interpreter returns and
+before [`od_cafter_shell`](#od_cafter_shell) is called. Its default is
+`"\n\r...Thanks for waiting\n\r\n\r"`. Assign `NULL` after initialization to
+suppress the message.
+
+#### `od_before_chat`
+
+```c
+char *od_control.od_before_chat;
+```
+
+This string is displayed after [`od_cbefore_chat`](#od_cbefore_chat) returns
+and immediately before the built-in chat input loop. Its default is
+`"\n\rThe system operator has placed you in chat mode to talk with you:\n\r\n\r"`.
+Assign `NULL` after initialization to suppress the message.
+
+#### `od_before_shell`
+
+```c
+char *od_control.od_before_shell;
+```
+
+This string is displayed after [`od_cbefore_shell`](#od_cbefore_shell) returns
+and immediately before OpenDoors invokes the local command interpreter. Its
+default is `"\n\rPlease wait a moment...\n\r"`. Assign `NULL` after
+initialization to suppress the message.
+
+#### `od_chat_reason`
+
+```c
+char *od_control.od_chat_reason;
+```
+
+[`od_page()`](../api/od_page.md) displays this prompt before reading the
+caller's reason for requesting chat. The default is
+`"               Why would you like to chat? (Blank line to cancel)\n\r"`.
+The fifteen leading spaces center the prompt over the 79-column input frame.
+This pointer must not be `NULL` when paging is used.
+
+#### `od_continue`
+
+```c
+char *od_control.od_continue;
+```
+
+This is the page-boundary prompt used by display-file and file-listing
+operations. The default is `"Continue? [Y/n/=]"`. OpenDoors uses its byte
+length to erase the prompt after a valid response, so embedded terminal
+control sequences or characters whose displayed width differs from one column
+will leave the erasure width incorrect. The pointer must not be `NULL` while
+page pausing is enabled.
+
+#### `od_continue_yes`
+
+```c
+char od_control.od_continue_yes;
+```
+
+This is the affirmative response to [`od_continue`](#od_continue). Its default
+is lowercase `y`; OpenDoors accepts both cases. Enter and Space are always
+accepted as affirmative responses independently of this field.
+
+#### `od_continue_no`
+
+```c
+char od_control.od_continue_no;
+```
+
+This is the response which stops the current paged display. Its default is
+lowercase `n`; OpenDoors accepts both cases. Escape, Ctrl-C, Ctrl-K, and `s` in
+either case also stop the display independently of this field.
+
+#### `od_continue_nonstop`
+
+```c
+char od_control.od_continue_nonstop;
+```
+
+This response continues the current display and disables further page prompts
+for that operation. Its default is `=`; OpenDoors applies the usual
+case-insensitive comparison even though the default has no case.
+
+#### `od_day`
+
+```c
+char *od_control.od_day[7];
+```
+
+These strings contain abbreviated weekday names in Sunday-through-Saturday
+order. The defaults are `"Sun"`, `"Mon"`, `"Tue"`, `"Wed"`, `"Thu"`, `"Fri"`,
+and `"Sat"`. The logfile component uses them in each session-opening date.
+OpenDoors does not require a three-byte value, but longer strings change the
+log layout.
+
+#### `od_month`
+
+```c
+char *od_control.od_month[12];
+```
+
+These strings contain abbreviated month names in January-through-December
+order. The defaults are `"Jan"` through `"Dec"`. The logfile component uses
+them in session-opening dates, and the RemoteAccess personality uses them in a
+local status line. Longer strings therefore alter the log layout and can
+overwrite adjacent status-line fields.
+
+#### `od_hanging_up`
+
+```c
+char *od_control.od_hanging_up;
+```
+
+This is the local message-window text shown while OpenDoors is terminating the
+call. Its default is `"Ending call..."`. A `NULL` pointer suppresses this
+window on the terminating-call path. The string is not sent to the remote
+caller.
+
+#### `od_exiting`
+
+```c
+char *od_control.od_exiting;
+```
+
+This is the local message-window text shown during a normal return to the BBS.
+Its default is `"Program is exiting..."`. Unlike
+[`od_hanging_up`](#od_hanging_up), this pointer is not checked for `NULL` before
+it is passed to the local window implementation.
+
+#### `od_help_text`
+
+```c
+char *od_control.od_help_text;
+```
+
+The standard DOS and DOS32 personality displays this string on row 24 of its
+help status screen. The 80-column default is
+`"  Alt: [C]hat [H]angup [L]ockout [J]Dos [K]eyboard-Off [D]rop to BBS            "`.
+Replacement text should occupy exactly 80 screen columns; shorter text can
+leave prior contents visible and longer text can wrap into the following row.
+Other built-in personalities do not use this field.
+
+#### `od_help_text2`
+
+```c
+char *od_control.od_help_text2;
+```
+
+The standard DOS and DOS32 personality displays this string on row 25 of its
+help status screen. It defaults to the library's `OD_VER_STATUSLINE` text:
+`"  OpenDoors 6.30 - (C) Copyright 1991-2001 by Brian Pirie                      "`.
+Replacement text must fit the 80-column row; output beyond its final cell can
+wrap and scroll the local screen. Other built-in personalities do not use this
+field.
+
+#### `od_inactivity_timeout`
+
+```c
+char *od_control.od_inactivity_timeout;
+```
+
+This message is delivered when the caller's inactivity limit expires, before
+OpenDoors shuts down the connection. Its default is
+`"\n\rMaximum user inactivity time has elapsed, please call again.\n\r\n\r"`.
+If [`od_time_msg_func`](#od_time_msg_func) is non-`NULL`, the string is passed
+to that callback instead of being displayed. It contains no formatting
+conversion and must not be `NULL` while inactivity checking is enabled.
+
+#### `od_inactivity_warning`
+
+```c
+char *od_control.od_inactivity_warning;
+```
+
+This message is delivered once when the inactivity warning interval begins.
+Its default is
+`"\n\rWARNING: Inactivity timeout in 10 seconds, press a key now to remain online.\n\r\n\r"`.
+The number in this literal is not generated from
+[`od_inactive_warning`](runtime.md#od_inactive_warning); an application which
+changes that interval should also replace this text. The message is redirected
+through [`od_time_msg_func`](#od_time_msg_func) when that callback is present.
+
+#### `od_no_keyboard`
+
+```c
+char *od_control.od_no_keyboard;
+```
+
+The standard DOS and DOS32 personality displays this indicator on row 24 when
+remote caller input is disabled. Its default is `"[Keyboard]"`, exactly ten
+columns. Replacement text should remain ten columns so that status updates
+which erase ten spaces neither leave old characters nor erase adjacent fields.
+
+#### `od_no_sysop`
+
+```c
+char *od_control.od_no_sysop;
+```
+
+[`od_page()`](../api/od_page.md) displays this message when paging is disabled
+or the current time is outside the allowed interval. Its default is
+`"\n\rSorry, the system operator is not available at this time.\n\r"`. It is
+followed immediately by [`od_press_key`](#od_press_key).
+
+#### `od_no_response`
+
+```c
+char *od_control.od_no_response;
+```
+
+[`od_page()`](../api/od_page.md) displays this message if the configured page
+duration expires without the sysop entering chat. Its default is
+`" No response.\n\r\n\r"`. It is followed immediately by
+[`od_press_key`](#od_press_key).
+
+#### `od_no_time`
+
+```c
+char *od_control.od_no_time;
+```
+
+This message is delivered when the caller's remaining session time reaches
+zero, immediately before OpenDoors initiates timeout shutdown. Its default is
+`"\n\rSorry, you have used up all of your time for this session.\n\r\n\r"`.
+[`od_time_msg_func`](#od_time_msg_func) receives it instead when installed.
+
+#### `od_offline`
+
+```c
+char *od_control.od_offline;
+```
+
+[`od_list_files()`](../api/od_list_files.md) displays this marker when a
+`FILES.BBS` entry names a file which cannot be found. Its default is
+`"[OFFLINE] "`, exactly ten columns. A different length changes the alignment
+and available width of the following description field.
+
+#### `od_paging`
+
+```c
+char *od_control.od_paging;
+```
+
+[`od_page()`](../api/od_page.md) displays this text when it begins sounding the
+sysop page. Its default is `"\n\rPaging system operator for chat"`. One period
+and one bell are then emitted for each second of
+[`od_page_len`](#od_page_len), until the sysop answers or the interval expires.
+
+#### `od_press_key`
+
+```c
+char *od_control.od_press_key;
+```
+
+This prompt follows [`od_no_sysop`](#od_no_sysop) and
+[`od_no_response`](#od_no_response). Its default is
+`"Press [Enter] to continue"`. Despite the wording, the paging paths accept
+Enter or Line Feed through [`od_get_answer()`](../api/od_get_answer.md).
+
+#### `od_sending_rip`
+
+```c
+char *od_control.od_sending_rip;
+```
+
+When a `.RIP` file is sent without local echo,
+[`od_send_file()`](../api/od_send_file.md) and
+[`od_send_file_section()`](../api/od_send_file_section.md) prepend this text to
+the filename in a local progress window. Its default is
+`"Sending RIP file: "`. It is not transmitted to the caller.
+
+#### `od_status_line`
+
+```c
+char *od_control.od_status_line[3];
+```
+
+The standard DOS and DOS32 personality uses these strings to construct its
+primary two-row local status display:
+
+| Element | Default and use |
+| --- | --- |
+| `0` | `"                                                                     [Node:     "`; the 80-column row-24 background. The personality overwrites the beginning with element 1 and writes the node at column 77. |
+| `1` | `"%s of %s at %lu BPS"`; formatted with [`user_name`](caller.md#user_name), [`user_location`](caller.md#user_location), and [`od_connect_speed`](connection.md#od_connect_speed), beginning at column 1 of row 24. |
+| `2` | `"Security:        Time:                                               [F9]=Help "`; the 79-column row-25 background. The personality separately fills security, time, and state indicators, then writes the final cell directly. |
+
+Element 1 must retain, in order, two string conversions and one `unsigned
+long` conversion compatible with those arguments. Elements 0 and 2 should
+remain exactly 80 and 79 screen columns respectively. Longer rendered output
+can wrap or overwrite the next status row; shorter background strings can
+leave stale characters visible.
+
+#### `od_sysop_next`
+
+```c
+char *od_control.od_sysop_next;
+```
+
+The standard DOS and DOS32 personality displays this indicator on row 25 while
+[`sysop_next`](runtime.md#sysop_next) is true. Its default is `"[SN] "`, exactly
+five columns. Replacement text should remain five columns because the update
+path clears exactly five spaces when the state becomes false.
+
+#### `od_time_left`
+
+```c
+char *od_control.od_time_left;
+```
+
+The standard DOS and DOS32 personality formats this string with
+[`user_timelimit`](caller.md#user_timelimit) at column 24 of row 25. Its default
+is `"%d mins   "`. The replacement must contain one integer conversion
+compatible with an `int`. The default occupies ten columns for a two-digit
+value, eleven for a three-digit value, and twelve for a four-digit value; the
+next status field begins at column 35.
+
+#### `od_time_warning`
+
+```c
+char *od_control.od_time_warning;
+```
+
+This format is used when three, two, or one minute remains in the caller's
+session. Its default is
+`"\n\rWARNING: You only have %d minute(s) remaining for this session.\n\r\n\r"`.
+It must contain one integer conversion compatible with an `int`. OpenDoors
+formats the result before passing it to [`od_time_msg_func`](#od_time_msg_func)
+or displaying it.
+
+#### `od_want_chat`
+
+```c
+char *od_control.od_want_chat;
+```
+
+The standard DOS and DOS32 personality displays this indicator on row 25 while
+[`user_wantchat`](caller.md#user_wantchat) is true. Its default is
+`"[Want-Chat]"`, exactly eleven columns. Replacement text should remain eleven
+columns because the update path clears exactly eleven spaces when the request
+is removed.
+
+Initialization assigns every prompt pointer and response character in this
+section unconditionally. Applications must therefore replace them after
+[`od_init()`](../api/od_init.md), or after another API call has caused
+initialization. Except for the explicitly nullable chat, shell, and hangup
+messages, prompt pointers must refer to valid strings whenever the associated
+facility can use them. OpenDoors reads these application replacements but does
+not copy, modify, or free them.

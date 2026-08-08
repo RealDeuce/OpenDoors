@@ -61,11 +61,12 @@ def declared_functions() -> set[str]:
     text = HEADER.read_text(encoding="utf-8")
     try:
         start = text.index(START_MARKER)
-        end = text.index(END_MARKER, start)
     except ValueError as error:
         raise RuntimeError("OpenDoor.h API declaration markers were not found") from error
 
-    declaration_block = text[start:end]
+    # Compatibility entry points declared after the main prototype block are
+    # still exported public functions and require their own reference pages.
+    declaration_block = text[start:]
     return set(
         re.findall(
             r"ODAPIDEF\b(?:(?!;).)*?\b(od_[a-z0-9_]+)\s*\(",
@@ -108,13 +109,22 @@ def control_fields() -> set[str]:
     end = text.index("} tODControl;", start)
     fields: set[str] = set()
 
-    for source_line in text[start:end].splitlines():
-        line = source_line.split("/*", 1)[0].strip()
-        if ";" not in line:
+    block = re.sub(r"/\*.*?\*/", "", text[start:end], flags=re.DOTALL)
+    block = re.sub(r"(?m)^\s*#.*$", "", block)
+    for declaration in block.split(";"):
+        declaration = declaration.strip()
+        if not declaration:
             continue
-        match = re.search(r"\(\*\s*(\w+)\s*\)", line)
+        match = re.search(
+            r"\(\s*(?:OD_DOS32_CALLBACK\s*)?\*\s*(\w+)\s*\)",
+            declaration,
+        )
         if match is None:
-            match = re.search(r"\b(\w+)\s*(?:\[[^;]+\])?\s*;", line)
+            match = re.search(
+                r"\b([A-Za-z_][A-Za-z0-9_]*)\s*"
+                r"(?:\[[^\]]+\]\s*)*$",
+                declaration,
+            )
         if match is not None:
             fields.add(match.group(1))
 
@@ -213,7 +223,10 @@ def reference_symbols(
         pages = {
             page
             for page in control_pages
-            if re.search(rf"\b{re.escape(field)}\b", page.read_text(encoding="utf-8"))
+            if re.search(
+                rf"(?m)^#{{2,6}} `{re.escape(field)}`\s*$",
+                page.read_text(encoding="utf-8"),
+            )
         }
         if not pages:
             continue
@@ -372,12 +385,22 @@ def main() -> int:
     if not (PERSONALITY_DIR / "szStatusText.md").is_file():
         failures.append("missing personality SDK page for szStatusText")
 
-    control_text = "\n".join(
-        path.read_text(encoding="utf-8") for path in CONTROL_DIR.glob("*.md")
-    )
     for name in sorted(fields):
-        if not re.search(rf"\b{re.escape(name)}\b", control_text):
+        heading = re.compile(rf"(?m)^#{{2,6}} `{re.escape(name)}`\s*$")
+        matching_pages = [
+            path
+            for path in CONTROL_DIR.glob("*.md")
+            if heading.search(path.read_text(encoding="utf-8"))
+        ]
+        if not matching_pages:
             failures.append(f"od_control field is not documented: {name}")
+        elif len(matching_pages) > 1:
+            relative = ", ".join(
+                str(path.relative_to(ROOT)) for path in matching_pages
+            )
+            failures.append(
+                f"od_control field has multiple canonical entries: {name} ({relative})"
+            )
 
     constant_text = "\n".join(
         path.read_text(encoding="utf-8") for path in CONSTANTS_DIR.glob("*.md")

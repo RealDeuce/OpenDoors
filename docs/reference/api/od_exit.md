@@ -15,18 +15,18 @@ N/A
 ## Description
 
 Use this function whenever an initialized door is to terminate. Calling the C
-`exit()` function directly bypasses OpenDoors cleanup. `od_exit()` updates time
+`exit()` function directly bypasses OpenDoors cleanup. [`od_exit()`](od_exit.md) updates time
 accounting, invokes the application's before-exit callback, rewrites supported
 door-information files, closes the activity log, optionally disconnects the
 caller, shuts down the kernel and communications objects, restores the local
 display, and terminates the process with `nErrorLevel`.
 
-If `bTermCall` is `TRUE`, OpenDoors treats the operation as termination of the
+If `bTermCall` is [`TRUE`](../constants/general.md#true), OpenDoors treats the operation as termination of the
 call. For a remote session it waits up to ten seconds for pending output,
 lowers DTR or performs the equivalent disconnect operation supplied by the
 active communications method, waits up to five seconds for carrier to
 disappear, and then raises DTR again where that operation is supported. The BBS
-can then perform its normal logoff processing. A value of `FALSE` leaves the
+can then perform its normal logoff processing. A value of [`FALSE`](../constants/general.md#false) leaves the
 remote connection available for the BBS which launched the door.
 
 If your program must always perform work before exiting, such as updating or
@@ -36,7 +36,7 @@ callback. OpenDoors invokes it even when the library initiates termination,
 such as after the caller hangs up. The callback runs after OpenDoors has
 calculated the caller's remaining and used time and restored the original
 drop-file baud value, but before any door-information file is rewritten or
-communications resource is closed. A recursive call to `od_exit()` from that
+communications resource is closed. A recursive call to [`od_exit()`](od_exit.md) from that
 callback is ignored.
 
 Only formats for which OpenDoors has a rewrite implementation are updated. For
@@ -53,25 +53,25 @@ Setting [`DIS_INFOFILE`](../constants/session.md#dis_infofile) in
 initialization prevents both reading and later rewriting a door-information
 file. Setting
 [`od_control.od_noexit`](../control/customization.md#od_noexit) causes
-`od_exit()` to perform the complete OpenDoors shutdown and then return instead
+[`od_exit()`](od_exit.md) to perform the complete OpenDoors shutdown and then return instead
 of terminating the process. In that case OpenDoors is no longer initialized,
 and the application may continue or begin another session deliberately.
 
 On non-Windows text-mode targets, the local output window is reset to the full
 80-by-25 display and the attribute is reset to grey on black. If
 [`od_control.od_clear_on_exit`](../control/customization.md#od_clear_on_exit) is
-`TRUE`, the local display is cleared; otherwise the cursor is moved to the
+[`TRUE`](../constants/general.md#true), the local display is cleared; otherwise the cursor is moved to the
 upper-left corner. Platform display resources are then closed in either case.
 
-If `od_exit()` is called before any other OpenDoors function, it first calls
+If [`od_exit()`](od_exit.md) is called before any other OpenDoors function, it first calls
 [`od_init()`](od_init.md) so that the resources and session information needed
 for an orderly shutdown exist. The function normally does not return. It can
-return when `od_noexit` is set, when a recursive exit is suppressed, or when it
+return when [`od_noexit`](../control/customization.md#od_noexit) is set, when a recursive exit is suppressed, or when it
 is running as part of an already active process-exit handler.
 
 ## Examples
 
-The example below demonstrates a function which a door could execute when the user chooses to exit the door. This function will ask the user whether they wish to exit the door and return to the BBS, simply logoff of the BBS, or continue using the door. The example function will then call `od_exit()` if the user wishes to exit the door, or return control to the function which called it, if the user does not wish to exit:
+The example below demonstrates a function which a door could execute when the user chooses to exit the door. This function will ask the user whether they wish to exit the door and return to the BBS, simply logoff of the BBS, or continue using the door. The example function will then call [`od_exit()`](od_exit.md) if the user wishes to exit the door, or return control to the function which called it, if the user does not wish to exit:
 
 ```c
 void goodbye(void)

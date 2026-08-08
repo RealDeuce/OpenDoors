@@ -9,7 +9,7 @@ void ODStatForceStatusUpdate(void);
 ```
 
 OpenDoors invokes the current
-[`PEROP_UPDATE*`](../constants/components.md#personality-callback-operations)
+[`PEROP_UPDATE*`](../constants/components.md#personality-procedure-operations)
 operation as soon as the DOS kernel can process it. A request made from inside
 a personality callback is completed later in the active kernel pass.
 

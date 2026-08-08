@@ -14,7 +14,7 @@ N/A
 
 ## Description
 
-The `od_emulate()` function processes a single character through the same
+The [`od_emulate()`](od_emulate.md) function processes a single character through the same
 terminal-emulation system used by [`od_disp_emu()`](od_disp_emu.md). The
 result is displayed locally and, when the door is operating in remote mode,
 sent to the remote user. Successive calls retain the state of an incomplete

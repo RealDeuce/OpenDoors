@@ -28,7 +28,7 @@ the supplied output variables.
 ## Description
 
 OpenDoors tracks the cursor as output passes through its display functions.
-`od_get_cursor()` returns that tracked position. Row 1 is the top row of the
+[`od_get_cursor()`](od_get_cursor.md) returns that tracked position. Row 1 is the top row of the
 current screen or window and column 1 is its leftmost column, using the same
 coordinate convention as [`od_set_cursor()`](od_set_cursor.md).
 
@@ -62,7 +62,7 @@ od_get_cursor(&row, NULL);    /* Obtain only the row. */
 od_get_cursor(NULL, &column); /* Obtain only the column. */
 ```
 
-Calling `od_get_cursor()` initializes OpenDoors if necessary. Programs which
+Calling [`od_get_cursor()`](od_get_cursor.md) initializes OpenDoors if necessary. Programs which
 need to set initialization fields in [`od_control`](../control/index.md) must
 do so before this call.
 

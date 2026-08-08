@@ -2,7 +2,7 @@
 
 These definitions identify the OpenDoors interface, selected target, linkage,
 logical values, timeout convention, and child-process mode. Applications obtain
-them by including `OpenDoor.h`; they should not reproduce the platform
+them by including [`OpenDoor.h`](../api/index.md); they should not reproduce the platform
 selection logic themselves.
 
 ## Version and path definitions
@@ -48,7 +48,7 @@ than simple source portability is required.
 ## Platform selection
 
 Exactly one of the following `ODPLAT_*` macros describes the target selected by
-`OpenDoor.h`. Test these macros with `#if defined(...)`; their mere presence is
+[`OpenDoor.h`](../api/index.md). Test these macros with `#if defined(...)`; their mere presence is
 the interface and their replacement text is not meaningful.
 
 ### `ODPLAT_WIN32`
@@ -79,7 +79,7 @@ model, and the unsupported `-ri` return convention. This platform is separate
 from the 16-bit DOS implementation even though both run under DOS.
 
 Do not define an `ODPLAT_*` macro manually to cross-compile a source file. Set
-up the correct compiler and target so `OpenDoor.h`, the C runtime, object files,
+up the correct compiler and target so [`OpenDoor.h`](../api/index.md), the C runtime, object files,
 and OpenDoors library all agree.
 
 ## Windows library selection
@@ -87,7 +87,7 @@ and OpenDoors library all agree.
 ### `OD_WIN32_STATIC`
 
 A Windows consumer linking the static OpenDoors library must define
-`OD_WIN32_STATIC` before including `OpenDoor.h`. This prevents public objects
+`OD_WIN32_STATIC` before including [`OpenDoor.h`](../api/index.md). This prevents public objects
 and functions from being declared as DLL imports. The installed
 `OpenDoors::Static` CMake target supplies the definition automatically.
 
@@ -97,7 +97,7 @@ public interface.
 
 ### `OD_DLL`
 
-On Windows, `OpenDoor.h` defines `OD_DLL` unless `OD_WIN32_STATIC` was supplied.
+On Windows, [`OpenDoor.h`](../api/index.md) defines `OD_DLL` unless `OD_WIN32_STATIC` was supplied.
 It tells the header to select DLL import or export annotations. Application
 code may test it when an unavoidable deployment distinction exists, but should
 normally test behavior or use the CMake target instead.
@@ -121,7 +121,7 @@ header declarations. Applications neither define nor depend on it.
 These macros are part of public declarations and are documented so callbacks,
 foreign-function bindings, and established sources can reproduce the required
 type. Ordinary C and C++ callers should use the declarations already present
-in `OpenDoor.h`.
+in [`OpenDoor.h`](../api/index.md).
 
 ### `OD_NAMING_CONVENTION`
 
@@ -163,7 +163,7 @@ which assumes a fixed argument list.
 ### `OD_GLOBAL_CONV`
 
 `OD_GLOBAL_CONV` preserves the established platform convention attached to the
-exported `od_control` object where the toolchain requires one. Applications
+exported [`od_control`](../control/index.md) object where the toolchain requires one. Applications
 should use the declaration in the header instead of placing this macro on a
 new object.
 
@@ -209,7 +209,7 @@ with `TRUE`, since C permits any nonzero value to mean true.
 
 `MAYBE` is the compatibility name for the value `2`. The current source does
 not test the macro by name. Established code used it for fields such as
-`od_okaytopage`, where 0 disables paging, 1 enables it unconditionally, and any
+[`od_okaytopage`](../control/runtime.md#od_okaytopage), where 0 disables paging, 1 enables it unconditionally, and any
 other value follows the configured hours. New code should use that field's
 specific name [`PAGE_USE_HOURS`](session.md#page_use_hours). `MAYBE` is not an
 indeterminate result returned by ordinary Boolean functions.
@@ -246,8 +246,8 @@ implementation, a successful `fork()` returns `0` to the caller and OpenDoors
 sets `SIGCHLD` to `SIG_IGN` with `SA_NOCLDWAIT`; no child identifier is returned
 and the application does not wait or reap that child through this API. On
 Windows, the value comes from the C runtime `_spawnvpe()` call, narrowed to the
-public `INT16` return type. Passing this value on DOS, which supports only
-`P_WAIT`, returns `-1` and sets `od_control.od_error` to `ERR_PARAMETER`.
+public [`INT16`](../types.md#int16) return type. Passing this value on DOS, which supports only
+`P_WAIT`, returns `-1` and sets [`od_control.od_error`](../control/runtime.md#od_error) to `ERR_PARAMETER`.
 
 On Windows and DOS32 these names are obtained from `<process.h>`; OpenDoors
 defines compatible values where the C runtime does not provide them.
@@ -256,5 +256,5 @@ defines compatible values where the C runtime does not provide them.
 
 `CURRENT` and `IRET` are established DOS swapping implementation markers with
 values zero and one. They are exposed by the public header for source
-compatibility, but they are not valid `od_spawnvpe()` modes and new application
+compatibility, but they are not valid [`od_spawnvpe()`](../api/od_spawnvpe.md) modes and new application
 code should not use them.

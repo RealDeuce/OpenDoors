@@ -21,8 +21,8 @@ BOOL od_send_file_section(char *pszFileName, char *pszSectionName);
 
 ## Return value
 
-Returns [`TRUE`](../types.md#true-and-false) if the requested section was found
-and its display operation completed. Returns [`FALSE`](../types.md#true-and-false)
+Returns [`TRUE`](../constants/general.md#true) if the requested section was found
+and its display operation completed. Returns [`FALSE`](../constants/general.md#false)
 if no suitable file can be opened, either parameter is null, or the section
 marker is not found.
 
@@ -32,7 +32,7 @@ section into an error.
 
 ## Description
 
-`od_send_file_section()` is the section-oriented counterpart to
+[`od_send_file_section()`](od_send_file_section.md) is the section-oriented counterpart to
 [`od_send_file()`](od_send_file.md). It allows several screens, menu fragments,
 or messages which use the same display format to reside in one file. A section
 begins with a line whose first characters are `@#` followed immediately by the

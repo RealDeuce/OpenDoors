@@ -14,8 +14,8 @@ N/A
 
 ## Description
 
-Passing [`FALSE`](../types.md#true-and-false) lowers Data Terminal Ready;
-passing [`TRUE`](../types.md#true-and-false) raises it. OpenDoors normally
+Passing [`FALSE`](../constants/general.md#false) lowers Data Terminal Ready;
+passing [`TRUE`](../constants/general.md#true) raises it. OpenDoors normally
 keeps DTR raised. Most suitably configured modems disconnect when DTR is
 lowered, so a callback-verification door can use `od_set_dtr(FALSE)` to end
 the current call without terminating the door. After carrier disappears, the

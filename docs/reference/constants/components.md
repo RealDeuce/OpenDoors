@@ -15,7 +15,7 @@ enable the built-in configuration-file reader. During initialization it locates
 the configured file, processes standard keywords, invokes custom keyword
 callbacks, and applies settings before the active session begins.
 
-The macro is a correctly typed reference to `ODConfigInit`, not a Boolean.
+The macro is a correctly typed reference to [`ODConfigInit`](#odconfiginit), not a Boolean.
 Assign the macro as shown; do not compare the field with `TRUE` or call the
 initializer directly.
 
@@ -31,7 +31,7 @@ keyword order, comments, callbacks, and custom drop-file definitions.
 ### `NO_CONFIG_FILE`
 
 Assign `NO_CONFIG_FILE` to disable the built-in configuration component. It is
-a null `OD_COMPONENT` pointer. This is useful when the application owns all
+a null [`OD_COMPONENT`](../types.md#od_component) pointer. This is useful when the application owns all
 configuration or when deterministic initialization must not read a file.
 
 Disabling the component does not disable standard command-line parsing. The
@@ -50,7 +50,7 @@ standard lifecycle messages; application entries can be added with
 
 [`od_logfile_disable`](../control/customization.md#od_logfile_disable) can
 suppress opening at run time even when this component is linked and selected.
-The name and message table are controlled by adjacent `od_control` members.
+The name and message table are controlled by adjacent [`od_control`](../control/index.md) members.
 
 ### `NO_LOGFILE`
 
@@ -60,7 +60,7 @@ page, chat, shell, and exit events are not logged through the component.
 
 This does not disable the public [`od_log_write()`](../api/od_log_write.md)
 function. Calling that function explicitly still attempts to open the configured
-log file and write the supplied message unless `od_logfile_disable` is true.
+log file and write the supplied message unless [`od_logfile_disable`](../control/customization.md#od_logfile_disable) is true.
 The application also remains free to maintain an independent log.
 
 ## Multiple-personality component
@@ -70,8 +70,8 @@ The application also remains free to maintain an independent log.
 Assign `INCLUDE_MPS` to
 [`od_control.od_mps`](../control/customization.md#od_mps) to enable the DOS
 initialization-time personality selector. During the first part of
-`od_init()`, OpenDoors calls `ODMPSEnable()`, which assigns
-`od_set_personality()` to its internal selection hook. Later initialization
+[`od_init()`](../api/od_init.md), OpenDoors calls `ODMPSEnable()`, which assigns
+[`od_set_personality()`](../api/od_set_personality.md) to its internal selection hook. Later initialization
 uses that hook to select the name read into its desired-personality setting;
 if selection fails, initialization falls back to the configured default
 procedure or `pdef_opendoors()`.
@@ -82,7 +82,7 @@ that a personality changes remote terminal behavior.
 
 ### `NO_MPS`
 
-`NO_MPS` is a null `OD_COMPONENT` pointer. With this value, initialization does
+`NO_MPS` is a null [`OD_COMPONENT`](../types.md#od_component) pointer. With this value, initialization does
 not install or invoke the initialization-time named-personality selection hook.
 It instead initializes
 [`od_control.od_default_personality`](../control/customization.md#od_default_personality),
@@ -105,13 +105,13 @@ phase remain correct.
 ### `ODLogEnable`
 
 `ODLogEnable()` is the initializer named by `INCLUDE_LOGFILE`. Assign the macro
-to `od_control.od_logfile` instead of calling this routine directly.
+to [`od_control.od_logfile`](../control/customization.md#od_logfile) instead of calling this routine directly.
 
 ### `ODMPSEnable`
 
 `ODMPSEnable()` is the initializer named by `INCLUDE_MPS`. Direct invocation
 sets the same internal selection hook immediately. Assigning `INCLUDE_MPS` to
-`od_control.od_mps` is the documented way to have `od_init()` invoke it at the
+[`od_control.od_mps`](../control/customization.md#od_mps) is the documented way to have [`od_init()`](../api/od_init.md) invoke it at the
 correct phase.
 
 ## Built-in personality identifiers
@@ -215,7 +215,7 @@ store only state which will be undone by `PEROP_DEINITIALIZE`.
 
 Handle the personality's most recently activated custom local key. The key is
 reported through
-[`od_control.od_last_hot`](../control/customization.md#od_last_hot). A handler
+[`od_control.od_last_hot`](../control/runtime.md#od_last_hot). A handler
 may update personality state and request a redraw. It should not treat this
 operation as remote caller input.
 
@@ -228,8 +228,8 @@ during initialization.
 
 ## Personality SDK boundary
 
-Personality modules include `ODStat.h`, use the `OD_PERSONALITY_PROC` calling
-convention, and link only against the documented SDK helpers. `OpenDoor.h`
+Personality modules include [`ODStat.h`](../personality/index.md), use the [`OD_PERSONALITY_PROC`](../types.md#od_personality_proc) calling
+convention, and link only against the documented SDK helpers. [`OpenDoor.h`](../api/index.md)
 remains the application API; private screen, frame, string, communication, and
 parser headers are not personality interfaces. See
 [DOS personalities](../../guides/personalities.md) for module structure,

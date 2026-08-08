@@ -10,8 +10,8 @@ BOOL od_list_files(char *pszFileSpec);
 
 ## Return value
 
-`TRUE` when the listing was opened and display completed or was stopped by the
-user; `FALSE` when the directory or listing file could not be opened.
+[`TRUE`](../constants/general.md#true) when the listing was opened and display completed or was stopped by the
+user; [`FALSE`](../constants/general.md#false) when the directory or listing file could not be opened.
 
 ## Description
 
@@ -75,10 +75,10 @@ extended door-information record is active, bit `0x04` of
 [`od_control.user_attribute`](../control/caller.md#user_attribute) supplies the
 caller's pausing preference instead. The configured pause and stop keys are
 honored while the listing is displayed. Stopping a listing is considered a
-successful completion and returns `TRUE`.
+successful completion and returns [`TRUE`](../constants/general.md#true).
 
 If the directory, index file, or initial directory entry cannot be opened,
-OpenDoors returns `FALSE` and sets
+OpenDoors returns [`FALSE`](../constants/general.md#false) and sets
 [`od_control.od_error`](../control/runtime.md#od_error) to
 [`ERR_FILEOPEN`](../constants/errors.md#err_fileopen). A later `fgets()` failure
 is treated as end of file and is not reported separately.

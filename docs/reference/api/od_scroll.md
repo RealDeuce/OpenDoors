@@ -11,12 +11,12 @@ BOOL od_scroll(INT nLeft, INT nTop, INT nRight, INT nBottom,
 
 ## Return value
 
-Returns [`TRUE`](../types.md#true-and-false) when the operation succeeds, or
-[`FALSE`](../types.md#true-and-false) on failure.
+Returns [`TRUE`](../constants/general.md#true) when the operation succeeds, or
+[`FALSE`](../constants/general.md#false) on failure.
 
 ## Description
 
-`od_scroll()` moves the contents of a rectangular portion of the current
+[`od_scroll()`](od_scroll.md) moves the contents of a rectangular portion of the current
 OpenDoors screen upward or downward. The coordinates are one-based and
 inclusive. `nLeft` and `nRight` identify the first and last columns; `nTop`
 and `nBottom` identify the first and last rows.
@@ -35,7 +35,7 @@ scrolling every old row out of the area.
 | [`SCROLL_NORMAL`](../constants/display.md#scroll_normal) | Clear newly exposed rows in the current display attribute. |
 | [`SCROLL_NO_CLEAR`](../constants/display.md#scroll_no_clear) | Permit the ANSI implementation to omit the clearing pass. This flag is intended for an application which will immediately overwrite every newly exposed cell. |
 
-`SCROLL_NO_CLEAR` does not promise that the exposed cells retain any
+[`SCROLL_NO_CLEAR`](../constants/display.md#scroll_no_clear) does not promise that the exposed cells retain any
 particular previous value. The AVATAR implementation always blanks them while
 updating the screen model; the ANSI implementation leaves them uncleared.
 
@@ -44,14 +44,14 @@ OpenDoors transmits the terminal's rectangular-scroll command, updates the
 virtual or local screen, and blanks the newly exposed rows. In ANSI mode, it
 moves the retained cells using [`od_gettext()`](od_gettext.md) and
 [`od_puttext()`](od_puttext.md), then clears exposed rows unless
-`SCROLL_NO_CLEAR` was specified. Clearing is most efficient when the right
+[`SCROLL_NO_CLEAR`](../constants/display.md#scroll_no_clear) was specified. Clearing is most efficient when the right
 edge of the rectangle is the right edge of the current window, because
 [`od_clr_line()`](od_clr_line.md) can then be used instead of transmitting a
 row of spaces.
 
 Newly cleared rows use the current display attribute. The original cursor
 position is restored when the operation completes. The current display
-attribute is not deliberately changed by `od_scroll()`; the ANSI block-output
+attribute is not deliberately changed by [`od_scroll()`](od_scroll.md); the ANSI block-output
 path restores it before returning.
 
 For a remote session, the operation applies to the virtual session screen and

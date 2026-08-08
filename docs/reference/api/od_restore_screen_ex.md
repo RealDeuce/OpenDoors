@@ -21,14 +21,14 @@ BOOL od_restore_screen_ex(const void *pBuffer, DWORD dwBufferSize);
 
 ## Return value
 
-Returns [`TRUE`](../types.md#true-and-false) when the snapshot and its display
-state have been restored. Returns [`FALSE`](../types.md#true-and-false) if the
+Returns [`TRUE`](../constants/general.md#true) when the snapshot and its display
+state have been restored. Returns [`FALSE`](../constants/general.md#false) if the
 buffer is invalid, incomplete, incompatible with the current screen, or cannot
 be displayed.
 
 ## Description
 
-`od_restore_screen_ex()` restores every character and attribute saved by
+[`od_restore_screen_ex()`](od_restore_screen_ex.md) restores every character and attribute saved by
 [`od_save_screen_ex()`](od_save_screen_ex.md), then restores the saved window
 boundaries, cursor position, current attribute, and recorded scrolling flag. It is the
 counterpart to the size-aware save interface and is suitable for caller screens

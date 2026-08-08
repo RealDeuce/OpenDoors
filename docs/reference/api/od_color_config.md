@@ -14,7 +14,7 @@ Color attribute value
 
 ## Description
 
-This function will be of use if you are using the configuration file system of OpenDoors, and wish to allow the sysop to specify text colors to be used in your door. While OpenDoors automatically recognizes color configuration settings for things such as sysop chat mode and FILES.BBS listings, you may wish to add additional color configuration options. In this case, you could call the `od_color_config()` function from your custom line function. For more information on the custom line function, see the section on the OpenDoors configuration file system.
+This function will be of use if you are using the configuration file system of OpenDoors, and wish to allow the sysop to specify text colors to be used in your door. While OpenDoors automatically recognizes color configuration settings for things such as sysop chat mode and FILES.BBS listings, you may wish to add additional color configuration options. In this case, you could call the [`od_color_config()`](od_color_config.md) function from your custom line function. For more information on the custom line function, see the section on the OpenDoors configuration file system.
 
 To use this function, pass the configuration-file text to be parsed in
 `pszColorDesc`. The function returns an IBM-PC color attribute in the same
@@ -54,7 +54,7 @@ comparison.
 When this function is called by [`od_printf()`](od_printf.md), parsing stops at
 the active closing color delimiter. A direct call normally parses through the
 terminating nul character. The function retains the point at which parsing
-stopped for use by the `od_printf()` parser; that retained address is not part
+stopped for use by the [`od_printf()`](od_printf.md) parser; that retained address is not part
 of the public interface. `pszColorDesc` must not be `NULL`.
 
 Individual words are compared using at most their first 39 characters. If a

@@ -20,13 +20,13 @@ BOOL od_save_screen_ex(void *pBuffer, DWORD dwBufferSize);
 
 ## Return value
 
-Returns [`TRUE`](../types.md#true-and-false) when the complete snapshot has
-been written. Returns [`FALSE`](../types.md#true-and-false) when the screen is
+Returns [`TRUE`](../constants/general.md#true) when the complete snapshot has
+been written. Returns [`FALSE`](../constants/general.md#false) when the screen is
 unavailable, a parameter is invalid, or the supplied buffer is too small.
 
 ## Description
 
-`od_save_screen_ex()` saves the whole screen used by the current OpenDoors
+[`od_save_screen_ex()`](od_save_screen_ex.md) saves the whole screen used by the current OpenDoors
 session. Each text cell's character and IBM-PC attribute is retained. The
 snapshot also records the active window boundaries, cursor position, current
 display attribute, and a scrolling flag, so that
@@ -49,7 +49,7 @@ The normal sequence is:
 
 1. Call [`od_save_screen_size()`](od_save_screen_size.md).
 2. Allocate at least that many bytes.
-3. Call `od_save_screen_ex()` with the allocation and its size.
+3. Call [`od_save_screen_ex()`](od_save_screen_ex.md) with the allocation and its size.
 4. Keep the buffer unchanged until it is passed to
    [`od_restore_screen_ex()`](od_restore_screen_ex.md).
 5. Free the buffer when it is no longer needed.
@@ -73,7 +73,7 @@ OpenDoors if necessary.
 
 This interface is distinct from [`od_save_screen()`](od_save_screen.md). The
 older function retains its fixed 80-column, at-most-25-row format and its buffer
-cannot be passed to `od_restore_screen_ex()`. Likewise, a size-aware snapshot
+cannot be passed to [`od_restore_screen_ex()`](od_restore_screen_ex.md). Likewise, a size-aware snapshot
 cannot be passed to [`od_restore_screen()`](od_restore_screen.md).
 
 ## Errors

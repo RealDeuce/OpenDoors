@@ -14,7 +14,7 @@ The return value is a pointer to the same [`tODControl`](../control/index.md)
 object exported as the global [`od_control`](../control/index.md) variable. It
 is never `NULL`.
 
-The pointed-to structure is the writable public `od_control` object and belongs
+The pointed-to structure is the writable public [`od_control`](../control/index.md) object and belongs
 to OpenDoors. The application must not free it or assume that the pointer refers
 to a separately allocated session object. Individual fields may be read and
 written under the same rules as the global variable. Replacing the entire
@@ -35,7 +35,7 @@ od_control.od_prog_version = "1.0";
 
 Some foreign-function interfaces and dynamic loaders can call an exported
 function more easily than they can import an exported data symbol.
-`od_control_get()` provides function-based access for those environments:
+[`od_control_get()`](od_control_get.md) provides function-based access for those environments:
 
 ```c
 tODControl *control = od_control_get();
@@ -51,7 +51,7 @@ through the other. The pointer remains valid while that OpenDoors library
 instance is loaded and does not change when [`od_init()`](od_init.md) or
 [`od_exit()`](od_exit.md) is called.
 
-Unlike most OpenDoors API functions, `od_control_get()` does not initialize
+Unlike most OpenDoors API functions, [`od_control_get()`](od_control_get.md) does not initialize
 OpenDoors and does not run the OpenDoors kernel. It is therefore safe to call
 while preparing settings that must be established before initialization. This
 does not change the timing rules of the individual fields: a field documented

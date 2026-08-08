@@ -22,7 +22,7 @@ This function does not return a value.
 
 [`od_split_cmd_line()`](od_split_cmd_line.md) allocates both an array of
 argument pointers and the storage containing the argument strings.
-`od_free_split_cmd_line()` releases the complete result. Applications must use
+[`od_free_split_cmd_line()`](od_free_split_cmd_line.md) releases the complete result. Applications must use
 this function instead of attempting to free the individual pointers
 themselves; the strings do not all have independent allocations.
 
@@ -50,7 +50,7 @@ array, an interior pointer such as `papszArguments + 1`, or an array already
 freed by an earlier call. Those values do not have the allocation layout that
 this function expects and result in undefined behavior.
 
-It is valid to call `od_free_split_cmd_line()` before OpenDoors has been
+It is valid to call [`od_free_split_cmd_line()`](od_free_split_cmd_line.md) before OpenDoors has been
 initialized. It neither initializes OpenDoors nor runs the kernel.
 
 ## Errors

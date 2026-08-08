@@ -10,16 +10,16 @@ BOOL od_carrier(void);
 
 ## Return value
 
-Returns [`TRUE`](../types.md#true-and-false) while the active remote
+Returns [`TRUE`](../constants/general.md#true) while the active remote
 communications method reports that the caller is still connected. Returns
-[`FALSE`](../types.md#true-and-false) when the connection has been lost or
+[`FALSE`](../constants/general.md#false) when the connection has been lost or
 OpenDoors is operating in local mode.
 
 ## Description
 
 OpenDoors normally monitors the connection itself. When a remote caller is
 lost, the kernel performs its configured hangup handling without requiring
-the door to poll `od_carrier()`. An application normally needs this function
+the door to poll [`od_carrier()`](od_carrier.md). An application normally needs this function
 only after setting
 [`DIS_CARRIERDETECT`](../constants/session.md#dis_carrierdetect) in
 [`od_control.od_disable`](../control/customization.md#od_disable), thereby
@@ -33,7 +33,7 @@ this interface means the current communications method's connection state,
 not necessarily a physical modem signal.
 
 Local mode has no remote connection. In that mode the function returns
-`FALSE` and places [`ERR_NOREMOTE`](../constants/errors.md#err_noremote) in
+[`FALSE`](../constants/general.md#false) and places [`ERR_NOREMOTE`](../constants/errors.md#err_noremote) in
 [`od_control.od_error`](../control/runtime.md#od_error).
 
 ## Example

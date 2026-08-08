@@ -154,7 +154,7 @@ order and focus drawing.
 
 Treat the supplied initial string as text to be edited. The caller can move
 within it, insert, delete, and accept a modified value. Without this flag,
-`od_edit_str()` sets `pszInput[0]` to nul before input begins; the previous
+[`od_edit_str()`](../api/od_edit_str.md) sets `pszInput[0]` to nul before input begins; the previous
 contents are neither displayed as a default nor preserved for cancellation.
 
 Ensure that the initial string is nul terminated within the supplied capacity
@@ -327,7 +327,7 @@ present.
 
 The optional menu callback has completed its action and requests that the
 multiline editor continue. This value is returned by the callback, not by
-`od_multiline_edit()`.
+[`od_multiline_edit()`](../api/od_multiline_edit.md).
 
 ### `EDIT_MENU_EXIT_EDITOR`
 
@@ -344,7 +344,7 @@ does not inspect the member.
 
 ### `OD_MULTIEDIT_ERROR`
 
-[`od_multiline_edit()`](../api/od_multiline_edit.md) failed. Inspect `od_error`
+[`od_multiline_edit()`](../api/od_multiline_edit.md) failed. Inspect [`od_error`](../control/runtime.md#od_error)
 and do not assume that `pszFinalBuffer` contains an accepted result.
 
 ### `OD_MULTIEDIT_SUCCESS`

@@ -83,7 +83,7 @@ immediately for the reason.
 `POPUP_ESCAPE` is zero. It reports either cancellation accepted because
 `MENU_ALLOW_CANCEL` was active or completion of a `MENU_DESTROY` operation on
 a retained menu. In either case it is not an ordinary item number and does not,
-by itself, indicate an API error; `od_error` need not change.
+by itself, indicate an API error; [`od_error`](../control/runtime.md#od_error) need not change.
 
 ### `POPUP_LEFT`
 
@@ -171,8 +171,8 @@ selection may restore a personality display. To disable status operation as a
 policy, use
 [`od_control.od_status_on`](../control/customization.md#od_status_on).
 
-The compatibility names `STATUS_USER1` through `STATUS_USER4`,
-`STATUS_SYSTEM`, and `STATUS_HELP` map to established alternate slots; see
+The compatibility names [`STATUS_USER1`](../compatibility.md#status-and-color-aliases) through [`STATUS_USER4`](../compatibility.md#status-and-color-aliases),
+[`STATUS_SYSTEM`](../compatibility.md#status-and-color-aliases), and [`STATUS_HELP`](../compatibility.md#status-and-color-aliases) map to established alternate slots; see
 [Compatibility interfaces](../compatibility.md#status-and-color-aliases).
 
 ## Box-character indexes

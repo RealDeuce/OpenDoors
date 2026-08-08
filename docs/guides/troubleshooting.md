@@ -71,20 +71,20 @@ paths are resolved in that context, not relative to the executable's location.
 
 ## Build and link failures
 
-If the compiler cannot find `OpenDoor.h`, use the installed CMake package or
+If the compiler cannot find [`OpenDoor.h`](../reference/api/index.md), use the installed CMake package or
 add the directory containing the header to the compiler's include search path.
 Do not copy a header from a different version into the application source
 tree. The header and library form one interface and must be upgraded together.
 
 An undefined public API symbol at link time usually means that the OpenDoors
 target is absent, the wrong architecture was selected, C++ linkage was
-redeclared incorrectly, or a Windows static build omitted `OD_WIN32_STATIC`.
+redeclared incorrectly, or a Windows static build omitted [`OD_WIN32_STATIC`](../reference/constants/general.md#od_win32_static).
 Prefer linking the imported targets `OpenDoors::Static` or
 `OpenDoors::Shared`; they propagate include directories, platform libraries,
 and required compile definitions.
 
-A duplicate `od_control` definition means application code defined the global
-instead of using the declaration from `OpenDoor.h`, or linked two OpenDoors
+A duplicate [`od_control`](../reference/control/index.md) definition means application code defined the global
+instead of using the declaration from [`OpenDoor.h`](../reference/api/index.md), or linked two OpenDoors
 libraries. Include the header and use the exported object. Do not declare a
 second unqualified `tODControl od_control` in application source.
 
@@ -98,7 +98,7 @@ one shipped DOS example with the same options before changing OpenDoors.
 Warnings about implicit function declarations, incompatible pointers, or
 integer-to-pointer conversions are not harmless portability noise. They can
 change the generated calling sequence and become crashes only on one
-architecture. Include `OpenDoor.h`, use its callback types, and resolve the
+architecture. Include [`OpenDoor.h`](../reference/api/index.md), use its callback types, and resolve the
 warning at its source.
 
 ## The door starts and immediately exits
@@ -122,7 +122,7 @@ runs locally but not under the BBS, compare the BBS working directory, command
 line, inherited handle, and drop file. If it fails in both modes, reduce the
 application's initialization settings and inspect the first API call.
 
-[`od_control.od_force_local`](../reference/control/connection.md#od_force_local)
+[`od_control.od_force_local`](../reference/control/customization.md#od_force_local)
 must be set before initialization. Setting it after a different transport is
 open does not convert the session.
 
@@ -210,14 +210,14 @@ source and binary compatibility.
 
 If [`od_clr_scr()`](../reference/api/od_clr_scr.md) appears to do nothing, check
 the caller's screen-clearing preference and
-[`od_control.od_always_clear`](../reference/control/runtime.md#od_always_clear).
+[`od_control.od_always_clear`](../reference/control/customization.md#od_always_clear).
 Do not replace the call with a hard-coded terminal sequence unless the door
 intentionally wants to override OpenDoors' terminal handling and caller policy.
 
 ## Input, menus, and editors behave unexpectedly
 
 [`od_get_key()`](../reference/api/od_get_key.md) returns a logical key value;
-extended keys are represented by the `OD_KEY_*` definitions rather than a
+extended keys are represented by the [`OD_KEY_*`](../reference/constants/input.md#function-keys) definitions rather than a
 portable single-byte character. Compare against those constants and do not
 truncate the result into `char` before checking it.
 
@@ -226,9 +226,9 @@ special-key, mouse, timeout, and other event results. Initialize the event
 structure as documented, inspect its returned event type, and only read the
 union member associated with that type.
 
-For popup menus, keep selection indexes, hotkeys, and the `MENU_*` behavior
-flags distinct. `MENU_ALLOW_CANCEL` changes whether cancellation is accepted;
-`MENU_KEEP` and `MENU_DESTROY` control window lifetime; `MENU_PULLDOWN` changes
+For popup menus, keep selection indexes, hotkeys, and the [`MENU_*`](../reference/constants/display.md#popup-menu-flags) behavior
+flags distinct. [`MENU_ALLOW_CANCEL`](../reference/constants/display.md#menu_allow_cancel) changes whether cancellation is accepted;
+[`MENU_KEEP`](../reference/constants/display.md#menu_keep) and [`MENU_DESTROY`](../reference/constants/display.md#menu_destroy) control window lifetime; [`MENU_PULLDOWN`](../reference/constants/display.md#menu_pulldown) changes
 navigation behavior. A value which happens to work as both a Boolean and a
 flag is not necessarily valid in both parameter positions.
 
@@ -248,7 +248,7 @@ owning thread.
 
 Compare the BBS-provided time limit with
 [`od_control.od_maxtime`](../reference/control/customization.md#od_maxtime) and
-[`od_control.od_maxtime_deduction`](../reference/control/customization.md#od_maxtime_deduction).
+[`od_control.od_maxtime_deduction`](../reference/control/runtime.md#od_maxtime_deduction).
 The door-specific cap can reduce the effective time even when the drop file
 contains a larger value.
 
@@ -259,7 +259,7 @@ is smaller than the configured inactivity limit. Local and remote input may
 affect activity accounting differently depending on whether local keyboard
 input is enabled.
 
-Do not permanently set `DIS_CARRIERDETECT`, `DIS_TIMEOUT`, or related mask bits
+Do not permanently set [`DIS_CARRIERDETECT`](../reference/constants/session.md#dis_carrierdetect), [`DIS_TIMEOUT`](../reference/constants/session.md#dis_timeout), or related mask bits
 merely to make a test pass. Use a temporary change to identify which mechanism
 is firing, then correct the stale handle, incorrect drop-file value, or missing
 kernel service.

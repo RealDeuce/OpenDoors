@@ -14,15 +14,15 @@ The next key waiting from the keyboard, or 0 if none.
 
 ## Description
 
-This function retrieves the next key waiting in the OpenDoors keyboard buffer (see the description of the [`od_clear_keybuffer()`](od_clear_keybuffer.md) function, for more information on the OpenDoors keyboard buffer). The `od_get_key()` function allows your door to retrieve both those keystrokes pressed by the user, and the keystrokes pressed on the sysop keyboard (other than the sysop function keys), in the sequence they were pressed. Since input is accepted from both sources, it is possible for the sysop, as well as the remote user, to make selections and control the door.
+This function retrieves the next key waiting in the OpenDoors keyboard buffer (see the description of the [`od_clear_keybuffer()`](od_clear_keybuffer.md) function, for more information on the OpenDoors keyboard buffer). The [`od_get_key()`](od_get_key.md) function allows your door to retrieve both those keystrokes pressed by the user, and the keystrokes pressed on the sysop keyboard (other than the sysop function keys), in the sequence they were pressed. Since input is accepted from both sources, it is possible for the sysop, as well as the remote user, to make selections and control the door.
 
-Door input with OpenDoors can be accomplished with this function, with the [`od_input_str()`](od_input_str.md) function or with the [`od_edit_str()`](od_edit_str.md) function. The [`od_input_str()`](od_input_str.md) and [`od_edit_str()`](od_edit_str.md) functions is used to input an entire sequence of characters from the user (a string), and requires the user to press the [Enter] key when they are finished typing their input. On the other hand, the `od_get_key()` function is used to input a single keystroke (one character) from the user, and allows the user to make choices without having to press the enter key.
+Door input with OpenDoors can be accomplished with this function, with the [`od_input_str()`](od_input_str.md) function or with the [`od_edit_str()`](od_edit_str.md) function. The [`od_input_str()`](od_input_str.md) and [`od_edit_str()`](od_edit_str.md) functions is used to input an entire sequence of characters from the user (a string), and requires the user to press the [Enter] key when they are finished typing their input. On the other hand, the [`od_get_key()`](od_get_key.md) function is used to input a single keystroke (one character) from the user, and allows the user to make choices without having to press the enter key.
 
-The `od_get_key()` function accepts a single parameter, which determines whether or not it should wait for the user to press a key, if they have not already done so. If you pass a FALSE value to `od_get_key()`, then the function will not wait for a key to be pressed at the keyboard, but instead return a 0 if there are no keys waiting in the buffer. If you pass a TRUE value to `od_get_key()`, then this function will instead wait for a key to be pressed. Also, while waiting for the user to press a key, the `od_get_key()` function will give up the processor to other waiting programs, if you door is running under DesqView.
+The [`od_get_key()`](od_get_key.md) function accepts a single parameter, which determines whether or not it should wait for the user to press a key, if they have not already done so. If you pass a FALSE value to [`od_get_key()`](od_get_key.md), then the function will not wait for a key to be pressed at the keyboard, but instead return a 0 if there are no keys waiting in the buffer. If you pass a TRUE value to [`od_get_key()`](od_get_key.md), then this function will instead wait for a key to be pressed. Also, while waiting for the user to press a key, the [`od_get_key()`](od_get_key.md) function will give up the processor to other waiting programs, if you door is running under DesqView.
 
-If you are waiting for the user to make a choice from a menu or list of options, you will most likely pass a TRUE to the `od_get_key()` function, indicating that you wish for it to wait until a key is pressed. However, if you wish to continue other processing if no key is yet available from the keyboard, you should pass a FALSE to the `od_get_key()` function. For example, if you are displaying a screen of text, and wish to allow the user to pause or abort the display, you would simply call the `od_get_key()` function every few moments, passing it a value of FALSE. You would then be able to check if any control keys have been pressed, and if not, continue displaying text.
+If you are waiting for the user to make a choice from a menu or list of options, you will most likely pass a TRUE to the [`od_get_key()`](od_get_key.md) function, indicating that you wish for it to wait until a key is pressed. However, if you wish to continue other processing if no key is yet available from the keyboard, you should pass a FALSE to the [`od_get_key()`](od_get_key.md) function. For example, if you are displaying a screen of text, and wish to allow the user to pause or abort the display, you would simply call the [`od_get_key()`](od_get_key.md) function every few moments, passing it a value of FALSE. You would then be able to check if any control keys have been pressed, and if not, continue displaying text.
 
-The `od_get_key()` function returns the ASCII value representing the keystroke that was made. If you are waiting for the user to make a particular choice, perhaps from a menu, you will most likely store the value returned by `od_get_key()` in a variable of type char. For example:
+The [`od_get_key()`](od_get_key.md) function returns the ASCII value representing the keystroke that was made. If you are waiting for the user to make a particular choice, perhaps from a menu, you will most likely store the value returned by [`od_get_key()`](od_get_key.md) in a variable of type char. For example:
 
 char key; ... key=od_get_key(TRUE);
 
@@ -81,7 +81,7 @@ ASCII  KEYSTROKE | ASCII  KEYSTROKE | ASCII  KEYSTROKE | ASCII  KEYSTROKE
 
 ## Examples
 
-For examples of the use of the `od_get_key()` function, see the examples in the description portion, above, and the examples for the [`od_exit()`](od_exit.md) and [`od_clear_keybuffer()`](od_clear_keybuffer.md) functions. For further examples of this function, see the example program EX_VOTE.C.
+For examples of the use of the [`od_get_key()`](od_get_key.md) function, see the examples in the description portion, above, and the examples for the [`od_exit()`](od_exit.md) and [`od_clear_keybuffer()`](od_clear_keybuffer.md) functions. For further examples of this function, see the example program EX_VOTE.C.
 
 ## Additional details
 
@@ -91,7 +91,7 @@ enabled local input are returned in arrival order. Line-feed characters are
 discarded, so a waiting call continues past them and a non-waiting call can
 block after finding a queued line feed while it waits for the next character.
 
-After returning a character, the function sets `od_control.od_last_input` to
+After returning a character, the function sets [`od_control.od_last_input`](../control/runtime.md#od_last_input) to
 zero for remote input or one for local input.
 
 Use [`od_get_input()`](od_get_input.md) when extended keys or the source of an

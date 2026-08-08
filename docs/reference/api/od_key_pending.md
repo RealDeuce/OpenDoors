@@ -10,14 +10,14 @@ BOOL od_key_pending(void);
 
 ## Return value
 
-Returns [`TRUE`](../types.md#true-and-false) when the OpenDoors input queue
+Returns [`TRUE`](../constants/general.md#true) when the OpenDoors input queue
 contains an event which can be obtained by the input functions. Returns
-[`FALSE`](../types.md#true-and-false) when the queue is empty at the time of
+[`FALSE`](../constants/general.md#false) when the queue is empty at the time of
 the test.
 
 ## Description
 
-`od_key_pending()` provides a non-blocking test for caller or local-console
+[`od_key_pending()`](od_key_pending.md) provides a non-blocking test for caller or local-console
 input. Unlike [`od_get_key(FALSE)`](od_get_key.md), it does not remove the next
 event from the queue and does not discard its extended-key information. A true
 result may therefore be followed by one of the normal input calls to obtain
@@ -30,7 +30,7 @@ status processing. Consequently, input which arrived just before the call may
 be visible in its result even if it had not previously been queued.
 
 The result is only a snapshot. Another part of the program may consume the
-input after `od_key_pending()` returns, and new input may arrive immediately
+input after [`od_key_pending()`](od_key_pending.md) returns, and new input may arrive immediately
 after a false result. Code must not use the function as a guarantee that a
 later blocking input operation cannot wait.
 
@@ -57,7 +57,7 @@ extended keys, and other translated input should follow the test with
 [`od_get_input()`](od_get_input.md). Applications interested only in an
 eight-bit character may use [`od_get_key()`](od_get_key.md).
 
-Calling `od_key_pending()` initializes OpenDoors if necessary. A program must
+Calling [`od_key_pending()`](od_key_pending.md) initializes OpenDoors if necessary. A program must
 set all initialization options before making this call.
 
 ## Errors

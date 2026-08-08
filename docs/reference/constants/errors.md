@@ -7,7 +7,7 @@ a separate mechanism used when the session terminates.
 ## Reading API errors
 
 Check the function's documented success result first. If it reports failure,
-save `od_control.od_error` before making another OpenDoors call. A successful
+save [`od_control.od_error`](../control/runtime.md#od_error) before making another OpenDoors call. A successful
 call is not required to clear an earlier error, and a later failure can replace
 the value.
 
@@ -82,7 +82,7 @@ without changing it will not resolve this error.
 ### `ERR_FILEREAD`
 
 This constant is defined as “unable to read from file” for source compatibility.
-No current library source path assigns it to `od_control.od_error`. In
+No current library source path assigns it to [`od_control.od_error`](../control/runtime.md#od_error). In
 particular, the display-file functions treat a failed `fgets()` like end of
 file. Applications must not currently expect `ERR_FILEREAD` from those APIs.
 
@@ -104,7 +104,7 @@ It is not interchangeable with `ERR_NONE`.
 ### `ERR_NOTHINGWAITING`
 
 This constant describes a request made when nothing was ready, but no current
-library source path assigns it to `od_control.od_error`. Nonblocking
+library source path assigns it to [`od_control.od_error`](../control/runtime.md#od_error). Nonblocking
 [`od_get_input()`](../api/od_get_input.md),
 [`od_get_key()`](../api/od_get_key.md), and
 [`od_key_pending()`](../api/od_key_pending.md) report an empty queue through
@@ -113,7 +113,7 @@ their return values without setting `ERR_NOTHINGWAITING`.
 ### `ERR_NOMATCH`
 
 This constant denotes “no match was found,” but no current library source path
-assigns it to `od_control.od_error`. In particular,
+assigns it to [`od_control.od_error`](../control/runtime.md#od_error). In particular,
 [`od_set_personality()`](../api/od_set_personality.md) currently reports a
 missing personality as `ERR_LIMIT`, not `ERR_NOMATCH`.
 

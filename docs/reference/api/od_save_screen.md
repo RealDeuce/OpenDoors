@@ -10,12 +10,12 @@ BOOL od_save_screen(void *pBuffer);
 
 ## Return value
 
-Returns [`TRUE`](../types.md#true-and-false) when the screen has been saved,
-or [`FALSE`](../types.md#true-and-false) on failure.
+Returns [`TRUE`](../constants/general.md#true) when the screen has been saved,
+or [`FALSE`](../constants/general.md#false) on failure.
 
 ## Description
 
-`od_save_screen()` saves the contents of the active local text window,
+[`od_save_screen()`](od_save_screen.md) saves the contents of the active local text window,
 together with its cursor position and current display attribute, for later use
 by [`od_restore_screen()`](od_restore_screen.md). It retains the original
 OpenDoors fixed-width buffer format and is available in plain-ASCII, ANSI,
@@ -48,7 +48,7 @@ dimensions may differ.
 
 The fixed-format buffer is not interchangeable with the row-major rectangle
 used by [`od_gettext()`](od_gettext.md), or with the opaque snapshot used by
-`od_save_screen_ex()`. A buffer saved by this function must be restored only
+[`od_save_screen_ex()`](od_save_screen_ex.md). A buffer saved by this function must be restored only
 with [`od_restore_screen()`](od_restore_screen.md).
 
 RIP bitmap graphics are not saved. As with other OpenDoors screen-preservation
@@ -61,7 +61,7 @@ attribute.
 [`ERR_PARAMETER`](../constants/errors.md#err_parameter) is placed in
 [`od_control.od_error`](../control/runtime.md#od_error) if `pBuffer` is `NULL`
 or the current local window is not exactly 80 columns wide. A successful call
-returns `TRUE`.
+returns [`TRUE`](../constants/general.md#true).
 
 ## Example
 

@@ -24,7 +24,7 @@ Normally, the boarder of the window will be displayed using the IBM extended ASC
 
 ## Examples
 
-As an example of the use of the `od_draw_box()` function in conjunction with the [`od_edit_str()`](od_edit_str.md) function, we show a portion of a program which displays a window, and allows the user to input the name of a file they would like to upload, a description of the file, and whether they want it to be a private upload. The user is able to move among fields using the tab key, and select a "continue" button when they are finished. The function returns TRUE if the user selects continue, and FALSE if the user presses [ESCape].
+As an example of the use of the [`od_draw_box()`](od_draw_box.md) function in conjunction with the [`od_edit_str()`](od_edit_str.md) function, we show a portion of a program which displays a window, and allows the user to input the name of a file they would like to upload, a description of the file, and whether they want it to be a private upload. The user is able to move among fields using the tab key, and select a "continue" button when they are finished. The function returns TRUE if the user selects continue, and FALSE if the user presses [ESCape].
 
 ```c
                                    // Main "dialog box" function

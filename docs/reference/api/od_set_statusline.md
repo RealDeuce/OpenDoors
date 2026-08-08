@@ -27,7 +27,7 @@ If you have the OpenDoors status line enabled within your door program (as is th
 [F10] - Turn off the status line
 ```
 
-Using the `od_set_statusline()` function, you can manually set which of these status line settings is currently selected. The `od_set_statusline()` accepts a single parameter, which should be one of the values listed below, which indicates which status line you would like to have selected:
+Using the [`od_set_statusline()`](od_set_statusline.md) function, you can manually set which of these status line settings is currently selected. The [`od_set_statusline()`](od_set_statusline.md) accepts a single parameter, which should be one of the values listed below, which indicates which status line you would like to have selected:
 
 ```text
 +---------------+---------------+------------------------------+
@@ -47,7 +47,7 @@ Using the `od_set_statusline()` function, you can manually set which of these st
  OpenDoors control structure.)
 ```
 
-Keep in mind that the `od_set_statusline()` function only temporarily changes the current status line setting, and that the sysop will still be able to change the status line to any of the other settings using the function keys. For instance, if you wished to allow the sysop to normally see all 25 lines of text displayed by your door, but at the same time to still allow the sysop to turn on the status line at any time, you could place the line
+Keep in mind that the [`od_set_statusline()`](od_set_statusline.md) function only temporarily changes the current status line setting, and that the sysop will still be able to change the status line to any of the other settings using the function keys. For instance, if you wished to allow the sysop to normally see all 25 lines of text displayed by your door, but at the same time to still allow the sysop to turn on the status line at any time, you could place the line
 
 ```text
 od_set_statusline(STATUS_NONE);
@@ -67,9 +67,9 @@ If you wish to permanently turn off the OpenDoor's status line, without allowing
 
 Use the [`STATUS_*`](../constants/display.md) values defined by [`OpenDoor.h`](index.md)
 to select the normal line, one of seven alternate lines, or no line. Values
-outside 0 through 8 are converted to `STATUS_NORMAL`. If status-line processing
-has been disabled through `od_status_on`, the call makes no change. Selecting
-the already active line also makes no change unless `od_update_status_now` is
+outside 0 through 8 are converted to [`STATUS_NORMAL`](../constants/display.md#status_normal). If status-line processing
+has been disabled through [`od_status_on`](../control/customization.md#od_status_on), the call makes no change. Selecting
+the already active line also makes no change unless [`od_update_status_now`](../control/runtime.md#od_update_status_now) is
 set.
 
 On DOS and DOS32, the active personality redraws its local area as necessary;

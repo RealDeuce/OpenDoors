@@ -1,37 +1,316 @@
-# Runtime state and policy
+# Runtime state and policy fields
 
-These members control or report the active session.
+These members report changing session state or select policies which OpenDoors
+consults after initialization. Their entries distinguish values which the
+application may change from reports which should be treated as read-only.
 
-| Members | Description |
+## Diagnostics and input state
+
+### `od_error`
+
+```c
+INT16 od_control.od_error;
+```
+
+`od_error` records the reason for the most recent OpenDoors API failure which
+assigned an error code. Its static-storage initial value is
+[`ERR_NONE`](../constants/errors.md#err_none). Initialization does not
+unconditionally reset it, because an initialization helper may already have
+reported a failure.
+
+A successful API call normally leaves the previous value unchanged. The
+application must therefore test a function's documented return value first and
+inspect `od_error` only when that return indicates failure. Reading
+`od_error == ERR_NONE` after a successful call does not prove that no earlier
+call failed, and a nonzero stale value does not make a later successful call a
+failure.
+
+The complete values are listed under [Error codes](../constants/errors.md).
+The application may inspect this field and may deliberately clear it to
+[`ERR_NONE`](../constants/errors.md#err_none) for its own bookkeeping, but OpenDoors remains free to replace it
+on the next diagnosed failure.
+
+### `od_last_input`
+
+```c
+BYTE od_control.od_last_input;
+```
+
+After [`od_get_key()`](../api/od_get_key.md) returns a character, this field is
+0 if that event came from the remote caller and 1 if it came from the local
+operator. OpenDoors chat and example code use it to select the appropriate
+speaker or local-only command behavior.
+
+The static-storage initial value is zero, but before the first returned key
+that value does not prove that remote input has occurred. The library writes
+the field; application code should normally read it without assigning it.
+
+### `od_user_keyboard_on`
+
+```c
+BOOL od_control.od_user_keyboard_on;
+```
+
+This field controls whether remote caller keystrokes are admitted to the
+common OpenDoors input queue. Initialization sets it to [`TRUE`](../constants/general.md#true). The local
+keyboard-off command—Alt-K in the standard personality—toggles it and updates
+the status indication. The Win32 local interface provides the equivalent
+command.
+
+When the value is [`FALSE`](../constants/general.md#false), the kernel discards newly received remote input;
+local operator keys remain available. The application may inspect the state or
+change it at runtime when implementing an equivalent policy. It is not a
+pre-initialization setting because initialization always enables the caller's
+keyboard.
+
+## Display and status state
+
+### `od_cur_attrib`
+
+```c
+INT16 od_control.od_cur_attrib;
+```
+
+This field is OpenDoors' current logical IBM-PC text attribute. Initialization
+sets it to `-1`, meaning that the remote attribute is not yet known.
+[`od_set_attrib()`](../api/od_set_attrib.md), terminal emulation, screen
+clearing, menus, and chat update it as colors change. Values 0 through 255 have
+the representation described under [Colors](../constants/colors.md).
+
+Application code may read the field when it must save and later restore the
+current color. It should change the display through
+[`od_set_attrib()`](../api/od_set_attrib.md), rather than assigning this member,
+because direct assignment sends no terminal command and does not update the
+virtual or local screen attribute.
+
+### `od_current_statusline`
+
+```c
+BOOL od_control.od_current_statusline;
+```
+
+On text-mode targets, this report contains the setting most recently applied
+by [`od_set_statusline()`](../api/od_set_statusline.md): 0 through 7 for a
+personality status line or [`STATUS_NONE`](../constants/display.md#status_none)
+to remove it. The declared type is [`BOOL`](../types.md#bool) for historical ABI compatibility,
+but the stored value is not limited to true and false.
+
+Static initialization supplies zero. Normal initialization activates the
+personality's initial status line and updates the member when the text-mode
+status subsystem is available. It is not an instruction field: assign a new
+setting by calling [`od_set_statusline()`](../api/od_set_statusline.md).
+
+### `od_update_status_now`
+
+```c
+BOOL od_control.od_update_status_now;
+```
+
+Setting this field to [`TRUE`](../constants/general.md#true) requests a forced redraw of the active local
+status line. During the next kernel update, OpenDoors redraws the current line
+even if its selection has not changed, then resets the field to [`FALSE`](../constants/general.md#false).
+
+Its static and normal default is [`FALSE`](../constants/general.md#false). The application and personality SDK
+normally use [`ODStatForceStatusUpdate()`](../personality/ODStatForceStatusUpdate.md)
+rather than depending on this structure member directly, but direct runtime
+assignment retains its established effect.
+
+### `od_chat_active`
+
+```c
+BOOL od_control.od_chat_active;
+```
+
+`od_chat_active` is true while OpenDoors' line-oriented sysop chat is active.
+It begins as [`FALSE`](../constants/general.md#false); [`od_chat()`](../api/od_chat.md) and the local chat command
+set it to true, and chat cleanup restores false.
+
+The chat loop tests this member on every iteration. Application code may set it
+to [`FALSE`](../constants/general.md#false) from an appropriate callback or cooperating execution context to
+request that chat end. Setting it to [`TRUE`](../constants/general.md#true) does not by itself create the chat
+thread, install callbacks, or enter chat mode; use [`od_chat()`](../api/od_chat.md) to begin a
+complete chat session.
+
+### `od_silent_mode`
+
+```c
+BOOL od_control.od_silent_mode;
+```
+
+When assigned [`TRUE`](../constants/general.md#true) before initialization, this field suppresses the local
+OpenDoors user interface, including the local presentation and sysop command
+handling. It defaults to [`FALSE`](../constants/general.md#false) and can be enabled by the `-SILENT`
+command-line option.
+
+On DOS and Windows, conventional local mode has `baud == 0`; initialization
+forces `od_silent_mode` back to false in that case because the local display is
+the only user interface. Unix-like standard-I/O sessions use different
+transport conventions and do not necessarily pass through that zero-baud
+case. OpenDoors reads the value throughout local-screen and kernel operation.
+Changing it after initialization does not reconstruct resources omitted at
+startup and is unsupported.
+
+## Time and paging state
+
+### `od_inactive_warning`
+
+```c
+INT16 od_control.od_inactive_warning;
+```
+
+This field selects how many seconds before the inactivity deadline OpenDoors
+displays [`od_control.od_inactivity_warning`](customization.md#od_inactivity_warning),
+or passes that message to
+[`od_control.od_time_msg_func`](customization.md#od_time_msg_func). Normal
+initialization unconditionally assigns 10 seconds. An application override
+must therefore be made after initialization.
+
+The warning is used only while the inactivity limit is nonzero and
+[`od_control.od_disable_inactivity`](customization.md#od_disable_inactivity) is
+false. OpenDoors emits it at most once between input events; new input resets
+the warning state. The field is read dynamically by
+[`od_kernel()`](../api/od_kernel.md), so a runtime change affects the next time
+check.
+
+### `od_maxtime_deduction`
+
+```c
+INT16 od_control.od_maxtime_deduction;
+```
+
+This is the number of minutes temporarily removed from
+[`od_control.user_timelimit`](caller.md#user_timelimit) because the session's
+available BBS time exceeded
+[`od_control.od_maxtime`](customization.md#od_maxtime). It begins at zero. If
+[`od_maxtime`](customization.md#od_maxtime) is between 1 and 1,440 and is less than [`user_timelimit`](caller.md#user_timelimit),
+initialization stores the difference here and reduces [`user_timelimit`](caller.md#user_timelimit) to the
+cap.
+
+During [`od_exit()`](../api/od_exit.md), OpenDoors adds the deduction back
+before updating the door-information file. The field is maintained by the
+library and should be treated as read-only. Altering it changes the time value
+returned to the BBS.
+
+### `od_okaytopage`
+
+```c
+BOOL od_control.od_okaytopage;
+```
+
+This tri-state field controls whether [`od_page()`](../api/od_page.md) may page
+the sysop:
+
+| Value | Policy |
 | --- | --- |
-| `od_always_clear`, `od_clear_on_exit` | Screen-clearing policy. |
-| `od_force_local`, `od_silent_mode` | Local-session and local-display behavior. |
-| `od_chat_active`, `od_current_statusline`, `od_status_on` | Current chat and status-display state. |
-| `od_error` | Most recent [`ERR_*`](../constants/errors.md) API error. |
-| `od_last_input`, `od_last_hot` | Most recent ordinary and custom hotkey input. |
-| `od_maxtime`, `od_maxtime_deduction` | Door-specific time cap and adjustment. |
-| `od_okaytopage`, `od_pagestartmin`, `od_pageendmin` | Paging availability and hours. |
-| `od_page_pausing`, `od_page_len`, `od_page_statusline` | Display-file paging behavior. |
-| `od_user_keyboard_on` | Whether local operator keystrokes enter the door input queue. |
-| `od_update_status_now`, `od_cur_attrib` | Pending status refresh and current text attribute. |
-| `od_disable`, `od_disable_dtr`, `od_disable_inactivity` | Masks or conditions which disable automatic behaviors. |
-| `od_inactivity`, `od_inactive_warning` | Inactivity timeout and warning interval. |
-| `od_max_key_latency` | Retained compatibility member; the current input implementation does not read it. |
-| `od_noexit`, `od_nocopyright`, `od_internal_debug` | Exit, startup display, and diagnostic controls. |
-| `od_spawn_freeze_time`, `od_swapping_disable`, `od_swapping_noems`, `od_swapping_path` | Child-process and legacy DOS swapping policy. |
-| `event_*` | Pending BBS event status, schedule, days, and exit level. |
-| `od_errorlevel` | Exit levels indexed by the [`ERRORLEVEL_*`](../constants/errors.md) constants. |
-| `od_logfile_disable`, `od_logfile_name` | Runtime log enablement and selected log filename. |
-| `od_emu_simulate_modem` | Enables modem-style emulation behavior where supported. |
-| `od_in_buf_size` | Requested communications input-buffer size. |
-| `od_list_pause`, `od_list_stop` | Keys used to pause and stop file listings. |
-| `event_status`, `event_starttime`, `event_errorlevel` | Current BBS event state, time, and exit level. |
-| `event_days`, `event_force`, `event_last_run` | Event schedule, force flag, and last-run date. |
+| [`PAGE_DISABLE`](../constants/session.md#page_disable) | Never page. |
+| [`PAGE_ENABLE`](../constants/session.md#page_enable) | Page regardless of configured hours. |
+| [`PAGE_USE_HOURS`](../constants/session.md#page_use_hours) | Use `od_pagestartmin` and `od_pageendmin`. |
 
-Many runtime members may be adjusted after initialization. Members used to
-construct components, buffers, or communication state must be set beforehand.
+Although the member is declared [`BOOL`](../types.md#bool), it is not Boolean. Initialization
+unconditionally sets [`PAGE_USE_HOURS`](../constants/session.md#page_use_hours), so an application override must be made
+after initialization. The local personality may also change it at runtime.
 
-## Compatibility-only runtime member
+### `od_pagestartmin`
+
+```c
+INT16 od_control.od_pagestartmin;
+```
+
+This field is the first minute of the daily paging interval, expressed as
+minutes after midnight. Initialization first assigns 480 (08:00). If the
+configuration file contains paging hours, the configuration component applies
+its parsed value after normal OpenDoors initialization. Application code may
+change the value afterward.
+
+When `od_okaytopage` is [`PAGE_USE_HOURS`](../constants/session.md#page_use_hours), the beginning is inclusive. Values
+should be in the range 0 through 1,439.
+
+### `od_pageendmin`
+
+```c
+INT16 od_control.od_pageendmin;
+```
+
+This field is the exclusive ending minute of the daily paging interval.
+Initialization first assigns 1,320 (22:00), after which configured paging
+hours can replace it. Application code may change it at runtime.
+
+If the start is less than the end, the interval lies within one calendar day.
+If the start is greater, the interval crosses midnight. Equal start and end
+values permit paging for the entire day when [`PAGE_USE_HOURS`](../constants/session.md#page_use_hours) is active.
+
+### `od_page_pausing`
+
+```c
+BOOL od_control.od_page_pausing;
+```
+
+This field determines whether the display-file and file-listing interfaces
+pause after a screenful of output. For ordinary text drop files,
+initialization sets it to [`TRUE`](../constants/general.md#true). Extended `EXITINFO.BBS` records replace it
+with bit `0x04` of [`user_attribute`](caller.md#user_attribute), the caller's stored pausing preference.
+A custom door-information definition may supply it explicitly.
+
+[`od_send_file()`](../api/od_send_file.md),
+[`od_send_file_section()`](../api/od_send_file_section.md), and
+[`od_list_files()`](../api/od_list_files.md) copy the setting when an operation
+begins. The application may change it after initialization; changing it during
+an active display does not necessarily change that operation's saved policy.
+
+### `od_page_statusline`
+
+```c
+INT16 od_control.od_page_statusline;
+```
+
+This field selects the status line displayed while the caller is paging the
+sysop. Personality initialization supplies the effective default: the
+RemoteAccess personality uses line 5, the PCBoard personality uses line 0,
+and the standard, Wildcat, and MPS fallback paths use `-1` to retain the
+current status line.
+
+[`od_page()`](../api/od_page.md) switches to the selected line only when the
+value is not `-1` and a status line is currently active. It restores the
+previous line afterward. The application or a personality may change this
+field at runtime.
+
+## Local operator and BBS state
+
+### `sysop_next`
+
+```c
+BYTE od_control.sysop_next;
+```
+
+This Boolean indicates that the BBS should reserve the system for the sysop
+after the current caller leaves. It begins as [`FALSE`](../constants/general.md#false). `SFDOORS.DAT` and
+supported extended `EXITINFO.BBS` records can populate it. The standard local
+command—Alt-N in the built-in personalities—and the Win32 interface toggle it.
+
+OpenDoors displays the current state and writes it back to formats which
+support the setting. The application may inspect or change it at runtime. A
+false value for a format which does not provide the field means only that the
+feature is not requested; it does not prove that the BBS supports it.
+
+## Compatibility-only state
+
+### `od_last_hot`
+
+```c
+INT16 od_control.od_last_hot;
+```
+
+This field records the most recent application- or personality-defined local
+hot key recognized through [`od_hot_key`](customization.md#od_hot_key). It is
+zero before any such key is pressed. On a match, OpenDoors stores the key code,
+notifies the active personality with [`PEROP_CUSTOMKEY`](../constants/components.md#perop_customkey), and then invokes the
+corresponding [`od_hot_function`](customization.md#od_hot_function), if any.
+
+OpenDoors does not clear the field after dispatch. A personality may clear it
+while handling [`PEROP_CUSTOMKEY`](../constants/components.md#perop_customkey); otherwise application code which polls the
+field should restore it to zero after processing the key. The value is written
+only for custom local hot keys and does not report built-in sysop commands,
+ordinary local input, or remote caller input.
 
 ### `od_max_key_latency`
 
@@ -39,135 +318,17 @@ construct components, buffers, or communication state must be set beforehand.
 tODMilliSec od_control.od_max_key_latency;
 ```
 
-This member is retained in `tODControl` for source and binary compatibility,
-but the current implementation never reads it. Assigning a value does not
-change terminal key-sequence timing. `ODGetIn.c` currently waits the fixed
-internal value `MAX_CHARACTER_LATENCY`, 250 milliseconds, between bytes while
-resolving a remote control sequence.
+This member is retained in [`tODControl`](../types.md#todcontrol) for source
+and binary compatibility, but the current implementation never reads it. Its
+static value is zero and assigning it has no effect. Remote control-sequence
+decoding currently uses the internal 250-millisecond
+`MAX_CHARACTER_LATENCY` value between bytes.
 
-The field has no effective default or supported operational range in this
-version. Use the timeout parameter to
-[`od_get_input()`](../api/od_get_input.md) to limit how long that call waits for
-its first input event; that timeout is separate from the fixed inter-byte wait.
+The timeout passed to [`od_get_input()`](../api/od_get_input.md) limits the
+wait for the first event and is independent of this compatibility member.
 
-## Detailed reference
+## See also
 
-### Door Settings
-
-This section deals with those variables in the OpenDoors control structure which reflect the current door settings. These variables are as follows:
-
-od_cur_attrib            The current display attribute, or -1 if unknown.
-
-od_okaytopage            Controls whether the user is currently permitted to page the sysop.
-
-od_pageendmin            End of valid paging hours.
-
-od_pagestartmin          Start of valid paging hours.
-
-od_silent_mode           Turns off local user interface.
-
-od_user_keyboard_on      Controls whether OpenDoors will currently accept input from the remote user's keyboard.
-
-od_update_status_now     Forces immediate update of the status line.
-
-sysop_next               Indicates whether or not the sysop has reserved use of the system after the current calls.
-
-#### `od_cur_attrib`
-
-```c
-int od_control.od_cur_attrib;
-```
-
-This read-only values stores the current display color attribute, or the value -1 if the current display color is unknown (such as when the door first begins execution).
-
-#### `od_okaytopage`
-
-```c
-char od_control.od_okaytopage;
-```
-
-This variable allows you to control whether or not the user is currently permitted to page the sysop via the [`od_page()`](../api/od_page.md) function. A value of PAGE_ENABLE indicates that paging is currently permitted, regardless of the sysop page hours setting. A value of PAGE_DISABLE indicates that paging is not current permitted. A value of PAGE_USE_HOURS indicates that the [`od_page()`](../api/od_page.md) function should check the values of the
-
-od_pagestartmin and od_pageendmin variables in order to determine whether or not paging should be permitted. The od_okaytopage variable should only be set after you call [`od_init()`](../api/od_init.md) or some other OpenDoors function. The default value is PAGE_USE_HOURS. For more information on the [`od_page()`](../api/od_page.md) function itself, see page 101.
-
-#### `od_pageendmin`
-
-```c
-unsigned int od_control.od_pageendmin;
-```
-
-This variable can be used to set the beginning of valid sysop paging hours within the [`od_page()`](../api/od_page.md) function. If the [`od_control.od_okaytopage`](#od_okaytopage) variable (which is described above) is set to MAYBE, then OpenDoors will check the value of this variable prior to paging the sysop via the [`od_page()`](../api/od_page.md) function. This variable should contain the time at which the valid sysop paging hours end, represented as the a number of minutes since midnight. For more information on the [`od_page()`](../api/od_page.md) function itself, see page 101.
-
-#### `od_pagestartmin`
-
-```c
-unsigned int od_control.od_pagestartmin;
-```
-
-This variable can be used to set the beginning of valid sysop paging hours within the [`od_page()`](../api/od_page.md) function. If the [`od_control.od_okaytopage`](#od_okaytopage) variable (which is described above) is set to MAYBE, then OpenDoors will check the value of this variable prior to paging the sysop via the [`od_page()`](../api/od_page.md) function. This variable should contain the time at which the valid sysop paging hours begin, represented as the a number of minutes since midnight. For more information on the [`od_page()`](../api/od_page.md) function itself, see page 101.
-
-#### `od_silent_mode`
-
-```c
-BOOL od_control.od_silent_mode;
-```
-
-If this variable is set to TRUE prior to the first call to any OpenDoors function, OpenDoors will operate in silent mode, where the local display and sysop commands are not used. Silent mode is automatically disabled if the program is running in local mode.
-
-#### `od_update_status_now`
-
-```c
-char od_control.od_update_status_now;
-```
-
-Setting this variable to TRUE forces OpenDoors to update the status line during the next [`od_kernel()`](../api/od_kernel.md) execution. When the status line is updated, this variable is reset to its default value of FALSE.
-
-#### `od_user_keyboard_on`
-
-```c
-char od_control.od_user_keyboard_on;
-```
-
-This variable is a Boolean value, indicating whether OpenDoors will currently accept input from a remote user. OpenDoors provides a function key (usually [ALT]-[K], unless you have changed the default), which will allow the sysop to temporarily prevent the user from having any control over the door. When the sysop activates this feature, a flashing [Keyboard-Off] indicator will appear on the status line, and this variable will be set to FALSE. When the sysop presses the [ALT]-[K] combination a second time, to toggle the user's keyboard back on, the flashing indicator will disappear, and this variable will be set back to TRUE.
-
-#### `sysop_next`
-
-```c
-char od_control.sysop_next;
-```
-
-This variable is a Boolean value, indicating whether or not the "sysop next" feature has been activated. The "sysop next" feature, which reserves the system for the sysop after the call has ended, can be toggled on and off within OpenDoors by use of a function key (Alt-N by default). Also, when the "sysop next" feature has been activated, an indicator will appear on the OpenDoors status line. This variable is only available under systems that produce an SFDOORS.DAT or RA 1.00 and later style extended EXITINFO.BBS door information file. For more information on testing the type of door information file available, please see page 158.
-
-### Diagnostics
-
-To help in diagnosing problems in your OpenDoors programs, OpenDoors stores information on the most recent error which occurred. When any of the OpenDoors functions return an "error" or "failure" state, the reason for this failure is recorded.
-
-The following OpenDoors control structure variable provides diagnostics information:
-
-od_error                 Stores a "reason code" for the last failed OpenDoors API function call.
-
-#### `od_error`
-
-```c
-int od_control.od_error;
-```
-
-When any of the OpenDoors API functions return an "error" or "failure" state (usually denoted by either of the values FALSE or NULL), the reason for the failure is recorded in this variable. Since successful function calls do not alter the value of the [`od_control.od_error`](#od_error) variable, you must be careful not only to check the value of the [`od_control.od_error`](#od_error) variable, but also to check the OpenDoors function return codes, in order to determine which function failed.
-
-This variable will always store the reason for the most recent function call failure, or ERR_NONE if no functions have failed. od_error may take on any of the following values:
-
-ERR_NONE            Indicates that no error has occurred yet.
-
-ERR_MEMORY          Function was unable to allocate required memory. This usually indicates that there is not enough available memory. This failure may also be due to memory corruption caused by your program inadvertently overwriting heap structures. If your program has been compiled in either the small or the medium memory model, try recompiling it in the compact, large, or huge memory models. If your program is already compiled in the compact, large, or huge memory models, try making more system memory available to your program.
-
-ERR_NOGRAPHICS      This setting indicates that the function called requires ANSI, AVATAR or RIP graphics mode, but none of these modes are active.
-
-ERR_PARAMETER       An invalid parameter was passed to an OpenDoors functions. Check the function's description in chapter four, to determine the required values for each function parameter.
-
-ERR_FILEOPEN        OpenDoors was unable to open a file. This can be due to the specified filename not existing, due to the file being locked for exclusive access by another process, or due to a hardware failure.
-
-ERR_FILEREAD        OpenDoors was able to open the specified file, but unable to read the required data from the file. This error may be due to an invalid file format, due to a portion of the file being locked by another process, or due to a hardware failure.
-
-ERR_LIMIT           An internal function limit has been exceeded. Refer to the function's description in chapter four for information on the function's limitations.
-
-ERR_NOREMOTE        Indicates that a function has been called which is not valid in local mode, such as [`od_carrier()`](../api/od_carrier.md) or [`od_set_dtr()`](../api/od_set_dtr.md).
+[`od_kernel()`](../api/od_kernel.md), [`od_page()`](../api/od_page.md),
+[`od_set_statusline()`](../api/od_set_statusline.md),
+[Customization fields](customization.md)

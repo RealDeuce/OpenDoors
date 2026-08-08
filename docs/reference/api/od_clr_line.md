@@ -40,7 +40,7 @@ followed by an equal number of backspace characters. The backspaces return the
 cursor to its original position. The final column is deliberately not
 overwritten in plain ASCII mode. Writing a character in that position may wrap
 the cursor to the following line and, when the cursor is on the last display
-line, may scroll the screen. Consequently, `od_clr_line()` cannot guarantee
+line, may scroll the screen. Consequently, [`od_clr_line()`](od_clr_line.md) cannot guarantee
 that the final character on the line has been erased in plain ASCII mode. If
 the cursor is already in the final column, no characters are erased.
 
@@ -58,14 +58,14 @@ blue background on a particular line, you would use the
 [`od_set_color()`](od_set_color.md) (or
 [`od_set_attrib()`](od_set_attrib.md)) function, then use the
 [`od_set_cursor()`](od_set_cursor.md) function to locate the cursor at the
-beginning of the desired line, followed by the `od_clr_line()` function. Just
+beginning of the desired line, followed by the [`od_clr_line()`](od_clr_line.md) function. Just
 such a procedure is demonstrated in the example below.
 
 ## Examples
 
 Below, is an example of a function that clears an entire line with a specified color. Since this function performs operations that require ANSI, AVATAR or RIP graphics mode, it should only be used in a case where these modes are known to be available. For example, this function would be useful in a full-screen editor or viewer, or when performing ANSI animations. The function accepts three parameters: the line to be cleared (where 1 is the first line, 2 the second, and so on), the foreground color of this line, and the background color of this line.
 
-This function differs from the `od_clr_line()` function itself in several important manners. First of all, this function clears the entire line, whereas the `od_clr_line()` function can be used to clear only the remaining characters of the line, after any particular location. Also, as mentioned before, this function selects a color to clear the line to, and moves the cursor to the line which is to be cleared - neither of which is done by the `od_clr_line()` function.
+This function differs from the [`od_clr_line()`](od_clr_line.md) function itself in several important manners. First of all, this function clears the entire line, whereas the [`od_clr_line()`](od_clr_line.md) function can be used to clear only the remaining characters of the line, after any particular location. Also, as mentioned before, this function selects a color to clear the line to, and moves the cursor to the line which is to be cleared - neither of which is done by the [`od_clr_line()`](od_clr_line.md) function.
 
 ```c
 void clear_line(char line_number,char foreground,char

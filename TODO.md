@@ -107,3 +107,63 @@
   queue but ignores the result of `ODComClearInbound()`, so socket, Door32, and
   standard-I/O bytes which have not yet entered the queue may remain pending
   even though the function reports no limitation.
+
+- [ ] Make a direct pre-initialization request for zero-based port 0 survive
+  drop-file parsing. [`ODInEx1.c`](ODInEx1.c) records `od_control.port` as an
+  explicit override only when it is nonzero, so an application assignment of
+  0 (COM1) is indistinguishable from static initialization and can be replaced
+  by the drop file. The command-line parser avoids this through its separate
+  preset flag.
+
+- [ ] Parse `-HANDLE` and `-SOCKET` values without narrowing them through
+  `atoi()`. [`ODCmdLn.c`](ODCmdLn.c) stores the `int` result in the
+  `DWORD_PTR od_open_handle` field, truncating valid pointer-sized handles or
+  descriptors on platforms where they exceed the range of `int`.
+
+- [ ] Obtain both input and output terminal speeds in the Unix forced-local
+  initialization path. [`ODInEx1.c`](ODInEx1.c) calls `cfgetispeed()` twice;
+  the fallback appears intended to call `cfgetospeed()` before using the
+  nominal 19,200 value.
+
+- [ ] Keep custom-hot-key callbacks paired with their keys when a personality
+  removes a key. [`ODStat.c`](ODStat.c) moves the last `od_hot_key` entry into
+  the removed slot, but does not move the corresponding `od_hot_function`
+  pointer. The replacement key can therefore invoke the removed key's callback,
+  and the vacated slot can retain a stale callback if it is reused.
+
+- [ ] Handle configuration keywords without an option string safely.
+  [`ODCFile.c`](ODCFile.c) initializes an unsigned index with
+  `strlen(pchConfigText) - 1` while trimming option text. A line containing only
+  a keyword makes that subtraction wrap and can read or write far beyond the
+  configuration-line buffer instead of passing an empty option to a custom
+  configuration callback.
+
+- [ ] Bound multiword command-line values correctly. `ODGetNextArgName()` in
+  [`ODCmdLn.c`](ODCmdLn.c) passes `strlen(destination) - destination_size - 1`
+  to `strncat()`. The subtraction underflows, so a long username, location,
+  BBS name, or custom-option string can overflow its destination before the
+  function writes a terminating null at the nominal final byte.
+
+- [ ] Preserve an explicitly configured IBM text attribute of zero.
+  [`ODInEx1.c`](ODInEx1.c) treats zero in every color-customization member as
+  "not supplied" and replaces it during normal initialization. A valid black
+  foreground on black background selected before initialization, including
+  through a configuration-file `Colour` option, cannot survive startup.
+
+- [ ] Keep the standard status line's remaining-time field within its allotted
+  columns. [`ODStand.c`](ODStand.c) writes `od_time_left` at column 24 and the
+  next field at column 35, but the default `"%d mins   "` occupies twelve
+  columns when `user_timelimit` is 1,000 through 1,440. The final character
+  overlaps the following field.
+
+- [ ] Write the complete RemoteAccess traffic-log arrays back to standard
+  `EXITINFO.BBS`. `ODWriteExitInfoPrimitive()` in [`ODInEx2.c`](ODInEx2.c)
+  copies only 31 bytes beginning at `busyperhour`, although the 24 hourly
+  `WORD` values and seven daily `WORD` values occupy 62 bytes and the reader
+  copies all 62. Half of the hourly value at the boundary and every daily
+  value are left stale in the rewritten record.
+
+- [ ] Store the SFDOORS.DAT login time in hour:minute order.
+  [`ODInEx1.c`](ODInEx1.c) derives the hour and minute portions of line 15, but
+  passes the minute portion first to `sprintf("%02u:%02u", ...)`, producing
+  `MM:HH` in `user_logintime`.

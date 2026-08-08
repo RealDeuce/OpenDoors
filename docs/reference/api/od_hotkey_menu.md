@@ -16,10 +16,10 @@ Key pressed in response to menu, or '\0' if none.
 
 This function can be used to display a menu from an ASCII, ANSI, AVATAR or RIP
 file, allowing the user to select an option at any time while the menu is being
-displayed. The `od_hotkey_menu()` function is quite similar to
+displayed. The [`od_hotkey_menu()`](od_hotkey_menu.md) function is quite similar to
 [`od_send_file()`](od_send_file.md), and you should familiarize yourself with
-that function before using `od_hotkey_menu()`. Like `od_send_file()`,
-`od_hotkey_menu()` displays the file specified by `pszFileName` using the
+that function before using [`od_hotkey_menu()`](od_hotkey_menu.md). Like [`od_send_file()`](od_send_file.md),
+[`od_hotkey_menu()`](od_hotkey_menu.md) displays the file specified by `pszFileName` using the
 appropriate terminal emulation. If no extension is provided, OpenDoors searches
 for compatible `.ASC`, `.ANS`, `.AVT` and `.RIP` files, selecting among the
 available files according to the remote display mode and local display
@@ -35,10 +35,10 @@ necessarily the case typed by the user. The Enter key may be included by
 placing the carriage-return character (`\r` or `\x0d`) in `pszHotKeys`.
 
 The third parameter, `bWait`, specifies whether OpenDoors should wait after
-displaying the menu for the user to make a valid selection. A value of `TRUE`
+displaying the menu for the user to make a valid selection. A value of [`TRUE`](../constants/general.md#true)
 causes the function to wait; this is normally the desired behavior because one
 call both displays the menu and obtains the user's selection. A value of
-`FALSE` causes the function to return as soon as the file has been displayed.
+[`FALSE`](../constants/general.md#false) causes the function to return as soon as the file has been displayed.
 If no valid hotkey was pressed while the file was being sent, the return value
 is `\0`.
 
@@ -50,7 +50,7 @@ displaying the menu file are reported in the same manner as
 
 ## Examples
 
-As an example of the use of the `od_hotkey_menu()` function, consider the following code fragment:
+As an example of the use of the [`od_hotkey_menu()`](od_hotkey_menu.md) function, consider the following code fragment:
 
 ```c
 for(;;)                             /* Main program loop */
@@ -82,7 +82,7 @@ for(;;)                             /* Main program loop */
 
 This is the main menu loop of a simple door. The program continues executing
 the `for` loop until the user chooses to exit. On each iteration,
-`od_hotkey_menu()` displays the door's menu from the compatible `MAINMENU`
+[`od_hotkey_menu()`](od_hotkey_menu.md) displays the door's menu from the compatible `MAINMENU`
 display file and accepts one of the choices in `"123Q"`. If the user makes a
 selection while the menu is still being displayed, file display stops at that
 point. The `switch` statement then responds to the selected key. Keys `1`, `2`

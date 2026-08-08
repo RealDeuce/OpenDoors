@@ -14,7 +14,7 @@ N/A
 
 ## Description
 
-`od_clr_scr()` clears the active output window on the caller's terminal and in
+[`od_clr_scr()`](od_clr_scr.md) clears the active output window on the caller's terminal and in
 OpenDoors' screen model, then positions the cursor at its upper-left corner.
 The status line and any local display area outside the output window are not
 cleared. Every cleared cell receives the current display attribute.
@@ -24,7 +24,7 @@ OpenDoors honors bit `0x02` of
 [`od_control.user_attribute`](../control/caller.md#user_attribute). If that bit
 is clear, screen clearing is suppressed unless
 [`od_control.od_always_clear`](../control/customization.md#od_always_clear) is
-[`TRUE`](../types.md#true-and-false). Traditional door-information formats do
+[`TRUE`](../constants/general.md#true). Traditional door-information formats do
 not supply a dependable screen-clearing preference and are cleared normally.
 This preference is independent of ANSI, AVATAR, or RIP availability.
 
@@ -47,8 +47,8 @@ may emulate a form-feed character directly:
 od_disp_emu("\x0c", TRUE);
 ```
 
-Normally, setting `od_always_clear` before initialization and continuing to
-use `od_clr_scr()` is clearer and keeps the policy in one place.
+Normally, setting [`od_always_clear`](../control/customization.md#od_always_clear) before initialization and continuing to
+use [`od_clr_scr()`](od_clr_scr.md) is clearer and keeps the policy in one place.
 
 The function reports no status and returns no value.
 

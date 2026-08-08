@@ -14,7 +14,7 @@ Character that user entered
 
 ## Description
 
-This function can be used to get a response from the user, when only particular responses should be accepted. The parameter to the `od_get_answer()` function is simply a string listing the valid responses. The function will wait until the user selects one of the valid responses, and then return that response. The function is case insensitive, and will return the character in the same case that was supplied to it in the string.
+This function can be used to get a response from the user, when only particular responses should be accepted. The parameter to the [`od_get_answer()`](od_get_answer.md) function is simply a string listing the valid responses. The function will wait until the user selects one of the valid responses, and then return that response. The function is case insensitive, and will return the character in the same case that was supplied to it in the string.
 
 ## Examples
 

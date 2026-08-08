@@ -14,19 +14,19 @@ N/A
 
 ## Description
 
-`od_disp_emu()` passes the null-terminated stream at `pszToDisplay` through
+[`od_disp_emu()`](od_disp_emu.md) passes the null-terminated stream at `pszToDisplay` through
 the OpenDoors ANSI, AVATAR, and RemoteAccess/QuickBBS display-code emulator.
 Printable text, cursor movement, color changes, screen clearing, scrolling,
 and the other supported commands are applied as they are encountered. The
 same emulator is used by [`od_send_file()`](od_send_file.md), whose reference
 describes the supported display-file behavior in detail.
 
-If `bRemoteEcho` is [`TRUE`](../types.md#true-and-false), the resulting output
+If `bRemoteEcho` is [`TRUE`](../constants/general.md#true), the resulting output
 is sent to the remote caller and its interpreted effect is recorded in the
 virtual session screen. The portion of that screen which fits on the local
 presentation is refreshed. This is the usual setting for application output.
 
-If `bRemoteEcho` is [`FALSE`](../types.md#true-and-false), no bytes are sent to
+If `bRemoteEcho` is [`FALSE`](../constants/general.md#false), no bytes are sent to
 the caller. The stream is interpreted only on the local emulated display and
 does not alter the authoritative virtual screen for a remote session. This
 retains the established use of the function for local-only displays.
@@ -35,7 +35,7 @@ Unless
 [`od_control.od_no_ra_codes`](../control/customization.md#od_no_ra_codes) is
 enabled, recognized RemoteAccess and QuickBBS control bytes are interpreted.
 They can pause for input or substitute caller and system information before
-the translated result is sent. When `od_no_ra_codes` is enabled and remote
+the translated result is sent. When [`od_no_ra_codes`](../control/customization.md#od_no_ra_codes) is enabled and remote
 echo is requested, the original stream is transmitted without that
 translation while the terminal emulator still interprets its ANSI and AVATAR
 effects for the screen model.

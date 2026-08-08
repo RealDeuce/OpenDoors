@@ -83,7 +83,7 @@ definition.
 
 [`MAYBE`](constants/general.md#maybe) is the compatibility value 2. The current
 implementation does not test that macro directly. It is not a general Boolean
-result; use a field's named constants, such as `PAGE_USE_HOURS`, when the field
+result; use a field's named constants, such as [`PAGE_USE_HOURS`](constants/session.md#page_use_hours), when the field
 has a three-state policy.
 
 ### `tODMilliSec`
@@ -145,11 +145,11 @@ events at all.
 
 #### `chKeyPress`
 
-For `EVENT_CHARACTER`, this is the received character byte. It may be a control
+For [`EVENT_CHARACTER`](constants/input.md#event_character), this is the received character byte. It may be a control
 character or have the high bit set; preserve it as an unsigned byte when its
-numeric value matters. For `EVENT_EXTENDED_KEY`, cast to `unsigned char` before
-comparing with key definitions above 127, such as `OD_KEY_F11` and
-`OD_KEY_F12`, on implementations where plain `char` is signed.
+numeric value matters. For [`EVENT_EXTENDED_KEY`](constants/input.md#event_extended_key), cast to `unsigned char` before
+comparing with key definitions above 127, such as [`OD_KEY_F11`](constants/input.md#function-keys) and
+[`OD_KEY_F12`](constants/input.md#function-keys), on implementations where plain `char` is signed.
 
 The structure contains one event only. Its contents are replaced by the next
 successful call.
@@ -188,8 +188,8 @@ to finish. These are callback instructions, not the final return value of
 information for [`od_multiline_edit()`](api/od_multiline_edit.md). Zero the
 entire structure before setting selected input members. A null options pointer
 uses all defaults; in a supplied structure, a zero coordinate is replaced by
-that coordinate's default. `FORMAT_PARAGRAPH_BREAKS`, null callbacks, and
-`EFLAG_NORMAL` are themselves zero-valued defaults. The two final-buffer
+that coordinate's default. [`FORMAT_PARAGRAPH_BREAKS`](constants/input.md#format_paragraph_breaks), null callbacks, and
+[`EFLAG_NORMAL`](constants/input.md#eflag_normal) are themselves zero-valued defaults. The two final-buffer
 members are outputs.
 
 #### `nAreaLeft`, `nAreaTop`, `nAreaRight`, `nAreaBottom`
@@ -212,8 +212,8 @@ logical breaks and wrapping in the resulting text.
 When non-null, this function is invoked for the editor's menu action. Its
 argument is always passed as `NULL` by the current implementation and must not
 be dereferenced. Escape or Control-Z invokes the callback synchronously. It
-returns a `tODEditMenuResult`: `EDIT_MENU_DO_NOTHING` resumes editing and
-`EDIT_MENU_EXIT_EDITOR` ends the editor successfully. With no callback, either
+returns a `tODEditMenuResult`: [`EDIT_MENU_DO_NOTHING`](constants/input.md#edit_menu_do_nothing) resumes editing and
+[`EDIT_MENU_EXIT_EDITOR`](constants/input.md#edit_menu_exit_editor) ends the editor successfully. With no callback, either
 key ends the editor successfully.
 
 #### `pfBufferRealloc`
@@ -245,7 +245,7 @@ application allocator's rules.
 
 This member is intended to report the capacity associated with
 `pszFinalBuffer`, not the string length. In the current implementation,
-however, `od_multiline_edit()` writes the original `unBufferSize` argument here
+however, [`od_multiline_edit()`](api/od_multiline_edit.md) writes the original `unBufferSize` argument here
 even if `pfBufferRealloc` enlarged the buffer. A caller which permits growth
 must have its reallocation callback retain the actual allocation size; it must
 not rely on `unFinalBufferSize` to discover the enlarged capacity.
@@ -255,7 +255,7 @@ not rely on `unFinalBufferSize` to discover the enlarged capacity.
 ### `OD_COMPONENT`
 
 `OD_COMPONENT` is the platform-correct function type used by the component
-selectors in `od_control`. The values
+selectors in [`od_control`](control/index.md). The values
 [`INCLUDE_CONFIG_FILE`](constants/components.md#include_config_file),
 [`INCLUDE_LOGFILE`](constants/components.md#include_logfile), and
 [`INCLUDE_MPS`](constants/components.md#include_mps) name the corresponding
@@ -286,7 +286,7 @@ pointer.
 ### `tODControl`
 
 `tODControl` is the type of the exported [`od_control`](control/index.md)
-object returned by [`od_control_get()`](api/od_control_get.md). `OpenDoor.h`
+object returned by [`od_control_get()`](api/od_control_get.md). [`OpenDoor.h`](api/index.md)
 requests byte alignment for supported Turbo C versions, MSVC, and DOS32, then
 restores the compiler's previous packing after the declaration. It does not
 apply a universal packed attribute on every target. The resulting layout is
@@ -301,7 +301,7 @@ interprocess record. Applications must not assume that unused padding exists
 for application data.
 
 Function pointer fields in `tODControl` have the exact signatures shown in
-`OpenDoor.h`. Their calling thread, argument lifetime, and permitted API calls
+[`OpenDoor.h`](api/index.md). Their calling thread, argument lifetime, and permitted API calls
 depend on the individual callback. Those rules are documented with each field;
 the structure declaration itself does not impose one universal callback
 contract.

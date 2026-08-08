@@ -1,273 +1,421 @@
-# Connection and door information
+# Connection and door-information fields
 
-These fields describe how OpenDoors found and communicates with the current
-session.
+These members identify the door-information source and describe the
+communications object used for the current session. Unless stated otherwise,
+they begin as zero because [`od_control`](index.md) has static storage.
 
-| Members | Description |
-| --- | --- |
-| `info_path` | Door-information filename or location. Set before initialization to override discovery. |
-| `baud`, `od_connect_speed` | Effective I/O and reported connection speeds. A zero `baud` denotes local mode. |
-| `od_com_address`, `od_com_irq` | Legacy serial hardware address and interrupt. |
-| `od_com_method` | One of the [`COM_*`](../constants/session.md) communication methods. |
-| `od_com_flow_control`, `od_com_rx_buf`, `od_com_tx_buf` | Flow-control and serial-buffer settings. |
-| `od_com_fifo_trigger`, `od_com_no_fifo`, `od_no_fossil` | Legacy UART and FOSSIL controls. |
-| `od_use_socket`, `port`, `od_open_handle` | Socket/Door32 selection, port, and caller-supplied native handle. |
-| `od_cp437_to_utf8_out` | Converts outgoing CP437 text to UTF-8 on supported byte-stream connections. |
-| `od_info_type`, `od_extended_info`, `od_ra_info` | Door-information format and format-specific state. |
-| `od_node` | Current BBS node number. |
+Settings which influence communications initialization must be assigned
+before [`od_init()`](../api/od_init.md), either directly, through
+[`od_parse_cmd_line()`](../api/od_parse_cmd_line.md), or through the optional
+configuration component. Fields which report the detected format or selected
+communications method are valid only after initialization.
 
-The lower-level serial fields remain for established DOS and BBS configurations.
-New network-hosted doors normally receive their communication method and handle
-from Door32 or the invoking server.
+## Door-information source
 
-On [`ODPLAT_DOS32`](../constants/general.md#platform-selection), the FOSSIL
-method is available, but the direct-UART method selected by
-[`COM_INTERNAL`](../constants/session.md#communication-methods) is not.
-
-
-## Detailed reference
-
-### Door Info File Stats
-
-The following OpenDoors control structure variables provide your program with information concerning the door information file from which OpenDoors obtained the BBS and caller information that is found elsewhere in the control structure. The following control structure items are listed in this section:
-
-info_path                Sets the location and, optionally, the name of the door information file
-
-od_info_type             Type of door information file that was found
-
-od_node                  Node number the door is running under
-
-user_timeofcreation      The time at which the door information file was created
-
-#### `info_path`
+### `info_path`
 
 ```c
 char od_control.info_path[60];
 ```
 
-If used, this variable should be set prior to calling [`od_init()`](../api/od_init.md) or any other OpenDoors function. This variable allows you to control where OpenDoors will look for the door information (drop file). By default, OpenDoors searches for the door information file in the current directory. If this variable is set to the name of some other directory, OpenDoors will first search for any door information files in that directory. If you only wish OpenDoors to look for a particular type of door information file (for instance, you want OpenDoors to only read a DORINFO1.DEF, and ignore any DOOR.SYS file), you can specify the full path and filename of the file you wish OpenDoors to use.
+`info_path` specifies where OpenDoors should search for a door-information
+file. Its static-storage default is an empty string, which causes the current
+directory and the supported BBS environment-variable directories to be
+searched.
 
-It is usually a good idea to design your door to allow the system operator to set the location of the door information file. This will allow the sysop to place your door in its own directory, and will facilitate the use of your door on multi- line BBS systems. If you are using the OpenDoors configuration file system, then the system operator can set the door information file location and/or name using the BBSDir keyword. However, you may also wish to allow the location of the door information file to be set on the command line. The following example illustrates a method of reading and setting the location of the door information file from the door's command line:
+The value may name a directory or a particular file. A directory is searched
+for the supported formats in OpenDoors' normal preference order. A filename
+restricts selection to the named file; special handling also recognizes a
+node-specific `DORINFO?.DEF` name. The array has room for 59 characters plus
+the terminating null byte.
 
-```c
-#include "opendoor.h"
-```
+The application may assign this field before initialization. The
+[`-D`](../api/od_parse_cmd_line.md#recognized-options) and `-DROPFILE`
+command-line options copy their following argument into it, and the
+configuration component's `BBSDir` setting can also assign it. OpenDoors reads
+the field during discovery but does not replace it with the path ultimately
+selected. It may therefore remain empty even when a file was found elsewhere.
 
-```c
-main(int argc, char *argv[])
-   {
-   if(argc>1) strncpy(od_control.info_path,argv[1],59);
-```
-
-```c
-od_disp_str("This is a sample OpenDoors door.\n\r");
-od_disp_str("Press any key to continue...\n\r");
-od_get_key(TRUE);
-od_exit(20);
-}
-```
-
-#### `od_info_type`
+### `od_info_type`
 
 ```c
-char od_control.od_info_type;
+BYTE od_control.od_info_type;
 ```
 
-This variable indicates the type of information file from which OpenDoors has obtained the BBS and caller information that is found elsewhere in the OpenDoors control structure. This variable will have one of the following values, indicating that the door information file was of the corresponding type:
+After initialization, `od_info_type` identifies the format from which the
+caller and system fields were obtained:
+
+| Value | Source |
+| --- | --- |
+| [`DORINFO1`](../constants/session.md#dorinfo1) | `DORINFO?.DEF` |
+| [`EXITINFO`](../constants/session.md#exitinfo) | Normal `EXITINFO.BBS` |
+| [`RA1EXITINFO`](../constants/session.md#ra1exitinfo) | RemoteAccess 1.x extended `EXITINFO.BBS` |
+| [`RA2EXITINFO`](../constants/session.md#ra2exitinfo) | RemoteAccess 2.x `EXITINFO.BBS` |
+| [`QBBS275EXITINFO`](../constants/session.md#qbbs275exitinfo) | QuickBBS 2.75 extended `EXITINFO.BBS` |
+| [`CHAINTXT`](../constants/session.md#chaintxt) | `CHAIN.TXT` |
+| [`SFDOORSDAT`](../constants/session.md#sfdoorsdat) | `SFDOORS.DAT` |
+| [`CALLINFO`](../constants/session.md#callinfo) | `CALLINFO.BBS` |
+| [`DOORSYS_GAP`](../constants/session.md#doorsys_gap) | GAP/PCBoard-style `DOOR.SYS` |
+| [`DOORSYS_DRWY`](../constants/session.md#doorsys_drwy) | DoorWay-style `DOOR.SYS` |
+| [`DOORSYS_WILDCAT`](../constants/session.md#doorsys_wildcat) | Wildcat-style `DOOR.SYS` |
+| [`TRIBBSSYS`](../constants/session.md#tribbssys) | `TRIBBS.SYS` |
+| [`DOOR32SYS`](../constants/session.md#door32sys) | `DOOR32.SYS` |
+| [`CUSTOM`](../constants/session.md#custom) | Application/configuration-defined record |
+| [`NO_DOOR_FILE`](../constants/session.md#no_door_file) | No door-information file is in use |
+
+The uninitialized value is zero, which is numerically equal to [`DORINFO1`](../constants/session.md#dorinfo1) but
+does not mean that such a file has been found. The field must not be inspected
+as a result until initialization is complete.
+
+OpenDoors writes this member while selecting and parsing the input format and
+reads it later for status presentation and for format-specific updates in
+[`od_exit()`](../api/od_exit.md). An application normally treats it as
+read-only. A custom door-information callback is the exception: it sets
+`od_info_type` to [`CUSTOM`](../constants/session.md#custom) and supplies the fields required by the session.
+Changing the value after initialization can select the wrong shutdown rewrite
+and corrupt an unrelated file.
+
+### `od_extended_info`
 
 ```c
-      +----------------+----------------------------+
-      |  od_info_type  | Door Information File Type |
-      |      Value     |                            |
-      +----------------+----------------------------+
-      | DORINFO1       | DORINFO?.DEF               |
-      | EXITINFO       | EXITINFO.BBS (Normal)      |
-      | RA1EXITINFO    | EXITINFO.BBS (Extended)    |
-      | RA2EXITINFO    | EXITINFO.BBS (RA 2.x)      |
-      | QBBS275EXITINFO| EXITINFO.BBS (QuickBBS)    |
-      | CHAINTXT       | CHAIN.TXT                  |
-      | SFDOORSDAT     | SFDOORS.DAT                |
-      | CALLINFO       | CALLINFO.BBS               |
-      | DOORSYS_GAP    | DOOR.SYS (GAP/PC-Board)    |
-      | DOORSYS_DRWY   | DOOR.SYS (Doorway style)   |
-      | DOORSYS_WILDCAT| DOOR.SYS (WildCat standard)|
-      | CUSTOM         | Custom door information    |
-      |                | file, defined in config    |
-      |                | file.                      |
-      | NO_DOOR_FILE   | No drop file was found.    |
-      +----------------+----------------------------+
+BYTE od_control.od_extended_info;
 ```
 
-The value of this variable is only valid AFTER [`od_init()`](../api/od_init.md) or some OpenDoors function has been called.
+This Boolean report is [`TRUE`](../types.md#bool) when OpenDoors successfully
+read one of the binary `EXITINFO.BBS` variants represented by [`EXITINFO`](../constants/session.md#exitinfo),
+[`RA1EXITINFO`](../constants/session.md#ra1exitinfo), [`RA2EXITINFO`](../constants/session.md#ra2exitinfo), or [`QBBS275EXITINFO`](../constants/session.md#qbbs275exitinfo). It is explicitly reset to
+[`FALSE`](../constants/general.md#false) before that detection and remains false for the text formats.
 
-Note that this variable should be treated as a read-only variable, and should not normally be altered by your program. Altering this variable may cause OpenDoors to re-write a different type of door information file upon exiting, than was read upon startup.
+OpenDoors reads the value to decide whether extended caller attributes are
+available, whether `EXITINFO.BBS` must be updated at exit, how status
+personalities should present several fields, whether file-list pausing follows
+the caller's attribute bit, and whether the caller's screen-clearing
+preference is authoritative. Applications may inspect it but should not alter
+it after initialization.
 
-#### `od_node`
+### `od_ra_info`
 
 ```c
-char od_control.od_node;
+BYTE od_control.od_ra_info;
 ```
 
-This variable indicates the node number that the door is running under. If this information is supplied by the BBS in the door information file, the node number will be automatically by OpenDoors. Specifically, the node number can be determined automatically from systems that produce an SFDOORS.DAT, PC- Board/GAP style DOOR.SYS or Wildcat style DOOR.SYS door information file. If this information is not supplied in the door information file, but is provided by the sysop in the door's configuration file, OpenDoors will use the value found there. Alternatively, you can set this variable manually.
+This Boolean report is set to [`TRUE`](../constants/general.md#true) only for the RemoteAccess 1.x and 2.x
+extended `EXITINFO.BBS` layouts. It is reset to [`FALSE`](../constants/general.md#false) before format
+detection. QuickBBS and normal `EXITINFO.BBS` set `od_extended_info` but leave
+`od_ra_info` false.
 
-On systems that produce a DORINFO?.DEF file, OpenDoors will use this variable to determine which DORINFO?.DEF file to search for. For instance, if [`od_control.od_node`](#od_node) is set to 3, OpenDoors will first search for a DORINFO3.DEF file. If this file is not found, OpenDoors will then default to the DORINFO1.DEF filename.
+The current OpenDoors implementation writes this member during parsing but
+does not otherwise read it. It is provided for the door application to
+distinguish RemoteAccess records from the other extended variants.
 
-#### `user_timeofcreation`
+### `od_node`
 
 ```c
-char od_control.user_timeofcreation[6];
+WORD od_control.od_node;
 ```
 
-This variable contains the time of day at which the door information file was created. This variable is available only when the door is running under a system that produces an EXITINFO.BBS file. To determine what type of door information file your door is running under, see the [`od_control.od_info_type`](#od_info_type) variable, below.
+`od_node` is the one-based BBS node number. Its static-storage value is zero.
+During initialization OpenDoors chooses the first available source in this
+order:
 
-### Serial Port Settings
+1. the `TASK` environment variable;
+2. the `SBBSNNUM` environment variable;
+3. the configuration component's `Node` value;
+4. a nonzero value already assigned to `od_control.od_node`, including the
+   value assigned by the `-N` or `-NODE` command-line option;
+5. the default node number 1.
 
-The following OpenDoors control structure items store the communications settings that OpenDoors uses to communicate with the modem. These values are normally set upon the first call to an OpenDoors function, during the [`od_init()`](../api/od_init.md) procedure. However, you may need to manual set this variables if:
+Some door-information formats subsequently provide their own node number and
+replace that value: `SFDOORS.DAT`, GAP/PCBoard and Wildcat `DOOR.SYS`,
+`TRIBBS.SYS`, and `DOOR32.SYS`. For `DORINFO?.DEF`, the value is used before
+the file is opened: nodes 1 through 9 select the corresponding digit, nodes
+10 through 35 use the traditional letter suffix, and higher values initially
+fall back to `DORINFO1.DEF`.
 
-\- you wish to allow greater configurability of your door - you are reading the door information file yourself - you are using the OpenDoors to write a non-door program
+The application may assign this field before initialization. Afterward,
+OpenDoors reads it for the local status display and writes it back to those
+text formats which contain a node field. A door may also inspect it when
+selecting node-specific application data.
 
-Some of these variables are always used by OpenDoors, while others are only relevant if OpenDoor's built-in serial communications code is being used instead of a FOSSIL driver. Those that are only used when no FOSSIL driver is present are denoted by an [*] in the list below.
+## Connection speed and port
 
-The control structure variables controlling OpenDoor's serial port settings are as follows:
-
-[`od_control.baud`](#baud)            Serial Port BPS rate
-
-od_control.od_connect_sppedThe modem connection BPS rate
-
-[`od_control.od_com_address`](#od_com_address)  Serial Port address [*]
-
-" " .od_com_fifo_trigger  16550A FIFO trigger size
-
-" " .od_com_flow_control  Type of flow control to use.
-
-[`od_control.od_com_irq`](#od_com_irq)      Serial Port IRQ number [*}
-
-[`od_control.od_com_method`](#od_com_method)   Is FOSSIL or built-in serial I/O being used
-
-[`od_control.od_com_no_fifo`](#od_com_no_fifo)  Disables use of 16550A FIFOs [*]
-
-[`od_control.od_com_rx_buf`](#od_com_rx_buf)   Size of receive buffer [*]
-
-[`od_control.od_com_tx_buf`](#od_com_tx_buf)   Size of transmit buffer [*]
-
-[`od_control.od_no_fossil`](#od_no_fossil)    Prevents OpenDoors from using a FOSSIL driver, even if one is available.
-
-[`od_control.od_open_handle`](#od_open_handle)  Allows a live serial port handle to be passed to OpenDoors.
-
-[`od_control.port`](#port)            Serial port number, 0 based.
-
-#### `baud`
+### `baud`
 
 ```c
-unsigned long od_control.baud;
+DWORD od_control.baud;
 ```
 
-This variable contains the BPS rate at which the computer is communicating with the modem, not to be confused with the BPS rate at which the local modem is communicating with the remote modem.
+`baud` is the speed OpenDoors supplies to the communications implementation
+and the principal legacy indicator that a remote byte stream is active. A
+nonzero value assigned before initialization is retained as an explicit speed
+override and takes precedence over the speed read from a door-information
+file. The [`-B`](../api/od_parse_cmd_line.md#recognized-options) and `-BPS`
+options provide the same override.
 
-A value of 0 indicates that the program is operating in local mode.
+On DOS and Windows, zero after initialization denotes conventional local mode.
+Unix-like builds may use standard input and output as the session transport
+even for an explicitly local launch; that path assigns a nonzero nominal
+speed. Portable code should use the configured session behavior rather than
+assuming that every Unix terminal with nonzero `baud` is attached to a modem.
 
-If a FOSSIL driver is being used for serial I/O, this value is ignored if it does not correspond to one of the baud rates that an application can directly set a FOSSIL driver to. The BPS rates recognized by FOSSIL drivers are: 300, 600, 1200, 2400, 4800, 9600, 19200, 38400. If any other BPS rate is to be used, the FOSSIL driver must be locked at that BPS from the FOSSIL driver command-line. When locked, FOSSIL drivers ignore any attempt by an application to change the BPS rate of the locked port. For this reason, the [`od_control.baud`](#baud) setting has no effect on the FOSSIL driver if it is locked.
+Door-information parsers populate this field from their reported port speed.
+When a drop file uses `COM0` or another local-mode marker, the result is zero
+on DOS and Windows. OpenDoors reads `baud` throughout the library to decide
+whether to send remote output, check carrier, clear communications buffers,
+and perform disconnect handling. [`od_exit()`](../api/od_exit.md) temporarily
+restores the value originally read from the file when rewriting supported
+formats.
 
-#### `od_com_address`
+When [`DIS_BPS_SETTING`](../constants/session.md#dis_bps_setting) is present
+in [`od_control.od_disable`](customization.md#od_disable), the value continues
+to describe the session but is not applied to the serial hardware.
 
-```c
-int od_control.od_com_address;
-```
-
-This variable is only used when OpenDoors is NOT performing serial I/O using a FOSSIL driver. (When a FOSSIL driver is being used, the serial port address can be set from the FOSSIL driver command line).
-
-This variable may optionally be set to specify the base address of the serial port to be used. For ports COM1: through COM4:, OpenDoors can normally determine the serial port address automatically. However, for other serial ports, the port address must be specified using this variable. If you are not specifying a serial port address with this variable, do not change it's default value of 0.
-
-#### `od_com_fifo_trigger`
-
-```c
-char od_control.od_com_fifo_trigger;
-```
-
-This variable is only used when OpenDoors is NOT performing serial I/O using a FOSSIL driver. (When a FOSSIL driver is being used, the IRQ line can be set from the FOSSIL driver command line). This variable sets the number of bytes that will be placed in the 16550A UART FIFO buffers before an interrupt is triggered, if the 16550A UART FIFOs are used. Valid values are 1, 4, 8 and 14.
-
-#### `od_com_flow_control`
-
-```c
-unsigned char od_control.od_com_flow_control;
-```
-
-This variable sets the type of serial I/O flow control to use. By default, this variable is set to COM_DEFAULT_FLOW, which specifies the default mode of flow control. Most often, this will be RTS/CTS flow control. A value of COM_RTSCTS_FLOW explicitly enables RTS/CTS flow control. A value of COM_NO_FLOW disables all flow control. If you are going to change the value of this variable, it should be set prior to your first call to any OpenDoors function.
-
-#### `od_com_irq`
-
-```c
-unsigned char od_control.od_com_irq;
-```
-
-This variable is only used when OpenDoors is NOT performing serial I/O using a FOSSIL driver. (When a FOSSIL driver is being used, the IRQ line can be set from the FOSSIL driver command line).
-
-This variable may optionally be set to specify the IRQ line to be used for the serial port. By default, OpenDoors uses the normal IRQ 4 line for ports COM1: and COM3:, and IRQ 3 for ports COM2: and COM4:. To override this default, the IRQ line can be set using this variable. If you are not specifying an IRQ line with this variable, do not change it's default value of 0.
-
-#### `od_com_method`
-
-```c
-char od_control.od_com_method;
-```
-
-This read-only variable reports the method that OpenDoors is using for serial I/O. This variable is set during [`od_init()`](../api/od_init.md) or the first call to an OpenDoors function. This variable can be one of the following values:
-
-COM_FOSSIL          - Indicates that a FOSSIL driver is being COM_INTERNAL   - Indicates that OpenDoor's internal serial I/O code is being used. COM_WIN32      - Indicates that the Win32 communication system is being used.
-
-#### `od_com_no_fifo`
-
-```c
-char od_control.od_com_no_fifo;
-```
-
-This variable is only used when OpenDoors is NOT performing serial I/O using a FOSSIL driver. (When a FOSSIL driver is being used, the receive buffer size can be set from the FOSSIL driver command line).
-
-Normally, OpenDoors will use a 16550A FIFO buffer if a 16550A UART is installed. You can disable the use of the 16550A FIFO buffer by setting this variable to TRUE.
-
-#### `od_com_rx_buf`
-
-```c
-unsigned int od_control.od_com_rx_buf;
-```
-
-This variable is only used when OpenDoors is NOT performing serial I/O using a FOSSIL driver. (When a FOSSIL driver is being used, the receive buffer size can be set from the FOSSIL driver command line).
-
-This variable allows you to set the size of OpenDoor's serial I/O receive buffer. If you do not set this buffer size, a default value of 256 characters is used. Normally, this buffer size is more than large enough for door programs. However, if you find that inbound characters are lost before they can be processed by your program, you may wish to increase the size of this buffer.
-
-This variable should only be changed before your first call to [`od_init()`](../api/od_init.md) or any other OpenDoors function.
-
-#### `od_com_tx_buf`
-
-```c
-unsigned int od_control.od_com_tx_buf;
-```
-
-This variable is only used when OpenDoors is NOT performing serial I/O using a FOSSIL driver. (When a FOSSIL driver is being used, the receive buffer size can be set from the FOSSIL driver command line).
-
-This variable allows you to set the size of OpenDoor's serial I/O transmit buffer. If you do not set this buffer size, a default value of 1024 characters is used.
-
-This variable should only be changed before your first call to [`od_init()`](../api/od_init.md) or any other OpenDoors function.
-
-#### `od_connect_speed`
+### `od_connect_speed`
 
 ```c
 DWORD od_control.od_connect_speed;
 ```
 
-This variable contains the best guess at the current modem connection speed. This information is currently only accurate if a DOOR.SYS file is being used. In other situations, it will always be set to be equal to [`od_control.baud`](#baud).
+`od_connect_speed` is the best available modem-to-modem or peer connection
+speed, as distinct from a locked computer-to-modem `baud` rate. It begins at
+zero. GAP/PCBoard `DOOR.SYS` and `TRIBBS.SYS` can supply a separate value. If
+no parser or application has supplied one by the end of initialization,
+OpenDoors copies `baud` into this field.
 
-#### `od_open_handle`
+The library reads the value for status lines and for modem-speed simulation in
+[`od_disp_emu()`](../api/od_disp_emu.md) and the display-file functions. It is
+written back to `TRIBBS.SYS`. Applications may inspect it after
+initialization; a custom session may assign it before initialization.
+
+### `port`
 
 ```c
-DWORD od_control.od_open_handle;
+INT16 od_control.port;
 ```
 
-Under platforms where this is supported (currently only the Win32 version of OpenDoors), this variable can be used to pass a live serial port handle to OpenDoors, which OpenDoors will use. OpenDoors will not close this handle when it exits. If this value is set to 0, OpenDoors will open and close the serial port itself.
+`port` is the zero-based serial-port number: 0 selects `COM1`, 1 selects
+`COM2`, and so forth. A value of `-1` is the local/no-serial-port marker used
+by several door-information formats. The static-storage default is zero.
 
-#### `port`
+Most supported drop files populate the field. The [`-P`](../api/od_parse_cmd_line.md#recognized-options)
+and `-PORT` command-line options accept either a zero-based integer or a
+`COMn` spelling and mark the result as an explicit override. An application
+may also assign the field before initialization; however, the legacy direct
+assignment detection treats only nonzero values as overrides. Code which must
+force zero should use the command-line parser or otherwise prevent a drop-file
+value from replacing it.
+
+After communications initialization, OpenDoors continues to expose the chosen
+number and uses it when rewriting supported text drop files. Changing it does
+not move an already open connection to another port.
+
+### `od_open_handle`
 
 ```c
-char od_control.port;
+DWORD_PTR od_control.od_open_handle;
 ```
 
-This variable contains the serial port number that the modem is connected. This number is 0 based, so that a value of 0 corresponds to COM1:, a value of 1 corresponds to COM2:, and so on. This value will normally be set by the [`od_init()`](../api/od_init.md) function, when the door information file is read, and should not be changed after modem initialization has been carried out by the [`od_init()`](../api/od_init.md) function.
+`od_open_handle` supplies a communications object which the BBS or launcher
+has already opened. Zero means that no object was supplied. On supported
+Windows and Unix-like builds, OpenDoors adopts a nonzero value instead of
+opening a numbered serial port itself; it does not close a caller-supplied
+object during normal communications shutdown.
+
+The [`-HANDLE`](../api/od_parse_cmd_line.md#recognized-options) option stores a
+decimal value here. [`-SOCKET`](../api/od_parse_cmd_line.md#recognized-options)
+stores the socket descriptor here and also enables `od_use_socket`. `DOOR.SYS`
+and `DOOR32.SYS` can supply a handle or descriptor in their supported extended
+forms.
+
+This is an initialization input and later a report of the adopted value. The
+command-line parser currently obtains it with `atoi()`, even though
+[`DWORD_PTR`](../types.md#dword_ptr) may be wider than `int`; that limitation is described under
+[`od_parse_cmd_line()`](../api/od_parse_cmd_line.md).
+
+### `od_use_socket`
+
+```c
+BOOL od_control.od_use_socket;
+```
+
+When true, this field requests that the nonzero `od_open_handle` be treated as
+a connected socket rather than as a serial or other native handle. Its
+default is [`FALSE`](../constants/general.md#false). The `-SOCKET` command-line option sets it; there is no
+`-S` alias. Supported `DOOR.SYS` and `DOOR32.SYS` connection descriptions may
+also set it during parsing.
+
+OpenDoors reads the value while selecting the preferred communications method
+and then records the method actually obtained in `od_com_method`. It should
+not be changed after initialization.
+
+## Communications implementation
+
+### `od_com_method`
+
+```c
+BYTE od_control.od_com_method;
+```
+
+After a remote communications object has been opened, this read-only report
+contains the method actually selected:
+
+- [`COM_FOSSIL`](../constants/session.md#com_fossil);
+- [`COM_INTERNAL`](../constants/session.md#com_internal);
+- [`COM_WIN32`](../constants/session.md#com_win32);
+- [`COM_DOOR32`](../constants/session.md#com_door32);
+- [`COM_SOCKET`](../constants/session.md#com_socket); or
+- [`COM_STDIO`](../constants/session.md#com_stdio).
+
+The initial value is zero, which is not one of the defined method constants.
+It may remain zero in a conventional DOS or Windows local-mode session where
+no communications object is opened. Applications select behavior through
+`od_no_fossil`, `od_use_socket`, `od_open_handle`, and the other initialization
+fields; they should not assign `od_com_method` directly. OpenDoors reads the
+final value for format-specific shutdown and diagnostics.
+
+### `od_com_flow_control`
+
+```c
+BYTE od_control.od_com_flow_control;
+```
+
+This initialization setting selects
+[`COM_DEFAULT_FLOW`](../constants/session.md#com_default_flow),
+[`COM_RTSCTS_FLOW`](../constants/session.md#com_rtscts_flow), or
+[`COM_NO_FLOW`](../constants/session.md#com_no_flow). The zero default is
+[`COM_DEFAULT_FLOW`](../constants/session.md#com_default_flow), which leaves the communications implementation's default
+policy in effect. `TRIBBS.SYS` can explicitly select RTS/CTS or no flow
+control.
+
+OpenDoors reads this field immediately before opening a numbered port. Socket,
+Door32, standard-I/O, and local sessions do not use UART flow control. Changing
+the field after initialization has no effect on the open object.
+
+### `od_no_fossil`
+
+```c
+BOOL od_control.od_no_fossil;
+```
+
+When true on 16-bit DOS, this initialization setting prevents automatic use
+of an installed FOSSIL driver and requests the internal UART implementation.
+It defaults to [`FALSE`](../constants/general.md#false) and can be enabled by the `-NOFOSSIL` option or the
+configuration file's `NoFossil` keyword.
+
+The DOS32 platform provides the FOSSIL path but not the legacy direct-UART
+path. Other platforms do not select between these DOS implementations. The
+field is read only while a numbered communications port is opened.
+
+### `od_com_address`
+
+```c
+INT16 od_control.od_com_address;
+```
+
+This optional initialization setting supplies the hexadecimal base I/O
+address of a direct DOS UART. Zero requests the normal address associated with
+the selected port. The `-ADDRESS` command-line option parses hexadecimal, and
+the configuration `PortAddress` keyword supplies the same setting. An
+extended `EXITINFO.BBS` record can also populate it.
+
+OpenDoors applies a nonzero value before opening the internal UART. FOSSIL,
+Windows, socket, Door32, and standard-I/O methods do not use it. The library
+may write it back to the applicable extended record at exit.
+
+### `od_com_irq`
+
+```c
+BYTE od_control.od_com_irq;
+```
+
+This optional initialization setting supplies the interrupt request line for
+a direct DOS UART. Zero requests the normal IRQ for the selected port. Values
+1 through 14 are applied; zero and values 15 or greater are left to the
+communications implementation. The `-IRQ` option, `PortIRQ` configuration
+keyword, and extended `EXITINFO.BBS` record can populate the field.
+
+It is not used by FOSSIL, Windows, socket, Door32, or standard-I/O methods.
+The applicable extended record receives the exposed value when rewritten.
+
+### `od_com_rx_buf`
+
+```c
+WORD od_control.od_com_rx_buf;
+```
+
+This initialization setting requests the receive-buffer size for a numbered
+port. Zero is replaced with 256 immediately before the port is opened. A
+nonzero application value or the configuration `ReceiveBuffer` setting is
+retained. The resulting value remains available after initialization.
+
+The field does not resize the common OpenDoors input-event queue; that is
+controlled by [`od_control.od_in_buf_size`](customization.md#od_in_buf_size).
+Its effect depends on the active serial implementation and does not apply to
+an already supplied handle.
+
+### `od_com_tx_buf`
+
+```c
+WORD od_control.od_com_tx_buf;
+```
+
+This initialization setting requests the transmit-buffer size for a numbered
+port. Zero is replaced with 3,072 bytes; this is the current implementation's
+default, replacing the 1,024-byte value described by older manuals. A nonzero
+application value or the configuration `TransmitBuffer` setting is retained.
+
+Its effect depends on the active serial implementation and does not apply to
+an already supplied handle. Changing the field after the port is open does
+not resize that port's buffer.
+
+### `od_com_fifo_trigger`
+
+```c
+BYTE od_control.od_com_fifo_trigger;
+```
+
+For a direct DOS UART with its 16550 FIFO enabled, this setting selects a
+receive trigger of 1, 4, 8, or 14 bytes. It begins at zero. Any value other
+than the four supported choices is replaced with 4 during initialization.
+The `FIFOTriggerSize` configuration keyword may assign it.
+
+If `od_com_no_fifo` is true, OpenDoors disables the FIFO and does not replace
+the trigger value. FOSSIL, Windows, socket, Door32, and standard-I/O methods
+do not use this direct-UART setting.
+
+### `od_com_no_fifo`
+
+```c
+BOOL od_control.od_com_no_fifo;
+```
+
+When true, this initialization setting disables use of a 16550-compatible FIFO
+by the direct DOS UART implementation. It defaults to [`FALSE`](../constants/general.md#false). The `-NOFIFO`
+option and `NoFIFO` configuration keyword set it to true.
+
+This field does not disable buffering elsewhere in OpenDoors and has no effect
+on FOSSIL, Windows, socket, Door32, or standard-I/O communications.
+
+### `od_cp437_to_utf8_out`
+
+```c
+BOOL od_control.od_cp437_to_utf8_out;
+```
+
+When true on supported byte-stream methods, OpenDoors converts outgoing CP437
+characters to UTF-8 before writing them. It defaults to [`FALSE`](../constants/general.md#false). The
+`-CP437UTF8` command-line option enables it. A Unix-like forced-local session
+also enables it automatically when the active locale name contains `UTF-8`.
+
+OpenDoors reads the field in its communications send paths. It does not change
+the characters stored in screen snapshots or application buffers, and it does
+not convert incoming UTF-8 into CP437. The setting must be established before
+output begins; changing it in the middle of a session can produce a stream
+containing both encodings.
+
+## See also
+
+[Door-information formats](../../guides/door-information-formats.md),
+[`od_init()`](../api/od_init.md),
+[`od_parse_cmd_line()`](../api/od_parse_cmd_line.md),
+[Session constants](../constants/session.md)

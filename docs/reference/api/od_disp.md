@@ -14,14 +14,14 @@ N/A
 
 ## Description
 
-`od_disp()` is the lowest-level OpenDoors buffer-output function. It sends
+[`od_disp()`](od_disp.md) is the lowest-level OpenDoors buffer-output function. It sends
 exactly `nSize` bytes beginning at `pachBuffer` to the caller when OpenDoors is
 operating remotely. The buffer need not end with a null byte and may contain
 embedded null bytes.
 
-If `bLocalEcho` is [`TRUE`](../types.md#true-and-false), the same bytes are
+If `bLocalEcho` is [`TRUE`](../constants/general.md#true), the same bytes are
 also applied to the OpenDoors screen and its local presentation. If it is
-[`FALSE`](../types.md#true-and-false), the bytes are sent only to the remote
+[`FALSE`](../constants/general.md#false), the bytes are sent only to the remote
 communications connection. In local mode there is no remote connection, so a
 false `bLocalEcho` produces no output.
 
@@ -36,7 +36,7 @@ are not interpreted. Use [`od_disp_emu()`](od_disp_emu.md) when encoded
 terminal output must have the same interpreted effect on the OpenDoors screen
 as it has on the caller's terminal.
 
-The explicit byte count makes `od_disp()` useful for buffers containing null
+The explicit byte count makes [`od_disp()`](od_disp.md) useful for buffers containing null
 characters. Its ability to suppress local echo is also required for modem
 commands and for library code which has already updated the screen model and
 must transmit only the corresponding terminal command.

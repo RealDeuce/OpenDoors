@@ -14,7 +14,7 @@ N/A
 
 ## Description
 
-`od_sleep()` suspends the calling thread for approximately `Milliseconds`
+[`od_sleep()`](od_sleep.md) suspends the calling thread for approximately `Milliseconds`
 milliseconds while using the platform's cooperative or operating-system wait
 facility. The delay is a minimum scheduling request rather than a precise
 real-time deadline; timer resolution and other runnable work may make the
@@ -33,7 +33,7 @@ remaining interval if a signal interrupts the call.
 
 This function is useful in a polling loop which cannot call a blocking
 OpenDoors input function. A busy loop which repeatedly tests input or carrier
-can consume an entire processor timeslice; a short call to `od_sleep()` allows
+can consume an entire processor timeslice; a short call to [`od_sleep()`](od_sleep.md) allows
 other programs or threads to run. Excessive zero-delay yields may also reduce
 the door's throughput, so they should be placed where the application truly
 has no immediate work.
@@ -43,7 +43,7 @@ output space, display-file pauses, popup and hotkey menus, editor input, and
 chat. Application code does not need to add a yield around those blocking
 interfaces.
 
-Calling `od_sleep()` initializes OpenDoors if necessary. It does not promise
+Calling [`od_sleep()`](od_sleep.md) initializes OpenDoors if necessary. It does not promise
 to call [`od_kernel()`](od_kernel.md) periodically during a nonzero delay; a
 program which must continue kernel processing should divide long work into
 appropriate intervals and call the kernel explicitly. The function returns no

@@ -33,8 +33,8 @@ OpenDoors includes a number of built-in personalities. Additional personalities 
 
 Personality names are not case sensitive. For more information on the OpenDoors Multiple Personality System, see the section.
 
-This function returns [`TRUE`](../types.md#true-and-false) on success or
-[`FALSE`](../types.md#true-and-false) on failure. On failure,
+This function returns [`TRUE`](../constants/general.md#true) on success or
+[`FALSE`](../constants/general.md#false) on failure. On failure,
 [`od_control.od_error`](../control/runtime.md#od_error) indicates the reason.
 
 ## Additional details

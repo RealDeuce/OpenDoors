@@ -24,7 +24,7 @@ This function only has an effect under the DOS version of OpenDoors.
 Call this function before any operation which initializes OpenDoors. `pszName`
 identifies the personality, the two line numbers define its local door-output
 area, and `pfPerFunc` receives
-[`PEROP_*`](../constants/components.md#personality-callback-operations)
+[`PEROP_*`](../constants/components.md#personality-procedure-operations)
 operations.
 
 The function returns true when the personality is registered. An exhausted
