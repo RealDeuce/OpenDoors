@@ -105,6 +105,7 @@ int main(void)
    CHECK(ODSessionScreenSave(screen_snapshot, screen_snapshot_size));
    free(screen_snapshot);
    ODSessionScreenShutdown();
+   od_control.baud = 0;
 
    Checkpoint("virtual screen operations passed");
    Checkpoint("calling child process");
