@@ -43,6 +43,13 @@ call C:\TCONE.BAT ODSTR
 call C:\TCONE.BAT ODUTIL
 call C:\TCONE.BAT ODWCAT
 call C:\TCONE.BAT ODWIN
+echo.>>C:\TCBUILD.LOG
+echo ==== ODSWAP.ASM ====>>C:\TCBUILD.LOG
+echo Assembling ODSWAP.ASM
+JWASM -q -W0 -omf -Zm -DLCODE -DLDATA -Fo=ODSWAP.OBJ C:\SRC\ODSWAP.ASM >>C:\TCBUILD.LOG
+if not errorlevel 1 goto swapdone
+echo ODSWAP.ASM>>C:\TCFAIL.TXT
+:swapdone
 if exist C:\TCFAIL.TXT goto failed
 call C:\TCLIB.BAT ODAUTO
 call C:\TCLIB.BAT ODBLOCK
