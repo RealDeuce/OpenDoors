@@ -15,9 +15,9 @@ the local presentation while being transmitted to the remote user. Page pausing
 and user interruption follow the current [`od_control`](../control/index.md)
 settings.
 
-The function returns false with [`ERR_FILEOPEN`](../constants.md) when no
-suitable file can be opened, [`ERR_FILEREAD`](../constants.md) on a read
-failure, or [`ERR_PARAMETER`](../constants.md) for a null name.
+The function returns false with [`ERR_FILEOPEN`](../constants/errors.md) when no
+suitable file can be opened, [`ERR_FILEREAD`](../constants/errors.md) on a read
+failure, or [`ERR_PARAMETER`](../constants/errors.md) for a null name.
 
 ## See also
 

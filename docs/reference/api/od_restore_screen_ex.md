@@ -17,7 +17,7 @@ restore.
 On success OpenDoors restores the remote contents and state, transmits the
 appropriate representation to the remote user, and refreshes the visible local
 portion. Malformed, truncated, version-incompatible, or dimension-mismatched
-buffers fail with [`ERR_PARAMETER`](../constants.md).
+buffers fail with [`ERR_PARAMETER`](../constants/errors.md).
 
 ## See also
 

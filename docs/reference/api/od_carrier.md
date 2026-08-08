@@ -11,7 +11,7 @@ BOOL od_carrier(void);
 The result reflects the current serial, socket, Door32, or standard-I/O remote
 session. Local mode returns false and sets
 [`od_control.od_error`](../control/runtime.md) to
-[`ERR_NOREMOTE`](../constants.md). The function is most useful when automatic
+[`ERR_NOREMOTE`](../constants/errors.md). The function is most useful when automatic
 carrier checking has been disabled and the application intends to handle loss of
 connection itself.
 

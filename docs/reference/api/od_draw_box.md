@@ -10,8 +10,8 @@ BOOL od_draw_box(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom);
 
 Coordinates are one-based and inclusive. The current attribute is used for the
 border. ANSI or AVATAR support is required. Invalid dimensions set
-[`ERR_PARAMETER`](../constants.md), and lack of graphics support sets
-[`ERR_NOGRAPHICS`](../constants.md).
+[`ERR_PARAMETER`](../constants/errors.md), and lack of graphics support sets
+[`ERR_NOGRAPHICS`](../constants/errors.md).
 
 The function returns true after the box has been displayed.
 

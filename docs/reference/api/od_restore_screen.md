@@ -15,7 +15,7 @@ saved cursor and attribute. ANSI or AVATAR terminals use block output; plain
 text terminals receive a best-effort textual reconstruction.
 
 The function returns true on success. A null pointer or non-80-column local
-window sets [`ERR_PARAMETER`](../constants.md).
+window sets [`ERR_PARAMETER`](../constants/errors.md).
 
 ## See also
 

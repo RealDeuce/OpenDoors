@@ -18,8 +18,9 @@ The standard parser recognizes OpenDoors options and can pass application
 options to callbacks installed in [`od_control`](../reference/control/index.md).
 The configuration component is selected through
 [`od_control.od_config_file`](../reference/control/customization.md);
-[`INCLUDE_CONFIG_FILE`](../reference/constants.md) enables the built-in
-component, while `NO_CONFIG_FILE` disables it. Set
+[`INCLUDE_CONFIG_FILE`](../reference/constants/components.md) enables the built-in
+component, while
+[`NO_CONFIG_FILE`](../reference/constants/components.md) disables it. Set
 [`od_control.od_config_filename`](../reference/control/customization.md) to
 override the default name and use
 [`od_control.od_config_function`](../reference/control/customization.md) for

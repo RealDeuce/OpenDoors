@@ -8,8 +8,9 @@ Attempts to detect capabilities reported by the remote terminal.
 void od_autodetect(INT nFlags);
 ```
 
-`nFlags` is reserved and is currently ignored; pass `DETECT_NORMAL`. OpenDoors
-sends the ANSI and RIP queries, waits for replies, and enables the corresponding
+`nFlags` is reserved and is currently ignored; pass
+[`DETECT_NORMAL`](../constants/display.md). OpenDoors sends the ANSI and RIP
+queries, waits for replies, and enables the corresponding
 [`od_control.user_ansi`](../control/caller.md) or
 [`user_rip`](../control/caller.md) state when detected. In local mode it enables
 ANSI without probing.
@@ -21,5 +22,5 @@ information is unavailable. The function returns no value.
 
 ## See also
 
-[Terminal and screen model](../../guides/terminal-screen.md), [Constants and
-flags](../constants.md)
+[Terminal and screen model](../../guides/terminal-screen.md), [Menus and
+screen](../constants/display.md)

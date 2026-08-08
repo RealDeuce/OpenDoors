@@ -22,4 +22,4 @@ parser.
 ## See also
 
 [`od_set_attrib()`](od_set_attrib.md), [`od_set_color()`](od_set_color.md),
-[Constants and flags](../constants.md)
+[Colors](../constants/colors.md)

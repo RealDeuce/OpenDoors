@@ -14,8 +14,8 @@ character followed by IBM-PC attribute, in row-major order.
 
 The rectangle is checked against the current virtual remote screen, which may be
 larger than the local display. Invalid coordinates or a null buffer produce
-[`ERR_PARAMETER`](../constants.md); a terminal without ANSI or AVATAR graphics
-produces [`ERR_NOGRAPHICS`](../constants.md). The function returns true on
+[`ERR_PARAMETER`](../constants/errors.md); a terminal without ANSI or AVATAR graphics
+produces [`ERR_NOGRAPHICS`](../constants/errors.md). The function returns true on
 success.
 
 ## See also

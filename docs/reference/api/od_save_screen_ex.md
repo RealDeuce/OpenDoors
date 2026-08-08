@@ -13,10 +13,10 @@ returned number of bytes, and pass that allocation and size here. The snapshot
 contains screen dimensions, output boundaries, cursor, attribute, scrolling
 state, and all character/attribute cells.
 
-The function returns false with [`ERR_PARAMETER`](../constants.md) for a null or
+The function returns false with [`ERR_PARAMETER`](../constants/errors.md) for a null or
 undersized buffer. Allocation or platform size limits discovered while
-establishing the screen are reported as [`ERR_MEMORY`](../constants.md) or
-[`ERR_LIMIT`](../constants.md). The snapshot is opaque; applications should not
+establishing the screen are reported as [`ERR_MEMORY`](../constants/errors.md) or
+[`ERR_LIMIT`](../constants/errors.md). The snapshot is opaque; applications should not
 inspect or modify it.
 
 ## See also

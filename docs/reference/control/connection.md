@@ -8,7 +8,7 @@ session.
 | `info_path` | Door-information filename or location. Set before initialization to override discovery. |
 | `baud`, `od_connect_speed` | Effective I/O and reported connection speeds. A zero `baud` denotes local mode. |
 | `od_com_address`, `od_com_irq` | Legacy serial hardware address and interrupt. |
-| `od_com_method` | One of the [`COM_*`](../constants.md) communication methods. |
+| `od_com_method` | One of the [`COM_*`](../constants/session.md) communication methods. |
 | `od_com_flow_control`, `od_com_rx_buf`, `od_com_tx_buf` | Flow-control and serial-buffer settings. |
 | `od_com_fifo_trigger`, `od_com_no_fifo`, `od_no_fossil` | Legacy UART and FOSSIL controls. |
 | `od_use_socket`, `port`, `od_open_handle` | Socket/Door32 selection, port, and caller-supplied native handle. |

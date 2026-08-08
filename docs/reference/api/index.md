@@ -5,7 +5,7 @@ The high-level OpenDoors interface consists of the `od_*` functions declared in
 
 Most functions initialize OpenDoors automatically if necessary. Functions which
 must run before initialization say so explicitly. Unless a page states
-otherwise, failures place an [`ERR_*`](../constants.md) value in
+otherwise, failures place an [`ERR_*`](../constants/errors.md) value in
 [`od_control.od_error`](../control/runtime.md).
 
 ## Function groups

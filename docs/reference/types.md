@@ -14,7 +14,7 @@ integer is more appropriate.
 | `DWORD_PTR` | Unsigned value large enough to preserve a pointer. |
 | `INT`, `UINT` | Native integers, at least 16 bits. |
 | `BOOL` | Boolean value used with `TRUE` and `FALSE`. |
-| `tODMilliSec` | Millisecond interval stored as a `DWORD`; `OD_NO_TIMEOUT` means no deadline. |
+| `tODMilliSec` | Millisecond interval stored as a `DWORD`; [`OD_NO_TIMEOUT`](constants/general.md) means no deadline. |
 
 ## Input events
 
@@ -31,26 +31,31 @@ typedef struct {
 } tODInputEvent;
 ```
 
-For `EVENT_CHARACTER`, `chKeyPress` is the received byte. For
-`EVENT_EXTENDED_KEY`, it is an `OD_KEY_*` code. `bFromRemote` distinguishes
-remote input from an enabled local keyboard.
+For [`EVENT_CHARACTER`](constants/input.md), `chKeyPress` is the received byte.
+For [`EVENT_EXTENDED_KEY`](constants/input.md), it is an
+[`OD_KEY_*`](constants/input.md) code. `bFromRemote` distinguishes remote input
+from an enabled local keyboard.
 
 ## Multi-line editor options
 
 `tODEditOptions` describes the edit rectangle, text format, optional menu and
 reallocation callbacks, flags, and the final buffer returned by
 [`od_multiline_edit()`](api/od_multiline_edit.md). Initialize every member
-before use. `TextFormat` is one of `FORMAT_PARAGRAPH_BREAKS`,
-`FORMAT_LINE_BREAKS`, `FORMAT_FTSC_MESSAGE`, or `FORMAT_NO_WORDWRAP`.
+before use. `TextFormat` is one of
+[`FORMAT_PARAGRAPH_BREAKS`](constants/input.md),
+[`FORMAT_LINE_BREAKS`](constants/input.md),
+[`FORMAT_FTSC_MESSAGE`](constants/input.md), or
+[`FORMAT_NO_WORDWRAP`](constants/input.md).
 
-The menu callback returns `EDIT_MENU_DO_NOTHING` or `EDIT_MENU_EXIT_EDITOR`. The
-buffer callback receives the previous buffer and requested size and must obey
-the same ownership rules as `realloc()`.
+The menu callback returns [`EDIT_MENU_DO_NOTHING`](constants/input.md) or
+[`EDIT_MENU_EXIT_EDITOR`](constants/input.md). The buffer callback receives the
+previous buffer and requested size and must obey the same ownership rules as
+`realloc()`.
 
 ## Personalities and components
 
 `OD_PERSONALITY_PROC` is a far-compatible callback receiving a
-[`PEROP_*`](constants.md) operation. `OD_COMPONENT` is the
+[`PEROP_*`](constants/components.md) operation. `OD_COMPONENT` is the
 initialization-function type used by the configuration, logging, and
 multiple-personality component selectors.
 

@@ -14,8 +14,8 @@ name, without the `@#` delimiter used in the file.
 
 OpenDoors searches for the named section and transmits its contents through the
 normal terminal emulator. It returns true on success. Null arguments set
-[`ERR_PARAMETER`](../constants.md); a missing or unreadable file sets
-[`ERR_FILEOPEN`](../constants.md) or [`ERR_FILEREAD`](../constants.md); a
+[`ERR_PARAMETER`](../constants/errors.md); a missing or unreadable file sets
+[`ERR_FILEOPEN`](../constants/errors.md) or [`ERR_FILEREAD`](../constants/errors.md); a
 missing section is reported as failure.
 
 ## See also

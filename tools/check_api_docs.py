@@ -18,7 +18,7 @@ START_MARKER = "OpenDoors API function prototypes."
 END_MARKER = "Definitions for compatibility with previous versions."
 CONTROL_MARKER = "The OpenDoors control structure"
 DOCS_DIR = ROOT / "docs"
-CONSTANTS_PAGE = DOCS_DIR / "reference" / "constants.md"
+CONSTANTS_DIR = DOCS_DIR / "reference" / "constants"
 TYPES_PAGE = DOCS_DIR / "reference" / "types.md"
 COMPATIBILITY_PAGE = DOCS_DIR / "reference" / "compatibility.md"
 CONTROL_INDEX = CONTROL_DIR / "index.md"
@@ -100,6 +100,67 @@ def control_fields() -> set[str]:
     return fields
 
 
+def public_constants() -> set[str]:
+    """Return application-facing constants and declaration macros."""
+    text = HEADER.read_text(encoding="utf-8")
+    start = text.index("/* TRUE and FALSE manifest constants")
+    end = text.index(CONTROL_MARKER, start)
+    public_block = text[start:end]
+    names = set(
+        re.findall(
+            r"^\s*#\s*define\s+([A-Za-z_][A-Za-z0-9_]*)\b",
+            public_block,
+            flags=re.MULTILINE,
+        )
+    )
+    names.update(
+        re.findall(
+            r"\b(?:FORMAT_|EDIT_MENU_|EVENT_)[A-Z0-9_]+\b", public_block
+        )
+    )
+    names.update(
+        {
+            "OD_VERSION",
+            "DIRSEP",
+            "DIRSEP_STR",
+            "ODPLAT_WIN32",
+            "ODPLAT_NIX",
+            "ODPLAT_DOS",
+            "OD_WIN32_STATIC",
+            "OD_DLL",
+            "ODCALL",
+            "ODVCALL",
+            "OD_GLOBAL_CONV",
+            "ODAPIDEF",
+            "OD_API_VAR_DEFN",
+            "OD_API_VAR_DECL",
+            "OD_EXPORT",
+            "OD_IMPORT",
+            "OD_NAMING_CONVENTION",
+            "ODFAR",
+            "B_YELLOW",
+            "B_WHITE",
+        }
+    )
+    return names
+
+
+def compatibility_aliases() -> set[str]:
+    """Return source-compatibility macros retained by OpenDoor.h."""
+    text = HEADER.read_text(encoding="utf-8")
+    start = text.index(END_MARKER)
+    end = text.index("/* Obsolete functions. */", start)
+    names = set(
+        re.findall(
+            r"^\s*#\s*define\s+([A-Za-z_][A-Za-z0-9_]*)\b",
+            text[start:end],
+            flags=re.MULTILINE,
+        )
+    )
+    names.add("od_init_with_config")
+    return names
+
+
 def reference_symbols(
     declared: set[str], fields: set[str]
 ) -> tuple[dict[str, Path], dict[str, set[Path]]]:
@@ -132,10 +193,25 @@ def reference_symbols(
             targets[spelling] = target
             definitions[spelling].update(pages)
 
-    for name in inline_names(CONSTANTS_PAGE):
-        if name not in targets:
-            targets[name] = CONSTANTS_PAGE
-            definitions[name].add(CONSTANTS_PAGE)
+    constant_pages = [
+        CONSTANTS_DIR / "general.md",
+        CONSTANTS_DIR / "errors.md",
+        CONSTANTS_DIR / "colors.md",
+        CONSTANTS_DIR / "input.md",
+        CONSTANTS_DIR / "display.md",
+        CONSTANTS_DIR / "session.md",
+        CONSTANTS_DIR / "components.md",
+    ]
+    for name in public_constants():
+        pages = {
+            page
+            for page in constant_pages
+            if re.search(rf"\b{re.escape(name)}\b", page.read_text(encoding="utf-8"))
+        }
+        if not pages:
+            continue
+        targets[name] = next(page for page in constant_pages if page in pages)
+        definitions[name].update(pages)
 
     type_names = {
         "BYTE",
@@ -158,26 +234,35 @@ def reference_symbols(
         "OD_COMPONENT",
     }
     for name in type_names:
-        targets[name] = TYPES_PAGE
+        targets.setdefault(name, TYPES_PAGE)
         definitions[name].add(TYPES_PAGE)
 
-    for name in {
-        "ERR_*",
-        "GETIN_*",
-        "EDIT_*",
-        "MENU_*",
-        "STATUS_*",
-        "PEROP_*",
-        "INCLUDE_*",
-        "PER_*",
-        "COM_*",
-    }:
-        targets[name] = CONSTANTS_PAGE
-        definitions[name].add(CONSTANTS_PAGE)
+    constant_groups = {
+        "ERR_*": "errors.md",
+        "ERRORLEVEL_*": "errors.md",
+        "GETIN_*": "input.md",
+        "EDIT_*": "input.md",
+        "OD_KEY_*": "input.md",
+        "MENU_*": "display.md",
+        "POPUP_*": "display.md",
+        "SCROLL_*": "display.md",
+        "STATUS_*": "display.md",
+        "BOX_*": "display.md",
+        "COM_*": "session.md",
+        "DIS_*": "session.md",
+        "INCLUDE_*": "components.md",
+        "PER_*": "components.md",
+        "PEROP_*": "components.md",
+        "D_*": "colors.md",
+        "L_*": "colors.md",
+        "B_*": "colors.md",
+    }
+    for name, filename in constant_groups.items():
+        page = CONSTANTS_DIR / filename
+        targets[name] = page
+        definitions[name].add(page)
 
     compatibility_names = {
-        "od_set_colour",
-        "od_init_with_config",
         "od_log_open()",
         "od_emulate()",
         "ODConfigInit",
@@ -187,6 +272,13 @@ def reference_symbols(
     for name in compatibility_names:
         targets[name] = COMPATIBILITY_PAGE
         definitions[name].add(COMPATIBILITY_PAGE)
+
+    for name in compatibility_aliases():
+        targets.setdefault(name, COMPATIBILITY_PAGE)
+        definitions[name].add(COMPATIBILITY_PAGE)
+    for name in {"od_colour_config", "od_set_colour", "od_kernal"}:
+        targets[f"{name}()"] = COMPATIBILITY_PAGE
+        definitions[f"{name}()"].add(COMPATIBILITY_PAGE)
 
     targets["od_control"] = CONTROL_INDEX
     definitions["od_control"] = {CONTROL_INDEX}
@@ -231,6 +323,20 @@ def main() -> int:
         if not re.search(rf"\b{re.escape(name)}\b", control_text):
             failures.append(f"od_control field is not documented: {name}")
 
+    constant_text = "\n".join(
+        path.read_text(encoding="utf-8") for path in CONSTANTS_DIR.glob("*.md")
+    )
+    constants = public_constants()
+    for name in sorted(constants):
+        if not re.search(rf"\b{re.escape(name)}\b", constant_text):
+            failures.append(f"public constant or macro is not documented: {name}")
+
+    compatibility_text = COMPATIBILITY_PAGE.read_text(encoding="utf-8")
+    aliases = compatibility_aliases()
+    for name in sorted(aliases):
+        if not re.search(rf"\b{re.escape(name)}\b", compatibility_text):
+            failures.append(f"compatibility alias is not documented: {name}")
+
     targets, definitions = reference_symbols(declared, fields)
     for path in sorted(DOCS_DIR.rglob("*.md")):
         for line_number, name in prose_code_spans(path.read_text(encoding="utf-8")):
@@ -249,8 +355,9 @@ def main() -> int:
     print(
         f"API documentation covers all {len(declared)} high-level functions "
         f"with {sum(len(paths) for paths in documented.values())} page(s); "
-        f"all {len(fields)} od_control fields are named; prose API references "
-        "are linked."
+        f"all {len(fields)} od_control fields, {len(constants)} public "
+        f"constants/macros, and {len(aliases)} compatibility aliases are named; "
+        "prose API references are linked."
     )
     return 0
 

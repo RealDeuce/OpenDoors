@@ -14,8 +14,8 @@ represents the program name in the form available to the current platform.
 
 The result is dynamically allocated and must be released only with
 [`od_free_split_cmd_line()`](od_free_split_cmd_line.md). A null argument sets
-[`ERR_PARAMETER`](../constants.md); allocation failure sets
-[`ERR_MEMORY`](../constants.md) and returns `NULL`.
+[`ERR_PARAMETER`](../constants/errors.md); allocation failure sets
+[`ERR_MEMORY`](../constants/errors.md) and returns `NULL`.
 
 ## See also
 

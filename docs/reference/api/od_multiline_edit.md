@@ -15,9 +15,9 @@ nul. `pEditOptions` selects the edit rectangle, colors, callbacks, and behavior.
 
 The function requires ANSI or AVATAR graphics. Its return value describes how
 editing ended. Invalid buffers or options set
-[`ERR_PARAMETER`](../constants.md); lack of graphics sets
-[`ERR_NOGRAPHICS`](../constants.md); allocation failure sets
-[`ERR_MEMORY`](../constants.md).
+[`ERR_PARAMETER`](../constants/errors.md); lack of graphics sets
+[`ERR_NOGRAPHICS`](../constants/errors.md); allocation failure sets
+[`ERR_MEMORY`](../constants/errors.md).
 
 ## See also
 

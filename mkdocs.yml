@@ -111,7 +111,15 @@ nav:
           - od_control_get: reference/api/od_control_get.md
   - Data reference:
       - Types and callbacks: reference/types.md
-      - Constants and flags: reference/constants.md
+      - Constants and macros:
+          - Overview: reference/constants.md
+          - General and platform: reference/constants/general.md
+          - Errors and exit levels: reference/constants/errors.md
+          - Colors: reference/constants/colors.md
+          - Input and editors: reference/constants/input.md
+          - Menus and screen: reference/constants/display.md
+          - Session and connection: reference/constants/session.md
+          - Components and personalities: reference/constants/components.md
       - od_control:
           - Overview: reference/control/index.md
           - Connection and door information: reference/control/connection.md

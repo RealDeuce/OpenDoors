@@ -18,8 +18,8 @@ The function requires ANSI or AVATAR graphics. On success it returns an opaque
 window handle which must eventually be passed to
 [`od_window_remove()`](od_window_remove.md). On failure it returns `NULL` and
 sets [`od_control.od_error`](../control/runtime.md), commonly to
-[`ERR_PARAMETER`](../constants.md), [`ERR_NOGRAPHICS`](../constants.md), or
-[`ERR_MEMORY`](../constants.md).
+[`ERR_PARAMETER`](../constants/errors.md), [`ERR_NOGRAPHICS`](../constants/errors.md), or
+[`ERR_MEMORY`](../constants/errors.md).
 
 The window interface retains its legacy screen-size limits. Use block and
 extended snapshot APIs when manipulating screens beyond those limits.

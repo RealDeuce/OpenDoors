@@ -11,12 +11,14 @@ BOOL od_add_personality(const char *pszName, BYTE btOutputTop,
 
 Call this function before any operation which initializes OpenDoors. `pszName`
 identifies the personality, the two line numbers define its local door-output
-area, and `pfPerFunc` receives [`PEROP_*`](../types.md) operations.
+area, and `pfPerFunc` receives
+[`PEROP_*`](../constants/components.md#personality-callback-operations)
+operations.
 
 The function returns true when the personality is registered. An exhausted
-personality table returns false with [`ERR_LIMIT`](../constants.md). Custom
+personality table returns false with [`ERR_LIMIT`](../constants/errors.md). Custom
 personalities affect the text-mode local interface; targets without that
-interface return false with [`ERR_UNSUPPORTED`](../constants.md). The name and
+interface return false with [`ERR_UNSUPPORTED`](../constants/errors.md). The name and
 callback must remain valid inputs; this legacy interface does not validate null
 pointers.
 

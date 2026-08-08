@@ -16,10 +16,10 @@ attribute bytes in the same row-major format produced by
 OpenDoors compares the new block with its current remote screen and sends the
 changes using ANSI or AVATAR operations. The complete block is recorded even
 where it falls outside the clipped local presentation. Invalid arguments set
-[`ERR_PARAMETER`](../constants.md); unsupported graphics mode sets
-[`ERR_NOGRAPHICS`](../constants.md); temporary allocation failure sets
-[`ERR_MEMORY`](../constants.md). AVATAR coordinates above 255 set
-[`ERR_LIMIT`](../constants.md).
+[`ERR_PARAMETER`](../constants/errors.md); unsupported graphics mode sets
+[`ERR_NOGRAPHICS`](../constants/errors.md); temporary allocation failure sets
+[`ERR_MEMORY`](../constants/errors.md). AVATAR coordinates above 255 set
+[`ERR_LIMIT`](../constants/errors.md).
 
 ## See also
 

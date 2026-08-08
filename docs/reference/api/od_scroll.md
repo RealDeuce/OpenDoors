@@ -10,16 +10,16 @@ BOOL od_scroll(INT nLeft, INT nTop, INT nRight, INT nBottom,
 ```
 
 Coordinates are one-based and inclusive. A positive distance scrolls upward; a
-negative distance scrolls downward. [`SCROLL_NO_CLEAR`](../constants.md) leaves
+negative distance scrolls downward. [`SCROLL_NO_CLEAR`](../constants/display.md) leaves
 newly exposed lines unchanged instead of blanking them.
 
 The operation requires ANSI or AVATAR mode. Invalid rectangles set
-[`ERR_PARAMETER`](../constants.md), unsupported graphics sets
-[`ERR_NOGRAPHICS`](../constants.md), and unrepresentable AVATAR coordinates or
-allocation sizes set [`ERR_LIMIT`](../constants.md). The original cursor
+[`ERR_PARAMETER`](../constants/errors.md), unsupported graphics sets
+[`ERR_NOGRAPHICS`](../constants/errors.md), and unrepresentable AVATAR coordinates or
+allocation sizes set [`ERR_LIMIT`](../constants/errors.md). The original cursor
 position is restored before the function returns.
 
 ## See also
 
-[`od_gettext()`](od_gettext.md), [`od_puttext()`](od_puttext.md), [Constants and
-flags](../constants.md)
+[`od_gettext()`](od_gettext.md), [`od_puttext()`](od_puttext.md), [Menus and
+screen](../constants/display.md)
