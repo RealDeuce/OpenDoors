@@ -142,10 +142,6 @@
 # endif
 #endif
 
-#if defined(TRIO_COMPILER_TURBO)
-# define TRIO_FUNC_INTERNAL_FPCLASSIFY_AND_SIGNBIT
-#endif
-
 /*
  * Determine how to generate negative zero.
  */
@@ -814,30 +810,33 @@ TRIO_ARGS2((number, is_negative),
   /* The TRIO_FUNC_xxx_FPCLASSIFY_AND_SIGNBIT macros are mutually exclusive */
 
 #if defined(TRIO_COMPILER_TURBO)
-  int rc;
+  union {
+    double number;
+    unsigned char bytes[8];
+  } value;
+  unsigned int exponent;
+  int has_mantissa;
 
-  if (number == 0.0) {
-    *is_negative = internal_is_negative(number);
-    return TRIO_FP_ZERO;
-  }
-  if (internal_isnan(number)) {
-    *is_negative = TRIO_FALSE;
-    return TRIO_FP_NAN;
-  }
-  rc = internal_isinf(number);
-  if (rc != 0) {
-    *is_negative = (rc == -1);
+  value.number = number;
+  *is_negative = (value.bytes[7] & 0x80) != 0;
+  exponent = ((unsigned int)(value.bytes[7] & 0x7f) << 4)
+    | (value.bytes[6] >> 4);
+  has_mantissa = (value.bytes[6] & 0x0f) != 0
+    || value.bytes[5] != 0 || value.bytes[4] != 0
+    || value.bytes[3] != 0 || value.bytes[2] != 0
+    || value.bytes[1] != 0 || value.bytes[0] != 0;
+  if (exponent == 0x7ff) {
+    if (has_mantissa) {
+      *is_negative = TRIO_FALSE;
+      return TRIO_FP_NAN;
+    }
     return TRIO_FP_INFINITE;
   }
-  if ((number > 0.0) && (number < DBL_MIN)) {
-    *is_negative = TRIO_FALSE;
-    return TRIO_FP_SUBNORMAL;
+  if (exponent == 0) {
+    if (has_mantissa)
+      return TRIO_FP_SUBNORMAL;
+    return TRIO_FP_ZERO;
   }
-  if ((number < 0.0) && (number > -DBL_MIN)) {
-    *is_negative = TRIO_TRUE;
-    return TRIO_FP_SUBNORMAL;
-  }
-  *is_negative = (number < 0.0);
   return TRIO_FP_NORMAL;
 #else
 
