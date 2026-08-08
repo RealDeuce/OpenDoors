@@ -142,6 +142,10 @@
 # endif
 #endif
 
+#if defined(TRIO_COMPILER_TURBO)
+# define TRIO_FUNC_INTERNAL_FPCLASSIFY_AND_SIGNBIT
+#endif
+
 /*
  * Determine how to generate negative zero.
  */

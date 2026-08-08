@@ -20,6 +20,7 @@
 #define TRIO_EXTENSION 0
 #define TRIO_DEPRECATED 0
 #define TRIO_IEEE_754
+#include <dos.h>
 #endif
 #ifdef __TURBOC__
 #include "trio/trio.c"

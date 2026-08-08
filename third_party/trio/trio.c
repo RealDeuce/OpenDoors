@@ -970,6 +970,52 @@ static trio_userdef_t *internalUserDef = NULL;
 # include "triostr.c"
 #endif
 
+#if defined(TRIO_COMPILER_TURBO)
+TRIO_PRIVATE int
+TrioParseFormatInt(const char *string, char **end)
+{
+  int digit;
+  int value = 0;
+
+  while ((*string >= '0') && (*string <= '9'))
+    {
+      digit = *string - '0';
+      if (value <= (INT_MAX - digit) / BASE_DECIMAL)
+        value = value * BASE_DECIMAL + digit;
+      else
+        value = INT_MAX;
+      string++;
+    }
+  *end = (char *)string;
+  return value;
+}
+
+TRIO_PRIVATE int
+TrioFormatOffset(const char *pointer, const char *format)
+{
+  return (int)(FP_OFF(pointer) - FP_OFF(format));
+}
+
+TRIO_PRIVATE int
+TrioUnsignedRemainder(trio_uintmax_t number, int base)
+{
+  trio_uintmax_t mask;
+  int remainder = 0;
+
+  mask = (trio_uintmax_t)1 << (sizeof(number) * CHAR_BIT - 1);
+  while (mask != 0)
+    {
+      remainder *= 2;
+      if ((number & mask) != 0)
+        remainder++;
+      if (remainder >= base)
+        remainder -= base;
+      mask >>= 1;
+    }
+  return remainder;
+}
+#endif
+
 /*************************************************************************
  * TrioInitializeParameter
  *
@@ -1231,6 +1277,9 @@ TRIO_ARGS2((format, offsetPointer),
        */
       return number - 1;
     }
+#else
+  (void)format;
+  (void)offsetPointer;
 #endif
   return NO_POSITION;
 }
@@ -1461,10 +1510,16 @@ TRIO_ARGS4((type, format, offset, parameter),
 		}
 	      else
 		{
+#if defined(TRIO_COMPILER_TURBO)
+		  parameter->precision = TrioParseFormatInt(&format[offset],
+							       &tmpformat);
+		  offset = TrioFormatOffset(tmpformat, format);
+#else
 		  parameter->precision = trio_to_long(&format[offset],
 						      &tmpformat,
 						      BASE_DECIMAL);
 		  offset = (int)(tmpformat - format);
+#endif
 		}
 	    }
 	  else if (dots == 1) /* Base */
@@ -1485,12 +1540,21 @@ TRIO_ARGS4((type, format, offset, parameter),
 		}
 	      else
 		{
+#if defined(TRIO_COMPILER_TURBO)
+		  parameter->base = TrioParseFormatInt(&format[offset],
+							  &tmpformat);
+#else
 		  parameter->base = trio_to_long(&format[offset],
 						 &tmpformat,
 						 BASE_DECIMAL);
+#endif
 		  if (parameter->base > MAX_BASE)
 		    return TRIO_ERROR_RETURN(TRIO_EINVAL, offset);
+#if defined(TRIO_COMPILER_TURBO)
+		  offset = TrioFormatOffset(tmpformat, format);
+#else
 		  offset = (int)(tmpformat - format);
+#endif
 		}
 	    }
 	  else
@@ -1535,10 +1599,16 @@ TRIO_ARGS4((type, format, offset, parameter),
 	   * &format[offset - 1] is used to "rewind" the read
 	   * character from format
 	   */
+#if defined(TRIO_COMPILER_TURBO)
+	  parameter->width = TrioParseFormatInt(&format[offset - 1],
+						  &tmpformat);
+	  offset = TrioFormatOffset(tmpformat, format);
+#else
 	  parameter->width = trio_to_long(&format[offset - 1],
 					  &tmpformat,
 					  BASE_DECIMAL);
 	  offset = (int)(tmpformat - format);
+#endif
 	  break;
 
 	case QUALIFIER_SHORT:
@@ -1846,10 +1916,14 @@ TRIO_ARGS4((type, format, offset, parameter),
 # pragma warning( disable : 4127 ) /* Conditional expression is constant */
 #endif
     case SPECIFIER_POINTER:
+#if defined(TRIO_COMPILER_TURBO)
+      parameter->flags |= FLAGS_LONG;
+#else
       if (sizeof(trio_pointer_t) == sizeof(trio_ulonglong_t))
 	parameter->flags |= FLAGS_QUAD;
       else if (sizeof(trio_pointer_t) == sizeof(long))
 	parameter->flags |= FLAGS_LONG;
+#endif
       parameter->type = FORMAT_POINTER;
       break;
 #if defined(TRIO_COMPILER_VISUALC)
@@ -1934,6 +2008,10 @@ TRIO_ARGS4((type, format, offset, parameter),
 
   parameter->endOffset = offset;
 
+#if !TRIO_FEATURE_SCANF
+  (void)type;
+#endif
+
   return 0;
 }
 
@@ -1974,7 +2052,9 @@ TRIO_ARGS6((type, format, parameters, arglist, argfunc, argarray),
 #if defined(TRIO_COMPILER_SUPPORTS_MULTIBYTE)
   int charlen;
 #endif
+#if TRIO_FEATURE_ERRNO
   int save_errno;
+#endif
   int i = -1;
   int num;
   trio_parameter_t workParameter;
@@ -1990,7 +2070,9 @@ TRIO_ARGS6((type, format, parameters, arglist, argfunc, argarray),
    */
   memset(usedEntries, 0, sizeof(usedEntries));
 
+#if TRIO_FEATURE_ERRNO
   save_errno = errno;
+#endif
   offset = 0;
   parameterPosition = 0;
 #if defined(TRIO_COMPILER_SUPPORTS_MULTIBYTE)
@@ -2548,7 +2630,11 @@ TRIO_ARGS6((self, number, flags, width, precision, base),
   *pointer-- = NIL;
   for (i = 1; i < (int)sizeof(buffer); i++)
     {
+#if defined(TRIO_COMPILER_TURBO)
+      digitOffset = TrioUnsignedRemainder(number, base);
+#else
       digitOffset = number % base;
+#endif
       *pointer-- = digits[digitOffset];
       number /= base;
       if (number == 0)
@@ -2576,13 +2662,35 @@ TRIO_ARGS6((self, number, flags, width, precision, base),
   if (! ignoreNumber)
     {
       /* Adjust width */
+#if defined(TRIO_COMPILER_TURBO)
+      char *position = pointer + 1;
+      int numberLength = 0;
+      while (position < bufferend)
+	{
+	  numberLength++;
+	  position++;
+	}
+      width -= numberLength;
+#else
       width -= (bufferend - pointer) - 1;
+#endif
     }
 
   /* Adjust precision */
   if (NO_PRECISION != precision)
     {
+#if defined(TRIO_COMPILER_TURBO)
+      char *position = pointer + 1;
+      int numberLength = 0;
+      while (position < bufferend)
+	{
+	  numberLength++;
+	  position++;
+	}
+      precision -= numberLength;
+#else
       precision -= (bufferend - pointer) - 1;
+#endif
       if (precision < 0)
 	precision = 0;
       flags |= FLAGS_NILPADDING;
@@ -2964,7 +3072,9 @@ TRIO_ARGS6((self, number, flags, width, precision, base),
   int fractionDigits;
   int exponentDigits;
   int workDigits;
+# if TRIO_FEATURE_ROUNDING
   int baseDigits;
+# endif
   int integerThreshold;
   int fractionThreshold;
   int expectedWidth;
@@ -3042,23 +3152,29 @@ TRIO_ARGS6((self, number, flags, width, precision, base),
   /* Normal numbers */
   if (flags & FLAGS_LONGDOUBLE)
     {
+# if TRIO_FEATURE_ROUNDING
       baseDigits = (base == 10)
 	? LDBL_DIG
 	: (int)trio_floor(LDBL_MANT_DIG / TrioLogarithmBase(base));
+# endif
       epsilon = LDBL_EPSILON;
     }
   else if (flags & FLAGS_SHORT)
     {
+# if TRIO_FEATURE_ROUNDING
       baseDigits = (base == BASE_DECIMAL)
 	? FLT_DIG
 	: (int)trio_floor(FLT_MANT_DIG / TrioLogarithmBase(base));
+# endif
       epsilon = FLT_EPSILON;
     }
   else
     {
+# if TRIO_FEATURE_ROUNDING
       baseDigits = (base == BASE_DECIMAL)
 	? DBL_DIG
 	: (int)trio_floor(DBL_MANT_DIG / TrioLogarithmBase(base));
+# endif
       epsilon = DBL_EPSILON;
     }
 
@@ -4168,6 +4284,7 @@ trio_pointer_t TrioArrayGetter(trio_pointer_t context, int index, int type)
 {
   /* Utility function for the printfv family */
   trio_pointer_t *argarray = (trio_pointer_t *)context;
+  (void)type;
   return argarray[index];
 }
 
@@ -7909,6 +8026,7 @@ TRIO_ARGS1((errorcode),
       return "Unknown";
     }
 #else
+  (void)errorcode;
   return "Unknown";
 #endif
 }
