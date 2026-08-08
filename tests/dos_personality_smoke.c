@@ -11,6 +11,18 @@ static int nDeinitializeCount;
 static int nInitialKeyCount;
 static int nCallbackFailure;
 
+static void Progress(int line, int operation)
+{
+   FILE *progress;
+
+   progress = fopen("PERSSTEP.TXT", "w");
+   if(progress != NULL)
+   {
+      fprintf(progress, "line %d, operation %d\n", line, operation);
+      fclose(progress);
+   }
+}
+
 static int Fail(int line)
 {
    FILE *failure;
@@ -31,6 +43,7 @@ static void TestPersonality(BYTE btOperation)
    char abtActual[2];
    char abtExpected[2];
 
+   Progress(__LINE__, btOperation);
    switch(btOperation)
    {
       case PEROP_INITIALIZE:
@@ -73,27 +86,34 @@ int main(void)
 {
    FILE *sentinel;
 
+   Progress(__LINE__, -1);
    od_control.od_force_local = TRUE;
    od_control.od_disable |= DIS_INFOFILE | DIS_NAME_PROMPT;
    od_control.od_mps = INCLUDE_MPS;
 
    CHECK(od_add_personality("SDKTEST", 1, 23, TestPersonality));
+   Progress(__LINE__, -1);
    od_init();
+   Progress(__LINE__, -1);
    CHECK(od_set_personality("sdktest"));
+   Progress(__LINE__, -1);
    CHECK(nInitializeCount == 1);
    CHECK(nDisplayCount >= 1);
    CHECK(!nCallbackFailure);
    CHECK(od_control.od_num_keys == nInitialKeyCount + 1);
 
    ODStatForceStatusUpdate();
+   Progress(__LINE__, -1);
    CHECK(nUpdateCount >= 1);
 
    CHECK(od_set_personality("STANDARD"));
+   Progress(__LINE__, -1);
    CHECK(nDeinitializeCount == 1);
    CHECK(od_control.od_num_keys == nInitialKeyCount);
 
    od_control.od_noexit = TRUE;
    od_exit(0, FALSE);
+   Progress(__LINE__, -1);
 
    sentinel = fopen("PERSPASS.OK", "w");
    CHECK(sentinel != NULL);

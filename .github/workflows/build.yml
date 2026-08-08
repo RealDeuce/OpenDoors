@@ -361,6 +361,7 @@ jobs:
           rm -f build/dos/DOSFAIL.TXT
           rm -f build/dos/PERSPASS.OK
           rm -f build/dos/PERSFAIL.TXT
+          rm -f build/dos/PERSSTEP.TXT
           timeout --signal=TERM --kill-after=5s 30s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos" \
@@ -375,6 +376,7 @@ jobs:
           fi
           if ! test -s build/dos/PERSPASS.OK; then
             cat build/dos/PERSFAIL.TXT || true
+            cat build/dos/PERSSTEP.TXT || true
             exit 1
           fi
 
@@ -392,4 +394,5 @@ jobs:
             build/dos/DOSFAIL.TXT
             build/dos/PERSPASS.OK
             build/dos/PERSFAIL.TXT
+            build/dos/PERSSTEP.TXT
             build/dos/dosbox.log
