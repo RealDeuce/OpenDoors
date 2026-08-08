@@ -326,7 +326,8 @@ RemoteAccess 2.x extended `EXITINFO.BBS` record and copies the 25-byte
 QuickBBS/older extended form into the beginning of the array, leaving the
 remainder zero. OpenDoors does not interpret the bits. It writes the applicable
 200- or 25-byte portion back to the same format. The compatibility name
-`ra_combinedrecord` designates this same field. See
+[`ra_combinedrecord`](../compatibility.md#renamed-control-fields) designates
+this same field. See
 [bit-mapped flags](../glossary.md#bit-mapped-flags).
 
 ### `user_comment`
