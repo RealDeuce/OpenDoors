@@ -39,7 +39,9 @@ static int NoFossilTest(void)
    {
       FILE *sentinel = fopen("NOFSPASS.OK", "w");
       CHECK("NOFSFAIL.TXT", sentinel != NULL);
-      fclose(sentinel);
+      CHECK("NOFSFAIL.TXT",
+         fputs("OpenDoors DOS32 absent-FOSSIL test passed\n", sentinel) >= 0);
+      CHECK("NOFSFAIL.TXT", fclose(sentinel) == 0);
    }
    return(0);
 }
@@ -101,7 +103,9 @@ static int FossilTest(void)
    {
       FILE *sentinel = fopen("FOSSPASS.OK", "w");
       CHECK("FOSSFAIL.TXT", sentinel != NULL);
-      fclose(sentinel);
+      CHECK("FOSSFAIL.TXT",
+         fputs("OpenDoors DOS32 FOSSIL tests passed\n", sentinel) >= 0);
+      CHECK("FOSSFAIL.TXT", fclose(sentinel) == 0);
    }
    return(0);
 }
