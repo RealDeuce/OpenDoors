@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
    {
       od_printf("\n\rPOST-INITIALIZATION DIAGNOSTIC INFORMATION:\n\r");
       od_printf("    Running in REMOTE mode : %s\n\r",
-         BoolAsStr(od_control.baud));
+         BoolAsStr(od_control.baud != 0));
       od_printf("   Port <-> Modem BPS Rate : %lu\n\r", od_control.baud);
       od_printf("        Serial Port Number : %d (COM%d:)\n\r", od_control.port,
          od_control.port + 1);
@@ -265,9 +265,6 @@ int main(int argc, char *argv[])
 
       od_clr_scr();
    }
-
-   /* Return with success. */
-   return(0);
 }
 
 

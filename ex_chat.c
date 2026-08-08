@@ -39,6 +39,7 @@
 
 /* Include required header files. */
 #include "OpenDoor.h"
+#include <stddef.h>
 #include <string.h>
 
 

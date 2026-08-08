@@ -26,6 +26,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 int main(int argc, char *argv[])
 #endif
 {
+#ifndef ODPLAT_WIN32
+   (void)argc;
+   (void)argv;
+#endif
 
    /* Display a message. */
    od_printf("Hello world! This is a very simple OpenDoors program.\n\r");

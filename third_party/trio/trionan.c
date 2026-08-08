@@ -813,6 +813,34 @@ TRIO_ARGS2((number, is_negative),
 {
   /* The TRIO_FUNC_xxx_FPCLASSIFY_AND_SIGNBIT macros are mutually exclusive */
 
+#if defined(TRIO_COMPILER_TURBO)
+  int rc;
+
+  if (number == 0.0) {
+    *is_negative = internal_is_negative(number);
+    return TRIO_FP_ZERO;
+  }
+  if (internal_isnan(number)) {
+    *is_negative = TRIO_FALSE;
+    return TRIO_FP_NAN;
+  }
+  rc = internal_isinf(number);
+  if (rc != 0) {
+    *is_negative = (rc == -1);
+    return TRIO_FP_INFINITE;
+  }
+  if ((number > 0.0) && (number < DBL_MIN)) {
+    *is_negative = TRIO_FALSE;
+    return TRIO_FP_SUBNORMAL;
+  }
+  if ((number < 0.0) && (number > -DBL_MIN)) {
+    *is_negative = TRIO_TRUE;
+    return TRIO_FP_SUBNORMAL;
+  }
+  *is_negative = (number < 0.0);
+  return TRIO_FP_NORMAL;
+#else
+
 #if defined(TRIO_FUNC_C99_FPCLASSIFY_AND_SIGNBIT)
 
   return c99_fpclassify_and_signbit(number, is_negative);
@@ -884,6 +912,7 @@ TRIO_ARGS2((number, is_negative),
   return TRIO_FP_NORMAL;
 
 #endif
+#endif /* TRIO_COMPILER_TURBO */
 }
 
 #endif

@@ -64,7 +64,9 @@
 # define TRIO_PUBLIC_STRING static
 # define TRIO_FUNC_LENGTH
 # define TRIO_FUNC_LENGTH_MAX
-# define TRIO_FUNC_TO_LONG
+# if !defined(TRIO_COMPILER_TURBO)
+#  define TRIO_FUNC_TO_LONG
+# endif
 # if TRIO_FEATURE_LOCALE
 #  define TRIO_FUNC_COPY_MAX
 # endif
@@ -1419,7 +1421,7 @@ TRIO_ARGS2((number, base),
 /*************************************************************************
  * TrioLogarithmBase
  */
-#if TRIO_FEATURE_FLOAT
+#if TRIO_FEATURE_FLOAT && TRIO_FEATURE_ROUNDING
 TRIO_PRIVATE double
 TrioLogarithmBase
 TRIO_ARGS1((base),
@@ -1434,7 +1436,7 @@ TRIO_ARGS1((base),
     default          : return TrioLogarithm((double)base, 2);
     }
 }
-#endif /* TRIO_FEATURE_FLOAT */
+#endif /* TRIO_FEATURE_FLOAT && TRIO_FEATURE_ROUNDING */
 
 /*************************************************************************
  * TrioParseQualifiers
