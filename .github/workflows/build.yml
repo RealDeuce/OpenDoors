@@ -660,15 +660,6 @@ jobs:
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos32a" \
               -c 'c:' \
-              -c 'od32chld.exe' \
-              -c 'exit' \
-            2>&1 | tee build/dos32a/dos32a-child.log
-          test -s build/dos32a/D32CHILD.OK
-          rm -f build/dos32a/D32CHILD.OK
-          timeout --signal=TERM --kill-after=5s 45s \
-            xvfb-run -a dosbox -noconsole \
-              -c "mount c $PWD/build/dos32a" \
-              -c 'c:' \
               -c 'sb /r /s od32foss.exe' \
               -c 'sb /r /s od32test.exe' \
               -c 'sb /r /s od32tsts.exe' \
@@ -681,6 +672,15 @@ jobs:
               -c 'sb /r /s ex_music.exe' \
               -c 'exit' \
             2>&1 | tee build/dos32a/dos32a-bind.log
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32a" \
+              -c 'c:' \
+              -c 'od32chld.exe' \
+              -c 'exit' \
+            2>&1 | tee build/dos32a/dos32a-child.log
+          test -s build/dos32a/D32CHILD.OK
+          rm -f build/dos32a/D32CHILD.OK
           timeout --signal=TERM --kill-after=5s 45s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos32a" \
