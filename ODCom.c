@@ -1321,39 +1321,30 @@ fossil:
       }
 
       /* Set to current baud rate. */
-      switch(pPortInfo->lSpeed)
+      if(pPortInfo->lSpeed == 300L)
+         btTemp = 0x40;
+      else if(pPortInfo->lSpeed == 600L)
+         btTemp = 0x60;
+      else if(pPortInfo->lSpeed == 1200L)
+         btTemp = 0x80;
+      else if(pPortInfo->lSpeed == 2400L)
+         btTemp = 0xa0;
+      else if(pPortInfo->lSpeed == 4800L)
+         btTemp = 0xc0;
+      else if(pPortInfo->lSpeed == 9600L)
+         btTemp = 0xe0;
+      else if(pPortInfo->lSpeed == 19200L)
+         btTemp = 0x00;
+      else if(pPortInfo->lSpeed == 38400L)
+         btTemp = 0x20;
+      else
       {
-         case 300L:
-            btTemp = 0x40;
-            break;
-         case 600L:
-            btTemp = 0x60;
-            break;
-         case 1200L:
-            btTemp = 0x80;
-            break;
-         case 2400L:
-            btTemp = 0xa0;
-            break;
-         case 4800L:
-            btTemp = 0xc0;
-            break;
-         case 9600L:
-            btTemp = 0xe0;
-            break;
-         case 19200L:
-            btTemp = 0x00;
-            break;
-         case 38400L:
-            btTemp = 0x20;
-            break;
-         default:
-            /* If invalid bps rate, don't change current bps setting. */
-            /* Set port state to open. */
-            pPortInfo->bIsOpen = TRUE;
+         /* If invalid bps rate, don't change current bps setting. */
+         /* Set port state to open. */
+         pPortInfo->bIsOpen = TRUE;
 
-            /* Return with success. */
-            return(kODRCSuccess);
+         /* Return with success. */
+         return(kODRCSuccess);
       }
 
       /* Add desired word format parameters to data to be passed to fossil. */
@@ -2975,7 +2966,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
    return(0);
 }
 
-const static DWORD cp437_unicode_table[128] = {
+const static WORD cp437_unicode_table[128] = {
 	0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7,
 	0x00EA, 0x00EB, 0x00E8, 0x00EF, 0x00EE, 0x00EC, 0x00C4, 0x00C5,
 	0x00C9, 0x00E6, 0x00C6, 0x00F4, 0x00F6, 0x00F2, 0x00FB, 0x00F9,
@@ -3007,13 +2998,11 @@ BOOL ODComCP437ToUnicodeLen(const BYTE *buf, int sz, size_t *length)
       if(buf[pos] < 128)
          increment = 1;
       else {
-         DWORD val = cp437_unicode_table[buf[pos] - 128];
-         if (val < 0x800)
+         WORD val = cp437_unicode_table[buf[pos] - 128];
+         if (val < 0x0800U)
             increment = 2;
-         else if (val < 0x10000)
-            increment = 3;
          else
-            increment = 4;
+            increment = 3;
       }
       if(!ODSizeAdd(ret, increment, &ret))
          return(FALSE);
@@ -3028,7 +3017,7 @@ BYTE *ODComCP437ToUnicode(BYTE *buf, int *sz)
    BYTE *ret;
    size_t outpos = 0;
    size_t pos;
-   DWORD ch;
+   WORD ch;
 
    if(buf == NULL || sz == NULL || *sz < 0
       || !ODComCP437ToUnicodeLen(buf, *sz, &need) || need > INT_MAX) {
@@ -3045,21 +3034,15 @@ BYTE *ODComCP437ToUnicode(BYTE *buf, int *sz)
       ch = buf[pos];
       if (ch >= 128)
          ch = cp437_unicode_table[ch - 128];
-      if (ch < 128)
+      if (ch < 128U)
          ret[outpos++] = buf[pos];
-      else if (ch < 0x800) {
-         ret[outpos++] = (ch >> 6 & 0x1f) | 0xc0;
-         ret[outpos++] = (ch & 0x3f) | 0x80;
-      }
-      else if (ch < 0x10000) {
-         ret[outpos++] = (ch >> 12 & 0x0f) | 0xe0;
-         ret[outpos++] = (ch >> 6 & 0x3f) | 0x80;
+      else if (ch < 0x0800U) {
+         ret[outpos++] = ((ch >> 6) & 0x1f) | 0xc0;
          ret[outpos++] = (ch & 0x3f) | 0x80;
       }
       else {
-         ret[outpos++] = (ch >> 18 & 0x07) | 0xf0;
-         ret[outpos++] = (ch >> 12 & 0x3f) | 0x80;
-         ret[outpos++] = (ch >> 6 & 0x3f) | 0x80;
+         ret[outpos++] = ((ch >> 12) & 0x0f) | 0xe0;
+         ret[outpos++] = ((ch >> 6) & 0x3f) | 0x80;
          ret[outpos++] = (ch & 0x3f) | 0x80;
       }
    }

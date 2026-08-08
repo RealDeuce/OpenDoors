@@ -4,8 +4,23 @@
  */
 #ifndef OPENDOORS_HAVE_VSNPRINTF
 
+#ifndef NDEBUG
+#define NDEBUG
+#endif
+
 #define TRIO_SNPRINTF_ONLY
 #define TRIO_MINIMAL
+#ifdef __TURBOC__
+#define TRIO_C99 0
+#define TRIO_BSD 0
+#define TRIO_GNU 0
+#define TRIO_MISC 0
+#define TRIO_UNIX98 0
+#define TRIO_MICROSOFT 0
+#define TRIO_EXTENSION 0
+#define TRIO_DEPRECATED 0
+#define TRIO_IEEE_754
+#endif
 #ifdef __TURBOC__
 #include "trio/trio.c"
 #else

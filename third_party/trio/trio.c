@@ -902,7 +902,9 @@ typedef struct _trio_userdef_t {
  *
  *************************************************************************/
 
+#if !defined(TRIO_MINIMAL)
 static TRIO_CONST char rcsid[] = "@(#)$Id$";
+#endif
 
 #if TRIO_FEATURE_FLOAT
 /*

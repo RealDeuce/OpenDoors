@@ -58,7 +58,7 @@
 #include <string.h>
 
 #include "OpenDoor.h"
-#if defined(ODPLAT_DOS) && defined(__WATCOMC__)
+#if defined(ODPLAT_DOS) && (defined(__WATCOMC__) || defined(__TURBOC__))
 #include <dos.h>
 #endif
 #ifdef ODPLAT_NIX
@@ -1348,6 +1348,20 @@ void ODDirClose(tODDirHandle hDir)
  */
 static time_t DOSToCTime(WORD wDate, WORD wTime)
 {
+#ifdef __TURBOC__
+   struct date DateStruct;
+   struct time TimeStruct;
+
+   DateStruct.da_day = wDate & 0x001f;
+   DateStruct.da_mon = (wDate & 0x01e0) >> 5;
+   DateStruct.da_year = 1980 + ((wDate & 0xfe00) >> 9);
+   TimeStruct.ti_hour = (wTime & 0xf800) >> 11;
+   TimeStruct.ti_min = (wTime & 0x07e0) >> 5;
+   TimeStruct.ti_sec = (wTime & 0x001f) * 2;
+   TimeStruct.ti_hund = 0;
+
+   return((time_t)dostounix(&DateStruct, &TimeStruct));
+#else
    struct tm TimeStruct;
 
    TimeStruct.tm_sec = (wTime & 0x001f) * 2;
@@ -1358,6 +1372,7 @@ static time_t DOSToCTime(WORD wDate, WORD wTime)
    TimeStruct.tm_year = 80 + ((wDate & 0xfe00) >> 9);
 
    return(mktime(&TimeStruct));
+#endif
 }
 #endif
 

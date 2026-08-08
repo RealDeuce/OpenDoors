@@ -2770,11 +2770,10 @@ static BOOL ODSessionScreenRectValid(INT nLeft, INT nTop, INT nRight,
 
 static BYTE ODFAR *ODSessionScreenCell(INT nColumn, INT nRow)
 {
-   unsigned long ulCell;
+   size_t nCell;
 
-   ulCell = ((unsigned long)nRow * (unsigned long)SessionScreen.nWidth)
-      + (unsigned long)nColumn;
-   return(SessionScreen.pCells + ulCell * 2UL);
+   nCell = ((size_t)nRow * (size_t)SessionScreen.nWidth) + (size_t)nColumn;
+   return(SessionScreen.pCells + nCell * 2U);
 }
 
 static void ODSessionScreenMarkDirty(INT nLeft, INT nTop, INT nRight,
@@ -3299,7 +3298,7 @@ BOOL ODSessionScreenIsEmulating(void)
    return(bSessionScreenEmulating);
 }
 
-#define OD_SESSION_SNAPSHOT_HEADER_SIZE 48UL
+#define OD_SESSION_SNAPSHOT_HEADER_SIZE 48U
 
 static void ODSessionSnapshotPutDWORD(BYTE *pDest, DWORD dwValue)
 {
