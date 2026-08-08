@@ -545,10 +545,20 @@ jobs:
               -c 'od32foss.exe nofossil' \
               -c 'fosstsr.com' \
               -c 'od32foss.exe' \
+              -c 'exit'
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32" \
+              -c 'c:' \
               -c 'od32test.exe' \
               -c 'ren D32PASS.OK D32RPASS.OK' \
               -c 'od32tsts.exe' \
               -c 'ren D32PASS.OK D32SPASS.OK' \
+              -c 'exit'
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32" \
+              -c 'c:' \
               -c 'od32pers.exe' \
               -c 'ren PERSPASS.OK PERSRPAS.OK' \
               -c 'od32pss.exe' \
@@ -593,13 +603,28 @@ jobs:
               -c 'sb /r /s ex_diag.exe' \
               -c 'sb /r /s ex_hello.exe' \
               -c 'sb /r /s ex_music.exe' \
+              -c 'exit'
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32a" \
+              -c 'c:' \
               -c 'od32foss.exe nofossil' \
               -c 'fosstsr.com' \
               -c 'od32foss.exe' \
+              -c 'exit'
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32a" \
+              -c 'c:' \
               -c 'od32test.exe' \
               -c 'ren D32PASS.OK D32RPASS.OK' \
               -c 'od32tsts.exe' \
               -c 'ren D32PASS.OK D32SPASS.OK' \
+              -c 'exit'
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32a" \
+              -c 'c:' \
               -c 'od32pers.exe' \
               -c 'ren PERSPASS.OK PERSRPAS.OK' \
               -c 'od32pss.exe' \

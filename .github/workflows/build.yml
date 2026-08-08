@@ -598,16 +598,28 @@ jobs:
               -c 'od32foss.exe nofossil' \
               -c 'fosstsr.com' \
               -c 'od32foss.exe' \
+              -c 'exit' \
+            2>&1 | tee build/dos32/dos4gw-fossil.log
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32" \
+              -c 'c:' \
               -c 'od32test.exe' \
               -c 'ren D32PASS.OK D32RPASS.OK' \
               -c 'od32tsts.exe' \
               -c 'ren D32PASS.OK D32SPASS.OK' \
+              -c 'exit' \
+            2>&1 | tee build/dos32/dos4gw-runtime.log
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32" \
+              -c 'c:' \
               -c 'od32pers.exe' \
               -c 'ren PERSPASS.OK PERSRPAS.OK' \
               -c 'od32pss.exe' \
               -c 'ren PERSPASS.OK PERSSPAS.OK' \
               -c 'exit' \
-            2>&1 | tee build/dos32/dos4gw.log
+            2>&1 | tee build/dos32/dos4gw-personality.log
           test -s build/dos32/NOFSPASS.OK
           test -s build/dos32/FOSSPASS.OK
           test -s build/dos32/D32RPASS.OK
@@ -651,19 +663,37 @@ jobs:
               -c 'sb /r /s ex_diag.exe' \
               -c 'sb /r /s ex_hello.exe' \
               -c 'sb /r /s ex_music.exe' \
+              -c 'exit' \
+            2>&1 | tee build/dos32a/dos32a-bind.log
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32a" \
+              -c 'c:' \
               -c 'od32foss.exe nofossil' \
               -c 'fosstsr.com' \
               -c 'od32foss.exe' \
+              -c 'exit' \
+            2>&1 | tee build/dos32a/dos32a-fossil.log
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32a" \
+              -c 'c:' \
               -c 'od32test.exe' \
               -c 'ren D32PASS.OK D32RPASS.OK' \
               -c 'od32tsts.exe' \
               -c 'ren D32PASS.OK D32SPASS.OK' \
+              -c 'exit' \
+            2>&1 | tee build/dos32a/dos32a-runtime.log
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32a" \
+              -c 'c:' \
               -c 'od32pers.exe' \
               -c 'ren PERSPASS.OK PERSRPAS.OK' \
               -c 'od32pss.exe' \
               -c 'ren PERSPASS.OK PERSSPAS.OK' \
               -c 'exit' \
-            2>&1 | tee build/dos32a/dos32a.log
+            2>&1 | tee build/dos32a/dos32a-personality.log
           test -s build/dos32a/NOFSPASS.OK
           test -s build/dos32a/FOSSPASS.OK
           test -s build/dos32a/D32RPASS.OK
