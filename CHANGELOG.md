@@ -4,7 +4,7 @@ OpenDoors release versions use dotted `major.minor.patch` notation. See the
 [versioning guide](docs/guides/versioning.md) for its relationship to the
 traditional OpenDoors notation.
 
-## 6.3.0 - Unreleased
+## 6.3.0 - 2026-08-08
 
 Traditional OpenDoors version: 6.30.
 

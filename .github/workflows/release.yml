@@ -535,9 +535,9 @@ jobs:
             prerelease=true
           fi
 
-          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" \
-              > /tmp/opendoors-release.json 2>/dev/null; then
-            if [[ $(jq -r .draft /tmp/opendoors-release.json) != true ]]; then
+          if gh release view "$tag" --json isDraft --jq .isDraft \
+              > /tmp/opendoors-release-draft.txt 2>/dev/null; then
+            if [[ $(cat /tmp/opendoors-release-draft.txt) != true ]]; then
               echo "Refusing to replace assets on a published release."
               exit 1
             fi
