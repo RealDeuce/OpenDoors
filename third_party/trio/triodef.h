@@ -66,6 +66,10 @@
 # define TRIO_COMPILER_BCB
 #endif
 
+#if defined(__TURBOC__)
+# define TRIO_COMPILER_TURBO
+#endif
+
 /*************************************************************************
  * Platform support detection
  */
@@ -160,7 +164,8 @@
 
 #if defined(__STDC__) \
  || defined(_MSC_EXTENSIONS) \
- || defined(TRIO_COMPILER_BCB)
+ || defined(TRIO_COMPILER_BCB) \
+ || defined(TRIO_COMPILER_TURBO)
 # define PREDEF_STANDARD_C89
 #endif
 #if defined(__STDC_VERSION__)
@@ -342,7 +347,8 @@ typedef void * trio_pointer_t;
 /*
  * Not all preprocessors supports the LL token.
  */
-#if defined(TRIO_COMPILER_MSVC) || defined(TRIO_COMPILER_BCB)
+#if defined(TRIO_COMPILER_MSVC) || defined(TRIO_COMPILER_BCB) \
+ || defined(TRIO_COMPILER_TURBO)
 #else
 # define TRIO_COMPILER_SUPPORTS_LL
 #endif

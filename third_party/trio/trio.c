@@ -134,6 +134,11 @@
 # endif
 #endif
 
+/* C89 libraries are not required to provide MB_LEN_MAX. */
+#if !defined(MB_LEN_MAX)
+# define MB_LEN_MAX 1
+#endif
+
 #if (defined(TRIO_COMPILER_VISUALC) && (TRIO_COMPILER_VISUALC >= 1100)) || defined(TRIO_COMPILER_BORLAND)
 # define TRIO_COMPILER_SUPPORTS_VISUALC_INT
 #endif
