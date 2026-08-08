@@ -80,7 +80,6 @@
 #define BUILDING_OPENDOORS
 
 #include <ctype.h>
-#include <locale.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,6 +88,7 @@
 
 #include "OpenDoor.h"
 #ifdef ODPLAT_NIX
+#include <locale.h>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -98,7 +98,7 @@
 #include "ODCore.h"
 #include "ODGen.h"
 #include "ODScrn.h"
-#include "ODVScreen.h"
+#include "ODVScrn.h"
 #include "ODInQue.h"
 #include "ODKrnl.h"
 #include "ODInEx.h"
@@ -336,10 +336,13 @@ static char *
 safe_strcat(char *dst, const char *src, size_t sz)
 {
 	size_t olen = strlen(dst);
+	size_t remain;
+	size_t len;
+
 	if (olen >= sz)
 		return dst;
-	size_t remain = sz - olen;
-	size_t len = strlen(src);
+	remain = sz - olen;
+	len = strlen(src);
 	if (len >= remain)
 		len = remain - 1;
 	memcpy(&dst[olen], src, len);
@@ -545,8 +548,10 @@ malloc_error:
 force_local:
       /* No door information file is being used. */
       od_control.od_info_type = NO_DOOR_FILE;
-      if (strstr(setlocale(LC_ALL, ""), "UTF-8"))
-	od_control.od_cp437_to_utf8_out = TRUE;
+#ifdef ODPLAT_NIX
+      if(strstr(setlocale(LC_ALL, ""), "UTF-8"))
+         od_control.od_cp437_to_utf8_out = TRUE;
+#endif
 
       /* Operate in local mode. */
 #ifdef ODPLAT_NIX

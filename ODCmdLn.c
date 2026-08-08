@@ -132,7 +132,8 @@ ODAPIDEF char ** ODCALL od_split_cmd_line(const char* pszCmdLine, INT *nArgCount
 {
    char *pszCmdLineCopy;
    char *pchCurrent;
-   char **papszArguments = calloc(4097, sizeof(char*)); // We'll shrink this before we return...
+   /* Shrink this initial allocation before returning it. */
+   char **papszArguments = calloc(4097, sizeof(char*));
    char **papszArgumentsRe;
 #ifdef ODPLAT_WIN32
    LPSTR pszFullCmdLine = GetCommandLine();
@@ -155,7 +156,7 @@ ODAPIDEF char ** ODCALL od_split_cmd_line(const char* pszCmdLine, INT *nArgCount
       return NULL;
    }
 
-   // Try to get papszArguments[0]...
+   /* Try to obtain papszArguments[0]. */
 #ifdef ODPLAT_WIN32
    if (pszFullCmdLine == NULL) {
       papszArguments[(*nArgCount)++] = strdup("");
@@ -549,7 +550,7 @@ ODAPIDEF void ODCALL od_parse_cmd_line(INT nArgCount, char *papszArguments[])
             break;
          case kParamPersonality:
          case kParamOption:
-            // Ignore by OpenDoors
+            /* Ignored by OpenDoors. */
             break;
          case kParamCP436UTF8:
             od_control.od_cp437_to_utf8_out = TRUE;

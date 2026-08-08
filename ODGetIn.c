@@ -164,7 +164,7 @@ tODKeySequence aKeySequences[] =
 
 /* Current control sequence received state. */
 static char szCurrentSequence[SEQUENCE_BUFFER_SIZE] = "";
-#if 0	// Unused...
+#if 0 /* Unused. */
 static tODTimer SequenceFailTimer;
 static BOOL bSequenceFromRemote;
 static int nMatchedSequence = NO_MATCH;
@@ -522,4 +522,3 @@ static void ODShiftSeq(int chars)
    }
    *out=*in;
 }
-

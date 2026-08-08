@@ -142,7 +142,7 @@ HEADERS= $(HEADERDIR)ODCom.h\
          $(HEADERDIR)ODSwap.h\
          $(HEADERDIR)ODTypes.h\
          $(HEADERDIR)ODUtil.h\
-         $(HEADERDIR)ODVScreen.h\
+         $(HEADERDIR)ODVScrn.h\
          $(HEADERDIR)OpenDoor.h
 #
 #------------------------------------------------------------------------------

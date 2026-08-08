@@ -47,7 +47,7 @@
 #include "ODCore.h"
 #include "ODGen.h"
 #include "ODScrn.h"
-#include "ODVScreen.h"
+#include "ODVScrn.h"
 #include "ODKrnl.h"
 
 

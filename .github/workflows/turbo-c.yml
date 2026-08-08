@@ -109,11 +109,16 @@ jobs:
 
       - name: Stage DOSBox build tree
         run: |
-          mkdir -p build/turboc/SRC build/turboc/TC
+          mkdir -p build/turboc/SRC/TRIO build/turboc/TC
           cp -R "$HOME/.cache/opendoors/turbo-c-2.01"/* \
             build/turboc/TC/
           for source in ./*.c ./*.h; do
             destination="build/turboc/SRC/$(basename "$source")"
+            awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
+              "$source" > "$destination"
+          done
+          for source in third_party/trio/*.c third_party/trio/*.h; do
+            destination="build/turboc/SRC/TRIO/$(basename "$source")"
             awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
               "$source" > "$destination"
           done

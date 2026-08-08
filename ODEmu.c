@@ -62,7 +62,7 @@
 #include "ODCom.h"
 #include "ODTypes.h"
 #include "ODScrn.h"
-#include "ODVScreen.h"
+#include "ODVScrn.h"
 #include "ODKrnl.h"
 #include "ODUtil.h"
 

@@ -371,7 +371,7 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
 
          /* Call od_kernel(). */
          if (Timeout == OD_NO_TIMEOUT)
-            ODMaxMSToWait = 250; // Kernel timer period
+            ODMaxMSToWait = 250; /* Kernel timer period. */
          else if (Timeout == 0)
             ODMaxMSToWait = 1;
          else {

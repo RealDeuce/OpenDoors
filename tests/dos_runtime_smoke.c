@@ -10,7 +10,7 @@
 #include "ODInQue.h"
 #include "ODSafe.h"
 #include "ODSwap.h"
-#include "ODVScreen.h"
+#include "ODVScrn.h"
 
 static int Fail(int line)
 {

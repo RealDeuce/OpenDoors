@@ -47,7 +47,7 @@
 #include "ODScrn.h"
 #include "ODKrnl.h"
 #include "ODSafe.h"
-#include "ODVScreen.h"
+#include "ODVScrn.h"
 
 
 /* Set to TRUE when od_puttext() should leave the cursor in its original */

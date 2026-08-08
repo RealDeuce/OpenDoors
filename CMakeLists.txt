@@ -80,7 +80,7 @@ set(OPENDOORS_PRIVATE_HEADERS
     ODSwap.h
     ODTypes.h
     ODUtil.h
-    ODVScreen.h
+    ODVScrn.h
 )
 
 if(NOT OPENDOORS_BUILD_SHARED AND NOT OPENDOORS_BUILD_STATIC)

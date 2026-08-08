@@ -6,7 +6,7 @@
 #include "ODCore.h"
 #include "ODKrnl.h"
 #include "ODScrn.h"
-#include "ODVScreen.h"
+#include "ODVScrn.h"
 
 #define CHECK(condition) do { \
    if(!(condition)) { \

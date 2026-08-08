@@ -1,7 +1,7 @@
 /* Private virtual session-screen support.  This is not part of the
  * OpenDoors public interface. */
-#ifndef _INC_ODVSCREEN
-#define _INC_ODVSCREEN
+#ifndef _INC_ODVSCRN
+#define _INC_ODVSCRN
 
 #include "OpenDoor.h"
 
@@ -50,4 +50,4 @@ DWORD ODSessionScreenSnapshotSize(void);
 BOOL ODSessionScreenSave(void *pBuffer, DWORD dwBufferSize);
 BOOL ODSessionScreenRestore(const void *pBuffer, DWORD dwBufferSize);
 
-#endif /* _INC_ODVSCREEN */
+#endif /* _INC_ODVSCRN */

@@ -78,7 +78,7 @@
 #include "ODInEx.h"
 #include "ODFormat.h"
 #include "ODSafe.h"
-#include "ODVScreen.h"
+#include "ODVScrn.h"
 #ifdef ODPLAT_WIN32
 #include "ODKrnl.h"
 #include "ODRes.h"

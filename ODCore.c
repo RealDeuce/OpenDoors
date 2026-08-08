@@ -86,7 +86,7 @@
 #include "ODCom.h"
 #include "ODKrnl.h"
 #include "ODScrn.h"
-#include "ODVScreen.h"
+#include "ODVScrn.h"
 #include "ODCore.h"
 #include "ODInQue.h"
 #ifdef ODPLAT_WIN32
