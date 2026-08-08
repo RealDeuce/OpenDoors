@@ -68,11 +68,17 @@ static void TestPersonality(BYTE btOperation)
       case PEROP_UPDATE1:
          ++nUpdateCount;
          ODScrnSetAttribute(0x1e);
+         Progress(__LINE__, btOperation);
          ODScrnSetCursorPos(1, 24);
+         Progress(__LINE__, btOperation);
          ODScrnDisplayBuffer(szStatusText, 3);
+         Progress(__LINE__, btOperation);
          ODScrnDisplayChar(' ');
+         Progress(__LINE__, btOperation);
          ODScrnDisplayString("personality");
+         Progress(__LINE__, btOperation);
          ODScrnPrintf(" %u", od_control.user_security);
+         Progress(__LINE__, btOperation);
          break;
 
       case PEROP_DEINITIALIZE:
