@@ -76,3 +76,35 @@ with [`od_set_personality()`](../reference/api/od_set_personality.md).
 The output bounds passed to [`od_add_personality()`](../reference/api/od_add_personality.md)
 describe the portion reserved for normal door output. For example, lines 1
 through 23 leave lines 24 and 25 for the personality.
+
+## Detailed reference
+
+The personality SDK is supported by the DOS platform. Current public declarations are in `ODStat.h`; the operational description below is the complete original reference.
+
+The OpenDoors Multiple Personality System allows  the DOS version of OpenDoors to support multiple sysop function key / status line "personalities". Most commonly, you will use this feature in conjunction with the "Personality" setting in the OpenDoors configuration file, to allow the sysop to choose one of the built-in personalities that most closely mimics the BBS software they are using. OpenDoors includes the following personalities:
+
+### Configuration Keyword         Manifest Constant
+
+Standard                      PER_OPENDOORS PCBoard                       PER_PCBOARD RemoteAccess                  PER_RA Wildcat                       PER_WILDCAT
+
+The PCBoard, RemoteAccess and Wildcat personalities mimic the status lines and function keys used by the BBS packages with those names. The Standard personality, which is the personality used by default, is a trimmed down version of the status lines provided by OpenDoors 4.10 and earlier.
+
+In addition to using the personalities supplied with OpenDoors, you can create your own personalities. This simply involves writing a function which OpenDoors will call to setup the sysop function keys and to display the status line.
+
+Include the following line before your first call to any OpenDoors function:
+
+```c
+od_control.od_mps = INCLUDE_MPS;
+```
+
+to include the multiple personality system in your program. This also enables the Personality setting in the configuration file, if you are using the configuration file system.
+
+You can set the default personality to be used by OpenDoors by setting od_control.od_default_personality to one of the manifest constants listed in the table above. If you have included the multiple personality system in your program, this setting will determine the personality to use if the "Personality" option is not set in the configuration file, and your program does not later change the personality using the [`od_set_personality()`](../reference/api/od_set_personality.md) function. If you do not include the multiple personality system in your program, this setting will determine the personality that will always be used.
+
+Creating your own personality involves writing a single function.. Whenever OpenDoors needs to perform an operation that involves the personality, it will call this function, passing one of the following message values:
+
+PEROP_INITIALIZE    Initialize the personality, installing any custom function keys. PEROP_DEINITIALIZE  Deinitialize the personality, returning any changed settings to their original values. PEROP_CUSTOMKEY     Indicates that a custom function key has been pressed. PEROP_DISPLAYx      Where x is a number from 1 to 10. Indicates that the specified status line should be drawn from scratch. PEROP_UPDATEx       Where x is a number from 1 to 10. Indicates that the specified status line should be updated to reflect any changes.
+
+If you have enabled the multiple personality system by setting [`od_control.od_mps`](../reference/control/customization.md#od_mps) to INCLUDE_MPS, you can install your personality function into OpenDoors by calling [`od_add_personality()`](../reference/api/od_add_personality.md). When you call [`od_add_personality()`](../reference/api/od_add_personality.md), you supply a string containing the name of the personality, along with the top and bottom output line numbers to use. These line numbers specify the portion of the screen to use for door output, leaving the remainder of the screen available for displaying the personality's status line. Once the personality has been installed into OpenDoors, it can be selected by the sysop using the "Personality" configuration file option, or manually activated using the [`od_set_personality()`](../reference/api/od_set_personality.md) function. For more information on the [`od_add_personality()`](../reference/api/od_add_personality.md) function, see page 47.
+
+You can make your personality function the default personality by setting od_control.od_default_personality to point to your personality function. As is the case with the built-in personalities, this setting will be used as the default personality if you have enabled the multiple personality system by setting [`od_control.od_mps`](../reference/control/customization.md#od_mps) to INCLUDE_MPS. If you have not enabled the multiple personality system in this manner, your personality function will become the one and only personality used within your program. When creating your own personality, you can use the [`od_control.od_page_statusline`](../reference/control/customization.md#od_page_statusline) variable to set which status line (if any) will be activated when the user pages the system operator.

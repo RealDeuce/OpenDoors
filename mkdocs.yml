@@ -35,14 +35,20 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Introduction: introduction.md
   - Getting started: getting-started.md
   - Guides:
+      - Programming tutorial: guides/programming-tutorial.md
       - Building and linking: guides/building.md
       - Session lifecycle: guides/session-lifecycle.md
       - Terminal and screen model: guides/terminal-screen.md
+      - Windows programming: guides/windows.md
       - DOS personalities: guides/personalities.md
       - Configuration and command lines: guides/configuration.md
+      - Custom door-information formats: guides/door-information-formats.md
+      - Log-file system: guides/logging.md
       - Multi-node operation: guides/multinode.md
+      - Troubleshooting: guides/troubleshooting.md
       - Versioning and compatibility: guides/versioning.md
   - API reference:
       - Overview: reference/api/index.md
@@ -51,6 +57,7 @@ nav:
           - od_disp_str: reference/api/od_disp_str.md
           - od_disp: reference/api/od_disp.md
           - od_disp_emu: reference/api/od_disp_emu.md
+          - od_emulate: reference/api/od_emulate.md
           - od_repeat: reference/api/od_repeat.md
           - od_putch: reference/api/od_putch.md
       - Color and cursor control:
@@ -93,6 +100,7 @@ nav:
           - od_page: reference/api/od_page.md
           - od_spawn: reference/api/od_spawn.md
           - od_spawnvpe: reference/api/od_spawnvpe.md
+          - od_log_open: reference/api/od_log_open.md
           - od_log_write: reference/api/od_log_write.md
           - od_parse_cmd_line: reference/api/od_parse_cmd_line.md
           - od_split_cmd_line: reference/api/od_split_cmd_line.md
@@ -129,6 +137,7 @@ nav:
           - Runtime state and policy: reference/control/runtime.md
           - Customization and callbacks: reference/control/customization.md
       - Compatibility interfaces: reference/compatibility.md
+      - Glossary: reference/glossary.md
   - DOS personality SDK:
       - Overview: reference/personality/index.md
       - Helpers:

@@ -1,6 +1,6 @@
 # `od_clear_keybuffer()`
 
-Discards all currently queued local and remote key events.
+Discards pending local and remote input
 
 ## Synopsis
 
@@ -8,10 +8,48 @@ Discards all currently queued local and remote key events.
 void od_clear_keybuffer(void);
 ```
 
-The serial or socket inbound queue is also cleared when a remote connection is
-active. Keys which arrive after the operation remain available. The function
-returns no value.
+## Return value
+
+N/A
+
+## Description
+
+OpenDoors maintains a common type-ahead queue for caller input and ordinary
+keys entered at the local console. This permits a caller to begin entering a
+command before a menu or other output has finished. The queue can hold the
+number of events configured by
+[`od_control.od_in_buf_size`](../control/customization.md#od_in_buf_size); when
+that field is zero, OpenDoors uses its default queue size.
+
+`od_clear_keybuffer()` first gives the OpenDoors kernel an opportunity to move
+newly received input into the common queue. It then empties that queue. In a
+remote session it also asks the active communications method to discard bytes
+which remain in its inbound buffer. Some non-serial methods do not provide a
+separate clear operation; the public function does not report that
+method-specific result.
+
+Only input which arrived before the buffers were cleared is discarded. Keys
+which arrive afterward remain available to [`od_get_key()`](od_get_key.md),
+[`od_get_input()`](od_get_input.md), and the higher-level input functions.
+
+Clearing type-ahead is useful after an operation during which input could not
+be meaningful. It should not be done automatically before every prompt,
+because intentional type-ahead is an important convenience for experienced
+callers.
+
+## Example
+
+```c
+void wait_for_return(void)
+{
+   od_disp_str("Please press [Enter] to continue...\n\r");
+   od_clear_keybuffer();
+   while(od_get_key(TRUE) != '\r')
+      ;
+}
+```
 
 ## See also
 
-[`od_key_pending()`](od_key_pending.md), [`od_get_key()`](od_get_key.md)
+[`od_key_pending()`](od_key_pending.md), [`od_get_key()`](od_get_key.md),
+[`od_get_input()`](od_get_input.md)

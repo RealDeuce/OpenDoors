@@ -16,20 +16,13 @@ If you are writing your first OpenDoors program, begin with [Getting
 started](getting-started.md). If you already know which operation you need,
 proceed directly to the [API reference](reference/api/index.md).
 
-!!! note "The original manual"
-
-    The OpenDoors 6.00 manual remains available in the repository under
-    `historic/OPENDOOR.TXT`. It is a CP437 text file laid out as printed pages
-    with form-feed separators. It is retained as an historical artifact, not
-    as the description of current behavior.
-
 ## What is covered
 
 - All high-level [`od_*`](reference/api/index.md) API functions declared by
   [`OpenDoor.h`](reference/api/index.md).
-- The [`od_control`](reference/control/index.md) structure and the settings
-  most often used by a door.
-- Public data types, flags, error values, and compatibility definitions.
+- Every field of the [`od_control`](reference/control/index.md) structure.
+- Every public data type, callback, constant, macro, error value, and
+  compatibility definition.
 - Current native, Windows, and 16-bit or 32-bit DOS build procedures.
 - The relationship between the remote terminal and the local OpenDoors
   display.

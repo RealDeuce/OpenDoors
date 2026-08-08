@@ -208,6 +208,7 @@ ODAPIDEF char ODCALL od_hotkey_menu(char *pszFileName, char *pszHotKeys,
    /* Display the menu file using od_send_file() primitive. */
    if(!od_send_file(pszFileName))
    {
+      pszCurrentHotkeys = NULL;
       OD_API_EXIT();
       return('\0');
    }

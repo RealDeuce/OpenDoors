@@ -361,6 +361,14 @@ if(BUILD_TESTING)
         set_target_properties(opendoors_virtual_screen_test PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
         add_test(NAME virtual_screen COMMAND opendoors_virtual_screen_test)
+
+        add_executable(opendoors_multiline_format_test
+            tests/multiline_format_test.c)
+        target_link_libraries(opendoors_multiline_format_test
+            PRIVATE OpenDoors::Static)
+        set_target_properties(opendoors_multiline_format_test PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+        add_test(NAME multiline_format COMMAND opendoors_multiline_format_test)
     endif()
 
     if(NOT WIN32)

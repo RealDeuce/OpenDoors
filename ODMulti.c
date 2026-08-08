@@ -157,7 +157,6 @@ ODAPIDEF BOOL ODCALL od_set_personality(const char *pszName)
             od_control.od_page_statusline = -1;
             pNewPersonalityInfo = 
                &aPersonalityInfo[nCurrentPersonality=btNewPersonality];
-            bRAStatus = TRUE;
             (*(OD_PERSONALITY_CALLBACK *)pNewPersonalityInfo
                ->pfPersonalityFunction)(20);
             ODScrnSetBoundary(1, (BYTE)pNewPersonalityInfo->nStatusTopLine, 80,

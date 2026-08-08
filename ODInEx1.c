@@ -1815,6 +1815,7 @@ static void ODInitReadExitInfo(void)
                ODStringPascalToC(od_control.user_emsi_software,pRA2ExitInfoRecord->emsi_software,40);
                memcpy(&od_control.user_hold_attr1,&pRA2ExitInfoRecord->hold_attr1,3);
                ODStringPascalToC(od_control.user_reasonforchat,pRA2ExitInfoRecord->page_reason,77);
+               bRAStatus = TRUE;
                btRAStatusToSet = pRA2ExitInfoRecord->status_line-1;
                ODStringPascalToC(od_control.user_last_cost_menu,pRA2ExitInfoRecord->last_cost_menu,8);
                od_control.user_menu_cost=pRA2ExitInfoRecord->menu_cost_per_min;
@@ -2391,7 +2392,6 @@ no_default:
       {
          pfCurrentPersonality = od_control.od_default_personality;
       }
-      bRAStatus = (pfCurrentPersonality == pdef_ra);
       (*pfCurrentPersonality)(20);
       if(bRAStatus)
       {

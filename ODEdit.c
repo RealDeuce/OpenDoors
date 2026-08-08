@@ -2233,7 +2233,6 @@ static BOOL ODEditBufferFormatAndIndex(tEditInstance *pEditInstance)
             }
          }
 
-         continue;
       }
 
       /* Add the address of the start of this line to the line array. */

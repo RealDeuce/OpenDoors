@@ -1,6 +1,6 @@
 # `od_gettext()`
 
-Copies a rectangular area of the remote screen into a caller-supplied buffer.
+Stores a rectangular region of text and color information
 
 ## Synopsis
 
@@ -9,16 +9,85 @@ BOOL od_gettext(INT nLeft, INT nTop, INT nRight, INT nBottom,
     void *pBlock);
 ```
 
-Coordinates are one-based and inclusive. `pBlock` must hold two bytes per cell:
-character followed by IBM-PC attribute, in row-major order.
+## Return value
 
-The rectangle is checked against the current virtual remote screen, which may be
-larger than the local display. Invalid coordinates or a null buffer produce
-[`ERR_PARAMETER`](../constants/errors.md); a terminal without ANSI or AVATAR graphics
-produces [`ERR_NOGRAPHICS`](../constants/errors.md). The function returns true on
-success.
+Returns [`TRUE`](../types.md#true-and-false) when the complete rectangle has
+been stored, or [`FALSE`](../types.md#true-and-false) on failure.
+
+## Description
+
+`od_gettext()` copies the characters and color attributes in a rectangular
+portion of the current OpenDoors screen into the buffer addressed by
+`pBlock`. The saved rectangle may subsequently be displayed by
+[`od_puttext()`](od_puttext.md).
+
+The coordinates are one-based and inclusive. `nLeft` and `nRight` identify
+the first and last columns; `nTop` and `nBottom` identify the first and last
+rows. The required buffer size, in bytes, is:
+
+```text
+(nRight - nLeft + 1) * (nBottom - nTop + 1) * 2
+```
+
+The application is responsible for providing a buffer of at least that size.
+OpenDoors cannot determine the size of the object addressed by `pBlock` and
+does not add a terminator.
+
+Each screen cell occupies two consecutive bytes. The first byte is the
+character code and the second is the IBM-PC color attribute described for
+[`od_set_attrib()`](od_set_attrib.md). Cells are stored from left to right,
+beginning with the top row and continuing row by row through the bottom row.
+The buffer is therefore in precisely the format accepted by
+[`od_puttext()`](od_puttext.md), and may also be examined or constructed by
+the application.
+
+ANSI, AVATAR, or RIP operation is required. The function does not change the
+cursor position, current display attribute, or visible contents of the
+screen.
+
+For a remote session, the rectangle is taken from OpenDoors' virtual session
+screen. Its bounds are the current virtual window and are independent of the
+size of the local console. In local mode, the rectangle is taken from the
+active local text window.
+
+The coordinates must describe an ordered rectangle entirely within the
+current window, and `pBlock` must not be `NULL`. A reversed rectangle is not
+safely rejected on every platform in the current implementation and must not
+be passed; this defect is recorded in `TODO.md`.
+
+If the entire screen is to be retained, [`od_save_screen_ex()`](od_save_screen_ex.md)
+and [`od_restore_screen_ex()`](od_restore_screen_ex.md) also preserve the
+window, cursor, and display state and work in plain-ASCII mode. The older
+[`od_save_screen()`](od_save_screen.md) and
+[`od_restore_screen()`](od_restore_screen.md) functions retain their original
+fixed-width local-screen format.
+
+## Errors
+
+On failure, [`od_control.od_error`](../control/runtime.md#od_error) is set to:
+
+- [`ERR_PARAMETER`](../constants/errors.md#err_parameter) if `pBlock` is
+  `NULL` or a coordinate is outside the current screen;
+- [`ERR_NOGRAPHICS`](../constants/errors.md#err_nographics) if neither ANSI
+  nor AVATAR operation is available.
+
+## Example
+
+The following example saves a ten-column, three-row rectangle and restores it
+at the same location:
+
+```c
+unsigned char block[10 * 3 * 2];
+
+if(od_gettext(5, 4, 14, 6, block))
+{
+   od_clr_scr();
+   od_puttext(5, 4, 14, 6, block);
+}
+```
 
 ## See also
 
-[`od_puttext()`](od_puttext.md), [`od_scroll()`](od_scroll.md), [Terminal and
-screen model](../../guides/terminal-screen.md)
+[`od_puttext()`](od_puttext.md), [`od_scroll()`](od_scroll.md),
+[`od_save_screen_ex()`](od_save_screen_ex.md),
+[`od_window_create()`](od_window_create.md)

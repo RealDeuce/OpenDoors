@@ -1,7 +1,6 @@
 # `od_free_split_cmd_line()`
 
-Releases an argument array returned by
-[`od_split_cmd_line()`](od_split_cmd_line.md).
+Releases an argument array created by [`od_split_cmd_line()`](od_split_cmd_line.md).
 
 ## Synopsis
 
@@ -9,10 +8,80 @@ Releases an argument array returned by
 void od_free_split_cmd_line(char **papszArguments);
 ```
 
-Pass the returned array unchanged and exactly once. After this call neither the
-array nor any pointer within it may be used. Passing `NULL` sets
-[`od_control.od_error`](../control/runtime.md) to
-[`ERR_PARAMETER`](../constants/errors.md). The function returns no value.
+## Parameters
+
+`papszArguments`
+: The exact pointer returned by a successful call to
+  [`od_split_cmd_line()`](od_split_cmd_line.md).
+
+## Return value
+
+This function does not return a value.
+
+## Description
+
+[`od_split_cmd_line()`](od_split_cmd_line.md) allocates both an array of
+argument pointers and the storage containing the argument strings.
+`od_free_split_cmd_line()` releases the complete result. Applications must use
+this function instead of attempting to free the individual pointers
+themselves; the strings do not all have independent allocations.
+
+Pass the returned pointer unchanged:
+
+```c
+INT argc;
+char **argv = od_split_cmd_line(command_line, &argc);
+
+if(argv != NULL)
+{
+    /* Use argv[0] through argv[argc - 1]. */
+    od_free_split_cmd_line(argv);
+}
+```
+
+The function must be called exactly once for each successful split. After it
+returns, the array, every string in the array, and every pointer previously
+obtained from those strings are invalid. The function does not clear the
+caller's pointer; assigning `NULL` after freeing is the caller's
+responsibility.
+
+Do not pass a conventional `argv` received by `main()`, a manually constructed
+array, an interior pointer such as `papszArguments + 1`, or an array already
+freed by an earlier call. Those values do not have the allocation layout that
+this function expects and result in undefined behavior.
+
+It is valid to call `od_free_split_cmd_line()` before OpenDoors has been
+initialized. It neither initializes OpenDoors nor runs the kernel.
+
+## Errors
+
+If `papszArguments` is `NULL`, no memory is released and
+[`od_control.od_error`](../control/runtime.md#od_error) is set to
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter). No other error is
+reported.
+
+## Example
+
+This example prints each word in a command line and then releases the result:
+
+```c
+INT count;
+INT index;
+char **arguments = od_split_cmd_line("-local -node 2", &count);
+
+if(arguments == NULL)
+{
+    od_printf("Unable to split command line.\n\r");
+}
+else
+{
+    for(index = 0; index < count; ++index)
+        od_printf("Argument %d: %s\n\r", index, arguments[index]);
+
+    od_free_split_cmd_line(arguments);
+    arguments = NULL;
+}
+```
 
 ## See also
 

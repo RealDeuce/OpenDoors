@@ -1,63 +1,260 @@
 # General and platform definitions
 
-These definitions describe the library version and target, common logical
-values, timeouts, and child-process modes.
+These definitions identify the OpenDoors interface, selected target, linkage,
+logical values, timeout convention, and child-process mode. Applications obtain
+them by including `OpenDoor.h`; they should not reproduce the platform
+selection logic themselves.
 
-## Version and paths
+## Version and path definitions
 
-| Name | Meaning |
-| --- | --- |
-| `OD_VERSION` | OpenDoors API version encoded as hexadecimal `0x630` for version 6.30. |
-| `DIRSEP` | Native directory separator as a character: `\\` on Windows and DOS, `/` on Unix-like systems. |
-| `DIRSEP_STR` | Native directory separator as a one-character string. |
+### `OD_VERSION`
+
+`OD_VERSION` is the hexadecimal API version encoded as one hexadecimal digit
+for the major version followed by two digits for the minor version. The current
+value is `0x630`, representing OpenDoors 6.30.
+
+Use this macro for conditional source compatibility with the installed header:
+
+```c
+#if OD_VERSION >= 0x630
+    size = od_save_screen_size();
+#endif
+```
+
+This is a compile-time interface value. It does not inspect a DLL found at run
+time and is not a substitute for the operating system's binary loader checks.
+The project follows the compatibility rules in
+[Versioning and compatibility](../../guides/versioning.md).
+
+### `DIRSEP`
+
+`DIRSEP` is the native directory separator as a character constant. It expands
+to `'\\'` on Windows and DOS and `'/'` on Unix-like systems. Use it while
+constructing a character buffer one element at a time.
+
+### `DIRSEP_STR`
+
+`DIRSEP_STR` is the same native separator as a nul-terminated string literal.
+It is useful in adjacent string literals and formatting operations:
+
+```c
+const char *name = "data" DIRSEP_STR "scores.dat";
+```
+
+Neither macro normalizes an existing path, supplies a volume name, or checks
+the resulting length. Prefer the platform or CMake path facilities when more
+than simple source portability is required.
 
 ## Platform selection
 
-Exactly one target macro is selected while compiling OpenDoors headers.
+Exactly one of the following `ODPLAT_*` macros describes the target selected by
+`OpenDoor.h`. Test these macros with `#if defined(...)`; their mere presence is
+the interface and their replacement text is not meaningful.
 
-| Name | Meaning |
-| --- | --- |
-| `ODPLAT_WIN32` | A Win32-family target. |
-| `ODPLAT_NIX` | A supported Unix-like target, including macOS. |
-| `ODPLAT_DOS` | A 16-bit DOS target. |
-| `ODPLAT_DOS32` | An Open Watcom 32-bit flat-model DOS target. |
-| `OD_WIN32_STATIC` | Define this in a Windows consumer which links the static library instead of the DLL import library. |
-| `OD_DLL` | The header selected DLL import/export declarations. Applications normally test this value rather than define it. |
+### `ODPLAT_WIN32`
 
-The remaining macros preserve calling conventions, linkage, visibility, and
-legacy far-pointer syntax in [`OpenDoor.h`](../api/index.md). Application code
-should use them when reproducing a compatible declaration and should not
-redefine them.
+`ODPLAT_WIN32` identifies both 32-bit and 64-bit native Windows builds. The
+name describes the Win32 API family, not the pointer width. Windows types and
+calling conventions are active, and the platform-specific members
+[`od_app_icon`](../control/customization.md#od_app_icon) and
+[`od_cmd_show`](../control/customization.md#od_cmd_show) are present.
 
-| Name | Purpose |
-| --- | --- |
-| `OD_NAMING_CONVENTION` | Adds C linkage to public declarations in C++ translation units. |
-| `OD_EXPORT` | Marks a definition for DLL or shared-library export where required. |
-| `OD_IMPORT` | Marks a declaration for DLL import or hidden visibility where required. |
-| `ODCALL` | Calling convention for ordinary API functions. |
-| `ODVCALL` | Calling convention for variadic API functions. |
-| `OD_GLOBAL_CONV` | Historical platform convention applied to the exported global control object where required. |
-| `ODAPIDEF` | Complete linkage and visibility prefix for API function declarations. |
-| `OD_API_VAR_DEFN` | Linkage and visibility prefix for an exported global definition. |
-| `OD_API_VAR_DECL` | Linkage and visibility prefix for an imported or exported global declaration. |
-| `ODFAR` | Expands to `far` on 16-bit DOS and to nothing on flat-memory targets. |
+### `ODPLAT_NIX`
 
-## Logical values and timeouts
+`ODPLAT_NIX` identifies supported Unix-like builds, including macOS. These
+targets use a flat memory model, POSIX-style paths, and the virtual local screen
+implementation.
 
-| Name | Meaning |
-| --- | --- |
-| `FALSE` | False value for [`BOOL`](../types.md). Defined only when the toolchain has not already supplied it. |
-| `TRUE` | True value for [`BOOL`](../types.md). Defined only when the toolchain has not already supplied it. |
-| `MAYBE` | Third state used by legacy tri-state options. |
-| `OD_NO_TIMEOUT` | A [`tODMilliSec`](../types.md) value requesting an indefinite wait. |
+### `ODPLAT_DOS`
+
+`ODPLAT_DOS` identifies the established 16-bit DOS implementation. Memory
+model and far-pointer distinctions remain meaningful. Public declarations use
+the compiler-specific conventions selected by the header.
+
+### `ODPLAT_DOS32`
+
+`ODPLAT_DOS32` identifies the Open Watcom 32-bit, flat-memory DOS target. The
+header rejects non-Watcom compilers, non-386 compilation, a non-flat memory
+model, and the unsupported `-ri` return convention. This platform is separate
+from the 16-bit DOS implementation even though both run under DOS.
+
+Do not define an `ODPLAT_*` macro manually to cross-compile a source file. Set
+up the correct compiler and target so `OpenDoor.h`, the C runtime, object files,
+and OpenDoors library all agree.
+
+## Windows library selection
+
+### `OD_WIN32_STATIC`
+
+A Windows consumer linking the static OpenDoors library must define
+`OD_WIN32_STATIC` before including `OpenDoor.h`. This prevents public objects
+and functions from being declared as DLL imports. The installed
+`OpenDoors::Static` CMake target supplies the definition automatically.
+
+Do not define it when linking the DLL import library. Mixing translation units
+compiled with different settings gives inconsistent declarations for the same
+public interface.
+
+### `OD_DLL`
+
+On Windows, `OpenDoor.h` defines `OD_DLL` unless `OD_WIN32_STATIC` was supplied.
+It tells the header to select DLL import or export annotations. Application
+code may test it when an unavoidable deployment distinction exists, but should
+normally test behavior or use the CMake target instead.
+
+### `BUILDING_OPENDOORS`
+
+`BUILDING_OPENDOORS` is defined while compiling the library itself. It changes
+public declarations from imports to exports and must not be defined by an
+application. Defining it in consumer code can produce duplicate exports or
+incorrect visibility.
+
+### `OPENDOORS_USE_DEF_EXPORTS`
+
+The Windows library build may define `OPENDOORS_USE_DEF_EXPORTS` when a module
+definition file, rather than `__declspec(dllexport)`, supplies exported names.
+It is a build-system implementation switch exposed because it affects the
+header declarations. Applications neither define nor depend on it.
+
+## Linkage and calling-convention macros
+
+These macros are part of public declarations and are documented so callbacks,
+foreign-function bindings, and established sources can reproduce the required
+type. Ordinary C and C++ callers should use the declarations already present
+in `OpenDoor.h`.
+
+### `OD_NAMING_CONVENTION`
+
+In C++, `OD_NAMING_CONVENTION` expands to `extern "C"` so exported names use C
+linkage. In C it expands to nothing. It controls language linkage, not the
+machine-level argument convention.
+
+### `OD_EXPORT`
+
+`OD_EXPORT` marks a library definition with the target's public symbol
+visibility. On a Windows DLL build it normally expands to
+`__declspec(dllexport)`; on a supported shared-object build it may use default
+ELF/Mach-O visibility. Its exact spelling is compiler dependent.
+
+### `OD_IMPORT`
+
+`OD_IMPORT` marks a declaration imported from the OpenDoors library. On Windows
+it uses the platform import annotation where applicable. On the current
+non-Windows consumer builds it expands to no annotation.
+
+### `ODCALL`
+
+`ODCALL` is the calling convention for non-variadic public functions. It is
+`WINAPI` on Windows. On DOS32 it selects `__watcall` by default and `__cdecl`
+for a library built with Open Watcom's `-3s` convention. Other targets use the
+compiler default represented by an empty macro.
+
+An application callback whose field declaration includes the OpenDoors
+callback convention must match it exactly. A mismatch may compile and still
+corrupt arguments or the stack when invoked.
+
+### `ODVCALL`
+
+`ODVCALL` is the calling convention for variadic public functions such as
+[`od_printf()`](../api/od_printf.md). Variadic functions require the C calling
+convention on Windows and DOS32 because the callee cannot use a convention
+which assumes a fixed argument list.
+
+### `OD_GLOBAL_CONV`
+
+`OD_GLOBAL_CONV` preserves the established platform convention attached to the
+exported `od_control` object where the toolchain requires one. Applications
+should use the declaration in the header instead of placing this macro on a
+new object.
+
+### `ODAPIDEF`
+
+`ODAPIDEF` combines C language linkage with the correct import or export
+visibility for a public API function. It deliberately does not include
+`ODCALL`, because each prototype places the appropriate fixed or variadic
+calling convention separately.
+
+### `OD_API_VAR_DEFN`
+
+`OD_API_VAR_DEFN` is the linkage and visibility prefix used for a public global
+definition inside OpenDoors. It is primarily relevant to building the library.
+
+### `OD_API_VAR_DECL`
+
+`OD_API_VAR_DECL` is the corresponding `extern` declaration prefix for public
+global data. It selects import or export visibility according to whether the
+library is being built.
+
+### `ODFAR`
+
+`ODFAR` expands to the compiler's `far` keyword on 16-bit DOS and to nothing on
+flat-memory targets. It keeps declarations source-compatible without inventing
+a `malloc_huge`-style allocation abstraction. A pointer is only far where the
+actual target ABI requires it.
+
+## Logical definitions
+
+### `FALSE`
+
+`FALSE` is the zero value for [`BOOL`](../types.md#bool). OpenDoors defines it
+only when the platform headers have not already done so.
+
+### `TRUE`
+
+`TRUE` is the conventional true value for [`BOOL`](../types.md#bool). Code
+receiving a logical result should still test for nonzero rather than equality
+with `TRUE`, since C permits any nonzero value to mean true.
+
+### `MAYBE`
+
+`MAYBE` is the compatibility name for the value `2`. The current source does
+not test the macro by name. Established code used it for fields such as
+`od_okaytopage`, where 0 disables paging, 1 enables it unconditionally, and any
+other value follows the configured hours. New code should use that field's
+specific name [`PAGE_USE_HOURS`](session.md#page_use_hours). `MAYBE` is not an
+indeterminate result returned by ordinary Boolean functions.
+
+## Timeout definition
+
+### `OD_NO_TIMEOUT`
+
+`OD_NO_TIMEOUT` is the [`tODMilliSec`](../types.md#todmillisec) value requesting
+an indefinite wait. On Windows it is the system `INFINITE` value; elsewhere it
+is the equivalent unsigned 32-bit value. Pass it only to an API parameter which
+accepts a millisecond timeout.
+
+An indefinite OpenDoors input wait continues to service required session
+processing. It does not promise that the call returns only with a character:
+disconnect, time-limit, or other documented session termination can still end
+processing.
 
 ## Child-process modes
 
-[`od_spawnvpe()`](../api/od_spawnvpe.md) accepts the platform `P_WAIT` and
-`P_NOWAIT` modes. OpenDoors defines them where the C runtime does not.
+### `P_WAIT`
 
-| Name | Meaning |
-| --- | --- |
-| `P_WAIT` | Suspend normal OpenDoors processing and wait for the child to finish. This is the only supported DOS mode. |
-| `P_NOWAIT` | Start the child without waiting where the target supports asynchronous spawning. |
-| `CURRENT`, `IRET` | Legacy DOS swapping implementation markers exposed by the historical header; they are not spawn modes for application use. |
+`P_WAIT` tells [`od_spawnvpe()`](../api/od_spawnvpe.md) to wait until the child
+finishes and return its result. This is the only child mode supported by the
+DOS implementations. OpenDoors continues the platform-specific session policy
+described by the spawn function and
+[`od_spawn_freeze_time`](../control/customization.md#od_spawn_freeze_time).
+
+### `P_NOWAIT`
+
+`P_NOWAIT` requests asynchronous process creation on targets which support it.
+The exact return follows OpenDoors' platform wrapper. On the current Unix-like
+implementation, a successful `fork()` returns `0` to the caller and OpenDoors
+sets `SIGCHLD` to `SIG_IGN` with `SA_NOCLDWAIT`; no child identifier is returned
+and the application does not wait or reap that child through this API. On
+Windows, the value comes from the C runtime `_spawnvpe()` call, narrowed to the
+public `INT16` return type. Passing this value on DOS, which supports only
+`P_WAIT`, returns `-1` and sets `od_control.od_error` to `ERR_PARAMETER`.
+
+On Windows and DOS32 these names are obtained from `<process.h>`; OpenDoors
+defines compatible values where the C runtime does not provide them.
+
+### `CURRENT` and `IRET`
+
+`CURRENT` and `IRET` are established DOS swapping implementation markers with
+values zero and one. They are exposed by the public header for source
+compatibility, but they are not valid `od_spawnvpe()` modes and new application
+code should not use them.
