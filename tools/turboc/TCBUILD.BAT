@@ -8,8 +8,6 @@ if exist C:\TCBUILD.OK del C:\TCBUILD.OK
 if exist C:\OUT\ODOORL.LIB del C:\OUT\ODOORL.LIB
 cd \OBJ
 echo Turbo C 2.01 OpenDoors diagnostic build>C:\TCBUILD.LOG
-echo Compiler version:>>C:\TCBUILD.LOG
-TCC >>C:\TCBUILD.LOG
 call C:\TCONE.BAT ODAUTO
 call C:\TCONE.BAT ODBLOCK
 call C:\TCONE.BAT ODCFILE

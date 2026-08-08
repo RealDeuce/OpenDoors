@@ -136,6 +136,7 @@ jobs:
           set -o pipefail
           timeout --signal=TERM --kill-after=5s 15m \
             xvfb-run -a dosbox -noconsole \
+              -conf "$PWD/tools/turboc/dosbox.conf" \
               -c "mount c $PWD/build/turboc" \
               -c 'c:' \
               -c 'tcbuild.bat' \
