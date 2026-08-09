@@ -59,6 +59,7 @@ int main(void)
    ODKrnlDispatchPending(TRUE);
    CHECK(od_control.od_chat_active);
 
+   od_control.od_chat_active = FALSE;
    od_control.od_disable_inactivity = TRUE;
    od_control.od_time_msg_func = TimeMessage;
    od_control.od_time_warning = (char *)"%d";
