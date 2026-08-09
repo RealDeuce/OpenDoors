@@ -2973,7 +2973,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
             return (kODRCNothingWaiting);
          else if (i == -1 || !(pfd.revents & POLLIN)) {
 #ifdef OD_MULTITHREADED
-            if (i == -1 || pfd.revents & (POLLERR | POLLHUP | POLLRDHUP | POLLNVAL))
+            if (i == -1 || pfd.revents & (POLLERR | POLLHUP | POLLNVAL))
                ODSemaphoreUp(pPortInfo->hCarrierLostSemaphore, 1);
 #endif
             return (kODRCGeneralFailure);
