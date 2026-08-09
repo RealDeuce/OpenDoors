@@ -51,22 +51,6 @@ an issue is not treated as a contract change until it is resolved deliberately.
 
 ## Windows thread lifecycle
 
-- [ ] Replace forced thread termination and suspension with cooperative
-  synchronization. The remote-input, carrier-detection, and chat paths call
-  `TerminateThread()`, which can stop a worker while it owns library, heap, or
-  communications state. Forced kernel shutdown also uses `SuspendThread()` to
-  stop the client at an arbitrary instruction inside an OpenDoors API call.
-  Both mechanisms can strand locks or leave shared state only partly updated.
-
-- [ ] Define one synchronization model for Windows worker access to shared
-  OpenDoors state. The timer, communications, chat, UI, and client threads
-  read and modify `od_control`, kernel flags, queues, and screen state through
-  a mixture of unsynchronized globals, a semaphore which reports that an API
-  call is active, and forced client suspension. This does not provide ordinary
-  mutual exclusion or a clear ownership rule, so a replacement must specify
-  which state belongs to each thread and how callbacks cross thread
-  boundaries without changing the public API or ABI.
-
 - [ ] Review `CreateThread()` use by workers which call the C runtime.
   Frame, screen, kernel, and chat workers allocate memory, perform formatted
   I/O, and use other runtime facilities after being created by

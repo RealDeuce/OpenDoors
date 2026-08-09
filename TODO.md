@@ -2,6 +2,22 @@
 
 ## Defects found during Windows acceptance testing
 
+- [ ] Replace forced Windows thread termination and suspension with
+  cooperative synchronization. The remote-input, carrier-detection, and chat
+  paths call `TerminateThread()`, which can stop a worker while it owns
+  library, heap, or communications state. Forced kernel shutdown also uses
+  `SuspendThread()` to stop the client at an arbitrary instruction inside an
+  OpenDoors API call. Both mechanisms can strand locks or leave shared state
+  only partly updated.
+
+- [ ] Synchronize Windows worker access to shared OpenDoors state. The timer,
+  communications, chat, UI, and client threads read and modify `od_control`,
+  kernel flags, queues, and screen state through a mixture of unsynchronized
+  globals, a semaphore which reports that an API call is active, and forced
+  client suspension. This does not provide mutual exclusion or a clear
+  ownership rule. Define which state belongs to each thread and how callbacks
+  cross thread boundaries without changing the public API or ABI.
+
 - [ ] Give every Windows thread handle an explicit owner and complete
   lifecycle. `ODKrnlInitialize()` duplicates the client-thread handle each
   time it runs, while kernel shutdown overwrites or retains remote-input and
