@@ -5,7 +5,7 @@
 
 int main(int argc, char **argv)
 {
-   const char *child_args[6];
+   const char *child_args[4];
    const char *child_environment[2];
    FILE *file;
    INT16 result;
@@ -18,11 +18,13 @@ int main(int argc, char **argv)
    od_init();
 
    child_args[0] = argv[1];
+#ifdef ODPLAT_WIN32
+   child_args[1] = "\"argument one\"";
+#else
    child_args[1] = "argument one";
+#endif
    child_args[2] = "argument-two";
-   child_args[3] = "quote \"inside\"";
-   child_args[4] = "trailing\\";
-   child_args[5] = NULL;
+   child_args[3] = NULL;
    child_environment[0] = "OD_ACCEPT_VALUE=environment value";
    child_environment[1] = NULL;
    result = od_spawnvpe(P_WAIT, argv[1], child_args, child_environment);

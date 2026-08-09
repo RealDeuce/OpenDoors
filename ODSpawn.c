@@ -78,124 +78,6 @@
 #include "ODFrame.h"
 #endif /* ODPLAT_WIN32 */
 
-#ifdef ODPLAT_WIN32
-/* Quote one argument according to the command-line decoding rules used by
- * the Microsoft-compatible C runtime. The spawn runtime accepts an argument
- * array but does not itself protect spaces or embedded quotation marks. */
-static char *ODSpawnQuoteWindowsArgument(const char *pszArgument)
-{
-   size_t nLength = strlen(pszArgument);
-   size_t nBackslashes;
-   char *pszQuoted;
-   char *pszOutput;
-
-   if(nLength > ((size_t)-1 - 3) / 2)
-   {
-      errno = ENOMEM;
-      return(NULL);
-   }
-   pszQuoted = malloc(nLength * 2 + 3);
-   if(pszQuoted == NULL)
-   {
-      return(NULL);
-   }
-
-   pszOutput = pszQuoted;
-   *pszOutput++ = '"';
-   while(*pszArgument != '\0')
-   {
-      nBackslashes = 0;
-      while(pszArgument[nBackslashes] == '\\')
-      {
-         ++nBackslashes;
-      }
-      pszArgument += nBackslashes;
-
-      if(*pszArgument == '"')
-      {
-         while(nBackslashes-- != 0)
-         {
-            *pszOutput++ = '\\';
-            *pszOutput++ = '\\';
-         }
-         *pszOutput++ = '\\';
-         *pszOutput++ = *pszArgument++;
-      }
-      else if(*pszArgument == '\0')
-      {
-         while(nBackslashes-- != 0)
-         {
-            *pszOutput++ = '\\';
-            *pszOutput++ = '\\';
-         }
-      }
-      else
-      {
-         while(nBackslashes-- != 0)
-         {
-            *pszOutput++ = '\\';
-         }
-         *pszOutput++ = *pszArgument++;
-      }
-   }
-   *pszOutput++ = '"';
-   *pszOutput = '\0';
-   return(pszQuoted);
-}
-
-
-static char **ODSpawnQuoteWindowsArguments(const char *const papszArguments[])
-{
-   char **papszQuoted;
-   size_t nArgumentCount = 0;
-   size_t nIndex;
-
-   while(papszArguments[nArgumentCount] != NULL)
-   {
-      ++nArgumentCount;
-   }
-   if(nArgumentCount > (size_t)-1 / sizeof(*papszQuoted) - 1)
-   {
-      errno = ENOMEM;
-      return(NULL);
-   }
-
-   papszQuoted = malloc((nArgumentCount + 1) * sizeof(*papszQuoted));
-   if(papszQuoted == NULL)
-   {
-      return(NULL);
-   }
-   for(nIndex = 0; nIndex < nArgumentCount; ++nIndex)
-   {
-      papszQuoted[nIndex]
-         = ODSpawnQuoteWindowsArgument(papszArguments[nIndex]);
-      if(papszQuoted[nIndex] == NULL)
-      {
-         while(nIndex != 0)
-         {
-            free(papszQuoted[--nIndex]);
-         }
-         free(papszQuoted);
-         return(NULL);
-      }
-   }
-   papszQuoted[nArgumentCount] = NULL;
-   return(papszQuoted);
-}
-
-
-static void ODSpawnFreeWindowsArguments(char **papszArguments)
-{
-   size_t nIndex;
-
-   for(nIndex = 0; papszArguments[nIndex] != NULL; ++nIndex)
-   {
-      free(papszArguments[nIndex]);
-   }
-   free(papszArguments);
-}
-#endif /* ODPLAT_WIN32 */
-
 #ifdef ODPLAT_DOS
 
 /* Local and global variables for memory swapping spawn routines. */
@@ -412,7 +294,6 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    DWORD dwQuotient;
 #ifdef ODPLAT_WIN32
    void *pWindow;
-   char **papszWindowsArguments = NULL;
 #endif /* ODPLAT_WIN32 */   
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    char *pszDir;
@@ -428,17 +309,6 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
-
-#ifdef ODPLAT_WIN32
-   if(papszArg != NULL)
-   {
-      papszWindowsArguments = ODSpawnQuoteWindowsArguments(papszArg);
-      if(papszWindowsArguments == NULL)
-      {
-         return(-1);
-      }
-   }
-#endif /* ODPLAT_WIN32 */
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    /* Ensure the nModeFlag is P_WAIT, which is the only valid value for */
@@ -529,13 +399,6 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    /* Execute specified program with the specified arguments. */
 #ifdef ODPLAT_DOS32
    nToReturn = spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
-#elif defined(ODPLAT_WIN32)
-   nToReturn = _spawnvpe(nModeFlag, pszPath,
-      (const char *const *)papszWindowsArguments, papszEnv);
-   if(papszWindowsArguments != NULL)
-   {
-      ODSpawnFreeWindowsArguments(papszWindowsArguments);
-   }
 #else
    nToReturn = _spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
 #endif

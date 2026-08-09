@@ -36,6 +36,19 @@ an issue is not treated as a contract change until it is resolved deliberately.
   incompatibility; acceptance fixtures must instead be assembled from the
   documented on-disk offsets.
 
+## Child processes
+
+- [ ] Provide a platform-neutral way to pass child-process arguments.
+  `od_spawnvpe()` retains its documented compatibility with the target C
+  runtime's `spawnvpe()` interface. On Windows, that runtime serializes the
+  array into a single command line without automatically protecting spaces;
+  an element containing `argument one` therefore reaches a conventional C
+  child as two arguments unless the caller includes the required quotation
+  marks. Unix-like targets pass the elements directly as `argv`. Automatically
+  quoting the established Windows interface would reinterpret strings from
+  existing callers, so portable normalized argument handling would require a
+  new API or an explicit opt-in rather than a silent behavior change.
+
 ## Resolved during acceptance-suite development
 
 - [x] Export `od_set_port()` from each Windows DLL ABI. The function was

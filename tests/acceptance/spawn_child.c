@@ -14,10 +14,10 @@ int main(int argc, char **argv)
       return(fputs("simple spawn passed\n", file) < 0 || fclose(file) != 0
          ? 21 : 0);
    }
-   if(argc != 5)
+   if(argc != 3)
    {
       int index;
-      fprintf(stderr, "spawn child received %d arguments, expected 5\n", argc);
+      fprintf(stderr, "spawn child received %d arguments, expected 3\n", argc);
       for(index = 0; index < argc; ++index)
          fprintf(stderr, "spawn child argv[%d] is '%s'\n", index, argv[index]);
       return(17);
@@ -30,16 +30,6 @@ int main(int argc, char **argv)
    if(strcmp(argv[2], "argument-two") != 0)
    {
       fprintf(stderr, "spawn child argv[2] is '%s'\n", argv[2]);
-      return(17);
-   }
-   if(strcmp(argv[3], "quote \"inside\"") != 0)
-   {
-      fprintf(stderr, "spawn child argv[3] is '%s'\n", argv[3]);
-      return(17);
-   }
-   if(strcmp(argv[4], "trailing\\") != 0)
-   {
-      fprintf(stderr, "spawn child argv[4] is '%s'\n", argv[4]);
       return(17);
    }
    if(value == NULL || strcmp(value, "environment value") != 0)

@@ -24,8 +24,10 @@ INT16 od_spawnvpe(INT16 nModeFlag, const char *pszPath,
   current `PATH` environment variable.
 
 `papszArg`
-: Null-terminated array of argument-string pointers. Supply the executable
-  name in element zero when required by the child program or host C runtime.
+: Null-terminated argument array in the form expected by the target C
+  runtime's `spawnvpe()` function. Supply the executable name in element zero
+  when required by the child program or host C runtime. Quoting within the
+  strings is interpreted according to that runtime's rules.
 
 `papszEnv`
 : Null-terminated array of `name=value` environment strings to be given to the
@@ -59,10 +61,11 @@ clears stale input, restores the saved local state, and adjusts the caller's
 remaining-time accounting according to
 [`od_spawn_freeze_time`](../control/customization.md#od_spawn_freeze_time).
 
-The strings in `papszArg` become the child's argument vector in the same order.
-The strings in a non-null `papszEnv` become the complete child environment;
-they are not additions to the current environment. Each environment entry must
-have the form `name=value`, and the final array element must be `NULL`.
+OpenDoors passes `papszArg` to the target's `spawnvpe()`-compatible interface
+without reinterpreting or adding quotation marks to its strings. The strings
+in a non-null `papszEnv` become the complete child environment; they are not
+additions to the current environment. Each environment entry must have the
+form `name=value`, and the final array element must be `NULL`.
 
 ## Platform notes
 
@@ -76,9 +79,11 @@ DOS32 delegates the launch to the Open Watcom runtime. The 16-bit build can
 also swap the door to EMS or disk while the child is running.
 
 On Windows, OpenDoors delegates process creation and executable lookup to the
-Microsoft-compatible `_spawnvpe()` runtime. OpenDoors quotes and escapes each
-argument for that runtime so spaces, quotation marks and backslashes reach the
-child as the single argument string supplied by the caller. A successful
+Microsoft-compatible `_spawnvpe()` runtime. Windows creates a process with one
+command-line string, and the runtime forms that string from `papszArg`. Include
+quotation marks in an argument string when the Microsoft runtime requires them;
+for example, use `"\"two words\""` to pass `two words` as one argument to a
+child using the same command-line decoding convention. A successful
 [`P_NOWAIT`](../constants/general.md#p_nowait) value originates as a native
 process handle, but the public interface narrows it to
 [`INT16`](../types.md#int16); portable code must use it only as a success
