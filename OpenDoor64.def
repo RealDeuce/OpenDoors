@@ -2,7 +2,7 @@
 ; OpenDoors 64-bit Windows DLL exports.
 ;
 ; Keep every ordinal from the first 64-bit release stable. New exports must
-; be appended after ordinal 65.
+; be appended after ordinal 69.
 LIBRARY ODOORS63
 VERSION 6.3
 EXPORTS
@@ -74,3 +74,4 @@ EXPORTS
    od_restore_screen_ex @66
    od_save_screen_ex @67
    od_save_screen_size @68
+   od_set_port @69

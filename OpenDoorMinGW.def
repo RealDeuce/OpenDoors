@@ -1,6 +1,6 @@
 ; SPDX-License-Identifier: LGPL-2.0-or-later
 ; OpenDoors 32-bit MinGW DLL exports. Keep existing ordinals stable and append
-; new exports after ordinal 63.
+; new exports after ordinal 67.
 LIBRARY ODOORS63
 VERSION 6.3
 EXPORTS
@@ -70,3 +70,4 @@ EXPORTS
    od_restore_screen_ex=od_restore_screen_ex@8 @64
    od_save_screen_ex=od_save_screen_ex@8 @65
    od_save_screen_size=od_save_screen_size@0 @66
+   od_set_port=od_set_port@4 @67

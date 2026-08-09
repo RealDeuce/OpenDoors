@@ -196,6 +196,19 @@ target_compile_definitions(dos_personality_smoke PRIVATE
     OPENDOORS_HAVE_VSNPRINTF=1)
 target_link_libraries(dos_personality_smoke PRIVATE opendoors_dos)
 
+add_executable(dos_acceptance_surface
+    "${OPENDOORS_ROOT}/tests/acceptance/public_surface_test.c")
+set_target_properties(dos_acceptance_surface PROPERTIES OUTPUT_NAME odapi)
+target_include_directories(dos_acceptance_surface PRIVATE
+    "${OPENDOORS_ROOT}/tests/acceptance")
+target_compile_options(dos_acceptance_surface PRIVATE -ml -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(dos_acceptance_surface PRIVATE -we)
+endif()
+target_compile_definitions(dos_acceptance_surface PRIVATE
+    OPENDOORS_HAVE_VSNPRINTF=1)
+target_link_libraries(dos_acceptance_surface PRIVATE opendoors_dos)
+
 else()
 
 function(opendoors_configure_dos32_target target convention)
@@ -340,5 +353,31 @@ opendoors_configure_dos32_target(dos32_personality_smoke_s 3s)
 target_include_directories(dos32_personality_smoke_s PRIVATE
     "${OPENDOORS_PERSONALITY_SDK_DIR}")
 target_link_libraries(dos32_personality_smoke_s PRIVATE opendoors_dos32s)
+
+add_executable(dos32_acceptance_surface_r
+    "${OPENDOORS_ROOT}/tests/acceptance/public_surface_test.c")
+set_target_properties(dos32_acceptance_surface_r PROPERTIES OUTPUT_NAME odapir)
+target_include_directories(dos32_acceptance_surface_r PRIVATE
+    "${OPENDOORS_ROOT}/tests/acceptance")
+target_compile_options(dos32_acceptance_surface_r PRIVATE -3r -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(dos32_acceptance_surface_r PRIVATE -we)
+endif()
+target_compile_definitions(dos32_acceptance_surface_r PRIVATE
+    OPENDOORS_HAVE_VSNPRINTF=1)
+target_link_libraries(dos32_acceptance_surface_r PRIVATE opendoors_dos32r)
+
+add_executable(dos32_acceptance_surface_s
+    "${OPENDOORS_ROOT}/tests/acceptance/public_surface_test.c")
+set_target_properties(dos32_acceptance_surface_s PROPERTIES OUTPUT_NAME odapis)
+target_include_directories(dos32_acceptance_surface_s PRIVATE
+    "${OPENDOORS_ROOT}/tests/acceptance")
+target_compile_options(dos32_acceptance_surface_s PRIVATE -3s -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(dos32_acceptance_surface_s PRIVATE -we)
+endif()
+target_compile_definitions(dos32_acceptance_surface_s PRIVATE
+    OPENDOORS_HAVE_VSNPRINTF=1)
+target_link_libraries(dos32_acceptance_surface_s PRIVATE opendoors_dos32s)
 
 endif()

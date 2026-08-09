@@ -72,6 +72,7 @@ static void ODCALL TestPersonality(BYTE btOperation)
 int main(void)
 {
    FILE *sentinel;
+   char szAge[16];
 
    od_control.od_force_local = TRUE;
    od_control.od_disable |= DIS_NAME_PROMPT;
@@ -84,6 +85,8 @@ int main(void)
    CHECK(nDisplayCount >= 1);
    CHECK(!nCallbackFailure);
    CHECK(od_control.od_num_keys == nInitialKeyCount + 1);
+   ODStatGetUserAge(szAge);
+   CHECK(szAge[0] != '\0');
 
    ODStatForceStatusUpdate();
    CHECK(nUpdateCount >= 1);

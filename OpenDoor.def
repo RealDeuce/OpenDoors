@@ -2,7 +2,7 @@
 ; OpenDoors 32-bit Windows DLL exports.
 ;
 ; Keep every historical decorated and undecorated ordinal stable.  New
-; exports must be appended after ordinal 125.
+; exports must be appended after ordinal 133.
 LIBRARY ODOORS63
 VERSION 6.3
 EXPORTS
@@ -137,3 +137,5 @@ EXPORTS
    od_restore_screen_ex=_od_restore_screen_ex@8 @129
    od_save_screen_ex=_od_save_screen_ex@8 @130
    od_save_screen_size=_od_save_screen_size@0 @131
+   _od_set_port@4=_od_set_port@4 @132
+   od_set_port=_od_set_port@4 @133

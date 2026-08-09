@@ -676,4 +676,7 @@ if(BUILD_TESTING)
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
         add_test(NAME static_link_smoke COMMAND opendoors_static_smoke)
     endif()
+
+    set(OPENDOORS_ACCEPTANCE_LIBRARY "${OPENDOORS_DEFAULT_LINK_TARGET}")
+    add_subdirectory(tests/acceptance)
 endif()

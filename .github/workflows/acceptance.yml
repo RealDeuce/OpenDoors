@@ -1,0 +1,143 @@
+name: Extended acceptance
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 7 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  unix:
+    name: ${{ matrix.os }} ${{ matrix.variant }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        variant: [Shared, Static]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and install selected library
+        run: |
+          shared=OFF
+          static=OFF
+          if [[ '${{ matrix.variant }}' == Shared ]]; then
+            shared=ON
+          else
+            static=ON
+          fi
+          cmake \
+            -S . \
+            -B build/library \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DOPENDOORS_BUILD_SHARED=$shared \
+            -DOPENDOORS_BUILD_STATIC=$static \
+            -DOPENDOORS_BUILD_EXAMPLES=OFF \
+            -DOPENDOORS_WARNINGS_AS_ERRORS=ON
+          cmake --build build/library --parallel
+          cmake --install build/library --prefix "$RUNNER_TEMP/opendoors"
+
+      - name: Build installed public consumer
+        run: |
+          cmake \
+            -S tests/acceptance \
+            -B build/acceptance \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/opendoors" \
+            -DOPENDOORS_VARIANT=${{ matrix.variant }} \
+            -DOPENDOORS_ACCEPTANCE_EXTENDED=ON
+          cmake --build build/acceptance --parallel
+
+      - name: Run extended acceptance suite
+        run: >-
+          ctest
+          --test-dir build/acceptance
+          --output-on-failure
+          --output-junit acceptance-${{ matrix.os }}-${{ matrix.variant }}.xml
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: acceptance-${{ matrix.os }}-${{ matrix.variant }}
+          path: |
+            build/acceptance/acceptance-*.xml
+            build/acceptance/Testing/Temporary/LastTest.log
+
+  windows:
+    name: Windows ${{ matrix.variant }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: Shared
+            shared: ON
+            static: OFF
+            static_mt: OFF
+            runtime: MultiThreadedDLL
+          - variant: Static
+            shared: OFF
+            static: ON
+            static_mt: OFF
+            runtime: MultiThreadedDLL
+          - variant: StaticMT
+            shared: OFF
+            static: ON
+            static_mt: ON
+            runtime: MultiThreaded
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and install selected library
+        shell: pwsh
+        run: |
+          cmake `
+            -S . `
+            -B build/library `
+            -A x64 `
+            -DOPENDOORS_BUILD_SHARED=${{ matrix.shared }} `
+            -DOPENDOORS_BUILD_STATIC=${{ matrix.static }} `
+            -DOPENDOORS_BUILD_MSVC_STATIC_MT=${{ matrix.static_mt }} `
+            -DOPENDOORS_BUILD_EXAMPLES=OFF `
+            -DOPENDOORS_WARNINGS_AS_ERRORS=ON `
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
+          cmake --build build/library --config Release --parallel
+          cmake --install build/library --config Release `
+            --prefix "$env:RUNNER_TEMP/opendoors"
+
+      - name: Build installed public consumer
+        shell: pwsh
+        run: |
+          cmake `
+            -S tests/acceptance `
+            -B build/acceptance `
+            -A x64 `
+            "-DCMAKE_PREFIX_PATH=$env:RUNNER_TEMP/opendoors" `
+            -DOPENDOORS_VARIANT=${{ matrix.variant }} `
+            -DOPENDOORS_ACCEPTANCE_EXTENDED=ON `
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.runtime }}
+          cmake --build build/acceptance --config Release --parallel
+
+      - name: Run extended acceptance suite
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:RUNNER_TEMP\opendoors\bin;$env:PATH"
+          ctest `
+            --test-dir build/acceptance `
+            -C Release `
+            --output-on-failure `
+            --output-junit "acceptance-windows-${{ matrix.variant }}.xml"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: acceptance-windows-${{ matrix.variant }}
+          path: |
+            build/acceptance/acceptance-*.xml
+            build/acceptance/Testing/Temporary/LastTest.log

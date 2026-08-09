@@ -16,6 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: python3 tools/check_version.py
+      - run: PYTHONDONTWRITEBYTECODE=1 python3 tools/check_public_contract.py
 
   windows:
     name: Windows ${{ matrix.architecture }} ${{ matrix.configuration }}
@@ -273,6 +274,17 @@ jobs:
           cmake --build build/consumer --parallel
           ctest --test-dir build/consumer --output-on-failure
 
+      - name: Run installed-package acceptance suite
+        run: |
+          cmake \
+            -S tests/acceptance \
+            -B build/acceptance \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH='${{ runner.temp }}/opendoors-install' \
+            -DOPENDOORS_VARIANT=${{ matrix.variant }}
+          cmake --build build/acceptance --parallel
+          ctest --test-dir build/acceptance --output-on-failure
+
   package-windows:
     name: Installed package (Windows ${{ matrix.variant }})
     runs-on: windows-2022
@@ -357,6 +369,25 @@ jobs:
           cmake --build build/consumer --config Release --parallel
           $env:PATH = "$env:RUNNER_TEMP\opendoors-install\bin;$env:PATH"
           ctest --test-dir build/consumer -C Release --output-on-failure
+
+      - name: Run installed-package acceptance suite
+        shell: pwsh
+        run: |
+          $runtime = if ('${{ matrix.variant }}' -eq 'StaticMT') {
+              'MultiThreaded'
+          } else {
+              'MultiThreadedDLL'
+          }
+          cmake `
+            -S tests/acceptance `
+            -B build/acceptance `
+            -A x64 `
+            "-DCMAKE_PREFIX_PATH=$env:RUNNER_TEMP/opendoors-install" `
+            -DOPENDOORS_VARIANT=${{ matrix.variant }} `
+            "-DCMAKE_MSVC_RUNTIME_LIBRARY=$runtime"
+          cmake --build build/acceptance --config Release --parallel
+          $env:PATH = "$env:RUNNER_TEMP\opendoors-install\bin;$env:PATH"
+          ctest --test-dir build/acceptance -C Release --output-on-failure
 
   dos:
     name: DOS Open Watcom 16-bit
@@ -446,6 +477,7 @@ jobs:
           test -s build/dos/ex_music.exe
           test -s build/dos/odtest.exe
           test -s build/dos/odpers.exe
+          test -s build/dos/odapi.exe
           test "$(od -An -tx1 -N2 build/dos/dos_link_smoke.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/ex_chat.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/ex_diag.exe | tr -d ' ')" = '4d5a'
@@ -453,10 +485,11 @@ jobs:
           test "$(od -An -tx1 -N2 build/dos/ex_music.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/odtest.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/odpers.exe | tr -d ' ')" = '4d5a'
+          test "$(od -An -tx1 -N2 build/dos/odapi.exe | tr -d ' ')" = '4d5a'
           file build/dos/ODoorl.lib build/dos/dos_link_smoke.exe \
             build/dos/ex_chat.exe build/dos/ex_diag.exe \
             build/dos/ex_hello.exe build/dos/ex_music.exe \
-            build/dos/odtest.exe build/dos/odpers.exe
+            build/dos/odtest.exe build/dos/odpers.exe build/dos/odapi.exe
 
       - name: Install DOSBox runtime
         run: |
@@ -472,12 +505,14 @@ jobs:
           rm -f build/dos/DOSFAIL.TXT
           rm -f build/dos/PERSPASS.OK
           rm -f build/dos/PERSFAIL.TXT
+          rm -f build/dos/APIPASS.OK
           timeout --signal=TERM --kill-after=5s 30s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos" \
               -c 'c:' \
               -c 'odtest.exe' \
               -c 'odpers.exe' \
+              -c 'odapi.exe' \
               -c 'exit' \
             2>&1 | tee build/dos/dosbox.log
           if ! test -s build/dos/DOSPASS.OK; then
@@ -488,6 +523,7 @@ jobs:
             cat build/dos/PERSFAIL.TXT || true
             exit 1
           fi
+          test -s build/dos/APIPASS.OK
 
       - name: Upload OpenDoors DOS outputs
         if: always()
@@ -499,10 +535,12 @@ jobs:
             build/dos/dos_link_smoke.exe
             build/dos/odtest.exe
             build/dos/odpers.exe
+            build/dos/odapi.exe
             build/dos/DOSPASS.OK
             build/dos/DOSFAIL.TXT
             build/dos/PERSPASS.OK
             build/dos/PERSFAIL.TXT
+            build/dos/APIPASS.OK
             build/dos/dosbox.log
 
   dos32:
@@ -573,6 +611,8 @@ jobs:
           test -s build/dos32/OD32CHLD.exe
           test -s build/dos32/od32pers.exe
           test -s build/dos32/od32pss.exe
+          test -s build/dos32/odapir.exe
+          test -s build/dos32/odapis.exe
           test -s build/dos32/od32foss.exe
           test -s build/dos32/FOSSTSR.com
           test -s build/dos32/ex_chat.exe
@@ -629,10 +669,16 @@ jobs:
               -c 'ren PERSPASS.OK PERSRPAS.OK' \
               -c 'od32pss.exe' \
               -c 'ren PERSPASS.OK PERSSPAS.OK' \
+              -c 'odapir.exe' \
+              -c 'ren APIPASS.OK APIRPASS.OK' \
+              -c 'odapis.exe' \
+              -c 'ren APIPASS.OK APISPASS.OK' \
               -c 'exit' \
             2>&1 | tee build/dos32/dos4gw-personality.log
           require_marker PERSRPAS.OK
           require_marker PERSSPAS.OK
+          require_marker APIRPASS.OK
+          require_marker APISPASS.OK
 
       - name: Configure native DOS/32A build
         env:
@@ -662,6 +708,8 @@ jobs:
           test -s build/dos32a/OD32CHLD.exe
           test -s build/dos32a/od32pers.exe
           test -s build/dos32a/od32pss.exe
+          test -s build/dos32a/odapir.exe
+          test -s build/dos32a/odapis.exe
           test -s build/dos32a/ex_chat.exe
           test -s build/dos32a/ex_diag.exe
           test -s build/dos32a/ex_hello.exe
@@ -708,6 +756,10 @@ jobs:
               -c 'ren PERSPASS.OK PERSRPAS.OK' \
               -c 'od32pss.exe' \
               -c 'ren PERSPASS.OK PERSSPAS.OK' \
+              -c 'odapir.exe' \
+              -c 'ren APIPASS.OK APIRPASS.OK' \
+              -c 'odapis.exe' \
+              -c 'ren APIPASS.OK APISPASS.OK' \
               -c 'exit' \
             2>&1 | tee build/dos32a/dos32a-personality.log
           test -s build/dos32a/NOFSPASS.OK
@@ -716,6 +768,8 @@ jobs:
           test -s build/dos32a/D32SPASS.OK
           test -s build/dos32a/PERSRPAS.OK
           test -s build/dos32a/PERSSPAS.OK
+          test -s build/dos32a/APIRPASS.OK
+          test -s build/dos32a/APISPASS.OK
           embedded_count=$(find build/dos32a -maxdepth 1 -type f \
             \( -iname 'od32test.exe' -o -iname 'ex_*.exe' \) \
             -exec grep -aFl 'DOS/32A' {} \; | wc -l)

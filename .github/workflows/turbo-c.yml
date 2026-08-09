@@ -133,6 +133,12 @@ jobs:
             ODSwap.asm > build/turboc/SRC/ODSWAP.ASM
           awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
             tests/link_smoke.c > build/turboc/SRC/LINKTEST.C
+          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
+            tests/acceptance/public_surface_test.c > build/turboc/SRC/APITEST.C
+          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
+            tests/acceptance/test_support.h > build/turboc/SRC/ATSUP.H
+          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
+            tests/acceptance/control-fields.inc > build/turboc/SRC/ATFLDS.I
           for file in TCBUILD.BAT TCONE.BAT TCASM.BAT TCEX.BAT TCLIB.BAT; do
             awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
               "tools/turboc/$file" > "build/turboc/$file"
@@ -176,6 +182,8 @@ jobs:
           test -s build/turboc/OUT/EX_HELLO.EXE
           test -s build/turboc/OUT/EX_MUSIC.EXE
           test -s build/turboc/OUT/LINKTEST.EXE
+          test -s build/turboc/OUT/APITEST.EXE
+          test -s build/turboc/OBJ/APIPASS.OK
 
       - name: Stage release SDK
         if: inputs.asset_version != ''
@@ -216,4 +224,6 @@ jobs:
             build/turboc/OUT/ODOORL.LIB
             build/turboc/OUT/EX_*.EXE
             build/turboc/OUT/LINKTEST.EXE
+            build/turboc/OUT/APITEST.EXE
+            build/turboc/OBJ/APIPASS.OK
           if-no-files-found: warn

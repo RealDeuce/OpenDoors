@@ -57,6 +57,17 @@ The `OpenDoors::Shared` and `OpenDoors::Static` CMake targets are available
 both from `add_subdirectory()` and from the installed package when their
 corresponding variants were built.
 
+## Testing
+
+The normal CTest run includes both implementation regressions and public-only
+integration acceptance tests. The acceptance inventory covers every exported
+declaration and every `od_control` field, while its executables use only the
+installed headers and library interface. See
+[`tests/acceptance/README.md`](tests/acceptance/README.md) for standalone
+installed-package and extended socket-driven test commands. Behavioral and
+design problems discovered while characterizing the current implementation are
+tracked separately in [`ISSUES.md`](ISSUES.md).
+
 MSVC builds may also enable `OPENDOORS_BUILD_MSVC_STATIC_MT` to produce
 `ODoors-static-mt.lib` and the `OpenDoors::StaticMT` target. This additional
 library uses Microsoft's static C runtime; `OpenDoors::Static` continues to

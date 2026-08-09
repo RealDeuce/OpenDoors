@@ -10,6 +10,7 @@ on:
       - 'mkdocs.yml'
       - 'mkdocs-release.yml'
       - 'OpenDoor.h'
+      - 'ODStat.h'
       - 'README.md'
       - 'tools/check_api_docs.py'
       - 'tools/check_version.py'
@@ -24,6 +25,7 @@ on:
       - 'mkdocs.yml'
       - 'mkdocs-release.yml'
       - 'OpenDoor.h'
+      - 'ODStat.h'
       - 'README.md'
       - 'tools/check_api_docs.py'
       - 'tools/check_version.py'
@@ -55,6 +57,7 @@ jobs:
       - name: Check API reference coverage
         run: |
           python tools/check_api_docs.py
+          PYTHONDONTWRITEBYTECODE=1 python tools/check_public_contract.py
           python tools/check_version.py
 
       - name: Build site

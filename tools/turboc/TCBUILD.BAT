@@ -99,6 +99,13 @@ TCC -ml -O -G -Z -d -w -IC:\SRC;C:\TC\INCLUDE -LC:\OUT;C:\TC\LIB -eC:\OUT\LINKTE
 if errorlevel 1 goto linkfail
 C:\OUT\LINKTEST.EXE
 if errorlevel 1 goto runfail
+echo.>>C:\TCBUILD.LOG
+echo ==== APITEST.C ====>>C:\TCBUILD.LOG
+TCC -ml -O -G -Z -d -w -IC:\SRC;C:\TC\INCLUDE -LC:\OUT;C:\TC\LIB -eC:\OUT\APITEST.EXE C:\SRC\APITEST.C C:\OUT\ODOORL.LIB >>C:\TCBUILD.LOG
+if errorlevel 1 goto apilinkfail
+C:\OUT\APITEST.EXE
+if errorlevel 1 goto apirunfail
+if not exist C:\OBJ\APIPASS.OK goto apirunfail
 echo Turbo C 2.01 build and link test passed>C:\TCBUILD.OK
 goto end
 :linkfail
@@ -106,6 +113,12 @@ echo LINK:LINKTEST.C>>C:\TCFAIL.TXT
 goto failed
 :runfail
 echo RUN:LINKTEST.EXE>>C:\TCFAIL.TXT
+goto failed
+:apilinkfail
+echo LINK:APITEST.C>>C:\TCFAIL.TXT
+goto failed
+:apirunfail
+echo RUN:APITEST.EXE>>C:\TCFAIL.TXT
 :failed
 echo Turbo C 2.01 diagnostic build failed.>>C:\TCBUILD.LOG
 :end

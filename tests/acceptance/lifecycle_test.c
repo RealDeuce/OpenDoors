@@ -1,0 +1,55 @@
+#include "test_support.h"
+
+static int before_exit_calls;
+
+static void BeforeExit(void)
+{
+   ++before_exit_calls;
+}
+
+int main(void)
+{
+   ODTestConfigureLocal();
+   strcpy(od_control.od_prog_name, "Acceptance Door");
+   strcpy(od_control.od_prog_version, "1.0");
+   od_control.od_before_exit = BeforeExit;
+   od_control.user_screenwidth = 100;
+   od_control.user_screen_length = 30;
+
+   OD_TEST_CHECK(od_set_port(0));
+   OD_TEST_CHECK(od_control.port == 0);
+   od_init();
+
+   OD_TEST_CHECK(od_control.od_info_type == NO_DOOR_FILE);
+   OD_TEST_CHECK(od_control.od_force_local == TRUE);
+   /* Local operation always enables the local display. */
+   OD_TEST_CHECK(od_control.od_silent_mode == FALSE);
+   OD_TEST_CHECK(strcmp(od_control.od_prog_name, "Acceptance Door") == 0);
+   OD_TEST_CHECK(od_control.user_screenwidth == 80);
+   OD_TEST_CHECK(od_control.user_screen_length == 23);
+   OD_TEST_CHECK(od_control.od_page_len != 0);
+   OD_TEST_CHECK(od_control.od_color_char == '\0');
+   OD_TEST_CHECK(od_control.od_color_delimiter == '`');
+   OD_TEST_CHECK(od_control.od_error == ERR_NONE);
+   OD_TEST_CHECK(od_control_get() == &od_control);
+
+   od_set_statusline(STATUS_NONE);
+   od_set_statusline(STATUS_NORMAL);
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   OD_TEST_CHECK(od_control.od_error == ERR_NONE);
+#else
+   OD_TEST_CHECK(od_control.od_error == ERR_UNSUPPORTED);
+#endif
+   od_control.od_error = ERR_NONE;
+   OD_TEST_CHECK(od_color_config("Bright White on Blue") ==
+      (BYTE)(L_WHITE | (D_BLUE << 4)));
+   OD_TEST_CHECK(!od_carrier());
+   OD_TEST_CHECK(od_control.od_error == ERR_NOREMOTE);
+   od_set_dtr(TRUE);
+   od_kernel();
+   od_sleep(1);
+
+   od_exit(0, FALSE);
+   OD_TEST_CHECK(before_exit_calls == 1);
+   return(0);
+}

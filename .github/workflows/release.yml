@@ -10,6 +10,10 @@ permissions:
   contents: read
 
 jobs:
+  acceptance:
+    name: Full public acceptance suite
+    uses: ./.github/workflows/acceptance.yml
+
   validate:
     name: Validate release version
     runs-on: ubuntu-latest
@@ -432,6 +436,7 @@ jobs:
           test -s build/dos/ODoorl.lib
           test -s build/dos/odtest.exe
           test -s build/dos/odpers.exe
+          test -s build/dos/odapi.exe
 
       - name: Run DOSBox tests
         env:
@@ -446,10 +451,12 @@ jobs:
               -c 'c:' \
               -c 'odtest.exe' \
               -c 'odpers.exe' \
+              -c 'odapi.exe' \
               -c 'exit' \
             2>&1 | tee build/dos/dosbox.log
           test -s build/dos/DOSPASS.OK
           test -s build/dos/PERSPASS.OK
+          test -s build/dos/APIPASS.OK
 
       - name: Stage release SDK
         env:
@@ -525,6 +532,8 @@ jobs:
           test -s build/dos32/ODOOR32R.lib
           test -s build/dos32/ODOOR32S.lib
           test -s build/dos32/od32test.exe
+          test -s build/dos32/odapir.exe
+          test -s build/dos32/odapis.exe
           test -s build/dos32/od32tsts.exe
           test -s build/dos32/OD32CHLD.exe
           test -s build/dos32/od32foss.exe
@@ -563,6 +572,10 @@ jobs:
               -c 'ren PERSPASS.OK PERSRPAS.OK' \
               -c 'od32pss.exe' \
               -c 'ren PERSPASS.OK PERSSPAS.OK' \
+              -c 'odapir.exe' \
+              -c 'ren APIPASS.OK APIRPASS.OK' \
+              -c 'odapis.exe' \
+              -c 'ren APIPASS.OK APISPASS.OK' \
               -c 'exit'
           test -s build/dos32/NOFSPASS.OK
           test -s build/dos32/FOSSPASS.OK
@@ -570,6 +583,8 @@ jobs:
           test -s build/dos32/D32SPASS.OK
           test -s build/dos32/PERSRPAS.OK
           test -s build/dos32/PERSSPAS.OK
+          test -s build/dos32/APIRPASS.OK
+          test -s build/dos32/APISPASS.OK
 
       - name: Build and test native DOS/32A executables
         env:
@@ -595,6 +610,8 @@ jobs:
           test -s build/dos32a/OD32CHLD.exe
           test -s build/dos32a/od32pers.exe
           test -s build/dos32a/od32pss.exe
+          test -s build/dos32a/odapir.exe
+          test -s build/dos32a/odapis.exe
           test -s build/dos32a/ex_chat.exe
           test -s build/dos32a/ex_diag.exe
           test -s build/dos32a/ex_hello.exe
@@ -632,6 +649,10 @@ jobs:
               -c 'ren PERSPASS.OK PERSRPAS.OK' \
               -c 'od32pss.exe' \
               -c 'ren PERSPASS.OK PERSSPAS.OK' \
+              -c 'odapir.exe' \
+              -c 'ren APIPASS.OK APIRPASS.OK' \
+              -c 'odapis.exe' \
+              -c 'ren APIPASS.OK APISPASS.OK' \
               -c 'exit'
           test -s build/dos32a/NOFSPASS.OK
           test -s build/dos32a/FOSSPASS.OK
@@ -639,6 +660,8 @@ jobs:
           test -s build/dos32a/D32SPASS.OK
           test -s build/dos32a/PERSRPAS.OK
           test -s build/dos32a/PERSSPAS.OK
+          test -s build/dos32a/APIRPASS.OK
+          test -s build/dos32a/APISPASS.OK
           embedded_count=$(find build/dos32a -maxdepth 1 -type f \
             \( -iname 'od32test.exe' -o -iname 'ex_*.exe' \) \
             -exec grep -aFl 'DOS/32A' {} \; | wc -l)
@@ -687,6 +710,7 @@ jobs:
       - dos-openwatcom
       - dos-openwatcom32
       - dos-turboc
+      - acceptance
     runs-on: ubuntu-latest
     permissions:
       contents: write

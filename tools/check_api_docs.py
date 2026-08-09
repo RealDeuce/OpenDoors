@@ -157,6 +157,7 @@ def public_constants() -> set[str]:
             "ODPLAT_WIN32",
             "ODPLAT_NIX",
             "ODPLAT_DOS",
+            "ODPLAT_DOS32",
             "OD_WIN32_STATIC",
             "OD_DLL",
             "ODCALL",
