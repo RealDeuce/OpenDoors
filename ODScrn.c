@@ -1482,7 +1482,7 @@ void ODScrnGetTextInfo(tODScrnTextInfo *pTextInfo)
 {
    if(ODSessionScreenIsEmulating())
    {
-      tODVScreenInfo Info;
+      tODVScreenInfo Info = { 0 };
       ODSessionScreenGetInfo(&Info);
       pTextInfo->wintop = (BYTE)(Info.wintop > 255 ? 255 : Info.wintop);
       pTextInfo->winleft = (BYTE)(Info.winleft > 255 ? 255 : Info.winleft);

@@ -1156,6 +1156,10 @@ static FILE *ODEmulateFindCompatFile(const char *pszBaseName, INT *pnLevel)
          case LEVEL_ASCII:
             pszExtension = szASCIIExtension;
             break;
+
+         default:
+            ASSERT(FALSE);
+            return(NULL);
       }
 
       memcpy(szODWorkString, pszBaseName, nBaseLength);
