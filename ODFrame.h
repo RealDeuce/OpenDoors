@@ -39,8 +39,9 @@
 
 #ifdef ODPLAT_WIN32
 
-/* Public frame window functions. */
+/* Internal frame window functions. */
 tODResult ODFrameStart(HANDLE hInstance, tODThreadHandle *phFrameThread);
+void ODFrameShutdown(tODThreadHandle *phFrameThread);
 INT ODFrameGetUsedClientAtTop(HWND hwndFrame);
 INT ODFrameGetUsedClientAtBottom(HWND hwndFrame);
 BOOL ODFrameTranslateAccelerator(HWND hwndFrame, LPMSG pMsg);

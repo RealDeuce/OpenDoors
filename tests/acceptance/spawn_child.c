@@ -16,7 +16,10 @@ int main(int argc, char **argv)
    }
    if(argc != 3)
    {
+      int index;
       fprintf(stderr, "spawn child received %d arguments, expected 3\n", argc);
+      for(index = 0; index < argc; ++index)
+         fprintf(stderr, "spawn child argv[%d] is '%s'\n", index, argv[index]);
       return(17);
    }
    if(strcmp(argv[1], "argument one") != 0)

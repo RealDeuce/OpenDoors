@@ -1,8 +1,69 @@
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+
 #include <stdlib.h>
 
 #include "test_support.h"
 
 #define LEGACY_SCREEN_BUFFER_SIZE (4U + 80U * 25U * 2U)
+
+#ifdef ODPLAT_WIN32
+static BOOL ODTestCreateSocketPair(SOCKET *pDoorSocket, SOCKET *pPeerSocket)
+{
+   WSADATA socket_data;
+   SOCKET listener = INVALID_SOCKET;
+   SOCKET door_socket = INVALID_SOCKET;
+   SOCKET peer_socket = INVALID_SOCKET;
+   struct sockaddr_in address;
+   int address_size = sizeof(address);
+
+   if(WSAStartup(MAKEWORD(2, 2), &socket_data) != 0)
+      return(FALSE);
+
+   listener = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+   if(listener == INVALID_SOCKET)
+      goto failure;
+
+   memset(&address, 0, sizeof(address));
+   address.sin_family = AF_INET;
+   address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+   if(bind(listener, (struct sockaddr *)&address, sizeof(address)) != 0
+      || listen(listener, 1) != 0
+      || getsockname(listener, (struct sockaddr *)&address,
+         &address_size) != 0)
+   {
+      goto failure;
+   }
+
+   peer_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+   if(peer_socket == INVALID_SOCKET
+      || connect(peer_socket, (struct sockaddr *)&address,
+         sizeof(address)) != 0)
+   {
+      goto failure;
+   }
+
+   door_socket = accept(listener, NULL, NULL);
+   if(door_socket == INVALID_SOCKET)
+      goto failure;
+
+   closesocket(listener);
+   *pDoorSocket = door_socket;
+   *pPeerSocket = peer_socket;
+   return(TRUE);
+
+failure:
+   if(listener != INVALID_SOCKET)
+      closesocket(listener);
+   if(door_socket != INVALID_SOCKET)
+      closesocket(door_socket);
+   if(peer_socket != INVALID_SOCKET)
+      closesocket(peer_socket);
+   WSACleanup();
+   return(FALSE);
+}
+#endif /* ODPLAT_WIN32 */
 
 int main(void)
 {
@@ -15,6 +76,10 @@ int main(void)
    INT row;
    INT column;
    int index;
+#ifdef ODPLAT_WIN32
+   SOCKET door_socket;
+   SOCKET peer_socket;
+#endif
 
    ODTestConfigureLocal();
    od_control.user_ansi = TRUE;
@@ -22,7 +87,11 @@ int main(void)
    od_control.user_screen_length = 30;
    od_control.od_info_type = CUSTOM;
 #ifdef ODPLAT_WIN32
-   od_control.baud = 0;
+   OD_TEST_CHECK(ODTestCreateSocketPair(&door_socket, &peer_socket));
+   od_control.baud = 38400;
+   od_control.od_connect_speed = 38400;
+   od_control.od_use_socket = TRUE;
+   od_control.od_open_handle = (DWORD_PTR)door_socket;
 #else
    od_control.baud = 1;
 #endif
@@ -84,5 +153,9 @@ int main(void)
    fprintf(stderr, "screen: shutting down\n");
    od_exit(0, FALSE);
    fprintf(stderr, "screen: shut down\n");
+#ifdef ODPLAT_WIN32
+   closesocket(peer_socket);
+   WSACleanup();
+#endif
    return(0);
 }

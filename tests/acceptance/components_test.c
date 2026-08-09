@@ -17,7 +17,9 @@ static void CustomConfig(char *keyword, char *options)
       ++custom_calls;
 }
 
-static void ODCALL TestPersonality(BYTE operation)
+static OD_PERSONALITY_PROC TestPersonality;
+
+static void TestPersonality(BYTE operation)
 {
    if(operation == PEROP_INITIALIZE)
       ++personality_initialize_calls;

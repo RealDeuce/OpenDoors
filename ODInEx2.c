@@ -93,6 +93,9 @@ typedef unsigned long tODPrintUInt32;
 #include "ODKrnl.h"
 #include "ODInEx.h"
 #include "ODUtil.h"
+#ifdef ODPLAT_WIN32
+#include "ODFrame.h"
+#endif
 
 
 /* Time difference leeway for door information files to be considered to */
@@ -895,6 +898,12 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 #endif
    /* Shutdown the OpenDoors kernel. */
    ODKrnlShutdown();
+
+#ifdef ODPLAT_WIN32
+   /* Stop the frame and screen message loops before releasing the screen
+    * state they display. */
+   ODFrameShutdown(&hFrameThread);
+#endif /* ODPLAT_WIN32 */
 
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)

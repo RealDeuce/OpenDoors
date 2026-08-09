@@ -19,6 +19,20 @@ option(OPENDOORS_ACCEPTANCE_EXTENDED
     "Run socket-driven interactive acceptance scenarios" OFF)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
+function(opendoors_acceptance_library_path name)
+    if(WIN32)
+        if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.22)
+            set_tests_properties("${name}" PROPERTIES
+                ENVIRONMENT_MODIFICATION
+                    "PATH=path_list_prepend:$<TARGET_FILE_DIR:${OPENDOORS_ACCEPTANCE_LIBRARY}>")
+        else()
+            set_tests_properties("${name}" PROPERTIES
+                ENVIRONMENT
+                    "PATH=$<TARGET_FILE_DIR:${OPENDOORS_ACCEPTANCE_LIBRARY}>")
+        endif()
+    endif()
+endfunction()
+
 function(opendoors_acceptance_test name source)
     add_executable("opendoors_acceptance_${name}" "${source}")
     target_link_libraries("opendoors_acceptance_${name}"
@@ -32,12 +46,16 @@ function(opendoors_acceptance_test name source)
     add_test(NAME "acceptance.${name}"
         COMMAND "opendoors_acceptance_${name}" ${ARGN})
     set_tests_properties("acceptance.${name}" PROPERTIES TIMEOUT 20)
+    opendoors_acceptance_library_path("acceptance.${name}")
 endfunction()
 
 opendoors_acceptance_test(public_surface public_surface_test.c)
 opendoors_acceptance_test(lifecycle lifecycle_test.c)
 opendoors_acceptance_test(command_line command_line_test.c)
 opendoors_acceptance_test(screen screen_test.c)
+if(WIN32)
+    target_link_libraries(opendoors_acceptance_screen PRIVATE ws2_32)
+endif()
 opendoors_acceptance_test(components components_test.c)
 
 add_executable(opendoors_acceptance_dropfiles dropfiles_test.c)
@@ -55,6 +73,7 @@ foreach(format IN ITEMS dorinfo chain sfdoors doorway gap wildcat callinfo
         COMMAND opendoors_acceptance_dropfiles "${format}")
     set_tests_properties("acceptance.dropfiles.${format}" PROPERTIES
         TIMEOUT 20 RESOURCE_LOCK opendoors-dropfiles)
+    opendoors_acceptance_library_path("acceptance.dropfiles.${format}")
 endforeach()
 
 add_executable(opendoors_acceptance_spawn_child spawn_child.c)
@@ -95,4 +114,5 @@ if(OPENDOORS_ACCEPTANCE_EXTENDED)
             "$<TARGET_FILE:opendoors_acceptance_socket_door>")
     set_tests_properties(acceptance.socket PROPERTIES
         TIMEOUT 30 LABELS "acceptance-extended")
+    opendoors_acceptance_library_path(acceptance.socket)
 endif()

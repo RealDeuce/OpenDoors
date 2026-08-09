@@ -169,6 +169,7 @@ typedef struct
 
 /* Handle to the screen window. */
 static HWND hwndScreenWindow;
+volatile DWORD dwScreenThreadID;
 
 /* Does the screen window currently have input focus? */
 BOOL bScreenHasFocus;
@@ -806,6 +807,8 @@ DWORD OD_THREAD_FUNC ODScrnThreadProc(void *pParam)
    HANDLE hInstance = pScrnThreadInfo->hInstance;
    HWND hwndFrame = pScrnThreadInfo->hwndFrame;
 
+   dwScreenThreadID = GetCurrentThreadId();
+
    /* We are now done with the thread startup information structure, */
    /* so deallocate it.                                              */
    free(pScrnThreadInfo);
@@ -856,7 +859,12 @@ DWORD OD_THREAD_FUNC ODScrnThreadProc(void *pParam)
    ODScrnMessageLoop(hInstance, hwndScreen);
 
    /* Destroy the screen window. */
-   DestroyWindow(hwndScreen);
+   if(IsWindow(hwndScreen))
+   {
+      DestroyWindow(hwndScreen);
+   }
+   hwndScreenWindow = NULL;
+   dwScreenThreadID = 0;
 
    return(TRUE);
 }

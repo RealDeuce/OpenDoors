@@ -110,6 +110,9 @@ WNDPROC pfnDefToolbarProc = NULL;
 
 /* Global frame window handle. */
 static HWND hwndCurrentFrame;
+static tODThreadHandle hCurrentScreenThread;
+static volatile DWORD dwFrameThreadID;
+static volatile BOOL bProgrammaticShutdown;
 
 /* Status bar settings. */
 #define NUM_STATUS_PARTS      2
@@ -162,7 +165,6 @@ static HWND ODFrameCreateWindow(HANDLE hInstance)
    HWND hwndFrameWindow = NULL;
    WNDCLASS wcFrameWindow;
    tODFrameWindowInfo *pWindowInfo = NULL;
-   tODThreadHandle hScreenThread;
    HKEY hOpenDoorsKey;
    DWORD cbData;
 
@@ -272,7 +274,7 @@ static HWND ODFrameCreateWindow(HANDLE hInstance)
 
    /* Create the local screen window, which occupies the remaining */
    /* client area of the frame window.                             */
-   ODScrnStartWindow(hInstance, &hScreenThread, hwndFrameWindow);
+   ODScrnStartWindow(hInstance, &hCurrentScreenThread, hwndFrameWindow);
 
    return(hwndFrameWindow);
 }
@@ -714,8 +716,12 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
             ODFrameDestroyStatusBar(GetDlgItem(hwnd, ID_STATUSBAR));
          }
 
-         /* Now, force OpenDoors to shutdown. */
-         ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_DROPTOBBS);
+         /* A user-requested close forces OpenDoors to shut down. During an
+          * ordinary od_exit(), shutdown is already in progress. */
+         if(!bProgrammaticShutdown)
+         {
+            ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_DROPTOBBS);
+         }
 
          /* When the frame window is destroyed, it is the window proc's   */
          /* responsiblity to deallocate the window information structure. */
@@ -1655,6 +1661,8 @@ DWORD OD_THREAD_FUNC ODFrameThreadProc(void *pParam)
    HWND hwndFrame;
    HANDLE hInstance = (HANDLE)pParam;
 
+   dwFrameThreadID = GetCurrentThreadId();
+
    /* Create the frame window. */
    hwndFrame = ODFrameCreateWindow(hInstance);
 
@@ -1670,7 +1678,12 @@ DWORD OD_THREAD_FUNC ODFrameThreadProc(void *pParam)
    ODFrameMessageLoop(hInstance, hwndFrame);
 
    /* Destroy the frame window. */
-   ODFrameDestroyWindow(hwndFrame);
+   if(IsWindow(hwndFrame))
+   {
+      ODFrameDestroyWindow(hwndFrame);
+   }
+
+   dwFrameThreadID = 0;
 
    return(TRUE);
 }
@@ -1689,8 +1702,85 @@ DWORD OD_THREAD_FUNC ODFrameThreadProc(void *pParam)
  */
 tODResult ODFrameStart(HANDLE hInstance, tODThreadHandle *phFrameThread)
 {
+   bProgrammaticShutdown = FALSE;
+   hCurrentScreenThread = NULL;
+   dwFrameThreadID = 0;
+   dwScreenThreadID = 0;
    return(ODThreadCreate(phFrameThread, ODFrameThreadProc,
       (void *)hInstance));
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODFramePostThreadQuit()                           *** PRIVATE FUNCTION ***
+ *
+ * Posts WM_QUIT once a newly-created UI thread has established its message
+ * queue, or returns if the thread has already stopped.
+ */
+static void ODFramePostThreadQuit(tODThreadHandle hThread,
+   volatile DWORD *pdwThreadID)
+{
+   while(WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT)
+   {
+      if(*pdwThreadID != 0
+         && PostThreadMessage(*pdwThreadID, WM_QUIT, 0, 0))
+      {
+         return;
+      }
+      Sleep(1);
+   }
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODFrameShutdown()
+ *
+ * Stops and joins the Win32 frame and screen UI threads. This is separate
+ * from the user-driven frame close path, which requests an OpenDoors exit.
+ */
+void ODFrameShutdown(tODThreadHandle *phFrameThread)
+{
+   tODThreadHandle hFrame;
+   DWORD dwCurrentThreadID = GetCurrentThreadId();
+
+   ASSERT(phFrameThread != NULL);
+
+   hFrame = *phFrameThread;
+   if(hFrame == NULL)
+   {
+      return;
+   }
+
+   bProgrammaticShutdown = TRUE;
+
+   if(hCurrentScreenThread != NULL)
+   {
+      ODFramePostThreadQuit(hCurrentScreenThread, &dwScreenThreadID);
+   }
+   ODFramePostThreadQuit(hFrame, &dwFrameThreadID);
+
+   if(dwFrameThreadID != dwCurrentThreadID)
+   {
+      ODThreadWaitForExit(hFrame);
+   }
+
+   /* The frame thread starts the screen thread, so its handle is stable once
+    * the frame thread has stopped. Signal it again in case it was started
+    * while shutdown was being requested. */
+   if(hCurrentScreenThread != NULL)
+   {
+      ODFramePostThreadQuit(hCurrentScreenThread, &dwScreenThreadID);
+      if(dwScreenThreadID != dwCurrentThreadID)
+      {
+         ODThreadWaitForExit(hCurrentScreenThread);
+      }
+      CloseHandle(hCurrentScreenThread);
+      hCurrentScreenThread = NULL;
+   }
+
+   CloseHandle(hFrame);
+   *phFrameThread = NULL;
+   bProgrammaticShutdown = FALSE;
 }
 
 
