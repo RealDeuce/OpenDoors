@@ -76,7 +76,9 @@ DOS32 delegates the launch to the Open Watcom runtime. The 16-bit build can
 also swap the door to EMS or disk while the child is running.
 
 On Windows, OpenDoors delegates process creation and executable lookup to the
-Microsoft-compatible `_spawnvpe()` runtime. A successful
+Microsoft-compatible `_spawnvpe()` runtime. OpenDoors quotes and escapes each
+argument for that runtime so spaces, quotation marks and backslashes reach the
+child as the single argument string supplied by the caller. A successful
 [`P_NOWAIT`](../constants/general.md#p_nowait) value originates as a native
 process handle, but the public interface narrows it to
 [`INT16`](../types.md#int16); portable code must use it only as a success

@@ -1753,20 +1753,18 @@ void ODFrameShutdown(tODThreadHandle *phFrameThread)
 
    bProgrammaticShutdown = TRUE;
 
-   if(hCurrentScreenThread != NULL)
+   /* ODFrameCreateWindow() starts the screen thread before publishing the
+    * frame handle. Wait for that point so the screen-thread handle cannot
+    * appear after we have checked it. */
+   while(hwndCurrentFrame == NULL
+      && WaitForSingleObject(hFrame, 0) == WAIT_TIMEOUT)
    {
-      ODFramePostThreadQuit(hCurrentScreenThread, &dwScreenThreadID);
-   }
-   ODFramePostThreadQuit(hFrame, &dwFrameThreadID);
-
-   if(dwFrameThreadID != dwCurrentThreadID)
-   {
-      ODThreadWaitForExit(hFrame);
+      Sleep(1);
    }
 
-   /* The frame thread starts the screen thread, so its handle is stable once
-    * the frame thread has stopped. Signal it again in case it was started
-    * while shutdown was being requested. */
+   /* The screen window is a child of the frame but belongs to its own
+    * thread. Let that thread destroy the child before the frame thread
+    * destroys its parent. */
    if(hCurrentScreenThread != NULL)
    {
       ODFramePostThreadQuit(hCurrentScreenThread, &dwScreenThreadID);
@@ -1776,6 +1774,13 @@ void ODFrameShutdown(tODThreadHandle *phFrameThread)
       }
       CloseHandle(hCurrentScreenThread);
       hCurrentScreenThread = NULL;
+   }
+
+   ODFramePostThreadQuit(hFrame, &dwFrameThreadID);
+
+   if(dwFrameThreadID != dwCurrentThreadID)
+   {
+      ODThreadWaitForExit(hFrame);
    }
 
    CloseHandle(hFrame);
