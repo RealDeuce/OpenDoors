@@ -16,6 +16,7 @@ int main(int argc, char **argv)
    remove("ODSIMPLE.OK");
    ODTestConfigureLocal();
    od_init();
+   fprintf(stderr, "spawn: initialized\n");
 
    child_args[0] = argv[1];
 #ifdef ODPLAT_WIN32
@@ -27,7 +28,9 @@ int main(int argc, char **argv)
    child_args[3] = NULL;
    child_environment[0] = "OD_ACCEPT_VALUE=environment value";
    child_environment[1] = NULL;
+   fprintf(stderr, "spawn: running explicit child\n");
    result = od_spawnvpe(P_WAIT, argv[1], child_args, child_environment);
+   fprintf(stderr, "spawn: explicit child returned %d\n", (int)result);
    if(result != 23)
       fprintf(stderr, "od_spawnvpe returned %d (errno %d)\n",
          (int)result, errno);
@@ -40,16 +43,22 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(strlen(argv[1]) + sizeof(" --simple") < sizeof(command));
    strcpy(command, argv[1]);
    strcat(command, " --simple");
+   fprintf(stderr, "spawn: running command-string child\n");
    OD_TEST_CHECK(od_spawn(command));
+   fprintf(stderr, "spawn: command-string child returned\n");
    file = fopen("ODSIMPLE.OK", "r");
    OD_TEST_CHECK(file != NULL);
    OD_TEST_CHECK(fclose(file) == 0);
    remove("ODSIMPLE.OK");
 
    errno = 0;
+   fprintf(stderr, "spawn: running missing child\n");
    result = od_spawnvpe(P_WAIT, "opendoors-acceptance-missing-program",
       child_args, child_environment);
+   fprintf(stderr, "spawn: missing child returned %d\n", (int)result);
    OD_TEST_CHECK(result == -1);
+   fprintf(stderr, "spawn: shutting down\n");
    od_exit(0, FALSE);
+   fprintf(stderr, "spawn: shut down\n");
    return(0);
 }
