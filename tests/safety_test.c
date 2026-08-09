@@ -48,7 +48,7 @@ static void ParseHandleOption(char *option, char *value)
 #ifdef ODPLAT_WIN32
    char command_line[64];
 
-   ODSnprintf(command_line, sizeof(command_line), "%s %s", option, value);
+   (void)Format(command_line, sizeof(command_line), "%s %s", option, value);
    od_parse_cmd_line(command_line);
 #else
    char program[] = "door";

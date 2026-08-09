@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "OpenDoor.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
 #endif
-
-#include "OpenDoor.h"
 
 #ifdef ODPLAT_NIX
 #include <signal.h>
@@ -29,7 +29,12 @@ void ODVCALL ODTextDropFileWrite(tODDropFileWriter *pWriter,
    const char *pszFormat, ...);
 BOOL ODCALL ODDropFileClose(tODDropFileWriter *pWriter);
 
-#define CHECK(condition) do { if(!(condition)) { nResult = __LINE__; goto cleanup; } } while(0)
+#define CHECK(condition) do { if(!(condition)) { \
+   fprintf(stderr, "%s:%d: check failed: %s\n", __FILE__, __LINE__, \
+      #condition); \
+   nResult = __LINE__; \
+   goto cleanup; \
+} } while(0)
 
 int main(void)
 {

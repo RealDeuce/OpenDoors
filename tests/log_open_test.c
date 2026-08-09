@@ -3,13 +3,14 @@
 #include <string.h>
 #include <time.h>
 
+#include "OpenDoor.h"
+
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
 #endif
 
-#include "OpenDoor.h"
 #ifdef ODPLAT_NIX
 #include <signal.h>
 #include <sys/resource.h>
