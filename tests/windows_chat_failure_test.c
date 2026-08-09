@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 
@@ -8,7 +9,11 @@
 #include "ODKrnl.h"
 #include "ODSync.h"
 
-#define CHECK(condition) do { if(!(condition)) return(__LINE__); } while(0)
+#define CHECK(condition) do { if(!(condition)) { \
+   fprintf(stderr, "%s:%d: check failed: %s\n", __FILE__, __LINE__, \
+      #condition); \
+   return(__LINE__); \
+} } while(0)
 
 static DWORD dwOwnerThread;
 static BOOL bTimerCallbackOnOwner;

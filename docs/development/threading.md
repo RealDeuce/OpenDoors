@@ -48,7 +48,10 @@ Windows uses three cooperative kernel workers:
 The frame and screen threads own their Win32 windows and message queues. They
 post application-affecting commands to the owner dispatcher. The screen
 thread reads the virtual local-screen image under the session-state read lock;
-it never changes terminal state.
+it never changes terminal state. While waiting for the screen thread to
+publish its child window, the frame thread continues to dispatch messages:
+Win32 child creation and resizing can synchronously notify the parent, and a
+plain blocking wait on the frame thread would deadlock that exchange.
 
 No worker is stopped with `TerminateThread()`, `SuspendThread()`, or an
 equivalent asynchronous cancellation operation. `_beginthreadex()` creates

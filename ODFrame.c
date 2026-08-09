@@ -1183,7 +1183,7 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
       case WM_REMOVE_MESSAGE:
          if(pWindowInfo->hwndMessageWindow != NULL)
          {
-            PostMessage(pWindowInfo->hwndMessageWindow, WM_COMMAND,
+            SendMessage(pWindowInfo->hwndMessageWindow, WM_COMMAND,
                MAKELONG(IDOK, 0), 0L);
             pWindowInfo->hwndMessageWindow = NULL;
          }

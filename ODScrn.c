@@ -260,6 +260,8 @@ static void ODScrnInvalidate(BYTE btLeft, BYTE btTop, BYTE btRight,
    BYTE btBottom);
 static void ODScrnSetCurrentFont(HWND hwndScreen, HFONT hNewFont);
 static void ODScrnSetWinCaretPos(void);
+static BOOL ODScrnWaitWithMessages(HANDLE hObject, HWND hwndFrame,
+   DWORD dwTimeout);
 
 
 /* ----------------------------------------------------------------------------
@@ -950,15 +952,15 @@ tODResult ODScrnStartWindow(HANDLE hInstance, tODThreadHandle *phScreenThread,
       return(Result);
    }
 
-   dwWaitResult = WaitForSingleObject(hScreenStartedEvent,
-      OD_SCREEN_THREAD_TIMEOUT);
+   dwWaitResult = ODScrnWaitWithMessages(hScreenStartedEvent, hwndFrame,
+      OD_SCREEN_THREAD_TIMEOUT) ? WAIT_OBJECT_0 : WAIT_TIMEOUT;
    if(dwWaitResult == WAIT_OBJECT_0)
    {
       CloseHandle(hScreenStartedEvent);
       hScreenStartedEvent = NULL;
       if(ScreenStartResult != kODRCSuccess)
       {
-         ODThreadWaitForExit(*phScreenThread);
+         (void)ODScrnWaitWithMessages(*phScreenThread, hwndFrame, INFINITE);
          CloseHandle(*phScreenThread);
          *phScreenThread = NULL;
       }
@@ -968,15 +970,70 @@ tODResult ODScrnStartWindow(HANDLE hInstance, tODThreadHandle *phScreenThread,
    /* Do not abandon a thread which may later touch the frame or session.
     * The deadline makes startup fail, but cooperative cleanup must still
     * wait until the thread has published its result and can be stopped. */
-   WaitForSingleObject(hScreenStartedEvent, INFINITE);
+   (void)ODScrnWaitWithMessages(hScreenStartedEvent, hwndFrame, INFINITE);
    if(ScreenStartResult == kODRCSuccess && dwScreenThreadID != 0)
       PostThreadMessage(dwScreenThreadID, WM_QUIT, 0, 0);
-   ODThreadWaitForExit(*phScreenThread);
+   (void)ODScrnWaitWithMessages(*phScreenThread, hwndFrame, INFINITE);
    CloseHandle(*phScreenThread);
    *phScreenThread = NULL;
    CloseHandle(hScreenStartedEvent);
    hScreenStartedEvent = NULL;
    return(kODRCGeneralFailure);
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODScrnWaitWithMessages()                         *** PRIVATE FUNCTION ***
+ *
+ * Waits for a screen-thread object while continuing to dispatch messages for
+ * the frame thread. Creating or resizing a child window can synchronously
+ * notify its parent, so blocking the parent thread in WaitForSingleObject()
+ * deadlocks screen startup.
+ */
+static BOOL ODScrnWaitWithMessages(HANDLE hObject, HWND hwndFrame,
+   DWORD dwTimeout)
+{
+   DWORD dwStart = GetTickCount();
+   DWORD dwRemaining;
+   DWORD dwWaitResult;
+   MSG msg;
+
+   for(;;)
+   {
+      if(dwTimeout == INFINITE)
+      {
+         dwRemaining = INFINITE;
+      }
+      else
+      {
+         DWORD dwElapsed = GetTickCount() - dwStart;
+         if(dwElapsed >= dwTimeout)
+            dwRemaining = 0;
+         else
+            dwRemaining = dwTimeout - dwElapsed;
+      }
+
+      dwWaitResult = MsgWaitForMultipleObjects(1, &hObject, FALSE,
+         dwRemaining, QS_ALLINPUT);
+      if(dwWaitResult == WAIT_OBJECT_0)
+         return(TRUE);
+      if(dwWaitResult != WAIT_OBJECT_0 + 1)
+         return(FALSE);
+
+      while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+      {
+         if(msg.message == WM_QUIT)
+         {
+            PostQuitMessage((int)msg.wParam);
+            return(FALSE);
+         }
+         if(!ODFrameTranslateAccelerator(hwndFrame, &msg))
+         {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+         }
+      }
+   }
 }
 
 
