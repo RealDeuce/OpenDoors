@@ -140,7 +140,7 @@ int main(void)
    CHECK(setrlimit(RLIMIT_FSIZE, &Limited) == 0);
    bLimitActive = 1;
    od_control.od_error = ERR_NONE;
-   CHECK(ODDropFileWrite(&Writer, abBinaryData, sizeof(abBinaryData)));
+   (void)ODDropFileWrite(&Writer, abBinaryData, sizeof(abBinaryData));
    CHECK(!ODDropFileClose(&Writer));
    CHECK(Writer.pFile == NULL);
    CHECK(od_control.od_error == ERR_GENERALFAILURE);
