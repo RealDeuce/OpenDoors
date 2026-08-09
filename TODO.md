@@ -1,5 +1,56 @@
 # OpenDoors TODO
 
+## Defects found during Windows acceptance testing
+
+- [ ] Give every Windows thread handle an explicit owner and complete
+  lifecycle. `ODKrnlInitialize()` duplicates the client-thread handle each
+  time it runs, while kernel shutdown overwrites or retains remote-input and
+  carrier thread handles without closing them. The chat path likewise clears
+  `hChatThread` after a wait without closing the handle, and ordinary kernel
+  shutdown does not stop an active chat thread before screen and input state
+  are released.
+
+- [ ] Propagate and unwind partial Windows worker initialization.
+  `ODInit()` ignores the results from both `ODFrameStart()` and
+  `ODKrnlInitialize()`. Failures while allocating the activation semaphore,
+  creating a later worker, or assigning its support objects return without
+  stopping earlier workers or releasing handles. `ODFrameCreateWindow()` also
+  ignores failure to start its screen worker, and `ODScrnStartWindow()` leaks
+  its startup record when thread creation fails. A subsequent initialization
+  can overwrite the only references to the surviving resources.
+
+- [ ] Synchronize publication and shutdown of the frame and screen threads.
+  The frame window, screen-thread handle, thread IDs, and programmatic-shutdown
+  flag are shared between threads through plain or `volatile` objects.
+  `volatile` does not establish ordering or atomic ownership, and the current
+  shutdown path polls those objects indefinitely while retrying
+  `PostThreadMessage()`. Replace the polling protocol with explicit startup
+  and shutdown events and define a bounded failure path.
+
+- [ ] Close Win32 semaphore handles with `CloseHandle()`.
+  `ODSemaphoreFree()` currently passes a kernel semaphore handle to the GDI
+  `DeleteObject()` function. The call does not release the semaphore, so every
+  nominal free leaks the handle.
+
+- [ ] Make forced shutdown safe when `od_noexit` is enabled. A kernel worker
+  sets `bKernelActive` before calling `od_exit()`, causing `ODKrnlShutdown()`
+  to return without stopping any kernel threads. Ordinarily the process exits
+  immediately and masks the incomplete teardown; with `od_noexit`, execution
+  can continue after queues, communications, and screen resources have been
+  released while workers still reference them.
+
+- [x] Stop the Windows kernel timer cooperatively before tearing down the
+  session. It was previously killed with `TerminateThread()` without a join,
+  allowing `od_exit()` to free input and screen state while the timer still
+  used it. The timer now waits on a shutdown event and its handle is joined
+  and closed before teardown continues.
+
+- [x] Allow Windows `od_spawn()` to launch executable paths longer than 79
+  characters. The program-name split used a fixed 80-byte local buffer, so a
+  valid longer path was truncated before `_spawnvpe()` attempted to find it.
+  The split now allocates exactly enough internal storage without changing
+  the established first-space parsing behavior.
+
 ## Defects found during the documentation audit
 
 - [x] Correct the popup-menu level bounds check in `od_popup_menu()`.

@@ -133,6 +133,9 @@ DWORD OD_THREAD_FUNC ODKrnlChatThread(void *pParam);
 /* Helper functions. */
 static void ODKrnlWaitForExclusiveControl(void);
 static void ODKrnlGiveUpExclusiveControl(void);
+#ifdef ODPLAT_WIN32
+static void ODKrnlJoinWindowsThread(tODThreadHandle *phThread);
+#endif /* ODPLAT_WIN32 */
 #endif /* OD_MULTITHREADED */
 
 /* Local working variables. */
@@ -142,6 +145,9 @@ static tODThreadHandle hNoCarrierThread = NULL;
 static tODThreadHandle hTimeUpdateThread = NULL;
 static tODThreadHandle hClientThread = NULL;
 static tODThreadHandle hChatThread = NULL;
+#ifdef ODPLAT_WIN32
+static HANDLE hKernelShutdownEvent = NULL;
+#endif /* ODPLAT_WIN32 */
 static BOOL bHaveExclusiveControl;
 static BOOL bChatActivatedInternally;
 #endif /* OD_MULTITHREADED */
@@ -290,6 +296,16 @@ tODResult ODKrnlInitialize(void)
    /* Obtain a handle to the client thread. */
    hClientThread = ODThreadGetCurrent();
 
+#ifdef ODPLAT_WIN32
+   /* Create an event which allows the timer thread to stop without being
+    * terminated while it may be using OpenDoors state. */
+   hKernelShutdownEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+   if(hKernelShutdownEvent == NULL)
+   {
+      return(kODRCGeneralFailure);
+   }
+#endif /* ODPLAT_WIN32 */
+
    /* Create OpenDoors activation semaphore. */
    if(hODActiveSemaphore == NULL)
    {
@@ -340,6 +356,13 @@ void ODKrnlShutdown(void)
    if(bKernelActive) return;
 
 #ifdef OD_MULTITHREADED
+#ifdef ODPLAT_WIN32
+   /* Wake the timer thread before stopping the other kernel threads. */
+   if(hKernelShutdownEvent != NULL)
+   {
+      SetEvent(hKernelShutdownEvent);
+   }
+#endif /* ODPLAT_WIN32 */
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
       MessageBox(NULL, "Terminating remote input thread", "OpenDoors Diagnostics", MB_OK);
@@ -359,7 +382,16 @@ void ODKrnlShutdown(void)
       MessageBox(NULL, "Terminating time update thread", "OpenDoors Diagnostics", MB_OK);
 #endif
    /* Shutdown the time update thread, if it exists. */
+#ifdef ODPLAT_WIN32
+   ODKrnlJoinWindowsThread(&hTimeUpdateThread);
+   if(hKernelShutdownEvent != NULL)
+   {
+      CloseHandle(hKernelShutdownEvent);
+      hKernelShutdownEvent = NULL;
+   }
+#else
    if(hTimeUpdateThread != NULL) ODThreadTerminate(hTimeUpdateThread);
+#endif /* ODPLAT_WIN32 */
 
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
@@ -1146,6 +1178,13 @@ DWORD OD_THREAD_FUNC ODKrnlNoCarrierThread(void *pParam)
  */
 DWORD OD_THREAD_FUNC ODKrnlTimeUpdateThread(void *pParam)
 {
+#ifdef ODPLAT_WIN32
+   while(WaitForSingleObject(hKernelShutdownEvent,
+      TIME_UPDATE_THREAD_SLEEP_TIME) == WAIT_TIMEOUT)
+   {
+      ODKrnlTimeUpdate();
+   }
+#else
    /* We keep looping until someone else terminates this thread. */
    for(;;)
    {
@@ -1155,9 +1194,30 @@ DWORD OD_THREAD_FUNC ODKrnlTimeUpdateThread(void *pParam)
       /* Now, perform time update. */
       ODKrnlTimeUpdate();
    }
+#endif /* ODPLAT_WIN32 */
 
    return(0);
 }
+
+
+#ifdef ODPLAT_WIN32
+/* ----------------------------------------------------------------------------
+ * ODKrnlJoinWindowsThread()                           *** PRIVATE FUNCTION ***
+ *
+ * Joins and releases a Windows kernel thread after it has been told to stop.
+ */
+static void ODKrnlJoinWindowsThread(tODThreadHandle *phThread)
+{
+   if(*phThread == NULL)
+   {
+      return;
+   }
+
+   ODThreadWaitForExit(*phThread);
+   CloseHandle(*phThread);
+   *phThread = NULL;
+}
+#endif /* ODPLAT_WIN32 */
 
 
 /* ----------------------------------------------------------------------------

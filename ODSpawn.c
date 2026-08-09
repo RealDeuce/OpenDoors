@@ -197,16 +197,25 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
 #endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 #ifdef ODPLAT_WIN32
+   BOOL bSpawned;
    char *pch;
    const char *apszArgs[3];
-   char szProgName[80];
+   char *pszProgName;
+   size_t nProgNameLength;
 
    /* Build command and arguments list. */
    /* Build program name. */
-   ODStringCopy(szProgName, pszCommandLine, sizeof(szProgName));
-   pch = strchr(szProgName, ' ');
-   if(pch != NULL) *pch = '\0';
-   apszArgs[0] = szProgName;
+   pch = strchr(pszCommandLine, ' ');
+   nProgNameLength = pch == NULL
+      ? strlen(pszCommandLine) : (size_t)(pch - pszCommandLine);
+   pszProgName = malloc(nProgNameLength + 1);
+   if(pszProgName == NULL)
+   {
+      return(FALSE);
+   }
+   memcpy(pszProgName, pszCommandLine, nProgNameLength);
+   pszProgName[nProgNameLength] = '\0';
+   apszArgs[0] = pszProgName;
 
    /* Build arguments. */
    pch = strchr(pszCommandLine, ' ');
@@ -221,7 +230,9 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
    }
 
    /* Now, call od_spawnvpe(). */
-   return(od_spawnvpe(P_WAIT, szProgName, apszArgs, NULL) != -1);
+   bSpawned = od_spawnvpe(P_WAIT, pszProgName, apszArgs, NULL) != -1;
+   free(pszProgName);
+   return(bSpawned);
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
