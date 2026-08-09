@@ -51,12 +51,14 @@ an issue is not treated as a contract change until it is resolved deliberately.
 
 ## Windows thread lifecycle
 
-- [ ] Review `CreateThread()` use by workers which call the C runtime.
+- [x] Review `CreateThread()` use by workers which call the C runtime.
   Frame, screen, kernel, and chat workers allocate memory, perform formatted
   I/O, and use other runtime facilities after being created by
   `CreateThread()`. Determine whether each supported Microsoft and MinGW
   runtime requires `_beginthreadex()`/`_endthreadex()` for correct per-thread
   runtime initialization and cleanup, including the static-runtime builds.
+  Windows workers are now created with `_beginthreadex()` and return through
+  its runtime-managed thread wrapper.
 
 ## Resolved during acceptance-suite development
 

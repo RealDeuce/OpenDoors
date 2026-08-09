@@ -392,6 +392,7 @@ ODAPIDEF BOOL ODCALL od_set_port(INT nPort)
 ODAPIDEF void ODCALL od_init(void)
 {
    BYTE btCount;
+   tODResult Result;
    FILE *pfDropFile=NULL;
    char *pointer;
    INT nFound = FOUND_NONE;
@@ -414,6 +415,14 @@ ODAPIDEF void ODCALL od_init(void)
       /* If OpenDoors has already been initialized, then return without */
       /* doing anything.                                                */
       if(bODInitialized) return;
+
+      Result = ODSyncSessionInitialize();
+      if(Result != kODRCSuccess)
+      {
+         od_control.od_error = ERR_GENERALFAILURE;
+         ODInitError("Unable to initialize OpenDoors synchronization.");
+         return;
+      }
 
       /* Otherwise, set the initialized flag so that od_init() won't be */
       /* run again.                                                     */
@@ -2112,6 +2121,7 @@ void ODInitApplyUserInfo(const struct passwd *pUserInfo)
 static void ODInitPartTwo(void)
 {
    BYTE btCount;
+   tODResult Result;
 #ifdef ODPLAT_NIX
    struct termios term;
    struct passwd  *uinfo;
@@ -2487,20 +2497,17 @@ malloc_error:
       od_clr_scr();
    }
 
-#ifdef ODPLAT_WIN32
-   /* Startup the OpenDoors frame window, if we are not operating in silent */
-   /* mode.                                                                 */
-   if(!od_control.od_silent_mode)
+#ifndef OD_MULTITHREADED
+   /* Non-threaded kernels retain their established initialization point. */
+   Result = ODKrnlInitialize();
+   if(Result != kODRCSuccess)
    {
-      HANDLE h = GetModuleHandle(OD_DLL_NAME);
-      if (h == NULL)
-         h = GetModuleHandle(NULL);
-      ODFrameStart(h, &hFrameThread);
+      od_control.od_error = ERR_GENERALFAILURE;
+      bODInitialized = FALSE;
+      ODInitError("Unable to start the OpenDoors kernel.");
+      return;
    }
-#endif /* ODPLAT_WIN32 */
-
-   /* Initialize the OpenDoors kernel. */
-   ODKrnlInitialize();
+#endif /* !OD_MULTITHREADED */
 
 #ifndef ODPLAT_WIN32
 #ifdef ODPLAT_NIX
@@ -2621,6 +2628,40 @@ no_default:
    {
        (*(OD_COMPONENT_CALLBACK *)od_control.od_logfile)();
    }
+
+#ifdef OD_MULTITHREADED
+   /* Publish the completed session to workers only after initialization and
+    * its application callbacks can no longer modify shared state. */
+   Result = ODKrnlInitialize();
+   if(Result != kODRCSuccess)
+   {
+      od_control.od_error = ERR_GENERALFAILURE;
+      bODInitialized = FALSE;
+      ODInitError("Unable to start the OpenDoors kernel.");
+      return;
+   }
+
+#ifdef ODPLAT_WIN32
+   /* Start the Windows command UI after the owner dispatcher is ready. */
+   if(!od_control.od_silent_mode)
+   {
+      HANDLE h = GetModuleHandle(OD_DLL_NAME);
+      if(h == NULL)
+         h = GetModuleHandle(NULL);
+      Result = ODFrameStart(h, &hFrameThread);
+      if(Result != kODRCSuccess)
+      {
+         ODKrnlShutdown();
+         od_control.od_error = ERR_GENERALFAILURE;
+         bODInitialized = FALSE;
+         ODInitError("Unable to start the OpenDoors local window.");
+         return;
+      }
+   }
+#endif /* ODPLAT_WIN32 */
+#endif /* OD_MULTITHREADED */
+
+   ODSyncInitializationComplete();
 }
 
 
@@ -2690,15 +2731,25 @@ INT_PTR CALLBACK ODInitLoginDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
    switch(uMsg)
    {
       case WM_INITDIALOG:
+      {
+         char szProgramName[sizeof(od_control.od_prog_name)];
+         char szUserName[sizeof(od_control.user_name)];
+
+         ODSyncControlReadLock();
+         ODStringCopy(szProgramName, od_control.od_prog_name,
+            sizeof(szProgramName));
+         ODStringCopy(szUserName, od_control.user_name, sizeof(szUserName));
+         ODSyncControlReadUnlock();
+
          ODFrameCenterWindowInParent(hwndDlg);
 
          /* Set the title of the dialog box to the name of this program. */
-         SetWindowText(hwndDlg, od_control.od_prog_name);
+         SetWindowText(hwndDlg, szProgramName);
 
          /* The initial text in the user name dialog box should be the */
          /* default user name.                                         */
          SetWindowText(GetDlgItem(hwndDlg, IDC_USER_NAME),
-            od_control.user_name);
+            szUserName);
 
          /* Limit the number of characters that may be entered as the */
          /* user's name to the maximum size of the string.            */
@@ -2706,22 +2757,30 @@ INT_PTR CALLBACK ODInitLoginDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
             sizeof(od_control.user_name), 0L);
 
          return(TRUE);
+      }
 
       case WM_COMMAND:
          /* If a command has been chosen. */
          switch(LOWORD(wParam))
          {
             case IDOK:
+            {
+               char szUserName[sizeof(od_control.user_name)];
                /* If the OK button has been pressed, obtain the entered */
                /* user name.                                            */
                GetWindowText(GetDlgItem(hwndDlg, IDC_USER_NAME),
-                  od_control.user_name, sizeof(od_control.user_name));
-               ODStringCopy(od_control.user_handle, od_control.user_name,
+                  szUserName, sizeof(szUserName));
+               ODSyncControlWriteLock();
+               ODStringCopy(od_control.user_name, szUserName,
                   sizeof(od_control.user_name));
+               ODStringCopy(od_control.user_handle, od_control.user_name,
+                  sizeof(od_control.user_handle));
+               ODSyncControlWriteUnlock();
 
                /* Now close the dialog. */
                EndDialog(hwndDlg, IDOK);
                break;
+            }
 
             case IDCANCEL:
                /* If the Cancel button has benn pressed, close the dialog. */

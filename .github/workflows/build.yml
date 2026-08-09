@@ -217,6 +217,28 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+  pthread-kernel:
+    name: Experimental pthread kernel
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure
+        run: >-
+          cmake
+          -S .
+          -B build
+          -DCMAKE_BUILD_TYPE=Debug
+          -DOPENDOORS_ENABLE_PTHREAD_KERNEL=ON
+          -DOPENDOORS_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
   package:
     name: Installed package (${{ matrix.variant }})
     runs-on: ubuntu-latest

@@ -2973,7 +2973,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
             return (kODRCNothingWaiting);
          else if (i == -1 || !(pfd.revents & POLLIN)) {
 #ifdef OD_MULTITHREADED
-            if (i == -1 || pfd.revents & (POLLERR | POLLHUP | POLLRDHUP | POLLINVAL))
+            if (i == -1 || pfd.revents & (POLLERR | POLLHUP | POLLRDHUP | POLLNVAL))
                ODSemaphoreUp(pPortInfo->hCarrierLostSemaphore, 1);
 #endif
             return (kODRCGeneralFailure);
@@ -2990,7 +2990,11 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 #endif
                return (kODRCGeneralFailure);
             }
+#ifdef OD_MULTITHREADED
+            ODThreadSleep(50);
+#else
             od_sleep(50);
+#endif
          } while (bWait);
 
          if (recv_ret == 0)
@@ -3305,7 +3309,11 @@ keep_going:
 			do {
 				send_ret = send(pPortInfo->socket, (char*)&btToSend, 1, 0);
 				if (send_ret != 1)
+#ifdef OD_MULTITHREADED
+					ODThreadSleep(50);
+#else
 					od_sleep(50);
+#endif
 			} while ((send_ret == SOCKET_ERROR) && (WSAGetLastError() == WSAEWOULDBLOCK));
 
 			if (send_ret == SOCKET_ERROR)
@@ -3881,7 +3889,11 @@ try_again:
 				send_ret = send(pPortInfo->socket, (char*)buf, nSize, 0);
 				if (send_ret != SOCKET_ERROR)
 					break;
+#ifdef OD_MULTITHREADED
+				ODThreadSleep(25);
+#else
 				od_sleep(25);
+#endif
 			} while (WSAGetLastError() == WSAEWOULDBLOCK);
 
 			if (send_ret != nSize) {
@@ -3925,7 +3937,11 @@ try_again:
 
 				retval=fwrite(buf+pos,1,nSize-pos,stdout);
 				if(retval!=nSize-pos) {
+#ifdef OD_MULTITHREADED
+					ODThreadSleep(1);
+#else
 					od_sleep(1);
+#endif
 				}
 
 				pos+=retval;

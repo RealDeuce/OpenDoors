@@ -374,7 +374,12 @@ keep_going:
 get_another_key:
       /* Block, waiting for the next key pressed by the user. */
 
-      od_get_input(&InputEvent, OD_NO_TIMEOUT, GETIN_NORMAL);
+      if(!od_get_input(&InputEvent, OD_NO_TIMEOUT, GETIN_NORMAL))
+      {
+         strcpy(pszCurrentInput, szCurrentOriginalString);
+         wToReturn = EDIT_RETURN_CANCEL;
+         goto exit_without_redraw;
+      }
       
       /* Increment total number of keystrokes. */
       ++nKeysPressed;
@@ -935,6 +940,7 @@ exit_and_redraw:
       }
    }
 
+exit_without_redraw:
    /* Release exclusive use of arrow keys. */
    ODStatEndArrowUse();
 

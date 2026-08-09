@@ -82,6 +82,7 @@ set(OPENDOORS_DOS_SOURCES
     ODSpawn.c
     ODStand.c
     ODStat.c
+    ODSync.c
     ODUtil.c
     ODWCat.c
     ODWin.c

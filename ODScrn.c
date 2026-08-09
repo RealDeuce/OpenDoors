@@ -81,6 +81,7 @@
 #include "ODInEx.h"
 #include "ODFormat.h"
 #include "ODSafe.h"
+#include "ODSync.h"
 #include "ODVScrn.h"
 #ifdef ODPLAT_WIN32
 #include "ODKrnl.h"
@@ -169,7 +170,10 @@ typedef struct
 
 /* Handle to the screen window. */
 static HWND hwndScreenWindow;
-volatile DWORD dwScreenThreadID;
+DWORD dwScreenThreadID;
+static HANDLE hScreenStartedEvent;
+static tODResult ScreenStartResult;
+#define OD_SCREEN_THREAD_TIMEOUT 10000
 
 /* Does the screen window currently have input focus? */
 BOOL bScreenHasFocus;
@@ -520,6 +524,11 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    ASSERT(nRight >= nLeft);
    ASSERT(nBottom >= nTop);
 
+   /* The session-owner thread updates the virtual local screen while this
+    * presentation thread reads it. The od_control lock is also the session
+    * state lock, so a paint sees one complete API operation. */
+   ODSyncControlReadLock();
+
    /* Ensure that parameters are within valid range. */
    if(nRight >= OD_SCREEN_WIDTH) nRight = OD_SCREEN_WIDTH - 1;
    if(nBottom >= OD_SCREEN_HEIGHT) nBottom = OD_SCREEN_HEIGHT - 1;
@@ -586,6 +595,7 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    /* Restore the device context to its original state before this function */
    /* was called.                                                           */
    RestoreDC(hdc, nIDSavedState);
+   ODSyncControlReadUnlock();
 }
 
 
@@ -802,12 +812,16 @@ static void ODScrnMessageLoop(HANDLE hInstance, HWND hwndScreen)
  */
 DWORD OD_THREAD_FUNC ODScrnThreadProc(void *pParam)
 {
+   MSG msg;
+   INT nCancelErrorLevel;
+   INT nCmdShow;
    tODScrnThreadInfo *pScrnThreadInfo = (tODScrnThreadInfo *)pParam;
    HWND hwndScreen;
    HANDLE hInstance = pScrnThreadInfo->hInstance;
    HWND hwndFrame = pScrnThreadInfo->hwndFrame;
 
    dwScreenThreadID = GetCurrentThreadId();
+   PeekMessage(&msg, NULL, WM_USER, WM_USER, PM_NOREMOVE);
 
    /* We are now done with the thread startup information structure, */
    /* so deallocate it.                                              */
@@ -818,8 +832,15 @@ DWORD OD_THREAD_FUNC ODScrnThreadProc(void *pParam)
 
    if(hwndScreen == NULL)
    {
+      ScreenStartResult = kODRCGeneralFailure;
+      SetEvent(hScreenStartedEvent);
+      dwScreenThreadID = 0;
       return(FALSE);
    }
+
+   hwndScreenWindow = hwndScreen;
+   ScreenStartResult = kODRCSuccess;
+   SetEvent(hScreenStartedEvent);
 
    /* Set the current font for the window. This, in turn will force the  */
    /* window to be adjusted to the appropriate size, and will adjust the */
@@ -833,7 +854,10 @@ DWORD OD_THREAD_FUNC ODScrnThreadProc(void *pParam)
       if(DialogBox(hInstance, MAKEINTRESOURCE(IDD_LOGIN), hwndFrame,
          ODInitLoginDlgProc) == IDCANCEL)
       {
-         exit(od_control.od_errorlevel[1]);
+         ODSyncControlReadLock();
+         nCancelErrorLevel = od_control.od_errorlevel[1];
+         ODSyncControlReadUnlock();
+         exit(nCancelErrorLevel);
       }
 
       PostMessage(hwndScreen, WM_SETFOCUS, 0, 0L);
@@ -841,9 +865,11 @@ DWORD OD_THREAD_FUNC ODScrnThreadProc(void *pParam)
 #endif /* ODPLAT_WIN32 */
 
    /* Now, we can make the frame window visible. */
-   if(od_control.od_cmd_show == SW_MINIMIZE ||
-      od_control.od_cmd_show == SW_SHOWMINIMIZED ||
-      od_control.od_cmd_show == SW_SHOWMINNOACTIVE)
+   ODSyncControlReadLock();
+   nCmdShow = od_control.od_cmd_show;
+   ODSyncControlReadUnlock();
+   if(nCmdShow == SW_MINIMIZE || nCmdShow == SW_SHOWMINIMIZED ||
+      nCmdShow == SW_SHOWMINNOACTIVE)
    {
       ShowWindow(hwndFrame, SW_SHOWMINNOACTIVE);
    }
@@ -889,6 +915,8 @@ tODResult ODScrnStartWindow(HANDLE hInstance, tODThreadHandle *phScreenThread,
    HWND hwndFrame)
 {
    tODScrnThreadInfo *pScrnThreadInfo;
+   tODResult Result;
+   DWORD dwWaitResult;
 
    ASSERT(hInstance != NULL);
    ASSERT(phScreenThread != NULL);
@@ -903,9 +931,76 @@ tODResult ODScrnStartWindow(HANDLE hInstance, tODThreadHandle *phScreenThread,
    pScrnThreadInfo->hInstance = hInstance;
    pScrnThreadInfo->hwndFrame = hwndFrame;
 
+   ScreenStartResult = kODRCGeneralFailure;
+   hScreenStartedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+   if(hScreenStartedEvent == NULL)
+   {
+      free(pScrnThreadInfo);
+      return(kODRCGeneralFailure);
+   }
+
    /* Create the screen thread. */
-   return(ODThreadCreate(phScreenThread, ODScrnThreadProc,
-      pScrnThreadInfo));
+   Result = ODThreadCreate(phScreenThread, ODScrnThreadProc,
+      pScrnThreadInfo);
+   if(Result != kODRCSuccess)
+   {
+      free(pScrnThreadInfo);
+      CloseHandle(hScreenStartedEvent);
+      hScreenStartedEvent = NULL;
+      return(Result);
+   }
+
+   dwWaitResult = WaitForSingleObject(hScreenStartedEvent,
+      OD_SCREEN_THREAD_TIMEOUT);
+   if(dwWaitResult == WAIT_OBJECT_0)
+   {
+      CloseHandle(hScreenStartedEvent);
+      hScreenStartedEvent = NULL;
+      if(ScreenStartResult != kODRCSuccess)
+      {
+         ODThreadWaitForExit(*phScreenThread);
+         CloseHandle(*phScreenThread);
+         *phScreenThread = NULL;
+      }
+      return(ScreenStartResult);
+   }
+
+   /* Do not abandon a thread which may later touch the frame or session.
+    * The deadline makes startup fail, but cooperative cleanup must still
+    * wait until the thread has published its result and can be stopped. */
+   WaitForSingleObject(hScreenStartedEvent, INFINITE);
+   if(ScreenStartResult == kODRCSuccess && dwScreenThreadID != 0)
+      PostThreadMessage(dwScreenThreadID, WM_QUIT, 0, 0);
+   ODThreadWaitForExit(*phScreenThread);
+   CloseHandle(*phScreenThread);
+   *phScreenThread = NULL;
+   CloseHandle(hScreenStartedEvent);
+   hScreenStartedEvent = NULL;
+   return(kODRCGeneralFailure);
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODScrnStopWindow()
+ *
+ * Cooperatively stops and joins the Windows screen thread. Teardown does not
+ * continue while a thread can still read released session state.
+ */
+void ODScrnStopWindow(tODThreadHandle *phScreenThread)
+{
+   ASSERT(phScreenThread != NULL);
+   if(*phScreenThread == NULL) return;
+
+   if(dwScreenThreadID != 0)
+      PostThreadMessage(dwScreenThreadID, WM_QUIT, 0, 0);
+   ODThreadWaitForExit(*phScreenThread);
+   if(hScreenStartedEvent != NULL)
+   {
+      CloseHandle(hScreenStartedEvent);
+      hScreenStartedEvent = NULL;
+   }
+   CloseHandle(*phScreenThread);
+   *phScreenThread = NULL;
 }
 
 
@@ -2756,11 +2851,22 @@ void *ODScrnShowMessage(char *pszText, int nFlags)
    if(od_control.od_silent_mode) return(NULL);
 
 #ifdef ODPLAT_WIN32
+   char *pszMessageCopy;
+   size_t nMessageLength;
+
+   nMessageLength = strlen(pszText) + 1;
+   pszMessageCopy = (char *)malloc(nMessageLength);
+   if(pszMessageCopy == NULL)
+      return(NULL);
+   memcpy(pszMessageCopy, pszText, nMessageLength);
 
    /* Place a message in the frame window's message queue, asking it to  */
    /* create the message window.                                         */
-   PostMessage(GetParent(hwndScreenWindow), WM_SHOW_MESSAGE, (WPARAM)nFlags,
-      (LPARAM)pszText);
+   if(!PostMessage(GetParent(hwndScreenWindow), WM_SHOW_MESSAGE,
+      (WPARAM)nFlags, (LPARAM)pszMessageCopy))
+   {
+      free(pszMessageCopy);
+   }
 
    return(NULL);
 
@@ -2817,7 +2923,7 @@ void ODScrnRemoveMessage(void *pMessageInfo)
 #ifdef ODPLAT_WIN32
    /* Place a message in the frame window's message queue, asking it to  */
    /* remove the message window.                                         */
-   SendMessage(GetParent(hwndScreenWindow), WM_REMOVE_MESSAGE, 0, 0L);
+   PostMessage(GetParent(hwndScreenWindow), WM_REMOVE_MESSAGE, 0, 0L);
 #else /* !ODPLAT_WIN32 */
    /* If pMessageInfo is NULL, then we do nothing. */
    if(pMessageInfo == NULL) return;

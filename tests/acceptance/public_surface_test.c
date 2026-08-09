@@ -44,6 +44,8 @@ static int IsZero(const void *memory, size_t size)
 int main(void)
 {
    static const tODControl zero_control;
+   const tODControl *read_control;
+   tODControl *write_control;
    size_t index;
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    FILE *marker;
@@ -62,6 +64,15 @@ int main(void)
    OD_TEST_CHECK(D_BLACK == 0 && L_WHITE == 15);
    OD_TEST_CHECK(B_YELLOW == L_YELLOW && B_WHITE == L_WHITE);
    OD_TEST_CHECK(od_control_get() == &od_control);
+   read_control = od_control_read_lock();
+   OD_TEST_CHECK(read_control == &od_control);
+   OD_TEST_CHECK(od_control_write_lock() == NULL);
+   od_control_read_unlock();
+   write_control = od_control_write_lock();
+   OD_TEST_CHECK(write_control == &od_control);
+   OD_TEST_CHECK(od_control_read_lock() == &od_control);
+   od_control_read_unlock();
+   od_control_write_unlock();
    OD_TEST_CHECK(memcmp(&od_control, &zero_control, sizeof(od_control)) == 0);
 #ifdef ODPLAT_WIN32
    OD_TEST_CHECK(sizeof(fields) / sizeof(fields[0]) == 256);

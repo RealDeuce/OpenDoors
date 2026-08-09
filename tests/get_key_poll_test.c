@@ -22,9 +22,6 @@ int main(void)
 {
    tODInputEvent Event;
 
-#ifdef OD_MULTITHREADED
-   CHECK(ODSemaphoreAlloc(&hODActiveSemaphore, 0, INT_MAX) == kODRCSuccess);
-#endif
 
    memset(&od_control, 0, sizeof(od_control));
    od_control.od_disable = DIS_TIMEOUT;
@@ -51,10 +48,6 @@ int main(void)
    ODInQueueFree(hODInputQueue);
    hODInputQueue = NULL;
 
-#ifdef OD_MULTITHREADED
-   ODSemaphoreFree(hODActiveSemaphore);
-   hODActiveSemaphore = NULL;
-#endif
 
    return(0);
 }

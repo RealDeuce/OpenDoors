@@ -17,6 +17,8 @@ option(OPENDOORS_BUILD_MSVC_STATIC_MT
 option(OPENDOORS_BUILD_EXAMPLES "Build the OpenDoors example programs" ON)
 option(OPENDOORS_WARNINGS_AS_ERRORS
     "Treat OpenDoors compiler and linker warnings as errors" OFF)
+option(OPENDOORS_ENABLE_PTHREAD_KERNEL
+    "Enable the experimental standard-pthread kernel on Unix" OFF)
 set(OPENDOORS_XPDEV_DIR "" CACHE PATH
     "Path to xpdev; when empty, only ../xpdev is checked")
 
@@ -53,6 +55,7 @@ set(OPENDOORS_SOURCES
     ODStand.c
     ODStat.c
     ODStr.c
+    ODSync.c
     ODUtil.c
     ODWCat.c
     ODWin.c
@@ -82,6 +85,7 @@ set(OPENDOORS_PRIVATE_HEADERS
     ODScrn.h
     ODStr.h
     ODSwap.h
+    ODSync.h
     ODTypes.h
     ODUtil.h
     ODVScrn.h
@@ -105,7 +109,11 @@ endif()
 
 check_include_file(inttypes.h OPENDOORS_HAVE_INTTYPES_H)
 check_symbol_exists(vsnprintf "stdio.h" OPENDOORS_HAVE_VSNPRINTF)
-if(NOT WIN32)
+if(OPENDOORS_ENABLE_PTHREAD_KERNEL)
+    if(WIN32)
+        message(FATAL_ERROR
+            "OPENDOORS_ENABLE_PTHREAD_KERNEL is only supported on Unix")
+    endif()
     find_package(Threads REQUIRED)
 endif()
 
@@ -135,11 +143,15 @@ function(opendoors_configure_library target)
         target_compile_definitions(${target} PRIVATE __unix__)
     endif()
 
+    if(OPENDOORS_ENABLE_PTHREAD_KERNEL)
+        target_compile_definitions(${target} PRIVATE
+            OPENDOORS_ENABLE_PTHREAD_KERNEL=1)
+        target_link_libraries(${target} PRIVATE Threads::Threads)
+    endif()
+
     if(WIN32)
         target_link_libraries(${target} PRIVATE
             ws2_32 user32 gdi32 advapi32 shell32 uuid comctl32)
-    else()
-        target_link_libraries(${target} PRIVATE Threads::Threads)
     endif()
 
     set_target_properties(${target} PROPERTIES
@@ -348,6 +360,19 @@ if(BUILD_TESTING)
     # These white-box tests exercise intentionally hidden implementation
     # symbols, so they require the static library.
     if(OPENDOORS_BUILD_STATIC)
+        if(OPENDOORS_ENABLE_PTHREAD_KERNEL)
+            add_executable(opendoors_pthread_kernel_test
+                tests/pthread_kernel_test.c)
+            target_link_libraries(opendoors_pthread_kernel_test
+                PRIVATE OpenDoors::Static Threads::Threads)
+            target_compile_definitions(opendoors_pthread_kernel_test PRIVATE
+                OPENDOORS_ENABLE_PTHREAD_KERNEL=1)
+            set_target_properties(opendoors_pthread_kernel_test PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+            add_test(NAME pthread_kernel
+                COMMAND opendoors_pthread_kernel_test)
+        endif()
+
         add_executable(opendoors_safety_test tests/safety_test.c)
         target_link_libraries(opendoors_safety_test PRIVATE OpenDoors::Static)
         set_target_properties(opendoors_safety_test PROPERTIES

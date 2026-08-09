@@ -56,6 +56,8 @@
 #include "ODGen.h"
 #include "ODScrn.h"
 #include "ODKrnl.h"
+#include "ODSync.h"
+#include "ODUtil.h"
 
 #ifdef ODPLAT_WIN32
 
@@ -74,6 +76,7 @@ typedef struct
    HWND hwndMessageWindow;
    char *pszCurrentMessage;
    int nCurrentMessageFlags;
+   BOOL bProgrammaticShutdown;
 } tODFrameWindowInfo;
 
 /* Toolbar button information. */
@@ -101,8 +104,8 @@ TBBUTTON atbButtons[] =
 
 /* Other toolbar settings. */
 #define NUM_TOOLBAR_BITMAPS   6
-#define MIN_TIME              0
-#define MAX_TIME              1440
+#define MIN_TIME              OD_MIN_USER_TIME_MINUTES
+#define MAX_TIME              OD_MAX_USER_TIME_MINUTES
 
 /* Pointer to default edit box window procedure. */
 WNDPROC pfnDefEditProc = NULL;
@@ -111,8 +114,9 @@ WNDPROC pfnDefToolbarProc = NULL;
 /* Global frame window handle. */
 static HWND hwndCurrentFrame;
 static tODThreadHandle hCurrentScreenThread;
-static volatile DWORD dwFrameThreadID;
-static volatile BOOL bProgrammaticShutdown;
+static DWORD dwFrameThreadID;
+static HANDLE hFrameStartedEvent;
+static tODResult FrameStartResult;
 
 /* Status bar settings. */
 #define NUM_STATUS_PARTS      2
@@ -123,6 +127,11 @@ static volatile BOOL bProgrammaticShutdown;
 #define ID_TIME_EDIT          1001
 #define ID_TIME_UPDOWN        1002
 #define ID_STATUSBAR          1003
+#define WM_OD_UPDATE_COMMANDS (WM_APP + 1)
+#define WM_OD_UPDATE_TIME     (WM_APP + 2)
+#define WM_OD_UPDATE_CHAT     (WM_APP + 3)
+#define WM_OD_SHUTDOWN        (WM_APP + 4)
+#define OD_UI_THREAD_TIMEOUT  10000
 
 
 /* Private function prototypes. */
@@ -134,6 +143,7 @@ static HWND ODFrameCreateStatusBar(HWND hwndParent, HANDLE hInstance);
 static void ODFrameSetMainStatusText(HWND hwndStatusBar);
 static void ODFrameDestroyStatusBar(HWND hwndStatusBar);
 static void ODFrameSizeStatusBar(HWND hwndStatusBar);
+static void ODFrameCopyProgramName(char *pszDest, size_t nDestSize);
 LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
    LPARAM lParam);
 LRESULT CALLBACK ODFrameToolbarProc(HWND hwnd, UINT uMsg, WPARAM wParam,
@@ -202,6 +212,7 @@ static HWND ODFrameCreateWindow(HANDLE hInstance)
    pWindowInfo->hwndTimeUpDown = NULL;
    pWindowInfo->bWantsChatIndicator = FALSE;
    pWindowInfo->hwndMessageWindow = NULL;
+   pWindowInfo->bProgrammaticShutdown = FALSE;
 
    /* Determine whether or not the toolbar and status bar are on. */
    RegCreateKey(HKEY_CURRENT_USER, "Software\\Pirie\\OpenDoors",
@@ -247,6 +258,7 @@ static HWND ODFrameCreateWindow(HANDLE hInstance)
       pWindowInfo)) == NULL)
    {
       /* On window creation failure, return NULL. */
+      free(pWindowInfo);
       return(NULL);
    }
 
@@ -274,7 +286,13 @@ static HWND ODFrameCreateWindow(HANDLE hInstance)
 
    /* Create the local screen window, which occupies the remaining */
    /* client area of the frame window.                             */
-   ODScrnStartWindow(hInstance, &hCurrentScreenThread, hwndFrameWindow);
+   if(ODScrnStartWindow(hInstance, &hCurrentScreenThread, hwndFrameWindow)
+      != kODRCSuccess)
+   {
+      pWindowInfo->bProgrammaticShutdown = TRUE;
+      ODFrameDestroyWindow(hwndFrameWindow);
+      return(NULL);
+   }
 
    return(hwndFrameWindow);
 }
@@ -487,7 +505,13 @@ static HWND ODFrameCreateStatusBar(HWND hwndParent, HANDLE hInstance)
    ODFrameSetMainStatusText(hwndStatusBar);
 
    /* Add the node number string. */
-   sprintf(szStatusText, "Node %d", od_control.od_node);
+   {
+      INT nNode;
+      ODSyncControlReadLock();
+      nNode = od_control.od_node;
+      ODSyncControlReadUnlock();
+      sprintf(szStatusText, "Node %d", nNode);
+   }
    SendMessage(hwndStatusBar, SB_SETTEXT, (WPARAM)1, (LPARAM)szStatusText);
 
    return(hwndStatusBar);
@@ -505,38 +529,59 @@ static HWND ODFrameCreateStatusBar(HWND hwndParent, HANDLE hInstance)
  */
 static void ODFrameSetMainStatusText(HWND hwndStatusBar)
 {
-   char szStatusText[160];
+   char szStatusText[sizeof(od_control.user_name)
+      + sizeof(od_control.user_location)
+      + sizeof(od_control.user_reasonforchat) + 64];
+   char szUserName[sizeof(od_control.user_name)];
+   char szLocation[sizeof(od_control.user_location)];
+   char szReason[sizeof(od_control.user_reasonforchat)];
+   DWORD dwConnectSpeed;
+   DWORD dwBaud;
+   BOOL bWantChat;
 
    ASSERT(hwndStatusBar != NULL);
 
+   ODSyncControlReadLock();
+   ODStringCopy(szUserName, od_control.user_name, sizeof(szUserName));
+   ODStringCopy(szLocation, od_control.user_location, sizeof(szLocation));
+   ODStringCopy(szReason, od_control.user_reasonforchat, sizeof(szReason));
+   dwConnectSpeed = od_control.od_connect_speed;
+   dwBaud = od_control.baud;
+   bWantChat = od_control.user_wantchat;
+   ODSyncControlReadUnlock();
+
    /* Generate base status bar text, with the user's name, location and */
    /* connection information.                                           */
-   if(od_control.baud == 0)
+   if(dwBaud == 0)
    {
       sprintf(szStatusText, "%s of %s in local mode",
-         od_control.user_name,
-         od_control.user_location);
+         szUserName, szLocation);
    }
    else
    {
       sprintf(szStatusText, "%s of %s at %ldbps",
-         od_control.user_name,
-         od_control.user_location,
-         od_control.od_connect_speed);
+         szUserName, szLocation, dwConnectSpeed);
    }
 
    /* If the user has paged the sysop, then include reason for chat if */
    /* it is available.                                                 */
-   if(od_control.user_wantchat && strlen(od_control.user_reasonforchat) > 0)
+   if(bWantChat && strlen(szReason) > 0)
    {
       strcat(szStatusText, " (Reason for chat: \"");
-      strcat(szStatusText, od_control.user_reasonforchat);
+      strcat(szStatusText, szReason);
       strcat(szStatusText, "\")");
    }
 
    /* Update status bar text in the main status bar pane with the newly */
    /* generated string.                                                 */
    SendMessage(hwndStatusBar, SB_SETTEXT, (WPARAM)0, (LPARAM)szStatusText);
+}
+
+static void ODFrameCopyProgramName(char *pszDest, size_t nDestSize)
+{
+   ODSyncControlReadLock();
+   ODStringCopy(pszDest, od_control.od_prog_name, nDestSize);
+   ODSyncControlReadUnlock();
 }
 
 
@@ -665,23 +710,30 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
    {
       case WM_CREATE:
       {
+         BOOL bHaveHelpCallback;
+         BOOL bHaveConfigCallback;
          /* At window creation time, store a pointer to the window */
          /* information structure in window's user data.           */
          CREATESTRUCT *pCreateStruct = (CREATESTRUCT *)lParam;
          pWindowInfo = (tODFrameWindowInfo *)pCreateStruct->lpCreateParams;
          SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pWindowInfo);
 
+         ODSyncControlReadLock();
+         bHaveHelpCallback = od_control.od_help_callback != NULL;
+         bHaveConfigCallback = od_control.od_config_callback != NULL;
+         ODSyncControlReadUnlock();
+
          /* Update the enabled and checked states of frame window commands. */
          ODFrameUpdateCmdUI();
 
          /* If the client has not provided a help callback function, then */
          /* remove the Contents item from the help menu.                  */
-         if(od_control.od_help_callback == NULL)
+         if(!bHaveHelpCallback)
          {
             RemoveMenu(GetMenu(hwnd), ID_HELP_CONTENTS, MF_BYCOMMAND);
          }
 
-         if(od_control.od_config_callback == NULL)
+         if(!bHaveConfigCallback)
          {
             RemoveMenu(GetMenu(hwnd), ID_DOOR_CONFIG, MF_BYCOMMAND);
          }
@@ -689,16 +741,25 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
       }
 
       case WM_CLOSE:
+      {
+         char szProgramName[sizeof(od_control.od_prog_name)];
+         ODFrameCopyProgramName(szProgramName, sizeof(szProgramName));
          /* If door exit has been chosen, confirm with local user. */
          if(MessageBox(hwnd,
             "You are about to terminate this session and return the user to the BBS.\nDo you wish to proceed?",
-            od_control.od_prog_name,
+            szProgramName,
             MB_ICONQUESTION | MB_YESNO) == IDYES)
          {
             /* Normal door exit (drop to BBS) is implemented by the */
             /* WM_DESTROY handler.                                  */
             ODFrameDestroyWindow(hwnd);
          }
+         break;
+      }
+
+      case WM_OD_SHUTDOWN:
+         pWindowInfo->bProgrammaticShutdown = TRUE;
+         PostQuitMessage(0);
          break;
 
       case WM_DESTROY:
@@ -718,7 +779,7 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
          /* A user-requested close forces OpenDoors to shut down. During an
           * ordinary od_exit(), shutdown is already in progress. */
-         if(!bProgrammaticShutdown)
+         if(!pWindowInfo->bProgrammaticShutdown)
          {
             ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_DROPTOBBS);
          }
@@ -744,6 +805,18 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
          FlashWindow(hwnd, TRUE);
          break;
 
+      case WM_OD_UPDATE_COMMANDS:
+         ODFrameUpdateCmdUI();
+         break;
+
+      case WM_OD_UPDATE_TIME:
+         ODFrameUpdateTimeDisplay();
+         break;
+
+      case WM_OD_UPDATE_CHAT:
+         ODFrameUpdateWantChat();
+         break;
+
       case WM_COMMAND:
          /* An OpenDoors-defined command has been selected, so switch on */
          /* the command ID.                                              */
@@ -756,20 +829,26 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                break;
 
             case ID_HELP_CONTENTS:
+            {
+               void (*pfCallback)(void);
                /* Call the client's help callback function, if one was */
                /* provided.                                            */
-               if(od_control.od_help_callback != NULL)
-               {
-                  (*od_control.od_help_callback)();
-               }
+               ODSyncControlReadLock();
+               pfCallback = od_control.od_help_callback;
+               ODSyncControlReadUnlock();
+               if(pfCallback != NULL) (*pfCallback)();
                break;
+            }
 
             case ID_DOOR_CONFIG:
-               if(od_control.od_config_callback != NULL)
-               {
-                  (*od_control.od_config_callback)();
-               }
+            {
+               void (*pfCallback)(void);
+               ODSyncControlReadLock();
+               pfCallback = od_control.od_config_callback;
+               ODSyncControlReadUnlock();
+               if(pfCallback != NULL) (*pfCallback)();
                break;
+            }
 
             case ID_DOOR_EXIT:
                /* On request for normal door exit (drop to BBS), just send  */
@@ -779,71 +858,52 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                break;
 
             case ID_DOOR_CHATMODE:
-               /* If chat mode is currently active, then end it. */
-               if(od_control.od_chat_active)
-               {
-                  ODKrnlEndChatMode();
-               }
-               /* If chat mode is not currently active, then start it. */
-               else
-               {
-                  ODKrnlStartChatThread(TRUE);
-               }
+               ODKrnlRequestChatToggle();
                break;
 
             case ID_DOOR_USERKEYBOARDOFF:
                /* If user keyboard off command has been chosen, then toggle */
                /* keyboard off mode on or off.                              */
-               od_control.od_user_keyboard_on
-                  = !od_control.od_user_keyboard_on;
-
-               /* Update the keyboard off menu item and toolbar button. */
-               CheckMenuItem(GetMenu(hwnd), ID_DOOR_USERKEYBOARDOFF,
-                  MF_BYCOMMAND | (od_control.od_user_keyboard_on
-                  ? MF_UNCHECKED : MF_CHECKED));
-               SendMessage(GetDlgItem(hwnd, ID_TOOLBAR), TB_CHECKBUTTON,
-                  ID_DOOR_USERKEYBOARDOFF,
-                  MAKELONG(!od_control.od_user_keyboard_on, 0));
+               ODKrnlRequestKeyboardToggle();
                break;
 
             case ID_DOOR_SYSOPNEXT:
                /* If sysop next command has been chosen, then toggle the */
                /* sysop next flag on or off.                             */
-               od_control.sysop_next = !od_control.sysop_next;
-
-               /* Update the sysop next menu item and toolbar button. */
-               CheckMenuItem(GetMenu(hwnd), ID_DOOR_SYSOPNEXT, MF_BYCOMMAND |
-                  (od_control.sysop_next ? MF_CHECKED : MF_UNCHECKED));
-               SendMessage(GetDlgItem(hwnd, ID_TOOLBAR), TB_CHECKBUTTON,
-                  ID_DOOR_SYSOPNEXT, MAKELONG(od_control.sysop_next, 0));
+               ODKrnlRequestSysopNextToggle();
                break;
 
             case ID_DOOR_HANGUP:
+            {
+               char szProgramName[sizeof(od_control.od_prog_name)];
+               ODFrameCopyProgramName(szProgramName, sizeof(szProgramName));
                /* If hangup command has been chosen, then confirm with the */
                /* local user.                                              */
                if(MessageBox(hwnd,
                   "You are about to disconnect this user. Do you wish to proceed?",
-                  od_control.od_prog_name,
+                  szProgramName,
                   MB_ICONQUESTION | MB_YESNO) == IDYES)
                {
                   ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_HANGUP);
                }
                break;
+            }
 
             case ID_DOOR_LOCKOUT:
+            {
+               char szProgramName[sizeof(od_control.od_prog_name)];
+               ODFrameCopyProgramName(szProgramName, sizeof(szProgramName));
                /* If lockout command has been chosen, the confirm with the */
                /* local user.                                              */
                if(MessageBox(hwnd,
                   "You are about to lock out this user. Do you wish to proceed?",
-                  od_control.od_prog_name,
+                  szProgramName,
                   MB_ICONQUESTION | MB_YESNO) == IDYES)
                {
-                  /* Set the user's access security level to 0. */
-                  od_control.user_security = 0;
-
-                  ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_HANGUP);
+                  ODKrnlRequestLockout();
                }
                break;
+            }
 
             case ID_VIEW_TOOL_BAR:
             {
@@ -923,47 +983,31 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                /* If add one minute command has been chosen, then        */
                /* increment the user's time, up to the maximum allowable */
                /* time.                                                  */
-               if(od_control.user_timelimit < MAX_TIME)
-               {
-                  od_control.user_timelimit++;
-                  ODFrameUpdateTimeLeft(pWindowInfo);
-               }
+               ODKrnlRequestTimeAdjustment(1);
                break;
 
             case ID_USER_ADDFIVEMINUTES:
                /* If add five minutes command has been chosen, then */
                /* adjust the user's time accordingly.               */
-               od_control.user_timelimit =
-                  MIN(od_control.user_timelimit + 5, MAX_TIME);
-               ODFrameUpdateTimeLeft(pWindowInfo);
+               ODKrnlRequestTimeAdjustment(5);
                break;
 
             case ID_USER_SUBTRACTONEMINUTE:
                /* If subtract one minute command has been chosen, then */
                /* adjust the user's time accordingly.                  */
-               if(od_control.user_timelimit > MIN_TIME)
-               {
-                  od_control.user_timelimit--;
-                  ODFrameUpdateTimeLeft(pWindowInfo);
-               }
+               ODKrnlRequestTimeAdjustment(-1);
                break;
 
             case ID_USER_SUBTRACTFIVEMINUTES:
                /* If the subtract five mintues command has been chosen, */
                /* then adjust the user's time accordingly.              */
-               od_control.user_timelimit =
-                  MAX(od_control.user_timelimit - 5, MIN_TIME);
-               ODFrameUpdateTimeLeft(pWindowInfo);
+               ODKrnlRequestTimeAdjustment(-5);
                break;
 
             case ID_USER_INACTIVITYTIMER:
                /* If the user inactivity timer command has been chosen, */
                /* then toggle the timer on or off.                      */
-               od_control.od_disable_inactivity =
-                  !od_control.od_disable_inactivity;
-               CheckMenuItem(GetMenu(hwnd), ID_USER_INACTIVITYTIMER,
-                  MF_BYCOMMAND | (od_control.od_disable_inactivity ?
-                  MF_UNCHECKED : MF_CHECKED));
+               ODKrnlRequestInactivityToggle();
                break;
 
             case ID_TIME_EDIT:
@@ -974,18 +1018,7 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                {
                   char szTimeText[40];
                   GetWindowText((HWND)lParam, szTimeText, sizeof(szTimeText));
-                  od_control.user_timelimit = atoi(szTimeText);
-
-                  /* Do not allow the time limit to fall outside of the */
-                  /* valid range.                                       */
-                  od_control.user_timelimit =
-                     MAX(MIN_TIME, od_control.user_timelimit);
-                  od_control.user_timelimit =
-                     MIN(MAX_TIME, od_control.user_timelimit);
-
-                  /* Update the position of the up-down control. */
-                  SendMessage(pWindowInfo->hwndTimeUpDown, UDM_SETPOS, 0,
-                     (LPARAM)MAKELONG(od_control.user_timelimit, 0));
+                  ODKrnlRequestTimeValue(atoi(szTimeText));
                }
             }
 
@@ -1038,11 +1071,7 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
          {
             int nPos = HIWORD(wParam);
 
-            /* Adjust the user's time limit. */
-            od_control.user_timelimit = MAX(MIN(nPos, MAX_TIME), MIN_TIME);
-
-            /* Update the time left displayed in the edit box. */
-            ODFrameUpdateTimeLeft(pWindowInfo);
+            ODKrnlRequestTimeValue(nPos);
          }
          break;
 
@@ -1143,7 +1172,12 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
             DialogBoxParam(pWindowInfo->hInstance,
                MAKEINTRESOURCE(IDD_MESSAGE), hwnd, ODFrameMessageDlgProc,
                (LPARAM)pWindowInfo);
+            pWindowInfo->hwndMessageWindow = NULL;
+            free(pWindowInfo->pszCurrentMessage);
+            pWindowInfo->pszCurrentMessage = NULL;
          }
+         else
+            free((char *)lParam);
          break;
 
       case WM_REMOVE_MESSAGE:
@@ -1180,12 +1214,28 @@ void ODFrameUpdateCmdUI(void)
    HMENU hMenu = GetMenu(hwndFrame);
    HWND hwndToolbar = GetDlgItem(hwndFrame, ID_TOOLBAR);
    tODFrameWindowInfo *pWindowInfo;
+   BOOL bInactivityDisabled;
+   BOOL bSysopNext;
+   BOOL bKeyboardOn;
+   BOOL bChatActive;
 
    if(hwndFrame == NULL) return;
+   if(GetCurrentThreadId() != dwFrameThreadID)
+   {
+      PostMessage(hwndFrame, WM_OD_UPDATE_COMMANDS, 0, 0);
+      return;
+   }
 
    /* Obtain window information structure. */
    pWindowInfo = (tODFrameWindowInfo *)GetWindowLongPtr(hwndFrame, GWLP_USERDATA);
    if(pWindowInfo == NULL) return;
+
+   ODSyncControlReadLock();
+   bInactivityDisabled = od_control.od_disable_inactivity;
+   bSysopNext = od_control.sysop_next;
+   bKeyboardOn = od_control.od_user_keyboard_on;
+   bChatActive = od_control.od_chat_active;
+   ODSyncControlReadUnlock();
 
    /* Check or uncheck the toolbar and status bar menu items. */
    CheckMenuItem(hMenu, ID_VIEW_TOOL_BAR, MF_BYCOMMAND |
@@ -1195,26 +1245,26 @@ void ODFrameUpdateCmdUI(void)
 
    /* Check or uncheck the inactivity timer menu item. */
    CheckMenuItem(hMenu, ID_USER_INACTIVITYTIMER, MF_BYCOMMAND |
-      (od_control.od_disable_inactivity ? MF_UNCHECKED : MF_CHECKED));
+      (bInactivityDisabled ? MF_UNCHECKED : MF_CHECKED));
 
    /* Check or uncheck the sysop next menu item and toolbar button. */
    CheckMenuItem(hMenu, ID_DOOR_SYSOPNEXT, MF_BYCOMMAND |
-      (od_control.sysop_next ? MF_CHECKED : MF_UNCHECKED));
+      (bSysopNext ? MF_CHECKED : MF_UNCHECKED));
    SendMessage(hwndToolbar, TB_CHECKBUTTON,
-      ID_DOOR_SYSOPNEXT, MAKELONG(od_control.sysop_next, 0));
+      ID_DOOR_SYSOPNEXT, MAKELONG(bSysopNext, 0));
 
    /* Check or uncheck the keyboard off menu item and toolbar button. */
    CheckMenuItem(hMenu, ID_DOOR_USERKEYBOARDOFF, MF_BYCOMMAND |
-      (od_control.od_user_keyboard_on ? MF_UNCHECKED : MF_CHECKED));
+      (bKeyboardOn ? MF_UNCHECKED : MF_CHECKED));
    SendMessage(hwndToolbar, TB_CHECKBUTTON,
       ID_DOOR_USERKEYBOARDOFF,
-      MAKELONG(!od_control.od_user_keyboard_on, 0));
+      MAKELONG(!bKeyboardOn, 0));
 
    /* Update the chat mode menu item and toolbar button. */
    CheckMenuItem(hMenu, ID_DOOR_CHATMODE, MF_BYCOMMAND |
-      (od_control.od_chat_active ? MF_CHECKED : MF_UNCHECKED));
+      (bChatActive ? MF_CHECKED : MF_UNCHECKED));
    SendMessage(hwndToolbar, TB_CHECKBUTTON, ID_DOOR_CHATMODE,
-      MAKELONG(od_control.od_chat_active, 0));
+      MAKELONG(bChatActive, 0));
 }
 
 
@@ -1235,6 +1285,11 @@ void ODFrameUpdateTimeDisplay(void)
    /* If there is no current frame window, then return without doing */
    /* anything.                                                      */
    if(hwndCurrentFrame == NULL) return;
+   if(GetCurrentThreadId() != dwFrameThreadID)
+   {
+      PostMessage(hwndCurrentFrame, WM_OD_UPDATE_TIME, 0, 0);
+      return;
+   }
 
    pWindowInfo = (tODFrameWindowInfo *)GetWindowLongPtr(hwndCurrentFrame,
       GWLP_USERDATA);
@@ -1256,14 +1311,27 @@ void ODFrameUpdateTimeDisplay(void)
 void ODFrameUpdateWantChat(void)
 {
    tODFrameWindowInfo *pWindowInfo;
+   BOOL bUserWantsChat;
+   char szProgramName[sizeof(od_control.od_prog_name)];
 
    /* If there is no current frame window, then return without doing */
    /* anything.                                                      */
    if(hwndCurrentFrame == NULL) return;
+   if(GetCurrentThreadId() != dwFrameThreadID)
+   {
+      PostMessage(hwndCurrentFrame, WM_OD_UPDATE_CHAT, 0, 0);
+      return;
+   }
 
    pWindowInfo = (tODFrameWindowInfo *)GetWindowLongPtr(hwndCurrentFrame,
       GWLP_USERDATA);
    ASSERT(pWindowInfo != NULL);
+
+   ODSyncControlReadLock();
+   bUserWantsChat = od_control.user_wantchat;
+   ODStringCopy(szProgramName, od_control.od_prog_name,
+      sizeof(szProgramName));
+   ODSyncControlReadUnlock();
 
    /* If the status bar is on, then update the text displayed in the */
    /* status bar's main pane.                                        */
@@ -1273,10 +1341,10 @@ void ODFrameUpdateWantChat(void)
    }
 
    /* Toggle the state of the wants-chat indicator, of needed. */
-   if(pWindowInfo->bWantsChatIndicator && !od_control.user_wantchat)
+   if(pWindowInfo->bWantsChatIndicator && !bUserWantsChat)
    {
       /* Restore original window text. */
-      SetWindowText(hwndCurrentFrame, od_control.od_prog_name);
+      SetWindowText(hwndCurrentFrame, szProgramName);
 
       /* Restore the window flash to its original state. */
       FlashWindow(hwndCurrentFrame, FALSE);
@@ -1287,12 +1355,12 @@ void ODFrameUpdateWantChat(void)
       /* Record that wants chat indicator is now off. */
       pWindowInfo->bWantsChatIndicator = FALSE;
    }
-   else if (!pWindowInfo->bWantsChatIndicator && od_control.user_wantchat)
+   else if (!pWindowInfo->bWantsChatIndicator && bUserWantsChat)
    {
       /* Set window title to include the wants chat indicator. */
       char szNewWindowTitle[sizeof(od_control.od_prog_name) + 20];
       sprintf(szNewWindowTitle, "%s - User Wants Chat",
-         od_control.od_prog_name);
+         szProgramName);
       SetWindowText(hwndCurrentFrame, szNewWindowTitle);
 
       /* Start the flashing the window. */
@@ -1386,6 +1454,7 @@ static void ODFrameUpdateTimeLeft(tODFrameWindowInfo *pWindowInfo)
 {
    char szTimeLeft[12];
    RECT rcWindow;
+   INT nTimeLimit;
 
    if(pWindowInfo->hwndTimeEdit == NULL)
    {
@@ -1394,8 +1463,12 @@ static void ODFrameUpdateTimeLeft(tODFrameWindowInfo *pWindowInfo)
       return;
    }
 
+   ODSyncControlReadLock();
+   nTimeLimit = od_control.user_timelimit;
+   ODSyncControlReadUnlock();
+
    /* Generate the string to be displayed in the edit control. */
-   sprintf(szTimeLeft, "%d min.", od_control.user_timelimit);
+   sprintf(szTimeLeft, "%d min.", nTimeLimit);
 
    /* Set the edit control's text to the new string. */
    SetWindowText(pWindowInfo->hwndTimeEdit, szTimeLeft);
@@ -1408,7 +1481,7 @@ static void ODFrameUpdateTimeLeft(tODFrameWindowInfo *pWindowInfo)
 
    /* Set the position of the up-down control to match. */
    SendMessage(pWindowInfo->hwndTimeUpDown, UDM_SETPOS, 0,
-      (LPARAM)MAKELONG(od_control.user_timelimit, 0));
+      (LPARAM)MAKELONG(nTimeLimit, 0));
 }
 
 
@@ -1489,29 +1562,43 @@ INT_PTR CALLBACK ODFrameAboutDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
    switch(uMsg)
    {
       case WM_INITDIALOG:
+      {
+         char szProgramName[sizeof(od_control.od_prog_name)];
+         char szCopyright[sizeof(od_control.od_prog_copyright)];
+         char szVersion[sizeof(od_control.od_prog_version)];
+
+         ODSyncControlReadLock();
+         ODStringCopy(szProgramName, od_control.od_prog_name,
+            sizeof(szProgramName));
+         ODStringCopy(szCopyright, od_control.od_prog_copyright,
+            sizeof(szCopyright));
+         ODStringCopy(szVersion, od_control.od_prog_version,
+            sizeof(szVersion));
+         ODSyncControlReadUnlock();
+
          /* At dialog box creation time, update the text in the about      */
          /* box with any information provided by the OpenDoors programmer. */
 
          /* If a program name has been provided, then display it. */
-         if(strcmp(od_control.od_prog_name, OD_VER_SHORTNAME) != 0)
+         if(strcmp(szProgramName, OD_VER_SHORTNAME) != 0)
          {
             SetWindowText(GetDlgItem(hwndDlg, IDC_DOORNAME),
-               od_control.od_prog_name);
+               szProgramName);
          }
 
          /* If copyright information has been provided, then display it. */
-         if(strlen(od_control.od_prog_copyright) > 0)
+         if(strlen(szCopyright) > 0)
          {
             SetWindowText(GetDlgItem(hwndDlg, IDC_COPYRIGHT),
-               od_control.od_prog_copyright);
+               szCopyright);
          }
 
          /* If program version information has been provided, then display */
          /* it.                                                            */
-         if(strlen(od_control.od_prog_version) > 0)
+         if(strlen(szVersion) > 0)
          {
             SetWindowText(GetDlgItem(hwndDlg, IDC_VERSION),
-               od_control.od_prog_version);
+               szVersion);
          }
 
          /* Center the about dialog box in the area occupied by the */
@@ -1519,6 +1606,7 @@ INT_PTR CALLBACK ODFrameAboutDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
          ODFrameCenterWindowInParent(hwndDlg);
 
          return(TRUE);
+      }
 
       case WM_COMMAND:
          /* If a command has been chosen. */
@@ -1658,21 +1746,28 @@ BOOL ODFrameTranslateAccelerator(HWND hwndFrame, LPMSG pMsg)
  */
 DWORD OD_THREAD_FUNC ODFrameThreadProc(void *pParam)
 {
+   MSG msg;
    HWND hwndFrame;
    HANDLE hInstance = (HANDLE)pParam;
 
    dwFrameThreadID = GetCurrentThreadId();
+   PeekMessage(&msg, NULL, WM_USER, WM_USER, PM_NOREMOVE);
 
    /* Create the frame window. */
    hwndFrame = ODFrameCreateWindow(hInstance);
 
    if(hwndFrame == NULL)
    {
+      FrameStartResult = kODRCGeneralFailure;
+      SetEvent(hFrameStartedEvent);
+      dwFrameThreadID = 0;
       return(FALSE);
    }
 
    /* Store a pointer to the frame window. */
    hwndCurrentFrame = hwndFrame;
+   FrameStartResult = kODRCSuccess;
+   SetEvent(hFrameStartedEvent);
 
    /* Loop, processing messages for the frame window. */
    ODFrameMessageLoop(hInstance, hwndFrame);
@@ -1702,33 +1797,71 @@ DWORD OD_THREAD_FUNC ODFrameThreadProc(void *pParam)
  */
 tODResult ODFrameStart(HANDLE hInstance, tODThreadHandle *phFrameThread)
 {
-   bProgrammaticShutdown = FALSE;
+   tODResult Result;
+   DWORD dwWaitResult;
+
    hCurrentScreenThread = NULL;
+   hwndCurrentFrame = NULL;
    dwFrameThreadID = 0;
    dwScreenThreadID = 0;
-   return(ODThreadCreate(phFrameThread, ODFrameThreadProc,
-      (void *)hInstance));
+   FrameStartResult = kODRCGeneralFailure;
+   hFrameStartedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+   if(hFrameStartedEvent == NULL)
+      return(kODRCGeneralFailure);
+
+   Result = ODThreadCreate(phFrameThread, ODFrameThreadProc,
+      (void *)hInstance);
+   if(Result != kODRCSuccess)
+   {
+      CloseHandle(hFrameStartedEvent);
+      hFrameStartedEvent = NULL;
+      return(Result);
+   }
+
+   dwWaitResult = WaitForSingleObject(hFrameStartedEvent,
+      OD_UI_THREAD_TIMEOUT);
+   if(dwWaitResult != WAIT_OBJECT_0)
+   {
+      /* The deadline reports startup failure, but the thread cannot be
+       * abandoned because it may later touch frame or session state. */
+      WaitForSingleObject(hFrameStartedEvent, INFINITE);
+      CloseHandle(hFrameStartedEvent);
+      hFrameStartedEvent = NULL;
+      if(FrameStartResult == kODRCSuccess)
+         ODFrameShutdown(phFrameThread);
+      else
+      {
+         ODThreadWaitForExit(*phFrameThread);
+         CloseHandle(*phFrameThread);
+         *phFrameThread = NULL;
+      }
+      return(kODRCGeneralFailure);
+   }
+
+   CloseHandle(hFrameStartedEvent);
+   hFrameStartedEvent = NULL;
+   if(FrameStartResult != kODRCSuccess)
+   {
+      ODThreadWaitForExit(*phFrameThread);
+      if(hCurrentScreenThread != NULL)
+         ODScrnStopWindow(&hCurrentScreenThread);
+      CloseHandle(*phFrameThread);
+      *phFrameThread = NULL;
+   }
+   return(FrameStartResult);
 }
 
 
 /* ----------------------------------------------------------------------------
  * ODFramePostThreadQuit()                           *** PRIVATE FUNCTION ***
  *
- * Posts WM_QUIT once a newly-created UI thread has established its message
+ * Posts WM_QUIT to a UI thread whose startup event established its message
  * queue, or returns if the thread has already stopped.
  */
-static void ODFramePostThreadQuit(tODThreadHandle hThread,
-   volatile DWORD *pdwThreadID)
+static void ODFramePostThreadQuit(tODThreadHandle hThread, DWORD dwThreadID)
 {
-   while(WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT)
-   {
-      if(*pdwThreadID != 0
-         && PostThreadMessage(*pdwThreadID, WM_QUIT, 0, 0))
-      {
-         return;
-      }
-      Sleep(1);
-   }
+   if(WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT && dwThreadID != 0)
+      PostThreadMessage(dwThreadID, WM_QUIT, 0, 0);
 }
 
 
@@ -1751,41 +1884,31 @@ void ODFrameShutdown(tODThreadHandle *phFrameThread)
       return;
    }
 
-   bProgrammaticShutdown = TRUE;
-
-   /* ODFrameCreateWindow() starts the screen thread before publishing the
-    * frame handle. Wait for that point so the screen-thread handle cannot
-    * appear after we have checked it. */
-   while(hwndCurrentFrame == NULL
-      && WaitForSingleObject(hFrame, 0) == WAIT_TIMEOUT)
-   {
-      Sleep(1);
-   }
-
    /* The screen window is a child of the frame but belongs to its own
     * thread. Let that thread destroy the child before the frame thread
     * destroys its parent. */
    if(hCurrentScreenThread != NULL)
    {
-      ODFramePostThreadQuit(hCurrentScreenThread, &dwScreenThreadID);
-      if(dwScreenThreadID != dwCurrentThreadID)
-      {
-         ODThreadWaitForExit(hCurrentScreenThread);
-      }
-      CloseHandle(hCurrentScreenThread);
-      hCurrentScreenThread = NULL;
+      ODScrnStopWindow(&hCurrentScreenThread);
    }
 
-   ODFramePostThreadQuit(hFrame, &dwFrameThreadID);
+   if(hwndCurrentFrame != NULL)
+      PostMessage(hwndCurrentFrame, WM_OD_SHUTDOWN, 0, 0);
+   else
+      ODFramePostThreadQuit(hFrame, dwFrameThreadID);
 
    if(dwFrameThreadID != dwCurrentThreadID)
    {
       ODThreadWaitForExit(hFrame);
    }
 
+   if(hFrameStartedEvent != NULL)
+   {
+      CloseHandle(hFrameStartedEvent);
+      hFrameStartedEvent = NULL;
+   }
    CloseHandle(hFrame);
    *phFrameThread = NULL;
-   bProgrammaticShutdown = FALSE;
 }
 
 
@@ -1812,6 +1935,7 @@ INT_PTR CALLBACK ODFrameMessageDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
       case WM_INITDIALOG:
       {
          tODFrameWindowInfo *pWindowInfo;
+         char szProgramName[sizeof(od_control.od_prog_name)];
 
          pWindowInfo = (tODFrameWindowInfo *)lParam;
 
@@ -1820,7 +1944,8 @@ INT_PTR CALLBACK ODFrameMessageDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
          pWindowInfo->hwndMessageWindow = hwndDlg;
          
          /* Set the message window title. */
-         SetWindowText(hwndDlg, od_control.od_prog_name);
+         ODFrameCopyProgramName(szProgramName, sizeof(szProgramName));
+         SetWindowText(hwndDlg, szProgramName);
 
          /* Change the text displayed in the message window. */
          SetWindowText(GetDlgItem(hwndDlg, IDC_MESSAGE_TEXT1),

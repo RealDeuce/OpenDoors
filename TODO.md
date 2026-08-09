@@ -2,58 +2,69 @@
 
 ## Defects found during Windows acceptance testing
 
-- [ ] Replace forced Windows thread termination and suspension with
-  cooperative synchronization. The remote-input, carrier-detection, and chat
-  paths call `TerminateThread()`, which can stop a worker while it owns
-  library, heap, or communications state. Forced kernel shutdown also uses
-  `SuspendThread()` to stop the client at an arbitrary instruction inside an
-  OpenDoors API call. Both mechanisms can strand locks or leave shared state
-  only partly updated.
+- [x] Replace forced Windows thread termination and suspension with
+  cooperative synchronization. Remote-input, carrier-detection, and timer
+  workers now observe a shared stop request, are woken through a semaphore,
+  and are joined before their handles and session state are released. Chat and
+  shutdown work is dispatched by the session owner; no path uses
+  `TerminateThread()` or `SuspendThread()`.
 
-- [ ] Synchronize Windows worker access to shared OpenDoors state. The timer,
-  communications, chat, UI, and client threads read and modify `od_control`,
-  kernel flags, queues, and screen state through a mixture of unsynchronized
-  globals, a semaphore which reports that an API call is active, and forced
-  client suspension. This does not provide mutual exclusion or a clear
-  ownership rule. Define which state belongs to each thread and how callbacks
-  cross thread boundaries without changing the public API or ABI.
+- [x] Synchronize Windows worker access to shared OpenDoors state. A
+  writer-preferring session-state lock, kernel-state mutex, and synchronized
+  input queue now cover their separate ownership domains. Frame commands and
+  worker notifications are queued for the session owner, and the screen
+  presenter takes shared access while reading the virtual local screen.
 
-- [ ] Give every Windows thread handle an explicit owner and complete
-  lifecycle. `ODKrnlInitialize()` duplicates the client-thread handle each
-  time it runs, while kernel shutdown overwrites or retains remote-input and
-  carrier thread handles without closing them. The chat path likewise clears
-  `hChatThread` after a wait without closing the handle, and ordinary kernel
-  shutdown does not stop an active chat thread before screen and input state
-  are released.
+- [x] Give every Windows thread handle an explicit owner and complete
+  lifecycle. Kernel initialization owns the three worker handles and kernel
+  shutdown joins and closes each one. Frame shutdown owns and closes the frame
+  and screen handles after their cooperative message-loop stop; chat no longer
+  creates a separate thread.
 
-- [ ] Propagate and unwind partial Windows worker initialization.
+- [x] Propagate and unwind partial Windows worker initialization.
   `ODInit()` ignores the results from both `ODFrameStart()` and
   `ODKrnlInitialize()`. Failures while allocating the activation semaphore,
   creating a later worker, or assigning its support objects return without
   stopping earlier workers or releasing handles. `ODFrameCreateWindow()` also
   ignores failure to start its screen worker, and `ODScrnStartWindow()` leaks
   its startup record when thread creation fails. A subsequent initialization
-  can overwrite the only references to the surviving resources.
+  can overwrite the only references to the surviving resources. Initialization
+  now reports frame and kernel startup failure, unwinds workers in reverse
+  order, frees failed screen startup records, and stops the kernel when frame
+  startup fails.
 
-- [ ] Synchronize publication and shutdown of the frame and screen threads.
+- [x] Synchronize publication and shutdown of the frame and screen threads.
   The frame window, screen-thread handle, thread IDs, and programmatic-shutdown
   flag are shared between threads through plain or `volatile` objects.
   `volatile` does not establish ordering or atomic ownership, and the current
   shutdown path polls those objects indefinitely while retrying
   `PostThreadMessage()`. Replace the polling protocol with explicit startup
-  and shutdown events and define a bounded failure path.
+  and shutdown events and define a bounded failure path. Startup events now
+  publish message queues, window handles, and results. A startup deadline
+  reports failure; cooperative cleanup still joins the affected thread so it
+  cannot outlive the session state. Shutdown posts a cooperative message and
+  joins without volatile polling.
 
-- [ ] Close Win32 semaphore handles with `CloseHandle()`.
+- [x] Close Win32 semaphore handles with `CloseHandle()`.
   `ODSemaphoreFree()` currently passes a kernel semaphore handle to the GDI
-  `DeleteObject()` function. The call does not release the semaphore, so every
-  nominal free leaks the handle.
+  `DeleteObject()` function. `ODSemaphoreFree()` now closes the kernel handle
+  with `CloseHandle()`.
 
-- [ ] Make forced shutdown safe when `od_noexit` is enabled. A kernel worker
+- [x] Make forced shutdown safe when `od_noexit` is enabled. A kernel worker
   sets `bKernelActive` before calling `od_exit()`, causing `ODKrnlShutdown()`
   to return without stopping any kernel threads. Ordinarily the process exits
   immediately and masks the incomplete teardown; with `od_noexit`, execution
   can continue after queues, communications, and screen resources have been
-  released while workers still reference them.
+  released while workers still reference them. Workers now schedule shutdown
+  for the owner, and `od_exit()` cooperatively joins kernel and UI threads
+  before releasing queues, communications, or screen state and returning.
+
+- [x] Application callbacks invoked by Windows worker threads can access the
+  OpenDoors API and `od_control` concurrently with the session-owner thread.
+  Workers no longer invoke application callbacks. Time-message and chat
+  callbacks are dispatched on the session-owner thread; the established Windows help
+  and configuration callbacks remain on the frame thread and are documented
+  as unable to access the OpenDoors API or ABI.
 
 - [x] Stop the Windows kernel timer cooperatively before tearing down the
   session. It was previously killed with `TerminateThread()` without a join,
@@ -66,6 +77,33 @@
   valid longer path was truncated before `_spawnvpe()` attempted to find it.
   The split now allocates exactly enough internal storage without changing
   the established first-space parsing behavior.
+
+- [x] Balance explicit `od_kernel()` calls in multithreaded builds. The
+  multithreaded conditional omitted the API-exit operation and reentrancy-flag
+  reset, so the first explicit call left the API boundary permanently active
+  and made later calls return immediately. Both operations now occur on every
+  platform, with Windows and pthread regressions covering repeated calls.
+
+- [x] Give asynchronous Windows message-window text a defined owner and
+  ordering. `ODScrnShowMessage()` posted a borrowed string pointer, while
+  `ODScrnRemoveMessage()` sent its command synchronously and could overtake the
+  earlier post. The show request now owns a text copy, show and removal use the
+  same posted-message order, and the frame thread releases the copy after the
+  modal window closes.
+
+- [x] Size the Windows main-status snapshot for every public source field.
+  The fixed 160-byte buffer could not hold maximum-length caller name,
+  location, chat reason, and surrounding text together. Its size is now
+  derived from those `od_control` arrays with room for the fixed decoration.
+
+- [x] Keep communications internals out of the public API boundary. Socket
+  retry paths in `ODComGetByte()` called `od_sleep()`, so the remote-input
+  worker could enter the owner-only API while handling a transient
+  `WSAEWOULDBLOCK`; modem-control pauses could also dispatch after
+  `od_spawnvpe()` had deliberately released its API boundary. Multithreaded
+  communications waits now use an internal thread sleep which performs no
+  owner dispatch; blocking owner operations also stop promptly if a
+  checkpoint completed session teardown.
 
 ## Defects found during the documentation audit
 
@@ -173,9 +211,10 @@
   path exceeding 99 characters.
 
 - [x] Return immediately when the multithreaded chat thread cannot be started.
-  [`ODKrnl.c`](ODKrnl.c) now clears `od_chat_active`, reports
-  `ERR_GENERALFAILURE`, balances the API state, and returns before waiting. A
-  Windows-only regression covers the private start-result state transition.
+  The separate chat worker has now been removed: both API-requested and local
+  operator chat execute on the session-owner thread. The Windows kernel
+  regression covers queued chat toggles, cooperative worker lifetime, and
+  owner-thread timer callbacks.
 
 - [x] Repair Unix `od_spawnvpe()` process handling in
   [`ODSpawn.c`](ODSpawn.c). The Unix launcher now detects setup, `fork()`,

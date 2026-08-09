@@ -178,6 +178,40 @@ static int ODGetCodeIfLongest(WORD wFlags);
 static int ODHaveStartOfSequence(WORD wFlags);
 static int ODLongestFullCode(WORD wFlags);
 static void ODShiftSeq(int chars);
+static tODResult ODGetInputWait(tODInputEvent *pEvent,
+   tODMilliSec TimeToWait);
+
+static tODResult ODGetInputWait(tODInputEvent *pEvent,
+   tODMilliSec TimeToWait)
+{
+   tODTimer Timer;
+   tODMilliSec Slice;
+   tODResult Result;
+
+   if(TimeToWait != OD_NO_TIMEOUT)
+      ODTimerStart(&Timer, TimeToWait);
+
+   for(;;)
+   {
+      if(TimeToWait == 0)
+         Slice = 0;
+      else if(TimeToWait == OD_NO_TIMEOUT)
+         Slice = 50;
+      else
+      {
+         Slice = ODTimerLeft(&Timer);
+         if(Slice > 50) Slice = 50;
+      }
+
+      Result = ODInQueueGetNextEvent(hODInputQueue, pEvent, Slice);
+      if(Result == kODRCSuccess || TimeToWait == 0)
+         return(Result);
+      if(!ODSyncAPICheckpoint())
+         return(kODRCGeneralFailure);
+      if(TimeToWait != OD_NO_TIMEOUT && ODTimerElapsed(&Timer))
+         return(kODRCTimeout);
+   }
+}
 
 /* ----------------------------------------------------------------------------
  * od_get_input()
@@ -237,7 +271,7 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
 
    /* If no pending input string, wait for the first keystroke */
    if((!szCurrentSequence[0]) && (!bDoorwaySequence)) {
-      if(ODInQueueGetNextEvent(hODInputQueue, &LastInputEvent, TimeToWait)
+      if(ODGetInputWait(&LastInputEvent, TimeToWait)
             != kODRCSuccess) {
          OD_API_EXIT();
          return(FALSE);

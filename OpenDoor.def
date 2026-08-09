@@ -139,3 +139,11 @@ EXPORTS
    od_save_screen_size=_od_save_screen_size@0 @131
    _od_set_port@4=_od_set_port@4 @132
    od_set_port=_od_set_port@4 @133
+   _od_control_read_lock@0=_od_control_read_lock@0 @134
+   _od_control_read_unlock@0=_od_control_read_unlock@0 @135
+   _od_control_write_lock@0=_od_control_write_lock@0 @136
+   _od_control_write_unlock@0=_od_control_write_unlock@0 @137
+   od_control_read_lock=_od_control_read_lock@0 @138
+   od_control_read_unlock=_od_control_read_unlock@0 @139
+   od_control_write_lock=_od_control_write_lock@0 @140
+   od_control_write_unlock=_od_control_write_unlock@0 @141

@@ -303,6 +303,9 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    INT16 nToReturn;
    time_t nStartUnixTime;
    DWORD dwQuotient;
+#ifdef OD_MULTITHREADED
+   unsigned nSavedAPILevel = 0;
+#endif
 #ifdef ODPLAT_WIN32
    void *pWindow;
 #endif /* ODPLAT_WIN32 */   
@@ -320,6 +323,7 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_API_ENTRY();
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    /* Ensure the nModeFlag is P_WAIT, which is the only valid value for */
@@ -327,6 +331,7 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    if(nModeFlag != P_WAIT)
    {
       od_control.od_error = ERR_PARAMETER;
+      OD_API_EXIT();
       return(-1);
    }
 
@@ -334,12 +339,14 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    if((abtScreenBuffer = malloc(4000)) == NULL)
    {
       od_control.od_error = ERR_MEMORY;
+      OD_API_EXIT();
       return(-1);
    }
    if((pszDir = malloc(256)) == NULL)
    {
       od_control.od_error = ERR_MEMORY;
       free(abtScreenBuffer);
+      OD_API_EXIT();
       return(-1);
    }
 
@@ -388,10 +395,16 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 
       /* Wait for up to ten seconds for outbound buffer to drain. */
       ODWaitDrain(10000);
+      if(!bODInitialized)
+      {
+         OD_API_EXIT();
+         return(-1);
+      }
 
 #ifdef OD_MULTITHREADED
       /* Mutlithreaded versions of OpenDoors must shutdown the kernel */
       /* before closing the serial port.                              */
+      nSavedAPILevel = ODSyncAPIRelease();
       ODKrnlShutdown();
 #endif /* OD_MULTITHREADED */
 
@@ -416,6 +429,9 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 
    if(nModeFlag == P_WAIT)
    {
+#ifdef OD_MULTITHREADED
+      ODSyncAPIReacquire(nSavedAPILevel);
+#endif
       /* Re-open serial port. */
       if(od_control.baud != 0)
       {
@@ -425,7 +441,11 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 #ifdef OD_MULTITHREADED
       /* Mutlithreaded versions of OpenDoors must shutdown the kernel    */
       /* before closing the serial port, so reinitialize the kernel now. */
-      ODKrnlInitialize();
+      if(ODKrnlRestart() != kODRCSuccess)
+      {
+         od_control.od_error = ERR_GENERALFAILURE;
+         nToReturn = -1;
+      }
 #endif /* OD_MULTITHREADED */
 
       if(!(bIsShell || od_control.od_spawn_freeze_time))
@@ -474,6 +494,7 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 #endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
    /* Return appropriate value. */
+   OD_API_EXIT();
    return(nToReturn);
 }
 

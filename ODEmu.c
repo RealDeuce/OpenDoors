@@ -465,6 +465,7 @@ abort_send:
 
                   /* Wait for any keypress. */
                   od_get_key(TRUE);
+                  if(!bODInitialized) goto end_transmission;
                }
          }
 
@@ -565,6 +566,12 @@ end_transmission:
    if(pfLocalFile)
    {
       fclose(pfLocalFile);
+   }
+
+   if(!bODInitialized)
+   {
+      OD_API_EXIT();
+      return(TRUE);
    }
 
    /* If we are not displaying anything on the local system. */
@@ -819,6 +826,7 @@ abort_send:
 
                   /* Wait for any keypress. */
                   od_get_key(TRUE);
+                  if(!bODInitialized) goto end_transmission;
                }
          }
 
@@ -957,6 +965,12 @@ end_transmission:
    if(pfLocalFile)
    {
       fclose(pfLocalFile);
+   }
+
+   if(!bODInitialized)
+   {
+      OD_API_EXIT();
+      return(TRUE);
    }
 
    /* If we are not displaying anything on the local system. */

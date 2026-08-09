@@ -25,9 +25,6 @@ int main(void)
 {
    char Input[3];
 
-#ifdef OD_MULTITHREADED
-   CHECK(ODSemaphoreAlloc(&hODActiveSemaphore, 0, INT_MAX) == kODRCSuccess);
-#endif
 
    memset(&od_control, 0, sizeof(od_control));
    memset(Input, 0x55, sizeof(Input));
@@ -55,10 +52,6 @@ int main(void)
    hODInputQueue = NULL;
    ODScrnShutdown();
 
-#ifdef OD_MULTITHREADED
-   ODSemaphoreFree(hODActiveSemaphore);
-   hODActiveSemaphore = NULL;
-#endif
 
    return(0);
 }

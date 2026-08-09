@@ -52,11 +52,7 @@
 #ifdef ODPLAT_NIX
 #include <sys/time.h>
 #ifdef OD_MULTITHREADED
-#include <semaphore.h>
 #include <pthread.h>
-#ifdef __FreeBSD__
-#include <pthread_np.h>
-#endif
 #endif
 #endif
 
@@ -124,20 +120,17 @@ typedef enum
 #else
 #define OD_THREAD_FUNC
 #endif
-// This was in ODPLAT_WIN32, but let's not do that garbage...
+/* The common wrapper gives both supported threaded backends one internal
+ * start-procedure type. */
 typedef DWORD (OD_THREAD_FUNC ptODThreadProc)(void *);
 
-/* Thread creation, temination and suspension. */
+/* Cooperative thread creation and joining. */
 tODResult ODThreadCreate(tODThreadHandle *phThread,
    ptODThreadProc *pfThreadProc, void *pThreadParam);
-void ODThreadExit();
-tODResult ODThreadTerminate(tODThreadHandle hThread);
-tODResult ODThreadSuspend(tODThreadHandle hThread);
-tODResult ODThreadResume(tODThreadHandle hThread);
 tODResult ODThreadSetPriority(tODThreadHandle hThread,
    tODThreadPriority ThreadPriority);
 void ODThreadWaitForExit(tODThreadHandle hThread);
-tODThreadHandle ODThreadGetCurrent(void);
+void ODThreadSleep(tODMilliSec Milliseconds);
 
 
 /* Semaphore handle data type. */
@@ -146,8 +139,7 @@ typedef HANDLE tODSemaphoreHandle;
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-// Ugh.
-typedef sem_t * tODSemaphoreHandle;
+typedef struct tODSemaphoreInfo *tODSemaphoreHandle;
 #endif /* ODPLAT_WIN32 */
 
 /* Semaphore manipulation functions. */

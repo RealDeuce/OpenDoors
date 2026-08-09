@@ -83,6 +83,7 @@
 
 #ifdef ODPLAT_WIN32
 #include "windows.h"
+#include <process.h>
 #endif /* ODPLAT_WIN32 */
 
 
@@ -223,58 +224,40 @@ static void ODPlatYield(void)
 /* Multithreading and synchronization support.                               */
 /* ========================================================================= */
 
-/*
- * NOTE: ODThreadTerminate() and ODThreadSuspend() are just plain bad
- *       ideas.
- * 
- * ODThreadTerminate() is inherently dangerous, and appears to have been
- * used just to avoid a proper termination signaling method.
- * 
- * ODThreadSuspend() is used to prevent internal calls to OpenDoors API
- * functions from allowing the client thread to run when
- * bHaveExclusiveControl is TRUE. This is a blunt hammer approach to
- * what is basically just a mutual exclusion issue. This one is also the
- * only reason ODThreadResume() and ODThreadGetCurrent() are
- * implemented.
- * 
- * ODThreadExit() is not used and could be removed, but it would be the
- * better way to handle the chat thread.
- * 
- * So basically, what we should need:
- * ODThreadCreate() - Should take a priority.
- * ODThreadExit()
- * ODThreadWaitForExit()
- * ODSemaphoreAlloc()
- * ODSemaphoreFree()
- * ODSemaphoreUp()
- * ODSemaphoreDown()
- * 
- * The current threads:
- * ODFrameThreadProc()        Handles the local window - Windows only
- * ODKrnlRemoteInputThread()  Sits in ODComGetByte() which has no way
- *                            to abort. But at least it blocks.
- *                            Well, it loops for UART...
- * ODKrnlNoCarrierThread()    Sits in ODComWaitEvent(hSerialPort, kNoCarrier)
- *                            This can end up polling.
- * ODKrnlTimeUpdateThread()   od_sleep()s for three seconds then calls
- *                            ODKrnlTimeUpdate(), not abortable.
- * ODKrnlChatThread()         Started when chat is initiated terminated at end
- * ODScrnThreadProc()         Prompts for local username, then handles the window.
- *                            Not ODPLAT_WIN32 only, but should be
- */
+/* Threads created here have cooperative stop protocols owned by their
+ * modules. This layer deliberately provides creation and joining, but no
+ * asynchronous suspension, cancellation, or forced termination operation. */
 
 #ifdef OD_MULTITHREADED
 
 #ifdef ODPLAT_NIX
+struct tODSemaphoreInfo
+{
+   pthread_mutex_t mutex;
+   pthread_cond_t changed;
+   INT count;
+   INT maximum;
+};
+#endif
+
 struct odthread_args {
    ptODThreadProc *func;
    void *arg;
 };
 
-void *odthread_wrapper(void *args) {
+#ifdef ODPLAT_WIN32
+static unsigned __stdcall odthread_wrapper(void *args)
+{
    struct odthread_args cp = *(struct odthread_args *)args;
    free(args);
-   return (void*)(uintptr_t)cp.func(cp.arg);
+   return (unsigned)cp.func(cp.arg);
+}
+#else
+static void *odthread_wrapper(void *args) {
+   struct odthread_args cp = *(struct odthread_args *)args;
+   free(args);
+   (void)cp.func(cp.arg);
+   return NULL;
 }
 #endif
 
@@ -301,23 +284,26 @@ tODResult ODThreadCreate(tODThreadHandle *phThread,
    ASSERT(pfThreadProc != NULL);
    
 #ifdef ODPLAT_WIN32
-   DWORD dwThreadID;
-   HANDLE hNewThread;
+   unsigned nThreadID;
+   DWORD_PTR nThreadHandle;
+   struct odthread_args *pa;
 
-   /* Attempt to create the new thread. */
-   hNewThread = CreateThread(NULL, 0, pfThreadProc, pThreadParam,
-      0, &dwThreadID);
+   pa = malloc(sizeof(*pa));
+   if(pa == NULL)
+      return(kODRCNoMemory);
+   pa->func = pfThreadProc;
+   pa->arg = pThreadParam;
 
-   /* Check for thread creation failure. */
-   if(hNewThread == NULL)
+   nThreadHandle = _beginthreadex(NULL, 0, odthread_wrapper, pa,
+      0, &nThreadID);
+
+   if(nThreadHandle == 0)
    {
+      free(pa);
       return(kODRCGeneralFailure);
    }
 
-   /* Pass newly created thread's handle back to the caller. */
-   *phThread = hNewThread;
-
-   /* Return with success. */
+   *phThread = (HANDLE)nThreadHandle;
    return(kODRCSuccess);
 #endif /* ODPLAT_WIN32 */
 
@@ -335,110 +321,6 @@ tODResult ODThreadCreate(tODThreadHandle *phThread,
    }
    *phThread = threadID;
    return(kODRCSuccess);
-#endif
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODThreadExit()
- *
- * Causes the calling thread to be terminated.
- *
- * Parameters: none
- *
- *     Return: Never returns!
- */
-void ODThreadExit()
-{
-#ifdef ODPLAT_WIN32
-   ExitThread(0);
-#endif /* ODPLAT_WIN32 */
-
-#ifdef ODPLAT_NIX
-   pthread_exit(NULL);
-#endif
-
-   /* We should never get here. */
-   ASSERT(FALSE);
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODThreadTerminate()
- *
- * Terminates the specified thread. 
- *
- * Parameters: hThread - Handle to the thread to be terminated.
- *
- *     Return: kOCRCSuccess on success, or an error code on failure.
- */
-tODResult ODThreadTerminate(tODThreadHandle hThread)
-{
-   ASSERT(hThread != NULL);
-
-#ifdef ODPLAT_WIN32
-   return(TerminateThread(hThread, 0) ? kODRCSuccess : kODRCGeneralFailure);
-#endif /* ODPLAT_WIN32 */
-
-#ifdef ODPLAT_NIX
-   // Try to do this nicely...
-   if (pthread_cancel(hThread))
-      return kODRCGeneralFailure;
-   if (pthread_join(hThread, NULL))
-      return kODRCGeneralFailure;
-   return kODRCSuccess;
-#endif
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODThreadSuspend()
- *
- * Pauses execution of the specified thread, until the ODThreadResume()
- * function is called.
- *
- * Parameters: hThread - Handle to the thread to be suspended.
- *
- *     Return: kOCRCSuccess on success, or an error code on failure.
- */
-tODResult ODThreadSuspend(tODThreadHandle hThread)
-{
-   ASSERT(hThread != NULL);
-
-#ifdef ODPLAT_WIN32
-   return(SuspendThread(hThread) == 0xFFFFFFFF ? kODRCGeneralFailure
-      : kODRCSuccess);
-#endif /* ODPLAT_WIN32 */
-
-#ifdef ODPLAT_NIX
-   // This is some garbage tier design right here...
-   return pthread_suspend_np(hThread) ? kODRCGeneralFailure : kODRCSuccess;
-#endif
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODThreadResume()
- *
- * Continues execution of a thread previously paused by a call to
- * ODThreadSuspend().
- *
- * Parameters: hThread - Handle to the thread to be resumed.
- *
- *     Return: kOCRCSuccess on success, or an error code on failure.
- */
-tODResult ODThreadResume(tODThreadHandle hThread)
-{
-   ASSERT(hThread != NULL);
-
-#ifdef ODPLAT_WIN32
-   return(ResumeThread(hThread) == 0xFFFFFFFF ? kODRCGeneralFailure
-      : kODRCSuccess);
-#endif /* ODPLAT_WIN32 */
-
-#ifdef ODPLAT_NIX
-   // This is some garbage tier design right here...
-   return pthread_resume_np(hThread) ? kODRCGeneralFailure : kODRCSuccess;
 #endif
 }
 
@@ -495,32 +377,9 @@ tODResult ODThreadSetPriority(tODThreadHandle hThread,
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   int min = sched_get_priority_min(SCHED_OTHER);
-   int max = sched_get_priority_max(SCHED_OTHER);
-   struct sched_param sp = {0};
-
-   switch(ThreadPriority) {
-      case OD_PRIORITY_LOWEST:
-         sp.sched_priority = min;
-         break;
-      case OD_PRIORITY_BELOW_NORMAL:
-         sp.sched_priority = min + (max - min + 1) / 4;
-         break;
-      case OD_PRIORITY_NORMAL:
-         sp.sched_priority = (min + max) / 2;
-         break;
-      case OD_PRIORITY_ABOVE_NORMAL:
-         sp.sched_priority = max - (max - min + 1) / 4;
-         break;
-      case OD_PRIORITY_HIGHEST:
-         sp.sched_priority = max;
-         break;
-      default:
-         ASSERT(FALSE);
-         return kODRCInvalidCall;
-   }
-
-   return pthread_setschedparam(hThread, SCHED_OTHER, &sp) ? kODRCGeneralFailure : kODRCSuccess;
+   (void)hThread;
+   (void)ThreadPriority;
+   return(kODRCSuccess);
 #endif
 }
 
@@ -546,29 +405,17 @@ void ODThreadWaitForExit(tODThreadHandle hThread)
 }
 
 
-/* ----------------------------------------------------------------------------
- * ODThreadGetCurrent()
- *
- * Obtains a handle to the thread that called this function.
- *
- * Parameters: None.
- *
- *     Return: Handle to the current thread.
- */
-tODThreadHandle ODThreadGetCurrent(void)
+void ODThreadSleep(tODMilliSec Milliseconds)
 {
 #ifdef ODPLAT_WIN32
-   HANDLE hDuplicate;
-   if(!DuplicateHandle(GetCurrentProcess(), GetCurrentThread(),
-      GetCurrentProcess(), &hDuplicate, 0, FALSE, DUPLICATE_SAME_ACCESS))
-   {
-      return(NULL);
-   }
-   return(hDuplicate);
-#endif /* ODPLAT_WIN32 */
-
+   Sleep(Milliseconds);
+#endif
 #ifdef ODPLAT_NIX
-   return pthread_self();
+   struct timespec ts;
+
+   ts.tv_sec = Milliseconds / 1000;
+   ts.tv_nsec = (long)(Milliseconds % 1000) * 1000000L;
+   while(nanosleep(&ts, &ts) == EINTR) ;
 #endif
 }
 
@@ -603,11 +450,25 @@ tODResult ODSemaphoreAlloc(tODSemaphoreHandle *phSemaphore, INT nInitialCount,
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   // ffs
-   *phSemaphore = malloc(sizeof(sem_t));
-   if (*phSemaphore == NULL)
-      return kODRCNoMemory;
-   return sem_init(*phSemaphore, 0, nInitialCount) ? kODRCGeneralFailure : kODRCSuccess;
+   *phSemaphore = malloc(sizeof(**phSemaphore));
+   if(*phSemaphore == NULL)
+      return(kODRCNoMemory);
+   if(pthread_mutex_init(&(*phSemaphore)->mutex, NULL) != 0)
+   {
+      free(*phSemaphore);
+      *phSemaphore = NULL;
+      return(kODRCGeneralFailure);
+   }
+   if(pthread_cond_init(&(*phSemaphore)->changed, NULL) != 0)
+   {
+      pthread_mutex_destroy(&(*phSemaphore)->mutex);
+      free(*phSemaphore);
+      *phSemaphore = NULL;
+      return(kODRCGeneralFailure);
+   }
+   (*phSemaphore)->count = nInitialCount;
+   (*phSemaphore)->maximum = nMaximumCount;
+   return(kODRCSuccess);
 #endif
 }
 
@@ -626,11 +487,12 @@ void ODSemaphoreFree(tODSemaphoreHandle hSemaphore)
    ASSERT(hSemaphore != NULL);
 
 #ifdef ODPLAT_WIN32
-   DeleteObject(hSemaphore);
+   CloseHandle(hSemaphore);
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   sem_destroy(hSemaphore);
+   pthread_cond_destroy(&hSemaphore->changed);
+   pthread_mutex_destroy(&hSemaphore->mutex);
    free(hSemaphore);
 #endif
 }
@@ -657,8 +519,13 @@ void ODSemaphoreUp(tODSemaphoreHandle hSemaphore, INT nIncrementBy)
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   for (int i = 0; i < nIncrementBy; i++)
-      sem_post(hSemaphore);
+   pthread_mutex_lock(&hSemaphore->mutex);
+   if(nIncrementBy <= hSemaphore->maximum - hSemaphore->count)
+   {
+      hSemaphore->count += nIncrementBy;
+      pthread_cond_broadcast(&hSemaphore->changed);
+   }
+   pthread_mutex_unlock(&hSemaphore->mutex);
 #endif
 }
 
@@ -712,18 +579,27 @@ tODResult ODSemaphoreDown(tODSemaphoreHandle hSemaphore, tODMilliSec Timeout)
       }
    }
 
-   do {
-      if (Timeout == OD_NO_TIMEOUT)
-         ret = sem_wait(hSemaphore);
+   pthread_mutex_lock(&hSemaphore->mutex);
+   while(hSemaphore->count == 0)
+   {
+      if(Timeout == 0)
+      {
+         pthread_mutex_unlock(&hSemaphore->mutex);
+         return(kODRCTimeout);
+      }
+      if(Timeout == OD_NO_TIMEOUT)
+         ret = pthread_cond_wait(&hSemaphore->changed, &hSemaphore->mutex);
       else
-         ret = sem_timedwait(hSemaphore, &ts);
-   } while (ret && errno == EINTR);
-   if (ret) {
-      if (errno == ETIMEDOUT || errno == EAGAIN)
-         return kODRCTimeout;
-      return kODRCGeneralFailure;
+         ret = pthread_cond_timedwait(&hSemaphore->changed,
+            &hSemaphore->mutex, &ts);
+      if(ret != 0)
+      {
+         pthread_mutex_unlock(&hSemaphore->mutex);
+         return(ret == ETIMEDOUT ? kODRCTimeout : kODRCGeneralFailure);
+      }
    }
-
+   --hSemaphore->count;
+   pthread_mutex_unlock(&hSemaphore->mutex);
 #endif
 
    /* Return with success. */
@@ -998,6 +874,10 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 #ifdef ODPLAT_NIX
    struct timespec ts;
 #endif
+#ifdef OD_MULTITHREADED
+   tODTimer SleepTimer;
+   tODMilliSec Slice;
+#endif
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_sleep()");
 
@@ -1042,10 +922,41 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 #endif /* ODPLAT_DOS32 */
 
 #ifdef ODPLAT_WIN32
+#ifdef OD_MULTITHREADED
+   if(Milliseconds == 0)
+   {
+      Sleep(0);
+      ODSyncAPICheckpoint();
+   }
+   else
+   {
+      ODTimerStart(&SleepTimer, Milliseconds);
+      do
+      {
+         Slice = ODTimerLeft(&SleepTimer);
+         if(Slice > 50) Slice = 50;
+         Sleep(Slice);
+         if(!ODSyncAPICheckpoint()) break;
+      } while(!ODTimerElapsed(&SleepTimer));
+   }
+#else
    Sleep(Milliseconds);
+#endif
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
+#ifdef OD_MULTITHREADED
+   if(Milliseconds != 0) ODTimerStart(&SleepTimer, Milliseconds);
+   do
+   {
+      Slice = Milliseconds == 0 ? 0 : ODTimerLeft(&SleepTimer);
+      if(Slice > 50) Slice = 50;
+      ts.tv_sec = Slice / 1000;
+      ts.tv_nsec = Slice == 0 ? 100000 : (long)(Slice % 1000) * 1000000L;
+      while(nanosleep(&ts, &ts) == EINTR) ;
+      if(!ODSyncAPICheckpoint()) break;
+   } while(Milliseconds != 0 && !ODTimerElapsed(&SleepTimer));
+#else
    clock_gettime(CLOCK_REALTIME, &ts);
 
    if(Milliseconds==0)  {
@@ -1059,6 +970,7 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
    }
    while (nanosleep(&ts, &ts) == EINTR)
       ;
+#endif
 #endif
 
    OD_API_EXIT();

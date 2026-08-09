@@ -258,6 +258,13 @@ ODAPIDEF INT ODCALL od_multiline_edit(char *pszBufferToEdit, UINT unBufferSize,
    /* outbound buffer at any time without loosing anything that was sent */
    /* before od_multiline_edit() was called.                             */
    ODWaitDrain(PRE_DRAIN_TIME);
+   if(!bODInitialized)
+   {
+      ODStatEndArrowUse();
+      ODEditCleanupInstance(&EditInstance);
+      OD_API_EXIT();
+      return(OD_MULTIEDIT_SUCCESS);
+   }
 
    /* Draw the initial edit area. */
    ODEditRedrawArea(&EditInstance);
@@ -596,7 +603,8 @@ static INT ODEditMainLoop(tEditInstance *pEditInstance)
    /* Loop, obtaining keystrokes until the user chooses to exit. */
    for(;;)
    {
-      od_get_input(&InputEvent, OD_NO_TIMEOUT, GETIN_NORMAL);
+      if(!od_get_input(&InputEvent, OD_NO_TIMEOUT, GETIN_NORMAL))
+         return(OD_MULTIEDIT_SUCCESS);
       if(InputEvent.EventType == EVENT_EXTENDED_KEY)
       {
          switch(InputEvent.chKeyPress)

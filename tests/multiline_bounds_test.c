@@ -49,9 +49,6 @@ int main(void)
    char szBuffer[1] = "";
    tODEditOptions Options;
 
-#ifdef OD_MULTITHREADED
-   CHECK(ODSemaphoreAlloc(&hODActiveSemaphore, 0, INT_MAX) == kODRCSuccess);
-#endif
 
    memset(&od_control, 0, sizeof(od_control));
    od_control.user_ansi = TRUE;
@@ -109,10 +106,6 @@ int main(void)
    bODInitialized = FALSE;
    ODScrnShutdown();
 
-#ifdef OD_MULTITHREADED
-   ODSemaphoreFree(hODActiveSemaphore);
-   hODActiveSemaphore = NULL;
-#endif
 
    return(0);
 }

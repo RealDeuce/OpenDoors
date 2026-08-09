@@ -252,6 +252,12 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
                {
                   od_clear_keybuffer();
                   od_get_key(TRUE);
+                  if(!bODInitialized)
+                  {
+                     fclose(pfFilesBBS);
+                     OD_API_EXIT();
+                     return(TRUE);
+                  }
                }
          }
          chLastControlKey = 0;

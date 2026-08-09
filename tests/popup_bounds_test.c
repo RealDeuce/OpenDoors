@@ -10,9 +10,6 @@
 
 int main(void)
 {
-#ifdef OD_MULTITHREADED
-   CHECK(ODSemaphoreAlloc(&hODActiveSemaphore, 0, INT_MAX) == kODRCSuccess);
-#endif
 
    bODInitialized = TRUE;
 
@@ -44,10 +41,6 @@ int main(void)
 
    bODInitialized = FALSE;
 
-#ifdef OD_MULTITHREADED
-   ODSemaphoreFree(hODActiveSemaphore);
-   hODActiveSemaphore = NULL;
-#endif
 
    return(0);
 }

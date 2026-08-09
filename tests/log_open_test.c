@@ -72,9 +72,6 @@ int main(void)
    CHECK(!ODLogTimeRecordSucceeded((time_t)-1, &ValidTimeRecord));
    CHECK(!ODLogTimeRecordSucceeded((time_t)0, NULL));
 
-#ifdef OD_MULTITHREADED
-   CHECK(ODSemaphoreAlloc(&hODActiveSemaphore, 0, INT_MAX) == kODRCSuccess);
-#endif
 
    memset(&od_control, 0, sizeof(od_control));
    strcpy(od_control.od_logfile_name, szLogName);
@@ -211,12 +208,5 @@ cleanup:
    od_control.od_logfile_disable = FALSE;
    remove(szLogName);
    bODInitialized = FALSE;
-#ifdef OD_MULTITHREADED
-   if(hODActiveSemaphore != NULL)
-   {
-      ODSemaphoreFree(hODActiveSemaphore);
-      hODActiveSemaphore = NULL;
-   }
-#endif
    return(nResult);
 }

@@ -202,17 +202,28 @@ and timers responsive. This does not make the public API generally callable
 from arbitrary application threads.
 
 Treat a single application thread as the owner of the OpenDoors session. Call
-the API, inspect mutable session fields, and perform initialization and exit on
-that thread. Background threads may prepare application data, but they should
-hand results back to the owner before displaying text or accepting door input.
-This rule prevents output interleaving, input-queue races, callback re-entry,
-and shutdown while another call is active.
+[`od_init()`](../reference/api/od_init.md), every other API function, inspect or
+modify every public ABI object, and perform exit on that thread. This is a
+requirement even in a Windows build with internal workers. Background threads
+may prepare application data, but they must hand results back to the owner
+before displaying text, accepting door input, or accessing
+[`od_control`](../reference/control/index.md).
 
-Callbacks configured through [`od_control`](../reference/control/index.md) run as part of OpenDoors processing.
-They should return promptly and must not wait for a background thread which is
-itself waiting to call OpenDoors. A callback that needs lengthy application
-work can record a request for the main loop to handle after the current API call
-returns.
+Ordinary source access through the exported
+[`od_control`](../reference/control/index.md) object remains supported. When
+several related fields must be read or changed as one operation while internal
+workers are active, use
+[`od_control_read_lock()`](../reference/api/od_control_read_lock.md) or
+[`od_control_write_lock()`](../reference/api/od_control_write_lock.md). These
+functions synchronize the owner with OpenDoors workers; they do not authorize
+a background application thread to use the API.
+
+Callbacks configured through [`od_control`](../reference/control/index.md)
+normally run on the session-owner thread as part of OpenDoors processing and
+may call the API recursively. The Windows help and configuration callbacks are
+the exceptions: they retain their frame-thread context and must not access any
+OpenDoors function, global, or returned pointer. They should queue
+application-owned work for the owner thread and return promptly.
 
 Long application computations should periodically call
 [`od_kernel()`](../reference/api/od_kernel.md) from the owning thread. Most API

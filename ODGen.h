@@ -57,14 +57,8 @@
 #define OD_MULTITHREADED
 #endif /* ODPLAT_WIN32 */
 
-/* For pthreads, we need pthread_suspend_np(pthread_t) */
-#if defined(__FreeBSD__) || defined(__NetBSD__)
-/*
- * Disable this for now... the thread suspend thing should be
- * reworked to use standard primatives, and the ability/need
- * to just murder a thread at an arbitrary place is gross.
- */
-//#define OD_MULTITHREADED
+#if defined(ODPLAT_NIX) && defined(OPENDOORS_ENABLE_PTHREAD_KERNEL)
+#define OD_MULTITHREADED
 #endif
 
 /* Text mode specific definitions. */

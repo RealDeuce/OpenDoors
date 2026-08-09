@@ -50,9 +50,6 @@ int main(void)
    char *pszInitialBuffer;
    UINT unInitialSize = (UINT)sizeof(szEmptyText);
 
-#ifdef OD_MULTITHREADED
-   CHECK(ODSemaphoreAlloc(&hODActiveSemaphore, 0, INT_MAX) == kODRCSuccess);
-#endif
 
    pszInitialBuffer = (char *)malloc(sizeof(szEmptyText));
    CHECK(pszInitialBuffer != NULL);
@@ -86,10 +83,6 @@ int main(void)
    hODInputQueue = NULL;
    ODScrnShutdown();
 
-#ifdef OD_MULTITHREADED
-   ODSemaphoreFree(hODActiveSemaphore);
-   hODActiveSemaphore = NULL;
-#endif
 
    return(0);
 }

@@ -35,6 +35,9 @@
 
 #include "ODPlat.h"
 
+#define OD_MIN_USER_TIME_MINUTES 0
+#define OD_MAX_USER_TIME_MINUTES 1440
+
 /* Global kernel-related variables. */
 extern tODTimer RunKernelTimer;
 extern time_t nNextTimeDeductTime;
@@ -42,9 +45,6 @@ extern char chLastControlKey;
 extern INT nArrowUseCount;
 extern BOOL bForceStatusUpdate;
 extern BOOL bSysopColor;
-#ifdef OD_MULTITHREADED
-extern tODSemaphoreHandle hODActiveSemaphore;
-#endif /* OD_MULTITHREADED */
 
 /* Chat mode global variables. */
 extern BOOL bIsShell;
@@ -52,16 +52,22 @@ extern BOOL bChatted;
 
 /* Kernel function prototypes. */
 tODResult ODKrnlInitialize(void);
+tODResult ODKrnlRestart(void);
 void ODKrnlShutdown(void);
 void ODKrnlHandleLocalKey(WORD wKeyCode);
 void ODKrnlEndChatMode(void);
 void ODKrnlForceOpenDoorsShutdown(BYTE btReasonForShutdown);
 void ODStatStartArrowUse(void);
 void ODStatEndArrowUse(void);
-#ifdef OD_MULTITHREADED
-tODResult ODKrnlStartChatThread(BOOL bTriggeredInternally);
-BOOL ODKrnlChatThreadStartSucceeded(tODResult Result);
-#endif /* OD_MULTITHREADED */
+void ODKrnlDispatchPending(BOOL bAllowApplicationCallbacks);
+void ODKrnlRequestChatToggle(void);
+void ODKrnlRequestTimeUpdate(void);
+void ODKrnlRequestKeyboardToggle(void);
+void ODKrnlRequestSysopNextToggle(void);
+void ODKrnlRequestInactivityToggle(void);
+void ODKrnlRequestTimeAdjustment(INT nMinutes);
+void ODKrnlRequestTimeValue(INT nMinutes);
+void ODKrnlRequestLockout(void);
 
 /* Macro used to generate the appropriate code (if any) to call */
 /* the OpenDoors kernel from within OpenDoors code.             */
@@ -79,13 +85,9 @@ BOOL ODKrnlChatThreadStartSucceeded(tODResult Result);
 #endif /* !ODPLAT_NIX */
 #endif /* !OD_MULTITHREADED */
 
-/* Macro used to increment or decrement OpenDoors active semaphore. */
-#ifdef OD_MULTITHREADED
-#define OD_API_ENTRY()              ODSemaphoreUp(hODActiveSemaphore, 1);
-#define OD_API_EXIT()               ODSemaphoreDown(hODActiveSemaphore, 1);
-#else /* !OD_MULTITHREADED */
-#define OD_API_ENTRY()
-#define OD_API_EXIT()
-#endif /* !OD_MULTITHREADED */
+#include "ODSync.h"
+
+#define OD_API_ENTRY()              ODSyncAPIEntry();
+#define OD_API_EXIT()               ODSyncAPIExit();
 
 #endif /* _INC_ODKRNL */

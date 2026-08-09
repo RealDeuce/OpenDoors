@@ -294,6 +294,9 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    void *pWindow = NULL;
    DWORD dwActiveMinutes;
    static BOOL bExiting = FALSE;
+#ifdef OD_MULTITHREADED
+   unsigned nSavedAPILevel;
+#endif
 
    /* Log function entry if running in trace mode */
    TRACE(TRACE_API, "od_exit()");
@@ -316,6 +319,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    /* If user called od_exit() before doing anything else, then we first */
    /* initialize OpenDoors in order to shutdown and exit.                */
    if(!bODInitialized) od_init();
+   OD_API_ENTRY();
 
    /* Update remaining time. */
    od_control.user_timelimit += od_control.od_maxtime_deduction;
@@ -896,6 +900,12 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
          MB_OK);
    }
 #endif
+   /* Kernel workers and Windows UI threads may be waiting to read session
+    * state. Release the API writer while stopping and joining them. */
+#ifdef OD_MULTITHREADED
+   nSavedAPILevel = ODSyncAPIRelease();
+#endif
+
    /* Shutdown the OpenDoors kernel. */
    ODKrnlShutdown();
 
@@ -904,6 +914,10 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
     * state they display. */
    ODFrameShutdown(&hFrameThread);
 #endif /* ODPLAT_WIN32 */
+
+#ifdef OD_MULTITHREADED
+   ODSyncAPIReacquire(nSavedAPILevel);
+#endif
 
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
@@ -958,10 +972,18 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 
    /* If the client does not want a call to od_exit() to shutdown the */
    /* application, but just to shutdown OpenDoors, then return now.   */
-   if(od_control.od_noexit) return;
+   if(od_control.od_noexit)
+   {
+      OD_API_EXIT();
+      return;
+   }
 
    /* If exit() has already been called, then do not call it again. */
-   if(bPreOrExit) return;
+   if(bPreOrExit)
+   {
+      OD_API_EXIT();
+      return;
+   }
 
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
@@ -1434,7 +1456,11 @@ static BOOL ODSendModemCommandOnce(char *pszCommand)
 
             case '~':
                /* A tilde character denotes a 1 second pause. */
+#ifdef OD_MULTITHREADED
+               ODThreadSleep(1000);
+#else
                od_sleep(1000);
+#endif
                break;
 
             default:
@@ -1450,7 +1476,11 @@ static BOOL ODSendModemCommandOnce(char *pszCommand)
 #endif /* OD_DIAGNOSTICS */
          }
 
+#ifdef OD_MULTITHREADED
+         ODThreadSleep(200);
+#else
          od_sleep(200);
+#endif
       }
       else
       {
@@ -1563,7 +1593,11 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
       else
       {
          /* When no characters are waiting, allow other processes to run. */
+#ifdef OD_MULTITHREADED
+         ODThreadSleep(0);
+#else
          od_sleep(0);
+#endif
       }
    }
 

@@ -100,9 +100,6 @@ int main(void)
       "@#MAIN\nF\n@#END\n"));
    CHECK(WriteSectionFixture(SECTION_LIMIT_FILE, szMaxSectionName));
 
-#ifdef OD_MULTITHREADED
-   CHECK(ODSemaphoreAlloc(&hODActiveSemaphore, 0, INT_MAX) == kODRCSuccess);
-#endif
 
    memset(&od_control, 0, sizeof(od_control));
    od_control.od_cur_attrib = 0x07;
@@ -169,13 +166,6 @@ cleanup:
       hODInputQueue = NULL;
    }
 
-#ifdef OD_MULTITHREADED
-   if(hODActiveSemaphore != NULL)
-   {
-      ODSemaphoreFree(hODActiveSemaphore);
-      hODActiveSemaphore = NULL;
-   }
-#endif
 
    remove(DISPLAY_FILE);
    remove(SECTION_FILE);

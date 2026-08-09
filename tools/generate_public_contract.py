@@ -79,7 +79,9 @@ def function_evidence(name: str) -> list[str]:
         group = "personalities.builtin"
     elif name in groups:
         group = groups[name]
-    elif name in {"od_init", "od_exit", "od_control_get", "od_set_port",
+    elif name in {"od_init", "od_exit", "od_control_get",
+                  "od_control_read_lock", "od_control_read_unlock",
+                  "od_control_write_lock", "od_control_write_unlock", "od_set_port",
                   "od_set_dtr", "od_set_statusline", "od_color_config"}:
         group = "lifecycle.defaults"
     else:

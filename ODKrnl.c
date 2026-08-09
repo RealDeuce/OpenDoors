@@ -90,6 +90,7 @@
 #include "ODScrn.h"
 #include "ODInQue.h"
 #include "ODInEx.h"
+#include "ODSync.h"
 #ifdef ODPLAT_WIN32
 #include "ODFrame.h"
 #endif /* ODPLAT_WIN32 */
@@ -111,7 +112,7 @@
 
 /* Private function prototypes. */
 static void ODKrnlHandleReceivedChar(char chReceived, BOOL bFromRemote);
-static void ODKrnlTimeUpdate(void);
+static BOOL ODKrnlTimeUpdate(BOOL bAllowApplicationCallbacks);
 static void ODKrnlChatCleanup(void);
 static void ODKrnlChatMode(void);
 #ifdef ODPLAT_NIX
@@ -122,34 +123,59 @@ static void sig_no_carrier(int sig);
 #endif
 #endif
 
+static tODResult ODKrnlStart(BOOL bPreservePending);
+
 /* Functions specific to the multithreaded implementation of the kernel. */
 #ifdef OD_MULTITHREADED
 /* Thread proceedures. */
 DWORD OD_THREAD_FUNC ODKrnlRemoteInputThread(void *pParam);
 DWORD OD_THREAD_FUNC ODKrnlNoCarrierThread(void *pParam);
 DWORD OD_THREAD_FUNC ODKrnlTimeUpdateThread(void *pParam);
-DWORD OD_THREAD_FUNC ODKrnlChatThread(void *pParam);
 
 /* Helper functions. */
-static void ODKrnlWaitForExclusiveControl(void);
-static void ODKrnlGiveUpExclusiveControl(void);
-#ifdef ODPLAT_WIN32
-static void ODKrnlJoinWindowsThread(tODThreadHandle *phThread);
-#endif /* ODPLAT_WIN32 */
+static BOOL ODKrnlWorkerWait(tODMilliSec Milliseconds);
+static void ODKrnlJoinThread(tODThreadHandle *phThread, BOOL *pbStarted);
+static void ODKrnlQueueShutdown(BYTE btReasonForShutdown);
+static BOOL ODKrnlQueueTimeMessage(char *pszMessage,
+   BYTE btReasonForShutdown);
+static BOOL ODKrnlDispatchTimeMessages(void);
+static void ODKrnlDiscardTimeMessages(void);
 #endif /* OD_MULTITHREADED */
+static BOOL ODKrnlDeliverTimeMessage(char *pszMessage,
+   BYTE btReasonForShutdown, BOOL bAllowApplicationCallbacks);
 
 /* Local working variables. */
 #ifdef OD_MULTITHREADED
-static tODThreadHandle hRemoteInputThread = NULL;
-static tODThreadHandle hNoCarrierThread = NULL;
-static tODThreadHandle hTimeUpdateThread = NULL;
-static tODThreadHandle hClientThread = NULL;
-static tODThreadHandle hChatThread = NULL;
-#ifdef ODPLAT_WIN32
-static HANDLE hKernelShutdownEvent = NULL;
-#endif /* ODPLAT_WIN32 */
-static BOOL bHaveExclusiveControl;
-static BOOL bChatActivatedInternally;
+static tODThreadHandle hRemoteInputThread;
+static tODThreadHandle hNoCarrierThread;
+static tODThreadHandle hTimeUpdateThread;
+static BOOL bRemoteInputThreadStarted;
+static BOOL bNoCarrierThreadStarted;
+static BOOL bTimeUpdateThreadStarted;
+static tODSemaphoreHandle hKernelShutdownSemaphore;
+static tODMutex KernelStateLock;
+static BOOL bKernelStateLockInitialized;
+static BOOL bKernelStopRequested;
+static BOOL bTimerUpdatePending;
+static BOOL bChatTogglePending;
+static BOOL bKeyboardTogglePending;
+static BOOL bSysopNextTogglePending;
+static BOOL bInactivityTogglePending;
+static BOOL bTimeValuePending;
+static INT nPendingTimeValue;
+static INT nPendingTimeAdjustment;
+static BOOL bLockoutPending;
+static BYTE btPendingShutdown;
+typedef struct tODDeferredTimeMessage
+{
+   struct tODDeferredTimeMessage *pNext;
+   void (*pfnCallback)(char *pszMessage);
+   char *pszMessage;
+   BYTE btReasonForShutdown;
+} tODDeferredTimeMessage;
+static tODDeferredTimeMessage *pFirstTimeMessage;
+static tODDeferredTimeMessage *pLastTimeMessage;
+static BOOL bTimeShutdownDeferred;
 #endif /* OD_MULTITHREADED */
 static BOOL bKernelActive = FALSE;
 static BOOL bWarnedAboutInactivity = FALSE;
@@ -166,9 +192,6 @@ char chLastControlKey = '\0';
 INT nArrowUseCount = 0;
 BOOL bForceStatusUpdate = FALSE;
 BOOL bIsShell;
-#ifdef OD_MULTITHREADED
-tODSemaphoreHandle hODActiveSemaphore = NULL;
-#endif /* OD_MULTITHREADED */
 
 
 /* ----------------------------------------------------------------------------
@@ -221,6 +244,16 @@ void ODStatEndArrowUse(void)
  */
 tODResult ODKrnlInitialize(void)
 {
+   return(ODKrnlStart(FALSE));
+}
+
+tODResult ODKrnlRestart(void)
+{
+   return(ODKrnlStart(TRUE));
+}
+
+static tODResult ODKrnlStart(BOOL bPreservePending)
+{
 #ifdef ODPLAT_NIX
    sigset_t		block;
 #ifdef USE_KERNEL_SIGNAL
@@ -230,6 +263,10 @@ tODResult ODKrnlInitialize(void)
 #endif
 
    tODResult Result = kODRCSuccess;
+
+#ifndef OD_MULTITHREADED
+   (void)bPreservePending;
+#endif
    
 #ifdef ODPLAT_NIX
 #ifdef USE_KERNEL_SIGNAL
@@ -290,55 +327,84 @@ tODResult ODKrnlInitialize(void)
    bKernelActive = FALSE;
 
 #ifdef OD_MULTITHREADED
-   /* Initially, we do not have exclusive control of the application. */
-   bHaveExclusiveControl = FALSE;
-
-   /* Obtain a handle to the client thread. */
-   hClientThread = ODThreadGetCurrent();
-
-#ifdef ODPLAT_WIN32
-   /* Create an event which allows the timer thread to stop without being
-    * terminated while it may be using OpenDoors state. */
-   hKernelShutdownEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-   if(hKernelShutdownEvent == NULL)
+   if(!bKernelStateLockInitialized)
    {
-      return(kODRCGeneralFailure);
-   }
-#endif /* ODPLAT_WIN32 */
-
-   /* Create OpenDoors activation semaphore. */
-   if(hODActiveSemaphore == NULL)
-   {
-      Result = ODSemaphoreAlloc(&hODActiveSemaphore, 0, INT_MAX);
-      if(Result != kODRCSuccess) return(Result);
+      Result = ODMutexInitialize(&KernelStateLock);
+      if(Result != kODRCSuccess)
+         return(Result);
+      bKernelStateLockInitialized = TRUE;
    }
 
-   /* Start the remote input thread if we are not operating in local mode. */
+   if(!bPreservePending)
+      ODKrnlDiscardTimeMessages();
+
+   Result = ODSemaphoreAlloc(&hKernelShutdownSemaphore, 0, 3);
+   if(Result != kODRCSuccess)
+      return(Result);
+
+   ODMutexLock(&KernelStateLock);
+   bKernelStopRequested = FALSE;
+   bTimerUpdatePending = FALSE;
+   if(!bPreservePending)
+   {
+      bChatTogglePending = FALSE;
+      bKeyboardTogglePending = FALSE;
+      bSysopNextTogglePending = FALSE;
+      bInactivityTogglePending = FALSE;
+      bTimeValuePending = FALSE;
+      nPendingTimeValue = 0;
+      nPendingTimeAdjustment = 0;
+      bLockoutPending = FALSE;
+      btPendingShutdown = 0;
+   }
+   ODMutexUnlock(&KernelStateLock);
+
+   bRemoteInputThreadStarted = FALSE;
+   bNoCarrierThreadStarted = FALSE;
+   bTimeUpdateThreadStarted = FALSE;
+
    if(od_control.baud != 0)
    {
       Result = ODThreadCreate(&hRemoteInputThread, ODKrnlRemoteInputThread,
          NULL);
-      if(Result != kODRCSuccess) return(Result);
+      if(Result != kODRCSuccess)
+         goto initialization_failed;
+      bRemoteInputThreadStarted = TRUE;
       ODThreadSetPriority(hRemoteInputThread, REMOTE_INPUT_THREAD_PRIORITY);
    }
 
-   /* Start the carrier detection thread if we are not operating in local */
-   /* mode.                                                               */
    if(od_control.baud != 0)
    {
       Result = ODThreadCreate(&hNoCarrierThread, ODKrnlNoCarrierThread, NULL);
-      if(Result != kODRCSuccess) return(Result);
+      if(Result != kODRCSuccess)
+         goto initialization_failed;
+      bNoCarrierThreadStarted = TRUE;
       ODThreadSetPriority(hNoCarrierThread, NO_CARRIER_THREAD_PRIORITY);
    }
 
-   /* Start the time update thread. */
    Result = ODThreadCreate(&hTimeUpdateThread, ODKrnlTimeUpdateThread, 0);
-   if(Result != kODRCSuccess) return(Result);
+   if(Result != kODRCSuccess)
+      goto initialization_failed;
+   bTimeUpdateThreadStarted = TRUE;
    ODThreadSetPriority(hTimeUpdateThread, TIME_UPDATE_THREAD_PRIORITY);
 #endif /* OD_MULTITHREADED */
 
    /* Return with success. */
    return(Result);
+
+#ifdef OD_MULTITHREADED
+initialization_failed:
+   ODMutexLock(&KernelStateLock);
+   bKernelStopRequested = TRUE;
+   ODMutexUnlock(&KernelStateLock);
+   ODSemaphoreUp(hKernelShutdownSemaphore, 3);
+   ODKrnlJoinThread(&hTimeUpdateThread, &bTimeUpdateThreadStarted);
+   ODKrnlJoinThread(&hNoCarrierThread, &bNoCarrierThreadStarted);
+   ODKrnlJoinThread(&hRemoteInputThread, &bRemoteInputThreadStarted);
+   ODSemaphoreFree(hKernelShutdownSemaphore);
+   hKernelShutdownSemaphore = NULL;
+   return(Result);
+#endif
 }
 
 
@@ -353,45 +419,35 @@ tODResult ODKrnlInitialize(void)
  */
 void ODKrnlShutdown(void)
 {
-   if(bKernelActive) return;
-
 #ifdef OD_MULTITHREADED
-#ifdef ODPLAT_WIN32
-   /* Wake the timer thread before stopping the other kernel threads. */
-   if(hKernelShutdownEvent != NULL)
-   {
-      SetEvent(hKernelShutdownEvent);
-   }
-#endif /* ODPLAT_WIN32 */
+   ODMutexLock(&KernelStateLock);
+   bKernelStopRequested = TRUE;
+   ODMutexUnlock(&KernelStateLock);
+   if(hKernelShutdownSemaphore != NULL)
+      ODSemaphoreUp(hKernelShutdownSemaphore, 3);
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
       MessageBox(NULL, "Terminating remote input thread", "OpenDoors Diagnostics", MB_OK);
 #endif
-   /* Shutdown the remote input thread, if it exists. */
-   if(hRemoteInputThread != NULL) ODThreadTerminate(hRemoteInputThread);
+   ODKrnlJoinThread(&hRemoteInputThread, &bRemoteInputThreadStarted);
 
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
       MessageBox(NULL, "Terminating carrier detection", "OpenDoors Diagnostics", MB_OK);
 #endif
-   /* Shutdown the carrier detection thread, if it exists. */
-   if(hNoCarrierThread != NULL) ODThreadTerminate(hNoCarrierThread);
+   ODKrnlJoinThread(&hNoCarrierThread, &bNoCarrierThreadStarted);
 
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
       MessageBox(NULL, "Terminating time update thread", "OpenDoors Diagnostics", MB_OK);
 #endif
-   /* Shutdown the time update thread, if it exists. */
-#ifdef ODPLAT_WIN32
-   ODKrnlJoinWindowsThread(&hTimeUpdateThread);
-   if(hKernelShutdownEvent != NULL)
+   ODKrnlJoinThread(&hTimeUpdateThread, &bTimeUpdateThreadStarted);
+
+   if(hKernelShutdownSemaphore != NULL)
    {
-      CloseHandle(hKernelShutdownEvent);
-      hKernelShutdownEvent = NULL;
+      ODSemaphoreFree(hKernelShutdownSemaphore);
+      hKernelShutdownSemaphore = NULL;
    }
-#else
-   if(hTimeUpdateThread != NULL) ODThreadTerminate(hTimeUpdateThread);
-#endif /* ODPLAT_WIN32 */
 
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
@@ -787,14 +843,14 @@ statup:
    }
 #endif
 
-   ODKrnlTimeUpdate();
+   ODKrnlTimeUpdate(TRUE);
 
    ODTimerStart(&RunKernelTimer, 250);
+#endif /* !OD_MULTITHREADED */
 
    OD_API_EXIT();
 
    bKernelActive = FALSE;
-#endif /* !OD_MULTITHREADED */
 }
 
 
@@ -811,8 +867,14 @@ statup:
  */
 void ODKrnlHandleLocalKey(WORD wKeyCode)
 {
+   BOOL bLocalInputDisabled;
+
+   ODSyncControlReadLock();
+   bLocalInputDisabled = (od_control.od_disable & DIS_LOCAL_INPUT) != 0;
+   ODSyncControlReadUnlock();
+
    /* If local keyboard input by sysop has not been disabled. */
-   if(!(od_control.od_disable & DIS_LOCAL_INPUT))
+   if(!bLocalInputDisabled)
    {
       if((wKeyCode & 0xff) == 0)
       {
@@ -843,10 +905,14 @@ void ODKrnlHandleLocalKey(WORD wKeyCode)
 static void ODKrnlHandleReceivedChar(char chReceived, BOOL bFromRemote)
 {
    tODInputEvent InputEvent;
+   BOOL bKeyboardOn;
 
    /* If we are operating in remote mode, and remote user keyboard has been */
    /* disabled by the sysop, then return, ignoring this character.          */
-   if(bFromRemote && !od_control.od_user_keyboard_on)
+   ODSyncControlReadLock();
+   bKeyboardOn = od_control.od_user_keyboard_on;
+   ODSyncControlReadUnlock();
+   if(bFromRemote && !bKeyboardOn)
    {
       return;
    }
@@ -884,7 +950,7 @@ static void ODKrnlHandleReceivedChar(char chReceived, BOOL bFromRemote)
  *
  *     Return: void
  */
-static void ODKrnlTimeUpdate(void)
+static BOOL ODKrnlTimeUpdate(BOOL bAllowApplicationCallbacks)
 {
    time_t CurrentTime;
    static char szTemp[80];
@@ -913,17 +979,9 @@ static void ODKrnlTimeUpdate(void)
       /* If timeout, display message. */
       if(od_control.od_inactivity != 0 && !od_control.od_disable_inactivity)
       {
-         if(od_control.od_time_msg_func == NULL)
-         {
-            od_disp_str(od_control.od_inactivity_timeout);
-         }
-         else
-         {
-            (*od_control.od_time_msg_func)(od_control.od_inactivity_timeout);
-         }
-
-         /* End connection. */
-         ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_INACTIVITY);
+         ODKrnlDeliverTimeMessage(od_control.od_inactivity_timeout,
+            ERRORLEVEL_INACTIVITY, bAllowApplicationCallbacks);
+         return(TRUE);
       }
    }
 
@@ -935,14 +993,8 @@ static void ODKrnlTimeUpdate(void)
          && !od_control.od_disable_inactivity)
       {
          /* Warn the user. */
-         if(od_control.od_time_msg_func == NULL)
-         {
-            od_disp_str(od_control.od_inactivity_warning);
-         }
-         else
-         {
-            (*od_control.od_time_msg_func)(od_control.od_inactivity_warning);
-         }
+         if(ODKrnlDeliverTimeMessage(od_control.od_inactivity_warning, 0,
+            bAllowApplicationCallbacks)) return(TRUE);
          /* Don't warn the user a second time. */
          bWarnedAboutInactivity = TRUE;
       }
@@ -960,8 +1012,9 @@ static void ODKrnlTimeUpdate(void)
       nNextTimeDeductTime = time(NULL) + 60;
    }
 
-   /* If 1 minute has passed since last time update. */
-   if(CurrentTime >= nNextTimeDeductTime)
+   /* Apply every elapsed minute. The worker only schedules this routine;
+    * owner-thread dispatch may have been deferred at a safe point. */
+   while(CurrentTime >= nNextTimeDeductTime && bODInitialized)
    {
       /* Next time update should occur 60 seconds after this one was */
       /* scheduled.                                                  */
@@ -982,38 +1035,70 @@ static void ODKrnlTimeUpdate(void)
          /* If less than 3 mins left, tell user. */
          sprintf(szTemp, od_control.od_time_warning,
             od_control.user_timelimit);
-         if(od_control.od_time_msg_func == NULL)
-         {
-            od_disp_str(szTemp);
-         }
-         else
-         {
-            (*od_control.od_time_msg_func)(szTemp);
-         }
+         if(ODKrnlDeliverTimeMessage(szTemp, 0,
+            bAllowApplicationCallbacks)) return(TRUE);
       }
 
-#ifdef ODPLAT_WIN32
-      ODFrameUpdateTimeDisplay();
-#endif /* ODPLAT_WIN32 */
    }
+
+#ifdef ODPLAT_WIN32
+   ODFrameUpdateTimeDisplay();
+#endif /* ODPLAT_WIN32 */
 
    /* If user has no time left. */
    if(od_control.user_timelimit <= 0
       && !(od_control.od_disable & DIS_TIMEOUT))
    {
       /* Notify the user. */
-      if(od_control.od_time_msg_func == NULL)
-      {
-         od_disp_str(od_control.od_no_time);
-      }
-      else
-      {
-         (*od_control.od_time_msg_func)(od_control.od_no_time);
-      }
-
-      /* Force OpenDoors to shutdown. */
-      ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_TIMEOUT);
+      ODKrnlDeliverTimeMessage(od_control.od_no_time, ERRORLEVEL_TIMEOUT,
+         bAllowApplicationCallbacks);
+      return(TRUE);
    }
+
+   return(FALSE);
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODKrnlDeliverTimeMessage()                           *** PRIVATE FUNCTION ***
+ *
+ * Delivers a kernel-generated time message. Application callbacks are held
+ * until the active outer API call has finished; built-in display remains safe
+ * to perform at a blocking-call checkpoint.
+ *
+ *     Return: TRUE if timer processing must stop.
+ */
+static BOOL ODKrnlDeliverTimeMessage(char *pszMessage,
+   BYTE btReasonForShutdown, BOOL bAllowApplicationCallbacks)
+{
+#ifdef OD_MULTITHREADED
+   if(od_control.od_time_msg_func != NULL &&
+      !bAllowApplicationCallbacks)
+   {
+      if(!ODKrnlQueueTimeMessage(pszMessage, btReasonForShutdown) &&
+         btReasonForShutdown != 0)
+      {
+         ODKrnlQueueShutdown(btReasonForShutdown);
+      }
+      return(btReasonForShutdown != 0);
+   }
+#else
+   (void)bAllowApplicationCallbacks;
+#endif
+
+   if(od_control.od_time_msg_func == NULL)
+      od_disp_str(pszMessage);
+   else
+      (*od_control.od_time_msg_func)(pszMessage);
+
+   if(!bODInitialized)
+      return(TRUE);
+   if(btReasonForShutdown != 0)
+   {
+      ODKrnlForceOpenDoorsShutdown(btReasonForShutdown);
+      return(TRUE);
+   }
+   return(FALSE);
 }
 
 
@@ -1035,14 +1120,12 @@ void ODKrnlForceOpenDoorsShutdown(BYTE btReasonForShutdown)
    BOOL bHangup;
 
 #ifdef OD_MULTITHREADED
-   /* First, wait until an OpenDoors API is active. This way, we won't  */
-   /* interrupt any client application operations that may leave the    */
-   /* system in an unstable state (for instance, interrupting some file */
-   /* I/O operations).                                                  */
-   ODKrnlWaitForExclusiveControl();
+   if(!ODSyncIsOwnerThread())
+   {
+      ODKrnlQueueShutdown(btReasonForShutdown);
+      return;
+   }
 #endif /* OD_MULTITHREADED */
-
-   bKernelActive = TRUE;
 
    /* Determine whether we should hangup on the user before exiting. */
    if(btReasonForShutdown == ERRORLEVEL_HANGUP
@@ -1071,12 +1154,290 @@ void ODKrnlForceOpenDoorsShutdown(BYTE btReasonForShutdown)
    }
 }
 
+void ODKrnlRequestChatToggle(void)
+{
+#ifdef OD_MULTITHREADED
+   ODMutexLock(&KernelStateLock);
+   bChatTogglePending = !bChatTogglePending;
+   ODMutexUnlock(&KernelStateLock);
+#else
+   nKrnlFuncPending ^= KERNEL_FUNC_CHATTOGGLE;
+#endif
+}
+
+void ODKrnlRequestTimeUpdate(void)
+{
+#ifdef OD_MULTITHREADED
+   ODMutexLock(&KernelStateLock);
+   bTimerUpdatePending = TRUE;
+   ODMutexUnlock(&KernelStateLock);
+#else
+   ODKrnlTimeUpdate(TRUE);
+#endif
+}
+
+void ODKrnlRequestKeyboardToggle(void)
+{
+#ifdef OD_MULTITHREADED
+   ODMutexLock(&KernelStateLock);
+   bKeyboardTogglePending = !bKeyboardTogglePending;
+   ODMutexUnlock(&KernelStateLock);
+#else
+   od_control.od_user_keyboard_on = !od_control.od_user_keyboard_on;
+#endif
+}
+
+void ODKrnlRequestSysopNextToggle(void)
+{
+#ifdef OD_MULTITHREADED
+   ODMutexLock(&KernelStateLock);
+   bSysopNextTogglePending = !bSysopNextTogglePending;
+   ODMutexUnlock(&KernelStateLock);
+#else
+   od_control.sysop_next = !od_control.sysop_next;
+#endif
+}
+
+void ODKrnlRequestInactivityToggle(void)
+{
+#ifdef OD_MULTITHREADED
+   ODMutexLock(&KernelStateLock);
+   bInactivityTogglePending = !bInactivityTogglePending;
+   ODMutexUnlock(&KernelStateLock);
+#else
+   od_control.od_disable_inactivity = !od_control.od_disable_inactivity;
+#endif
+}
+
+void ODKrnlRequestTimeAdjustment(INT nMinutes)
+{
+#ifdef OD_MULTITHREADED
+   ODMutexLock(&KernelStateLock);
+   if(bTimeValuePending)
+      nPendingTimeValue = MAX(OD_MIN_USER_TIME_MINUTES,
+         MIN(OD_MAX_USER_TIME_MINUTES,
+         nPendingTimeValue + nMinutes));
+   else
+      nPendingTimeAdjustment = MAX(-OD_MAX_USER_TIME_MINUTES,
+         MIN(OD_MAX_USER_TIME_MINUTES,
+         nPendingTimeAdjustment + nMinutes));
+   ODMutexUnlock(&KernelStateLock);
+#else
+   od_control.user_timelimit += nMinutes;
+#endif
+}
+
+void ODKrnlRequestTimeValue(INT nMinutes)
+{
+#ifdef OD_MULTITHREADED
+   ODMutexLock(&KernelStateLock);
+   bTimeValuePending = TRUE;
+   nPendingTimeValue = MAX(OD_MIN_USER_TIME_MINUTES,
+      MIN(OD_MAX_USER_TIME_MINUTES, nMinutes));
+   nPendingTimeAdjustment = 0;
+   ODMutexUnlock(&KernelStateLock);
+#else
+   od_control.user_timelimit = nMinutes;
+#endif
+}
+
+void ODKrnlRequestLockout(void)
+{
+#ifdef OD_MULTITHREADED
+   ODMutexLock(&KernelStateLock);
+   bLockoutPending = TRUE;
+   if(btPendingShutdown == 0)
+      btPendingShutdown = ERRORLEVEL_HANGUP;
+   ODMutexUnlock(&KernelStateLock);
+#else
+   od_control.user_security = 0;
+   ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_HANGUP);
+#endif
+}
+
+void ODKrnlDispatchPending(BOOL bAllowApplicationCallbacks)
+{
+#ifdef OD_MULTITHREADED
+   BOOL bUpdateTime;
+   BOOL bToggleChat;
+   BOOL bToggleKeyboard;
+   BOOL bToggleSysopNext;
+   BOOL bToggleInactivity;
+   BOOL bSetTime;
+   BOOL bLockout;
+   INT nTimeValue;
+   INT nTimeAdjustment;
+   BYTE btShutdown;
+
+   if(!bKernelStateLockInitialized || !ODSyncIsOwnerThread()) return;
+
+   if(bAllowApplicationCallbacks && ODKrnlDispatchTimeMessages())
+      return;
+
+   ODMutexLock(&KernelStateLock);
+   bUpdateTime = bTimerUpdatePending;
+   bTimerUpdatePending = FALSE;
+   bToggleChat = bChatTogglePending;
+   bChatTogglePending = FALSE;
+   bToggleKeyboard = bKeyboardTogglePending;
+   bKeyboardTogglePending = FALSE;
+   bToggleSysopNext = bSysopNextTogglePending;
+   bSysopNextTogglePending = FALSE;
+   bToggleInactivity = bInactivityTogglePending;
+   bInactivityTogglePending = FALSE;
+   bSetTime = bTimeValuePending;
+   bTimeValuePending = FALSE;
+   nTimeValue = nPendingTimeValue;
+   nTimeAdjustment = nPendingTimeAdjustment;
+   nPendingTimeAdjustment = 0;
+   bLockout = bLockoutPending;
+   bLockoutPending = FALSE;
+   btShutdown = btPendingShutdown;
+   btPendingShutdown = 0;
+   ODMutexUnlock(&KernelStateLock);
+
+   /* A no-exit shutdown may have completed at a preceding dispatch point. */
+   if(!bODInitialized)
+   {
+      ODKrnlDiscardTimeMessages();
+      return;
+   }
+
+   if(bToggleKeyboard)
+      od_control.od_user_keyboard_on = !od_control.od_user_keyboard_on;
+   if(bToggleSysopNext)
+      od_control.sysop_next = !od_control.sysop_next;
+   if(bToggleInactivity)
+      od_control.od_disable_inactivity = !od_control.od_disable_inactivity;
+   if(bSetTime || nTimeAdjustment != 0)
+   {
+      if(bSetTime)
+         od_control.user_timelimit = nTimeValue;
+      else
+         od_control.user_timelimit += nTimeAdjustment;
+      od_control.user_timelimit = MAX(OD_MIN_USER_TIME_MINUTES,
+         MIN(OD_MAX_USER_TIME_MINUTES, od_control.user_timelimit));
+   }
+   if(bLockout)
+      od_control.user_security = 0;
+
+#ifdef ODPLAT_WIN32
+   if(bToggleKeyboard || bToggleSysopNext || bToggleInactivity)
+      ODFrameUpdateCmdUI();
+   if(bSetTime || nTimeAdjustment != 0)
+      ODFrameUpdateTimeDisplay();
+#endif
+
+   if(btShutdown != 0)
+   {
+      ODKrnlForceOpenDoorsShutdown(btShutdown);
+      return;
+   }
+
+   if(bUpdateTime && bODInitialized && !bTimeShutdownDeferred &&
+      ODKrnlTimeUpdate(bAllowApplicationCallbacks))
+      return;
+
+   if(bToggleChat && bODInitialized)
+   {
+      if(od_control.od_chat_active)
+         ODKrnlEndChatMode();
+      else
+         ODKrnlChatMode();
+   }
+#else
+   (void)bAllowApplicationCallbacks;
+#endif
+}
+
 
 /* ========================================================================= */
 /* OpenDoors Kernel multithreaded implementation.                            */
 /* ========================================================================= */
 
 #ifdef OD_MULTITHREADED
+
+static BOOL ODKrnlQueueTimeMessage(char *pszMessage,
+   BYTE btReasonForShutdown)
+{
+   tODDeferredTimeMessage *pMessage;
+   size_t nLength;
+
+   ASSERT(od_control.od_time_msg_func != NULL);
+   nLength = strlen(pszMessage) + 1;
+   pMessage = (tODDeferredTimeMessage *)malloc(sizeof(*pMessage));
+   if(pMessage == NULL)
+      return(FALSE);
+   pMessage->pszMessage = (char *)malloc(nLength);
+   if(pMessage->pszMessage == NULL)
+   {
+      free(pMessage);
+      return(FALSE);
+   }
+   memcpy(pMessage->pszMessage, pszMessage, nLength);
+   pMessage->pNext = NULL;
+   pMessage->pfnCallback = od_control.od_time_msg_func;
+   pMessage->btReasonForShutdown = btReasonForShutdown;
+   if(btReasonForShutdown != 0)
+      bTimeShutdownDeferred = TRUE;
+   if(pLastTimeMessage == NULL)
+      pFirstTimeMessage = pMessage;
+   else
+      pLastTimeMessage->pNext = pMessage;
+   pLastTimeMessage = pMessage;
+   return(TRUE);
+}
+
+
+static void ODKrnlDiscardTimeMessages(void)
+{
+   tODDeferredTimeMessage *pMessage;
+
+   while(pFirstTimeMessage != NULL)
+   {
+      pMessage = pFirstTimeMessage;
+      pFirstTimeMessage = pMessage->pNext;
+      free(pMessage->pszMessage);
+      free(pMessage);
+   }
+   pLastTimeMessage = NULL;
+   bTimeShutdownDeferred = FALSE;
+}
+
+
+static BOOL ODKrnlDispatchTimeMessages(void)
+{
+   tODDeferredTimeMessage *pMessage;
+   BYTE btReasonForShutdown;
+
+   while(pFirstTimeMessage != NULL)
+   {
+      pMessage = pFirstTimeMessage;
+      pFirstTimeMessage = pMessage->pNext;
+      if(pFirstTimeMessage == NULL)
+         pLastTimeMessage = NULL;
+      btReasonForShutdown = pMessage->btReasonForShutdown;
+      if(btReasonForShutdown != 0)
+         bTimeShutdownDeferred = FALSE;
+      (*pMessage->pfnCallback)(pMessage->pszMessage);
+      free(pMessage->pszMessage);
+      free(pMessage);
+
+      if(!bODInitialized)
+      {
+         ODKrnlDiscardTimeMessages();
+         return(TRUE);
+      }
+      if(btReasonForShutdown != 0)
+      {
+         ODKrnlForceOpenDoorsShutdown(btReasonForShutdown);
+         if(!bODInitialized)
+            ODKrnlDiscardTimeMessages();
+         return(TRUE);
+      }
+   }
+   return(FALSE);
+}
 
 /* ----------------------------------------------------------------------------
  * ODKrnlRemoteInputThread()                           *** PRIVATE FUNCTION ***
@@ -1097,18 +1458,14 @@ void ODKrnlForceOpenDoorsShutdown(BYTE btReasonForShutdown)
 DWORD OD_THREAD_FUNC ODKrnlRemoteInputThread(void *pParam)
 {
    char chReceived;
+   (void)pParam;
 
-   /* We keep looping until someone else terminates this thread. */
-   for(;;)
+   while(ODKrnlWorkerWait(0))
    {
-      /* Get next character from the modem, blocking if no character */
-      /* is waiting.                                                 */
-      if (ODComGetByte(hSerialPort, &chReceived, TRUE) == kODRCSuccess) {
-
-         /* Handle this received character, adding it to the local/remote */
-         /* common input queue, if appropriate.                           */
+      if(ODComGetByte(hSerialPort, &chReceived, FALSE) == kODRCSuccess)
          ODKrnlHandleReceivedChar(chReceived, TRUE);
-      }
+      else if(!ODKrnlWorkerWait(10))
+         break;
    }
 
    return(0);
@@ -1136,26 +1493,26 @@ DWORD OD_THREAD_FUNC ODKrnlRemoteInputThread(void *pParam)
  */
 DWORD OD_THREAD_FUNC ODKrnlNoCarrierThread(void *pParam)
 {
-   /* Block until the carrier detect signal goes low with carrier */
-   /* detection enabled.                                          */
-   for(;;)
+   BOOL bCarrier;
+   BOOL bDetectionDisabled;
+   (void)pParam;
+
+   while(ODKrnlWorkerWait(0))
    {
-      /* Wait for carrier detect signal to go low. */
-      ODComWaitEvent(hSerialPort, kNoCarrier);
-
-      /* If carrier detection has not been disabled, then we have found */
-      /* a condition where OpenDoors should exit.                       */
-      if(!(od_control.od_disable&DIS_CARRIERDETECT)) break;
-
-      /* If we have no carrier but carrier detection is currently   */
-      /* disabled, then we sleep for a while before checking again. */
-      /* This isn't a very elegant implementation, and perhaps a    */
-      /* better approach will be used for future versions.          */
-      od_sleep(NO_CARRIER_THREAD_SLEEP_TIME);
+      if(ODComCarrier(hSerialPort, &bCarrier) == kODRCSuccess && !bCarrier)
+      {
+         ODSyncControlReadLock();
+         bDetectionDisabled = (od_control.od_disable & DIS_CARRIERDETECT)
+            != 0;
+         ODSyncControlReadUnlock();
+         if(!bDetectionDisabled)
+         {
+            ODKrnlQueueShutdown(ERRORLEVEL_NOCARRIER);
+            break;
+         }
+      }
+      if(!ODKrnlWorkerWait(100)) break;
    }
-
-   /* Force OpenDoors to exit. */
-   ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_NOCARRIER);
 
    return(0);
 }
@@ -1178,104 +1535,45 @@ DWORD OD_THREAD_FUNC ODKrnlNoCarrierThread(void *pParam)
  */
 DWORD OD_THREAD_FUNC ODKrnlTimeUpdateThread(void *pParam)
 {
-#ifdef ODPLAT_WIN32
-   while(WaitForSingleObject(hKernelShutdownEvent,
-      TIME_UPDATE_THREAD_SLEEP_TIME) == WAIT_TIMEOUT)
+   (void)pParam;
+   while(ODKrnlWorkerWait(TIME_UPDATE_THREAD_SLEEP_TIME))
    {
-      ODKrnlTimeUpdate();
+      ODKrnlRequestTimeUpdate();
    }
-#else
-   /* We keep looping until someone else terminates this thread. */
-   for(;;)
-   {
-      /* Sleep until it is time to do the next update. */
-      od_sleep(TIME_UPDATE_THREAD_SLEEP_TIME);
-
-      /* Now, perform time update. */
-      ODKrnlTimeUpdate();
-   }
-#endif /* ODPLAT_WIN32 */
-
    return(0);
 }
 
 
-#ifdef ODPLAT_WIN32
-/* ----------------------------------------------------------------------------
- * ODKrnlJoinWindowsThread()                           *** PRIVATE FUNCTION ***
- *
- * Joins and releases a Windows kernel thread after it has been told to stop.
- */
-static void ODKrnlJoinWindowsThread(tODThreadHandle *phThread)
+static BOOL ODKrnlWorkerWait(tODMilliSec Milliseconds)
 {
-   if(*phThread == NULL)
-   {
-      return;
-   }
+   BOOL bStop;
 
+   ODMutexLock(&KernelStateLock);
+   bStop = bKernelStopRequested;
+   ODMutexUnlock(&KernelStateLock);
+   if(bStop) return(FALSE);
+
+   return(ODSemaphoreDown(hKernelShutdownSemaphore, Milliseconds)
+      == kODRCTimeout);
+}
+
+static void ODKrnlJoinThread(tODThreadHandle *phThread, BOOL *pbStarted)
+{
+   if(!*pbStarted) return;
    ODThreadWaitForExit(*phThread);
+#ifdef ODPLAT_WIN32
    CloseHandle(*phThread);
    *phThread = NULL;
-}
-#endif /* ODPLAT_WIN32 */
-
-
-/* ----------------------------------------------------------------------------
- * ODKrnlWaitForExclusiveControl()                     *** PRIVATE FUNCTION ***
- *
- * Claims exclusive control of the application by the OpenDoors kernel. This is
- * required to ensure that the client application is not busy when the
- * OpenDoors kernel interrupts other operations for one reason or another
- * (for example, to start chat mode or to force the program to exit).
- *
- * Parameters: None
- *
- *     Return: void
- */
-static void ODKrnlWaitForExclusiveControl(void)
-{
-   /* If we already have exclusive control, then don't do anything. */
-   if(bHaveExclusiveControl) return;
-
-   /* Wait until an OpenDoors API is active. */
-   ODSemaphoreDown(hODActiveSemaphore, OD_NO_TIMEOUT);
-
-   /* Now, suspend the client thread. */
-   ASSERT(hClientThread != NULL);
-   ODThreadSuspend(hClientThread);
-
-   /* Record that we now have exclusive control. */
-   bHaveExclusiveControl = TRUE;
+#endif
+   *pbStarted = FALSE;
 }
 
-
-/* ----------------------------------------------------------------------------
- * ODKrnlGiveUpExclusiveControl()                      *** PRIVATE FUNCTION ***
- *
- * Relinguishes exclusive control of the application by the OpenDoors kernel.
- * A call to this function should only take place after a previous call to
- * ODKrnlWaitForExclusiveControl().
- *
- * Parameters: None
- *
- *     Return: void
- */
-static void ODKrnlGiveUpExclusiveControl(void)
+static void ODKrnlQueueShutdown(BYTE btReasonForShutdown)
 {
-   /* If we don't have exclusive control, then this call doesn't do */
-   /* anything.                                                     */
-   if(!bHaveExclusiveControl) return;
-
-   /* First, restart the client thread. */
-   ASSERT(hClientThread != NULL);
-   ODThreadResume(hClientThread);
-
-   /* Now, allow currently active OpenDoors API to return control */
-   /* to the client application.                                  */
-   ODSemaphoreUp(hODActiveSemaphore, 1);
-
-   /* Note that we no longer have exclusive control. */
-   bHaveExclusiveControl = FALSE;
+   ODMutexLock(&KernelStateLock);
+   if(btPendingShutdown == 0)
+      btPendingShutdown = btReasonForShutdown;
+   ODMutexUnlock(&KernelStateLock);
 }
 
 #endif /* OD_MULTITHREADED */
@@ -1289,104 +1587,6 @@ static void ODKrnlGiveUpExclusiveControl(void)
 BOOL bChatted;
 BOOL bSysopColor;
 
-#ifdef OD_MULTITHREADED
-
-/* ----------------------------------------------------------------------------
- * ODKrnlChatThread()                                  *** PRIVATE FUNCTION ***
- *
- * Thread which implements sysop <-> remote user chat mode.
- *
- * Parameters: As dictated for any thread function.
- *
- *     Return: As dictated for any thread function.
- */
-DWORD OD_THREAD_FUNC ODKrnlChatThread(void *pParam)
-{
-   BOOL bTriggeredInsideOpenDoors = bChatActivatedInternally;
-
-   /* The chat thread doesn't start up chat mode until the kernel has */
-   /* exclusive control of the client application.                    */
-   if(bTriggeredInsideOpenDoors)
-   {
-      ODKrnlWaitForExclusiveControl();
-   }
-
-   /* Now, execute the chat mode loop. */
-   ODKrnlChatMode();
-
-   /* If we get here, then we are responsible for relinguishing exclusive */
-   /* control of the application.                                         */
-   if(bTriggeredInsideOpenDoors)
-   {
-      ODKrnlGiveUpExclusiveControl();
-   }
-
-   /* Exit the chat thread. */
-   return(0);
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODKrnlStartChatThread()
- *
- * Starts the chat mode thread.
- *
- * Parameters: bTriggeredInternally - TRUE if chat mode has been triggered
- *                                    inside OpenDoors, or FALSE if it has
- *                                    been triggered by a call to od_chat().
- *
- *     Return: kODRCSuccess on success, or an error code on failure.
- */
-tODResult ODKrnlStartChatThread(BOOL bTriggeredInternally)
-{
-   tODResult Result;
-
-   bChatActivatedInternally = bTriggeredInternally;
-
-   Result = ODThreadCreate(&hChatThread, ODKrnlChatThread, NULL);
-   if(Result != kODRCSuccess)
-   {
-      return(Result);
-   }
-
-   /* If chat mode command has been chosen, then toggle chat */
-   /* mode on or off.                                        */
-   od_control.od_chat_active = TRUE;
-
-#ifdef ODPLAT_WIN32
-   /* Update the enabled and checked state of commands. */
-   ODFrameUpdateCmdUI();
-#endif /* ODPLAT_WIN32 */
-
-   return(kODRCSuccess);
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODKrnlChatThreadStartSucceeded()                    *** PRIVATE FUNCTION ***
- *
- * Applies the public chat state for a chat-thread creation result.
- *
- * Parameters: Result - Result returned by ODKrnlStartChatThread().
- *
- *     Return: TRUE when the chat thread was started, or FALSE on failure.
- */
-BOOL ODKrnlChatThreadStartSucceeded(tODResult Result)
-{
-   if(Result == kODRCSuccess)
-   {
-      return(TRUE);
-   }
-
-   od_control.od_chat_active = FALSE;
-   od_control.od_error = ERR_GENERALFAILURE;
-   return(FALSE);
-}
-
-
-#endif /* OD_MULTITHREADED */
-
-
 /* ----------------------------------------------------------------------------
  * ODKrnlEndChatMode()
  *
@@ -1398,20 +1598,7 @@ BOOL ODKrnlChatThreadStartSucceeded(tODResult Result)
  */
 void ODKrnlEndChatMode(void)
 {
-#ifdef OD_MULTITHREADED
-
-   /* Shutdown the chat thread. */
-   ODThreadTerminate(hChatThread);
-
-   /* Perform post-chat cleanup operations. */
-   ODKrnlChatCleanup();
-
-#else /* !OD_MULTITHREADED */
-
-   /* Turn off chat mode. */
    od_control.od_chat_active = FALSE;
-
-#endif /* !OD_MULTITHREADED */
 }
 
 
@@ -1431,38 +1618,15 @@ ODAPIDEF void ODCALL od_chat(void)
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_chat()");
 
-   /* Set the main chat active flag in od_control. */
-   od_control.od_chat_active = TRUE;
-
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
 
    OD_API_ENTRY();
 
-#ifdef OD_MULTITHREADED
+   /* Set the main chat active flag in od_control. */
+   od_control.od_chat_active = TRUE;
 
-   /* In multithreaded versions of OpenDoors, od_chat() causes the chat */
-   /* mode thread to be started, which in turn implements chat mode.    */
-   /* od_chat() only returns when this thread exits.                    */
-   if(!ODKrnlChatThreadStartSucceeded(ODKrnlStartChatThread(FALSE)))
-   {
-      OD_API_EXIT();
-      return;
-   }
-
-   /* Now, wait for the chat thread to exit. */
-   ODThreadWaitForExit(hChatThread);
-
-   /* Now, note that the chat thread no longer exists. */
-   hChatThread = NULL;
-
-#else /* !OD_MULTITHREADED */
-
-   /* In non-multithreaded versions, a call to od_chat() maps directly to a */
-   /* call to ODKrnlChatMode(), which implements chat mode.                 */
    ODKrnlChatMode();
-
-#endif /* !OD_MULTITHREADED */
 
    OD_API_EXIT();
 }
@@ -1548,6 +1712,7 @@ static void ODKrnlChatMode(void)
       /* Obtain the next key from the user. */
 #ifdef OD_MULTITHREADED
       chKeyPressed = od_get_key(TRUE);
+      if(!bODInitialized) return;
 #else /* !OD_MULTITHREADED */
       chKeyPressed = od_get_key(FALSE);
 #endif /* !OD_MULTITHREADED */
@@ -1753,12 +1918,6 @@ static void ODKrnlChatCleanup(void)
    ODFrameUpdateCmdUI();
 #endif /* ODPLAT_WIN32 */
 
-#ifdef OD_MULTITHREADED
-   if(bChatActivatedInternally)
-   {
-      ODKrnlGiveUpExclusiveControl();
-   }
-#endif
 }
 
 #ifdef ODPLAT_NIX

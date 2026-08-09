@@ -198,6 +198,7 @@ void ODWaitDrain(tODMilliSec MaxWait)
 
       /* Otherwise, give other tasks a chance to run. */
       od_sleep(0);
+      if(!bODInitialized) return;
 
       /* Give od_kernel() activities a chance to run. */
       CALL_KERNEL_IF_NEEDED();
@@ -326,6 +327,11 @@ ODAPIDEF void ODCALL od_input_str(char *pszInput,
    for(;;)
    {
       chKeyPressed = (unsigned char)od_get_key(TRUE);
+      if(!bODInitialized)
+      {
+         OD_API_EXIT();
+         return;
+      }
 
       /* If user pressed enter. */
       if(chKeyPressed == '\r' || chKeyPressed == '\n')
@@ -459,6 +465,7 @@ ODAPIDEF BOOL ODCALL od_key_pending(void)
 ODAPIDEF char ODCALL od_get_key(BOOL bWait)
 {
    tODInputEvent InputEvent;
+   tODResult Result;
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
@@ -489,7 +496,24 @@ ODAPIDEF char ODCALL od_get_key(BOOL bWait)
 		/* point and there is no data waiting in the input queue, then the   */
 		/* ODInQueueGetNextEvent() function will block until a character     */
 		/* is available in the input queue.                                  */
-		ODInQueueGetNextEvent(hODInputQueue, &InputEvent, OD_NO_TIMEOUT);
+		if(bWait)
+		{
+		   do
+		   {
+		      Result = ODInQueueGetNextEvent(hODInputQueue, &InputEvent, 50);
+		      if(Result != kODRCSuccess && !ODSyncAPICheckpoint())
+		      {
+		         OD_API_EXIT();
+		         return(0);
+		      }
+		   } while(Result != kODRCSuccess);
+		}
+		else if(ODInQueueGetNextEvent(hODInputQueue, &InputEvent, 0)
+		   != kODRCSuccess)
+		{
+		   OD_API_EXIT();
+		   return(0);
+		}
 
 		/* Only keyboard input events are currently supported by od_get_key(). */
 		ASSERT(InputEvent.EventType == EVENT_CHARACTER);
@@ -1488,6 +1512,11 @@ ODAPIDEF char ODCALL od_get_answer(const char *pszOptions)
    {
       /* Wait for the next key press by the user. */
       chPressed = od_get_key(TRUE);
+      if(!bODInitialized)
+      {
+         OD_API_EXIT();
+         return('\0');
+      }
       chPressed = tolower(chPressed);
 
       /* Loop through list of possible options. */
@@ -1649,6 +1678,7 @@ BOOL ODPagePrompt(BOOL *pbPausing)
    {
       /* Obtain the next key from the user. */
       chKeyPressed = od_get_key(TRUE);
+      if(!bODInitialized) return(TRUE);
 
       /* If user chooses to continue. */
       if(chKeyPressed == tolower(od_control.od_continue_yes) ||

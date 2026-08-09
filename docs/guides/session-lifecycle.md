@@ -21,6 +21,13 @@ for small programs, but it also means that changing initialization settings
 after an arbitrary API call may be too late. Set them first and initialize
 explicitly.
 
+The thread which performs initialization owns the session. It must also make
+all subsequent OpenDoors API calls, access
+[`od_control`](../reference/control/index.md), and perform shutdown. See
+[Threads and API ownership](windows.md#threads-and-api-ownership) for the
+callback and synchronization rules which apply when internal Windows workers
+are active.
+
 [`od_kernel()`](../reference/api/od_kernel.md) services time limits, connection
 status, local function keys, and other housekeeping. Normal API traffic invokes
 it as needed. A program which spends a long time computing or waiting outside

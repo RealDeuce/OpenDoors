@@ -146,6 +146,7 @@ HEADERS= $(HEADERDIR)ODCom.h\
          $(HEADERDIR)ODScrn.h\
          $(HEADERDIR)ODStat.h\
          $(HEADERDIR)ODSwap.h\
+         $(HEADERDIR)ODSync.h\
          $(HEADERDIR)ODTypes.h\
          $(HEADERDIR)ODUtil.h\
          $(HEADERDIR)OpenDoor.h
@@ -319,6 +320,11 @@ $(OBJDIR)odutil$(TARGET).obj : $(SOURCEDIR)odutil.c $(HEADERS)
    command /c erase $(OBJDIR)odutil$(TARGET).obj
    move odutil.obj $(OBJDIR)odutil$(TARGET).obj
 
+$(OBJDIR)odsync$(TARGET).obj : $(SOURCEDIR)odsync.c $(HEADERS)
+   $(CC) $(CFLAGS) $(SOURCEDIR)odsync.c
+   command /c erase $(OBJDIR)odsync$(TARGET).obj
+   move odsync.obj $(OBJDIR)odsync$(TARGET).obj
+
 $(OBJDIR)odwcat$(TARGET).obj : $(SOURCEDIR)odwcat.c $(HEADERS)
    $(CC) $(CFLAGS) $(SOURCEDIR)odwcat.c
    command /c erase $(OBJDIR)odwcat$(TARGET).obj
@@ -401,6 +407,7 @@ OBJECTS= $(OBJDIR)odauto$(TARGET).obj\
          $(OBJDIR)odswap$(TARGET).obj\
          $(OBJDIR)odsys$(TARGET).obj\
          $(OBJDIR)odutil$(TARGET).obj\
+         $(OBJDIR)odsync$(TARGET).obj\
          $(OBJDIR)odwcat$(TARGET).obj\
          $(OBJDIR)odwin$(TARGET).obj
 $(LIBDIR)odoor$(TARGET).lib : $(OBJECTS)
@@ -438,6 +445,7 @@ $(LIBDIR)odoor$(TARGET).lib : $(OBJECTS)
    $(LIB) $(LIBDIR)odoor$(TARGET).lib -+$(OBJDIR)odswap$(TARGET).obj
    $(LIB) $(LIBDIR)odoor$(TARGET).lib -+$(OBJDIR)odsys$(TARGET).obj
    $(LIB) $(LIBDIR)odoor$(TARGET).lib -+$(OBJDIR)odutil$(TARGET).obj
+   $(LIB) $(LIBDIR)odoor$(TARGET).lib -+$(OBJDIR)odsync$(TARGET).obj
    $(LIB) $(LIBDIR)odoor$(TARGET).lib -+$(OBJDIR)odwcat$(TARGET).obj
    $(LIB) $(LIBDIR)odoor$(TARGET).lib -+$(OBJDIR)odwin$(TARGET).obj
    erase $(LIBDIR)odoor$(TARGET).bak

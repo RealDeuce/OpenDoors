@@ -20,3 +20,10 @@ otherwise, failures place an [`ERR_*`](../constants/errors.md) value in
 - **Door activity and command lines** handles paging, child processes, logs,
   and arguments.
 - **Special control** initializes, services, configures, and ends a session.
+
+The thread which calls [`od_init()`](od_init.md) owns the session. All public
+API and ABI access must occur on that thread. The
+[`od_control_read_lock()`](od_control_read_lock.md) and
+[`od_control_write_lock()`](od_control_write_lock.md) functions synchronize
+related control-structure access with internal workers; they do not make the
+API callable from background threads.

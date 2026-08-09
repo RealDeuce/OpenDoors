@@ -154,6 +154,11 @@ ODAPIDEF void ODCALL od_autodetect(INT nFlags)
             od_control.user_rip = TRUE;
             /* Discard the rest of the RIP ID */
             ODWaitDiscard(RIP_DISCARD, RIP_WAIT);
+            if(!bODInitialized)
+            {
+               OD_API_EXIT();
+               return;
+            }
             break;
          }
       }

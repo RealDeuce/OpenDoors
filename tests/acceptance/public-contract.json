@@ -8048,6 +8048,62 @@
     },
     {
       "kind": "function",
+      "name": "od_control_read_lock",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "lifecycle.defaults"
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "od_control_read_unlock",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "lifecycle.defaults"
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "od_control_write_lock",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "lifecycle.defaults"
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "od_control_write_unlock",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "lifecycle.defaults"
+      ]
+    },
+    {
+      "kind": "function",
       "name": "od_disp",
       "platforms": [
         "windows",

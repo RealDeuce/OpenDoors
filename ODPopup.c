@@ -442,13 +442,16 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
    for(;;)
    {
       ODPopupCheckForKey(TRUE);
+      if(!bODInitialized) goto session_ended;
       if(btCorrectItem != btCursor)
       {
          ODPopupDisplayMenuItem(btLeft, btTop, paMenuItems, btCursor,
             FALSE, btWidth, TRUE);
          btCursor = btCorrectItem;
          ODWaitDrain(25);
+         if(!bODInitialized) goto session_ended;
          ODPopupCheckForKey(FALSE);
+         if(!bODInitialized) goto session_ended;
          ODPopupDisplayMenuItem(btLeft, btTop, paMenuItems, btCursor,
             TRUE, btWidth, TRUE);
       }
@@ -458,6 +461,16 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
          goto exit_now;
       }
    }
+
+session_ended:
+   free(pWindow);
+   free(paMenuItems);
+   MenuLevelInfo[nLevel].pWindow = NULL;
+   MenuLevelInfo[nLevel].paMenuItems = NULL;
+   if(grabbedArrow)
+      ODStatEndArrowUse();
+   OD_API_EXIT();
+   return(POPUP_ESCAPE);
 
 exit_now:
    if((!(wCurrentFlags & MENU_KEEP)) || nCommand <= 0)
@@ -537,6 +550,8 @@ static void ODPopupCheckForKey(BOOL bWaitForInput)
       if(!od_get_input(&InputEvent, bWaitForInput && !bDoneAnythingYet
          ? OD_NO_TIMEOUT : 0, GETIN_NORMAL))
       {
+         if(!bODInitialized)
+            nCommand = POPUP_ESCAPE;
          /* Return right away if no input event is waiting. */
          return;
       }

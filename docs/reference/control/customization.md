@@ -121,6 +121,12 @@ is created, OpenDoors removes the menu item; assigning it later does not add
 the item again. Other platforms do not read this field. The pointer is
 initially `NULL` and is never assigned by OpenDoors.
 
+The callback runs on the Windows frame thread, not on the thread which called
+[`od_init()`](../api/od_init.md). It must not call an OpenDoors function or
+access [`od_control`](index.md), an OpenDoors global, or a pointer returned by OpenDoors.
+It may signal application-owned synchronization or queue work for the session
+owner and must return promptly.
+
 ### `od_help_callback`
 
 ```c
@@ -133,6 +139,11 @@ operator chooses that command. If the pointer is `NULL` when the frame window
 is created, OpenDoors removes the menu item; assigning it later does not add
 the item again. Other platforms do not read this field. The pointer is
 initially `NULL` and is never assigned by OpenDoors.
+
+The callback runs on the Windows frame thread and is subject to the same
+restriction as [`od_config_callback`](#od_config_callback): it must not access
+the OpenDoors API or ABI. Queue any OpenDoors work for the session-owner
+thread.
 
 ### `od_ker_exec`
 
@@ -178,8 +189,9 @@ format, populate the required control fields, and set [`od_info_type`](connectio
 [`CUSTOM`](../constants/session.md#custom). If neither action supplies sufficient startup information,
 initialization reports that no door-information file could be read and exits.
 
-The callback executes synchronously during initialization. Its pointer is
-initially `NULL` and is read only by OpenDoors.
+The callback executes synchronously on the session-owner thread during
+[`od_kernel()`](../api/od_kernel.md) and may call other OpenDoors functions.
+Its pointer is initially `NULL` and is read only by OpenDoors.
 
 ### `od_time_msg_func`
 
@@ -197,7 +209,11 @@ or an internal work buffer and must not be modified or retained.
 
 The callback changes only how the message is delivered. OpenDoors still
 performs the warning bookkeeping and timeout shutdown. The pointer is initially
-`NULL` and is read only by OpenDoors.
+`NULL` and is read only by OpenDoors. In a multithreaded build, a timer worker
+only schedules the update; OpenDoors invokes this callback later on the
+session-owner thread. If the update is serviced while a blocking OpenDoors
+call is active, the callback is held until that outer call reaches its API
+exit boundary. The callback may call other OpenDoors functions.
 
 ## Program, component, and lifecycle settings
 

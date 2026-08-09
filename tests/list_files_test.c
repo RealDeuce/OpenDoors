@@ -43,9 +43,6 @@ int main(void)
    CHECK(fputc('\n', fixture) != EOF);
    CHECK(fclose(fixture) == 0);
 
-#ifdef OD_MULTITHREADED
-   CHECK(ODSemaphoreAlloc(&hODActiveSemaphore, 0, INT_MAX) == kODRCSuccess);
-#endif
 
    memset(&od_control, 0, sizeof(od_control));
    od_control.od_cur_attrib = 0x07;
@@ -147,10 +144,6 @@ int main(void)
    bODInitialized = FALSE;
    ODScrnShutdown();
 
-#ifdef OD_MULTITHREADED
-   ODSemaphoreFree(hODActiveSemaphore);
-   hODActiveSemaphore = NULL;
-#endif
 
    CHECK(remove(fixtureName) == 0);
    return(0);

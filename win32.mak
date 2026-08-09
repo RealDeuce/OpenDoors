@@ -140,6 +140,7 @@ HEADERS= $(HEADERDIR)ODCom.h\
          $(HEADERDIR)ODScrn.h\
          $(HEADERDIR)ODStat.h\
          $(HEADERDIR)ODSwap.h\
+         $(HEADERDIR)ODSync.h\
          $(HEADERDIR)ODTypes.h\
          $(HEADERDIR)ODUtil.h\
          $(HEADERDIR)ODVScrn.h\
@@ -325,6 +326,11 @@ $(OBJDIR)odutil$(TARGET).obj : $(SOURCEDIR)odutil.c $(HEADERS)
    cmd /c erase $(OBJDIR)odutil$(TARGET).obj
    move odutil.obj $(OBJDIR)odutil$(TARGET).obj
 
+$(OBJDIR)odsync$(TARGET).obj : $(SOURCEDIR)odsync.c $(HEADERS)
+   $(CC) $(CFLAGS) $(SOURCEDIR)odsync.c
+   cmd /c erase $(OBJDIR)odsync$(TARGET).obj
+   move odsync.obj $(OBJDIR)odsync$(TARGET).obj
+
 $(OBJDIR)odwcat$(TARGET).obj : $(SOURCEDIR)odwcat.c $(HEADERS)
    $(CC) $(CFLAGS) $(SOURCEDIR)odwcat.c
    cmd /c erase $(OBJDIR)odwcat$(TARGET).obj
@@ -382,6 +388,7 @@ OBJECTS= $(OBJDIR)odauto$(TARGET).obj\
          $(OBJDIR)odstat$(TARGET).obj\
 #         $(OBJDIR)odsys$(TARGET).obj\	this file is missing
          $(OBJDIR)odutil$(TARGET).obj\
+         $(OBJDIR)odsync$(TARGET).obj\
          $(OBJDIR)odwcat$(TARGET).obj\
          $(OBJDIR)odwin$(TARGET).obj\
          $(OBJDIR)ODoor$(TARGET).res
