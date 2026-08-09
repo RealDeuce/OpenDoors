@@ -6,12 +6,21 @@
 
 #include <OpenDoor.h>
 
-#define OD_TEST_CHECK(condition) do { if(!(condition)) { \
-   fprintf(stderr, "%s:%d: check failed: %s\n", __FILE__, __LINE__, \
-      #condition); \
-   return(__LINE__); \
-} } while(0)
+static int ODTestCheck(int condition, const char *file, int line,
+   const char *expression)
+{
+   if(condition)
+      return(1);
+   fprintf(stderr, "%s:%d: check failed: %s\n", file, line, expression);
+   return(0);
+}
 
+#define OD_TEST_CHECK(condition) do { \
+   if(!ODTestCheck((condition), __FILE__, __LINE__, #condition)) \
+      return(__LINE__); \
+} while(0)
+
+#ifndef OD_ACCEPTANCE_NO_LOCAL_CONFIG
 static void ODTestConfigureLocal(void)
 {
    memset(&od_control, 0, sizeof(od_control));
@@ -22,5 +31,6 @@ static void ODTestConfigureLocal(void)
    od_control.od_nocopyright = TRUE;
    od_control.od_noexit = TRUE;
 }
+#endif
 
 #endif

@@ -52,7 +52,28 @@ def dumpbin_symbols(library: Path, dumpbin: str) -> set[str] | None:
     return symbols
 
 
-def defined_symbols(library: Path) -> set[str]:
+def linker_symbols(library: Path, linker: str) -> set[str] | None:
+    option = "/exports" if library.suffix.lower() == ".dll" else "/symbols"
+    result = subprocess.run(
+        [linker, "/dump", option, str(library)], text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False
+    )
+    if result.returncode != 0:
+        return None
+    symbols: set[str] = set()
+    for line in result.stdout.splitlines():
+        if option == "/symbols":
+            if "External" not in line or "UNDEF" in line or "|" not in line:
+                continue
+            symbols.add(line.rsplit("|", 1)[1].strip().split()[0])
+        else:
+            match = re.match(r"\s*\d+\s+[0-9A-Fa-f]+\s+[0-9A-Fa-f]+\s+(\S+)", line)
+            if match is not None:
+                symbols.add(match.group(1))
+    return symbols
+
+
+def defined_symbols(library: Path, linker: str | None = None) -> set[str]:
     for name in ("nm", "llvm-nm", "x86_64-w64-mingw32-nm",
                  "i686-w64-mingw32-nm"):
         nm = shutil.which(name)
@@ -66,12 +87,17 @@ def defined_symbols(library: Path) -> set[str]:
         symbols = dumpbin_symbols(library, dumpbin)
         if symbols is not None:
             return symbols
+    if linker:
+        symbols = linker_symbols(library, linker)
+        if symbols is not None:
+            return symbols
     raise RuntimeError("neither nm/llvm-nm nor dumpbin could inspect the library")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("library", type=Path)
+    parser.add_argument("--linker")
     parser.add_argument("--personality", action="store_true")
     args = parser.parse_args()
     names_path = ROOT / "tests" / "acceptance" / (
@@ -80,7 +106,7 @@ def main() -> int:
     names = [line for line in names_path.read_text(encoding="utf-8").splitlines()
              if line]
     try:
-        symbols = defined_symbols(args.library)
+        symbols = defined_symbols(args.library, args.linker)
     except RuntimeError as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

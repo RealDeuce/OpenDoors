@@ -61,6 +61,9 @@ add_executable(opendoors_acceptance_spawn_child spawn_child.c)
 opendoors_acceptance_test(spawn spawn_test.c
     "$<TARGET_FILE:opendoors_acceptance_spawn_child>")
 
+if(NOT CMAKE_CXX_COMPILER_LOADED)
+    enable_language(CXX)
+endif()
 add_library(opendoors_acceptance_cpp_compile OBJECT cpp_surface_test.cpp)
 target_link_libraries(opendoors_acceptance_cpp_compile
     PRIVATE "${OPENDOORS_ACCEPTANCE_LIBRARY}")
@@ -73,7 +76,8 @@ set_tests_properties(acceptance.contract_manifest PROPERTIES
 add_test(NAME acceptance.symbols
     COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/check_public_symbols.py"
-        "$<TARGET_FILE:${OPENDOORS_ACCEPTANCE_LIBRARY}>")
+        "$<TARGET_FILE:${OPENDOORS_ACCEPTANCE_LIBRARY}>"
+        --linker "${CMAKE_LINKER}")
 
 if(OPENDOORS_ACCEPTANCE_EXTENDED)
     add_executable(opendoors_acceptance_socket_door socket_door.c)

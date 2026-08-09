@@ -28,7 +28,9 @@ static int RunDropFile(const char *name, BYTE type, const char *user)
    od_control.od_nocopyright = TRUE;
    od_control.od_noexit = TRUE;
    od_control.od_errorlevel[ERRORLEVEL_CRITICAL] = 97;
+   fprintf(stderr, "%s: initializing\n", name);
    od_init();
+   fprintf(stderr, "%s: initialized\n", name);
    if(od_control.od_info_type != type ||
       (user != NULL && strcmp(od_control.user_name, user) != 0))
    {
@@ -39,7 +41,9 @@ static int RunDropFile(const char *name, BYTE type, const char *user)
       od_exit(0, FALSE);
       return(0);
    }
+   fprintf(stderr, "%s: shutting down\n", name);
    od_exit(0, FALSE);
+   fprintf(stderr, "%s: shut down\n", name);
    return(1);
 }
 
@@ -199,14 +203,18 @@ static int TestCustom(void)
       DIS_TIMEOUT | DIS_BPS_SETTING | DIS_LOCAL_INPUT;
    od_control.od_silent_mode = TRUE;
    od_control.od_noexit = TRUE;
+   fprintf(stderr, "custom.dat: initializing\n");
    od_init();
+   fprintf(stderr, "custom.dat: initialized\n");
    if(od_control.od_info_type != CUSTOM ||
       strcmp(od_control.user_name, "Fixture Caller") != 0)
    {
       od_exit(0, FALSE);
       return(0);
    }
+   fprintf(stderr, "custom.dat: shutting down\n");
    od_exit(0, FALSE);
+   fprintf(stderr, "custom.dat: shut down\n");
    return(1);
 }
 

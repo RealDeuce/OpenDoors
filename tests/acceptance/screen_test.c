@@ -21,8 +21,14 @@ int main(void)
    od_control.user_screenwidth = 100;
    od_control.user_screen_length = 30;
    od_control.od_info_type = CUSTOM;
+#ifdef ODPLAT_WIN32
+   od_control.baud = 0;
+#else
    od_control.baud = 1;
+#endif
+   fprintf(stderr, "screen: initializing\n");
    od_init();
+   fprintf(stderr, "screen: initialized\n");
 
    for(index = 0; index < 6; ++index)
    {
@@ -75,6 +81,8 @@ int main(void)
    OD_TEST_CHECK(od_restore_screen(legacy_snapshot));
    free(legacy_snapshot);
 
+   fprintf(stderr, "screen: shutting down\n");
    od_exit(0, FALSE);
+   fprintf(stderr, "screen: shut down\n");
    return(0);
 }

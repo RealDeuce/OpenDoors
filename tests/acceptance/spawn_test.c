@@ -24,6 +24,9 @@ int main(int argc, char **argv)
    child_environment[0] = "OD_ACCEPT_VALUE=environment value";
    child_environment[1] = NULL;
    result = od_spawnvpe(P_WAIT, argv[1], child_args, child_environment);
+   if(result != 23)
+      fprintf(stderr, "od_spawnvpe returned %d (errno %d)\n",
+         (int)result, errno);
    OD_TEST_CHECK(result == 23);
    file = fopen("ODCHILD.OK", "r");
    OD_TEST_CHECK(file != NULL);

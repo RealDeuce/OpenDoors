@@ -103,6 +103,8 @@ int main(int argc, char **argv)
    od_printf("RESULT %s %d", input, 7);
    od_disp_emu("\x1b[31mEMU\x1b[0m", TRUE);
    od_disp("DONE", 4, FALSE);
+   fprintf(stderr, "socket: shutting down\n");
    od_exit(0, FALSE);
+   fprintf(stderr, "socket: shut down\n");
    return(0);
 }

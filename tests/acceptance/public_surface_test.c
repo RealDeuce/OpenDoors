@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#define OD_ACCEPTANCE_NO_LOCAL_CONFIG
 #ifdef __TURBOC__
 #include "ATSUP.H"
 #else

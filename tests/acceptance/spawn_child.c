@@ -14,10 +14,27 @@ int main(int argc, char **argv)
       return(fputs("simple spawn passed\n", file) < 0 || fclose(file) != 0
          ? 21 : 0);
    }
-   if(argc != 3 || strcmp(argv[1], "argument one") != 0 ||
-      strcmp(argv[2], "argument-two") != 0 || value == NULL ||
-      strcmp(value, "environment value") != 0)
+   if(argc != 3)
+   {
+      fprintf(stderr, "spawn child received %d arguments, expected 3\n", argc);
       return(17);
+   }
+   if(strcmp(argv[1], "argument one") != 0)
+   {
+      fprintf(stderr, "spawn child argv[1] is '%s'\n", argv[1]);
+      return(17);
+   }
+   if(strcmp(argv[2], "argument-two") != 0)
+   {
+      fprintf(stderr, "spawn child argv[2] is '%s'\n", argv[2]);
+      return(17);
+   }
+   if(value == NULL || strcmp(value, "environment value") != 0)
+   {
+      fprintf(stderr, "spawn child environment value is '%s'\n",
+         value == NULL ? "(unset)" : value);
+      return(17);
+   }
    file = fopen("ODCHILD.OK", "w");
    if(file == NULL)
       return(18);
