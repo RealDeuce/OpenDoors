@@ -100,9 +100,17 @@ LDFLAGS	+=	-fPIC
 CFLAGS	+=	-O2 -I../xpdev
 ifeq ($(OS),Darwin)
  CFLAGS		+=	-D__unix__
- LDFLAGS	:=	$(CFLAGS) -L$(LIBDIR) -dynamiclib -single_module
+endif
+# LDFLAGS links the example programs, not the library (which uses SHFLAGS),
+# so shared-library flags do not belong here.
+LDFLAGS	+=	-L$(LIBDIR)
+# Let examples find the shared library relative to their own output directory.
+ifeq ($(OS),Darwin)
+ LDFLAGS	+=	-Wl,-rpath,@loader_path/../$(LIBDIR)
 else
- LDFLAGS	:=	-L$(LIBDIR) -shared
+ ifndef win
+  LDFLAGS	+=	'-Wl,-rpath,$$ORIGIN/../$(LIBDIR),-z,origin,--enable-new-dtags'
+ endif
 endif
 CFLAGS	+=	-Wall
 ifeq ($(shell if [ -f /usr/include/inttypes.h ] ; then echo YES ; fi),YES)
@@ -131,7 +139,6 @@ endif
 # Output directories. customize for your own preferences. Note that trailing
 # backslash (\} characters are required.
 #
-SHFLAGS		+=	-shared
 LIB_PREFIX	:=	lib
 SHLIB_PREFIX	:=	lib
 LIB_SUFFIX	:=	.6.3
@@ -142,7 +149,10 @@ ifeq ($(OPENDOORS_HAVE_VSNPRINTF),0)
 endif
 ifeq ($(os),darwin)
  SHLIB		?=	.dylib
+ SHFLAGS	+=	-dynamiclib -single_module
+ SHFLAGS	+=	-Wl,-install_name,@rpath/$(SHLIB_PREFIX)ODoors$(SHLIB)$(LIB_SUFFIX)
 else
+ SHFLAGS	+=	-shared
  ifdef win
   SHLIB		?=	.dll
   EXTRA_LIBS += -lwsock32 -lgdi32 -lcomctl32 -Wl,--subsystem,windows
@@ -152,6 +162,7 @@ else
  else
   SHLIB		?=	.so
   SHFLAGS	+=	-Wl,-Bsymbolic
+  SHFLAGS	+=	-Wl,-soname,$(SHLIB_PREFIX)ODoors$(SHLIB)$(LIB_SUFFIX)
  endif
 endif
 STATICLIB	:=	.a
@@ -164,6 +175,10 @@ endif
 
 ODOORS_SHLIB	:= ${LIBDIR}${SHLIB_PREFIX}ODoors${SHLIB}
 ODOORS_LIB	:= ${LIBDIR}${LIB_PREFIX}ODoors${STATICLIB}
+ifdef win
+ODOORS_RUNTIME	:= ${EXEDIR}${SHLIB_PREFIX}ODoors${SHLIB}
+EXAMPLE_RUNTIME_DEP := ${ODOORS_RUNTIME}
+endif
 
 #
 ###############################################################################
@@ -274,6 +289,11 @@ $(LIBDIR)ODoor.res : ODRes.rc | ${LIBDIR}
 ${ODOORS_SHLIB}${LIB_SUFFIX} : ${OBJECTS} | ${LIBDIR}
 	$(CC) $(SHFLAGS) -o ${ODOORS_SHLIB}${LIB_SUFFIX} ${OBJECTS} ${EXTRA_LIBS}
 
+ifdef win
+${ODOORS_RUNTIME}: ${ODOORS_SHLIB} | ${EXEDIR}
+	cp -f $< $@
+endif
+
 ifndef win
 ${ODOORS_SHLIB}: ${ODOORS_SHLIB}${LIB_SUFFIX}
 	ln -fs ${SHLIB_PREFIX}ODoors${SHLIB}${LIB_SUFFIX} ${ODOORS_SHLIB}
@@ -283,22 +303,22 @@ ${ODOORS_LIB} : ${OBJECTS} | ${LIBDIR}
 	${AR} -cr ${ODOORS_LIB} ${OBJECTS}
 	${RANLIB} ${ODOORS_LIB}
 
-${EXEDIR}ex_chat${EXE_SUFFIX}: ex_chat.c ${ODOORS_SHLIB}
+${EXEDIR}ex_chat${EXE_SUFFIX}: ex_chat.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
 	$(CC) $(LDFLAGS) $(CFLAGS) ex_chat.c -o $@ ${ODOORS_SHLIB}
 
-${EXEDIR}ex_diag${EXE_SUFFIX}: ex_diag.c ${ODOORS_SHLIB}
+${EXEDIR}ex_diag${EXE_SUFFIX}: ex_diag.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
 	$(CC) $(LDFLAGS) $(CFLAGS) ex_diag.c -o $@ ${ODOORS_SHLIB}
 
-${EXEDIR}ex_hello${EXE_SUFFIX}: ex_hello.c ${ODOORS_SHLIB}
+${EXEDIR}ex_hello${EXE_SUFFIX}: ex_hello.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
 	$(CC) $(LDFLAGS) $(CFLAGS) ex_hello.c -o $@ ${ODOORS_SHLIB}
 
-${EXEDIR}ex_music${EXE_SUFFIX}: ex_music.c ${ODOORS_SHLIB}
+${EXEDIR}ex_music${EXE_SUFFIX}: ex_music.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
 	$(CC) $(LDFLAGS) $(CFLAGS) ex_music.c -o $@ ${ODOORS_SHLIB}
 
-${EXEDIR}ex_ski${EXE_SUFFIX}: ex_ski.c ${ODOORS_SHLIB}
-	$(CC) $(LDFLAGS) $(CFLAGS) $(LDFLAGS) ex_ski.c -o $@ ${ODOORS_SHLIB} -lxpdev
+${EXEDIR}ex_ski${EXE_SUFFIX}: ex_ski.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
+	$(CC) $(LDFLAGS) $(CFLAGS) ex_ski.c -o $@ ${ODOORS_SHLIB} -lxpdev
 
-${EXEDIR}ex_vote${EXE_SUFFIX}: ex_vote.c ${ODOORS_SHLIB}
+${EXEDIR}ex_vote${EXE_SUFFIX}: ex_vote.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
 	$(CC) $(LDFLAGS) $(CFLAGS) ex_vote.c ../xpdev/filewrap.c -o $@ ${ODOORS_SHLIB} -DMULTINODE_AWARE
 
 #
