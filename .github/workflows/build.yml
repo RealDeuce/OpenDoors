@@ -155,7 +155,18 @@ jobs:
         shell: msys2 {0}
         run: |
           cmake --build build/mingw --parallel
-          ctest --test-dir build/mingw --output-on-failure
+          if ! ctest --test-dir build/mingw --output-on-failure; then
+            if test "${{ matrix.msystem }}" = UCRT64; then
+              export PATH="$PWD/build/mingw:$PATH"
+              gdb --batch \
+                -ex run \
+                -ex "thread apply all backtrace" \
+                --args \
+                "$PWD/build/mingw/tests/acceptance/opendoors_acceptance_spawn.exe" \
+                "$PWD/build/mingw/tests/acceptance/opendoors_acceptance_spawn_child.exe"
+            fi
+            exit 1
+          fi
 
       - name: Install and inspect
         shell: msys2 {0}
