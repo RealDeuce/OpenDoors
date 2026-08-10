@@ -141,11 +141,26 @@ jobs:
             ninja:p
             toolchain:p
 
+      - name: Enable UCRT post-mortem dumps
+        if: matrix.msystem == 'UCRT64'
+        shell: pwsh
+        run: |
+          $dumpDirectory = Join-Path $PWD 'build\ucrt-dumps'
+          New-Item -ItemType Directory -Path $dumpDirectory -Force | Out-Null
+          $dumpKey = 'HKCU:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\opendoors_acceptance_spawn.exe'
+          New-Item -Path $dumpKey -Force | Out-Null
+          New-ItemProperty -Path $dumpKey -Name DumpFolder `
+            -PropertyType ExpandString -Value $dumpDirectory -Force | Out-Null
+          New-ItemProperty -Path $dumpKey -Name DumpType `
+            -PropertyType DWord -Value 1 -Force | Out-Null
+          New-ItemProperty -Path $dumpKey -Name DumpCount `
+            -PropertyType DWord -Value 4 -Force | Out-Null
+
       - name: Configure
         shell: msys2 {0}
         run: |
           if test "${{ matrix.msystem }}" = UCRT64; then
-            export CFLAGS="${CFLAGS:-} -DOD_SPAWN_DIAGNOSTICS -g"
+            export CFLAGS="${CFLAGS:-} -g"
           fi
           cmake \
             -S . \
@@ -158,18 +173,50 @@ jobs:
         shell: msys2 {0}
         run: |
           cmake --build build/mingw --parallel
-          if ! ctest --test-dir build/mingw --output-on-failure; then
-            if test "${{ matrix.msystem }}" = UCRT64; then
-              export PATH="$PWD/build/mingw/bin:$PATH"
-              gdb --batch \
-                -ex run \
-                -ex "thread apply all backtrace" \
-                --args \
-                "$PWD/build/mingw/tests/acceptance/opendoors_acceptance_spawn.exe" \
-                "$PWD/build/mingw/tests/acceptance/opendoors_acceptance_spawn_child.exe"
-            fi
-            exit 1
-          fi
+          ctest --test-dir build/mingw --output-on-failure
+
+      - name: Analyze UCRT crash dump
+        if: failure() && matrix.msystem == 'UCRT64'
+        shell: pwsh
+        run: |
+          $dump = Get-ChildItem -Path 'build\ucrt-dumps' -Filter '*.dmp' |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $dump) {
+            Write-Warning 'Windows Error Reporting did not produce a dump.'
+            exit 0
+          }
+
+          $executable = Resolve-Path `
+            'build\mingw\tests\acceptance\opendoors_acceptance_spawn.exe'
+          $cdb = @(
+            "${env:ProgramFiles(x86)}\Windows Kits\10\Debuggers\x64\cdb.exe",
+            "$env:ProgramFiles\Windows Kits\10\Debuggers\x64\cdb.exe"
+          ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+          if ($cdb) {
+            & $cdb -z $dump.FullName -c '.ecxr; k; ~* kb; q'
+          }
+
+          $lldb = Get-Command lldb.exe -ErrorAction SilentlyContinue
+          if ($lldb) {
+            & $lldb.Source --core $dump.FullName $executable `
+              --batch -o 'thread backtrace all'
+          }
+          if (-not $cdb -and -not $lldb) {
+            Write-Warning 'Neither CDB nor LLDB is installed; preserving the dump for offline analysis.'
+          }
+
+      - name: Upload UCRT crash state
+        if: failure() && matrix.msystem == 'UCRT64'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ucrt-spawn-crash
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            build/ucrt-dumps/*.dmp
+            build/mingw/tests/acceptance/opendoors_acceptance_spawn.exe
+            build/mingw/tests/acceptance/opendoors_acceptance_spawn_child.exe
 
       - name: Install and inspect
         shell: msys2 {0}
