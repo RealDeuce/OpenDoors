@@ -1,6 +1,11 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+/* Turbo C 2.01's <stddef.h> does not define the ANSI offsetof macro. */
+#ifndef offsetof
+#define offsetof(type, member) ((size_t)&(((type *)0)->member))
+#endif
+
 #define OD_ACCEPTANCE_NO_LOCAL_CONFIG
 #ifdef __TURBOC__
 #include "ATSUP.H"
