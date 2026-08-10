@@ -157,7 +157,7 @@ jobs:
           cmake --build build/mingw --parallel
           if ! ctest --test-dir build/mingw --output-on-failure; then
             if test "${{ matrix.msystem }}" = UCRT64; then
-              export PATH="$PWD/build/mingw:$PATH"
+              export PATH="$PWD/build/mingw/bin:$PATH"
               gdb --batch \
                 -ex run \
                 -ex "thread apply all backtrace" \

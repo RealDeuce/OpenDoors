@@ -111,10 +111,11 @@ No application callback is invoked while the kernel-state mutex or input-queue
 mutex is held. A function which adds a new callback must classify it into one
 of these contexts and document the classification before implementation.
 Owner callbacks retain the API writer because the established ABI permits them
-to access `od_control` directly and to call OpenDoors recursively. They should
-therefore return promptly. Ordinary filesystem and C runtime operations also
-remain part of their containing API operation; transport-backed standard I/O
-is treated as communications I/O instead.
+to access [`od_control`](../reference/control/index.md) directly and to call
+OpenDoors recursively. They should therefore return promptly. Ordinary
+filesystem and C runtime operations also remain part of their containing API
+operation; transport-backed standard I/O is treated as communications I/O
+instead.
 
 ## Blocking calls and shutdown
 
