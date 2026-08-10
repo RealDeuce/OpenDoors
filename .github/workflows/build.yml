@@ -149,7 +149,10 @@ jobs:
         if: matrix.msystem == 'UCRT64'
         shell: pwsh
         run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'procdump.zip'
+          $toolDirectory = Join-Path $PWD 'build\procdump'
           $dumpDirectory = Join-Path $PWD 'build\ucrt-dumps'
+          New-Item -ItemType Directory -Path $toolDirectory -Force | Out-Null
           New-Item -ItemType Directory -Path $dumpDirectory -Force | Out-Null
           $dumpDirectory = (Resolve-Path -LiteralPath $dumpDirectory).Path
           $dumpKey = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps'
@@ -165,6 +168,14 @@ jobs:
           Get-ItemProperty -Path $dumpKey |
             Select-Object DumpFolder, DumpType, DumpCount |
             Format-List
+          Invoke-WebRequest `
+            -Uri 'https://download.sysinternals.com/files/Procdump.zip' `
+            -OutFile $archive
+          Expand-Archive -LiteralPath $archive -DestinationPath $toolDirectory
+          if (-not (Test-Path -LiteralPath `
+              (Join-Path $toolDirectory 'procdump64.exe'))) {
+            throw 'The ProcDump archive did not contain procdump64.exe.'
+          }
 
       - name: Configure
         shell: msys2 {0}
@@ -183,7 +194,23 @@ jobs:
         shell: msys2 {0}
         run: |
           cmake --build build/mingw --parallel
-          ctest --test-dir build/mingw --output-on-failure
+          test_status=0
+          if test "${{ matrix.msystem }}" = UCRT64; then
+            dump_directory="$(cygpath -w "$PWD/build/ucrt-dumps")"
+            "$PWD/build/procdump/procdump64.exe" \
+              -accepteula -ma -i "$dump_directory" \
+              > build/procdump-install.log 2>&1
+            cat build/procdump-install.log
+          fi
+
+          ctest --test-dir build/mingw --output-on-failure || test_status=$?
+
+          if test "${{ matrix.msystem }}" = UCRT64; then
+            "$PWD/build/procdump/procdump64.exe" -accepteula -u \
+              > build/procdump-uninstall.log 2>&1 || true
+            cat build/procdump-uninstall.log
+          fi
+          exit "$test_status"
 
       - name: Collect UCRT crash events
         if: failure() && matrix.msystem == 'UCRT64'
@@ -193,11 +220,22 @@ jobs:
             (Get-Content -LiteralPath 'build\ucrt-capture-start.txt'),
             [Globalization.CultureInfo]::InvariantCulture,
             [Globalization.DateTimeStyles]::RoundtripKind)
-          $events = @(Get-WinEvent -FilterHashtable @{
-              LogName = 'Application'
-              StartTime = $startTime
-            } -ErrorAction SilentlyContinue) |
-            Where-Object { $_.Message -match 'opendoors_acceptance' }
+          $events = @()
+          $dump = $null
+          for ($attempt = 0; $attempt -lt 15; ++$attempt) {
+            $events = @(Get-WinEvent -FilterHashtable @{
+                LogName = 'Application'
+                StartTime = $startTime
+              } -ErrorAction SilentlyContinue) |
+              Where-Object { $_.Message -match 'opendoors_acceptance' }
+            $dump = Get-ChildItem -Path 'build\ucrt-dumps' -Filter '*.dmp' |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1
+            if ($events.Count -ne 0 -and $dump) {
+              break
+            }
+            Start-Sleep -Seconds 1
+          }
           if ($events.Count -eq 0) {
             'No matching Application events were recorded.' |
               Set-Content -LiteralPath 'build\ucrt-application-events.txt'
@@ -256,6 +294,8 @@ jobs:
             build/ucrt-dumps/*.dmp
             build/ucrt-application-events.txt
             build/ucrt-application-events.xml
+            build/procdump-install.log
+            build/procdump-uninstall.log
             build/mingw/tests/acceptance/opendoors_acceptance_spawn.exe
             build/mingw/tests/acceptance/opendoors_acceptance_spawn_child.exe
 
