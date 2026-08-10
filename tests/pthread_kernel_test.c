@@ -42,9 +42,25 @@ static DWORD OD_THREAD_FUNC ReaderThread(void *pParam)
    return(0);
 }
 
+static DWORD OD_THREAD_FUNC InputProducerThread(void *pParam)
+{
+   tODInputEvent Event;
+
+   ODSemaphoreUp(hWorkerStarted, 1);
+   ODSyncControlReadLock();
+   Event.EventType = EVENT_CHARACTER;
+   Event.bFromRemote = TRUE;
+   Event.chKeyPress = *(char *)pParam;
+   ODInQueueAddEvent(hODInputQueue, &Event);
+   ODSyncControlReadUnlock();
+   return(0);
+}
+
 int main(void)
 {
    tODThreadHandle Worker;
+   tODInputEvent Event;
+   char chProduced;
 
    CHECK(ODSyncSessionInitialize() == kODRCSuccess);
    CHECK(ODSyncIsOwnerThread());
@@ -79,6 +95,36 @@ int main(void)
    od_control.od_time_warning = (char *)"%d";
    od_control.user_timelimit = 2;
    CHECK(ODKrnlInitialize() == kODRCSuccess);
+   ODSyncAPIEntry();
+   CHECK(ODThreadCreate(&Worker, ReaderThread, NULL) == kODRCSuccess);
+   CHECK(ODSemaphoreDown(hWorkerStarted, 1000) == kODRCSuccess);
+   CHECK(ODSemaphoreDown(hWorkerAcquired, 50) == kODRCTimeout);
+   od_sleep(1);
+   CHECK(ODSemaphoreDown(hWorkerAcquired, 0) == kODRCSuccess);
+   ODSyncAPIExit();
+   ODThreadWaitForExit(Worker);
+
+   chProduced = 'I';
+   ODSyncAPIEntry();
+   CHECK(ODThreadCreate(&Worker, InputProducerThread, &chProduced)
+      == kODRCSuccess);
+   CHECK(ODSemaphoreDown(hWorkerStarted, 1000) == kODRCSuccess);
+   CHECK(od_get_input(&Event, 1000, GETIN_RAW));
+   CHECK(Event.EventType == EVENT_CHARACTER);
+   CHECK(Event.bFromRemote);
+   CHECK(Event.chKeyPress == chProduced);
+   ODSyncAPIExit();
+   ODThreadWaitForExit(Worker);
+
+   chProduced = 'K';
+   ODSyncAPIEntry();
+   CHECK(ODThreadCreate(&Worker, InputProducerThread, &chProduced)
+      == kODRCSuccess);
+   CHECK(ODSemaphoreDown(hWorkerStarted, 1000) == kODRCSuccess);
+   CHECK(od_get_key(TRUE) == chProduced);
+   ODSyncAPIExit();
+   ODThreadWaitForExit(Worker);
+
    od_kernel();
    od_kernel();
    CHECK(nKernelCallbackCount == 2);

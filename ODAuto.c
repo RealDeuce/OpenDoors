@@ -209,6 +209,13 @@ static char ODWaitNoCase(char *pszWaitFor, tODMilliSec WaitTime)
             return(TRUE);
          }
       }
+#ifdef OD_MULTITHREADED
+      else
+      {
+         od_sleep(0);
+         if(!bODInitialized) return(FALSE);
+      }
+#endif
    } while(!ODTimerElapsed(&Timer));
 
    return(FALSE);

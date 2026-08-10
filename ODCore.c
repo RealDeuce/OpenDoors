@@ -163,6 +163,45 @@ static void ODAddANSIParameter(char *szControlSequence, int nParameterValue);
 
 
 /* ----------------------------------------------------------------------------
+ * ODCoreSendRemoteByte() / ODCoreSendRemoteBuffer()
+ *
+ * Perform potentially blocking communications output without preventing
+ * kernel workers or the Windows screen presenter from reading stable session
+ * state. These helpers are called only from the session-owner API boundary.
+ * Pending owner work remains deferred until an established checkpoint.
+ */
+tODResult ODCoreSendRemoteByte(BYTE btToSend)
+{
+   tODResult Result;
+#ifdef OD_MULTITHREADED
+   unsigned nSavedAPILevel = ODSyncAPIRelease();
+#endif
+
+   Result = ODComSendByte(hSerialPort, btToSend);
+
+#ifdef OD_MULTITHREADED
+   ODSyncAPIReacquire(nSavedAPILevel);
+#endif
+   return(Result);
+}
+
+tODResult ODCoreSendRemoteBuffer(const void *pBuffer, INT nSize)
+{
+   tODResult Result;
+#ifdef OD_MULTITHREADED
+   unsigned nSavedAPILevel = ODSyncAPIRelease();
+#endif
+
+   Result = ODComSendBuffer(hSerialPort, (BYTE *)pBuffer, nSize);
+
+#ifdef OD_MULTITHREADED
+   ODSyncAPIReacquire(nSavedAPILevel);
+#endif
+   return(Result);
+}
+
+
+/* ----------------------------------------------------------------------------
  * ODWaitDrain()
  *
  * Waits for up to the specified number of milliseconds for the output serial
@@ -177,13 +216,14 @@ void ODWaitDrain(tODMilliSec MaxWait)
 {
    int nOutboundSize;
    tODTimer Timer;
+   BOOL bTimed = MaxWait != OD_NO_TIMEOUT;
 
    /* If we are operating in local mode, then don't do anything. */
    if(od_control.baud == 0) return;
 
    /* Otherwise, start a timer that is set to elapse after the maximum */
    /* wait period.                                                     */
-   ODTimerStart(&Timer, MaxWait);
+   if(bTimed) ODTimerStart(&Timer, MaxWait);
 
    /* Loop until either the outbound buffer is empty, or the */
    /* timer has elapsed.                                     */
@@ -194,7 +234,7 @@ void ODWaitDrain(tODMilliSec MaxWait)
 
       /* If the queue is empty or the timer has elapsed, then stop */
       /* waiting.                                                  */
-      if(nOutboundSize == 0 || ODTimerElapsed(&Timer)) break;
+      if(nOutboundSize == 0 || (bTimed && ODTimerElapsed(&Timer))) break;
 
       /* Otherwise, give other tasks a chance to run. */
       od_sleep(0);
@@ -466,6 +506,9 @@ ODAPIDEF char ODCALL od_get_key(BOOL bWait)
 {
    tODInputEvent InputEvent;
    tODResult Result;
+#ifdef OD_MULTITHREADED
+   unsigned nSavedAPILevel;
+#endif
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
@@ -500,7 +543,13 @@ ODAPIDEF char ODCALL od_get_key(BOOL bWait)
 		{
 		   do
 		   {
+#ifdef OD_MULTITHREADED
+		      nSavedAPILevel = ODSyncAPIRelease();
+#endif
 		      Result = ODInQueueGetNextEvent(hODInputQueue, &InputEvent, 50);
+#ifdef OD_MULTITHREADED
+		      ODSyncAPIReacquire(nSavedAPILevel);
+#endif
 		      if(Result != kODRCSuccess && !ODSyncAPICheckpoint())
 		      {
 		         OD_API_EXIT();
@@ -836,7 +885,16 @@ ODAPIDEF void ODCALL od_page(void)
          /* chat key.                                                 */
          while(!ODTimerElapsed(&Timer))
          {
+#ifdef OD_MULTITHREADED
+            od_sleep(0);
+            if(!bODInitialized)
+            {
+               OD_API_EXIT();
+               return;
+            }
+#else
             CALL_KERNEL_IF_NEEDED();
+#endif
          }
       }
 
@@ -894,7 +952,7 @@ ODAPIDEF void ODCALL od_disp(const char *pachBuffer, INT nSize, BOOL bLocalEcho)
    /* remote system.                                                  */
    if(od_control.baud != 0)
    {
-      ODComSendBuffer(hSerialPort, (BYTE *)pachBuffer, nSize);
+      ODCoreSendRemoteBuffer(pachBuffer, nSize);
    }
 
    /* If we are also to display the character on the local screen, then */
@@ -946,7 +1004,7 @@ ODAPIDEF void ODCALL od_disp_str(const char *pszToDisplay)
    /* Send the string to the remote system, if we are running in remote mode. */
    if(od_control.baud != 0)
    {
-      ODComSendBuffer(hSerialPort, (BYTE *)pszToDisplay, strlen(pszToDisplay));
+      ODCoreSendRemoteBuffer(pszToDisplay, (INT)strlen(pszToDisplay));
    }
 
    /* Update the authoritative screen and its local presentation. */
@@ -1417,7 +1475,7 @@ ODAPIDEF void ODCALL od_putch(char chToDisplay)
    /* serial port.                                                   */
    if(od_control.baud)
    {
-      ODComSendByte(hSerialPort, chToDisplay);
+      ODCoreSendRemoteByte((BYTE)chToDisplay);
    }
 
    /* If it is time to call the kernel, then do so. */

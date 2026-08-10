@@ -395,6 +395,7 @@ tODResult ODThreadSetPriority(tODThreadHandle hThread,
  */
 void ODThreadWaitForExit(tODThreadHandle hThread)
 {
+   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
 #ifdef ODPLAT_WIN32
    WaitForSingleObject(hThread, INFINITE);
 #endif /* ODPLAT_WIN32 */
@@ -407,6 +408,7 @@ void ODThreadWaitForExit(tODThreadHandle hThread)
 
 void ODThreadSleep(tODMilliSec Milliseconds)
 {
+   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
 #ifdef ODPLAT_WIN32
    Sleep(Milliseconds);
 #endif
@@ -877,6 +879,7 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 #ifdef OD_MULTITHREADED
    tODTimer SleepTimer;
    tODMilliSec Slice;
+   unsigned nSavedAPILevel;
 #endif
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_sleep()");
@@ -925,7 +928,9 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 #ifdef OD_MULTITHREADED
    if(Milliseconds == 0)
    {
+      nSavedAPILevel = ODSyncAPIRelease();
       Sleep(0);
+      ODSyncAPIReacquire(nSavedAPILevel);
       ODSyncAPICheckpoint();
    }
    else
@@ -935,7 +940,9 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
       {
          Slice = ODTimerLeft(&SleepTimer);
          if(Slice > 50) Slice = 50;
+         nSavedAPILevel = ODSyncAPIRelease();
          Sleep(Slice);
+         ODSyncAPIReacquire(nSavedAPILevel);
          if(!ODSyncAPICheckpoint()) break;
       } while(!ODTimerElapsed(&SleepTimer));
    }
@@ -953,7 +960,9 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
       if(Slice > 50) Slice = 50;
       ts.tv_sec = Slice / 1000;
       ts.tv_nsec = Slice == 0 ? 100000 : (long)(Slice % 1000) * 1000000L;
+      nSavedAPILevel = ODSyncAPIRelease();
       while(nanosleep(&ts, &ts) == EINTR) ;
+      ODSyncAPIReacquire(nSavedAPILevel);
       if(!ODSyncAPICheckpoint()) break;
    } while(Milliseconds != 0 && !ODTimerElapsed(&SleepTimer));
 #else

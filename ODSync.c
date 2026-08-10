@@ -259,6 +259,15 @@ BOOL ODSyncIsOwnerThread(void)
 
 BOOL ODSyncSessionActive(void) { return(bSyncActive); }
 
+BOOL ODSyncAPIWriterHeldByCurrentThread(void)
+{
+#ifdef OD_MULTITHREADED
+   return(bSyncActive && ODSyncIsOwnerThread() && nAPILevel != 0);
+#else
+   return(FALSE);
+#endif
+}
+
 void ODSyncControlReadLock(void)
 {
 #ifdef OD_MULTITHREADED

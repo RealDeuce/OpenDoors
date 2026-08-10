@@ -85,6 +85,7 @@
 #include "ODPlat.h"
 #include "ODSafe.h"
 #include "ODCom.h"
+#include "ODSync.h"
 #include "ODUtil.h"
 #ifdef ODPLAT_DOS32
 #include "OD32Foss.h"
@@ -1269,6 +1270,7 @@ tODResult ODComOpen(tPortHandle hPort)
 #endif
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
+   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
    VERIFY_CALL(pPortInfo != NULL);
 
    /* Ensure that port is not already open. */
@@ -1898,6 +1900,7 @@ tODResult ODComOpenFromExistingHandle(tPortHandle hPort,
 {
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
+   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
    VERIFY_CALL(pPortInfo != NULL);
 
    VERIFY_CALL(!pPortInfo->bIsOpen);
@@ -1971,6 +1974,7 @@ tODResult ODComClose(tPortHandle hPort)
 #endif /* INCLUDE_UART_COM */
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
+   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
    VERIFY_CALL(pPortInfo != NULL);
 
    VERIFY_CALL(pPortInfo->bIsOpen);
@@ -2785,6 +2789,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 {
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
+   ASSERT(!bWait || !ODSyncAPIWriterHeldByCurrentThread());
    VERIFY_CALL(pPortInfo != NULL);
    VERIFY_CALL(pbtNext != NULL);
 
@@ -3149,6 +3154,7 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
 {
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
+   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
    VERIFY_CALL(pPortInfo != NULL);
 
    VERIFY_CALL(pPortInfo->bIsOpen);
@@ -3621,6 +3627,7 @@ tODResult ODComSendBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize)
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
    BYTE *buf = pbtBuffer;
 
+   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
    VERIFY_CALL(pPortInfo != NULL);
    VERIFY_CALL(pbtBuffer != NULL);
    VERIFY_CALL(nSize >= 0);
@@ -3978,6 +3985,7 @@ tODResult ODComWaitEvent(tPortHandle hPort, tComEvent Event)
 {
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
+   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
    VERIFY_CALL(pPortInfo != NULL);
 
    VERIFY_CALL(pPortInfo->bIsOpen);

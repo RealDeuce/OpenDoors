@@ -327,6 +327,8 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
 
 #ifdef OD_MULTITHREADED
 
+   ASSERT(Timeout == 0 || !ODSyncAPIWriterHeldByCurrentThread());
+
    /* In multithreaded implementations, we wait for there to be an item in  */
    /* the queue by decrementing the queue size semaphore. This will cause   */
    /* this thread to be blocked until an event is added to the queue, if it */
@@ -431,7 +433,7 @@ void ODInQueueEmpty(tODInQueueHandle hInQueue)
    /* Remove all items from the queue. */
    while(ODInQueueWaiting(hInQueue))
    {
-      ODInQueueGetNextEvent(hInQueue, &InputEvent, OD_NO_TIMEOUT);
+      ODInQueueGetNextEvent(hInQueue, &InputEvent, 0);
    }
 }
 

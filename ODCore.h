@@ -93,6 +93,8 @@ extern BYTE btOutputBottom;
 
 /* Core functions used throughout OpenDoors. */
 void ODWaitDrain(tODMilliSec MaxWait);
+tODResult ODCoreSendRemoteByte(BYTE btToSend);
+tODResult ODCoreSendRemoteBuffer(const void *pBuffer, INT nSize);
 void ODStoreTextInfo(void);
 void ODRestoreTextInfo(void);
 void ODStringToName(char *pszToConvert);

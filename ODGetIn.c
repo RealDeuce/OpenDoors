@@ -187,6 +187,9 @@ static tODResult ODGetInputWait(tODInputEvent *pEvent,
    tODTimer Timer;
    tODMilliSec Slice;
    tODResult Result;
+#ifdef OD_MULTITHREADED
+   unsigned nSavedAPILevel;
+#endif
 
    if(TimeToWait != OD_NO_TIMEOUT)
       ODTimerStart(&Timer, TimeToWait);
@@ -203,7 +206,13 @@ static tODResult ODGetInputWait(tODInputEvent *pEvent,
          if(Slice > 50) Slice = 50;
       }
 
+#ifdef OD_MULTITHREADED
+      if(Slice != 0) nSavedAPILevel = ODSyncAPIRelease();
+#endif
       Result = ODInQueueGetNextEvent(hODInputQueue, pEvent, Slice);
+#ifdef OD_MULTITHREADED
+      if(Slice != 0) ODSyncAPIReacquire(nSavedAPILevel);
+#endif
       if(Result == kODRCSuccess || TimeToWait == 0)
          return(Result);
       if(!ODSyncAPICheckpoint())
@@ -333,7 +342,7 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
    /* Now, continue adding chars, waiting at MOST MAX_CHARACTER_LATENCY between them */
    CALL_KERNEL_IF_NEEDED();
    while((!bDoorwaySequencePending)
-            && (ODInQueueGetNextEvent(hODInputQueue, &LastInputEvent, MAX_CHARACTER_LATENCY)
+            && (ODGetInputWait(&LastInputEvent, MAX_CHARACTER_LATENCY)
             == kODRCSuccess)) {
       /* If you are looking for a doorway sequence, any char completes it (honest!) */
       /* Further, thanks to some lack of planning, it's EXACTLY THE SAME as the char,

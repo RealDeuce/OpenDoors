@@ -64,6 +64,9 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(od_get_key(FALSE) == 'K');
    OD_TEST_CHECK(od_control.od_last_input == 0);
 
+   od_disp("WAITKEY", 7, FALSE);
+   OD_TEST_CHECK(od_get_key(TRUE) == 'W');
+
    od_disp("CLEAR", 5, FALSE);
    od_sleep(50);
    od_clear_keybuffer();

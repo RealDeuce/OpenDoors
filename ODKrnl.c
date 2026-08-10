@@ -263,6 +263,9 @@ static tODResult ODKrnlStart(BOOL bPreservePending)
 #endif
 
    tODResult Result = kODRCSuccess;
+#ifdef OD_MULTITHREADED
+   unsigned nSavedAPILevel = 0;
+#endif
 
 #ifndef OD_MULTITHREADED
    (void)bPreservePending;
@@ -398,9 +401,13 @@ initialization_failed:
    bKernelStopRequested = TRUE;
    ODMutexUnlock(&KernelStateLock);
    ODSemaphoreUp(hKernelShutdownSemaphore, 3);
+   if(ODSyncAPIWriterHeldByCurrentThread())
+      nSavedAPILevel = ODSyncAPIRelease();
    ODKrnlJoinThread(&hTimeUpdateThread, &bTimeUpdateThreadStarted);
    ODKrnlJoinThread(&hNoCarrierThread, &bNoCarrierThreadStarted);
    ODKrnlJoinThread(&hRemoteInputThread, &bRemoteInputThreadStarted);
+   if(nSavedAPILevel != 0)
+      ODSyncAPIReacquire(nSavedAPILevel);
    ODSemaphoreFree(hKernelShutdownSemaphore);
    hKernelShutdownSemaphore = NULL;
    return(Result);

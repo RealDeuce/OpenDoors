@@ -516,6 +516,7 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    INT nStartColumn;
    INT nEndColumn;
    BYTE *pbtBufferContents;
+   BYTE abtScreenSnapshot[OD_SCREEN_WIDTH * OD_SCREEN_HEIGHT * 2];
    char achStringToOutput[OD_SCREEN_WIDTH];
    char *pchNextChar;
    BYTE btCurrentAttribute;
@@ -526,14 +527,16 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    ASSERT(nRight >= nLeft);
    ASSERT(nBottom >= nTop);
 
-   /* The session-owner thread updates the virtual local screen while this
-    * presentation thread reads it. The od_control lock is also the session
-    * state lock, so a paint sees one complete API operation. */
+   /* Copy one coherent screen image while holding shared session access.
+    * GDI may synchronously execute other window code, so do not retain the
+    * session lock while drawing the saved image. */
    ODSyncControlReadLock();
 
    /* Ensure that parameters are within valid range. */
    if(nRight >= OD_SCREEN_WIDTH) nRight = OD_SCREEN_WIDTH - 1;
    if(nBottom >= OD_SCREEN_HEIGHT) nBottom = OD_SCREEN_HEIGHT - 1;
+   memcpy(abtScreenSnapshot, pScrnBuffer, sizeof(abtScreenSnapshot));
+   ODSyncControlReadUnlock();
 
    /* Save the current state of the device context so that we can restore */
    /* it before returning.                                                */
@@ -548,7 +551,7 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    {
       /* Obtain a pointer to the first byte representing this line in */
       /* the screen buffer.                                           */
-      pbtBufferContents = (BYTE *)(pScrnBuffer) +
+      pbtBufferContents = abtScreenSnapshot +
          ((nCurrentLine * OD_SCREEN_WIDTH) + nLeft) * 2;
 
       /* Loop for each portion of this line that can be drawn in a single */
@@ -597,7 +600,6 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    /* Restore the device context to its original state before this function */
    /* was called.                                                           */
    RestoreDC(hdc, nIDSavedState);
-   ODSyncControlReadUnlock();
 }
 
 

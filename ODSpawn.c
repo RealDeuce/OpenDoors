@@ -401,6 +401,13 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
          return(-1);
       }
 
+#ifdef ODPLAT_WIN32
+      /* Send any configured modem command while the input worker is still
+       * available to place its response in the common input queue. */
+      if(od_control.baud != 0)
+         ODInExDisableDTR();
+#endif /* ODPLAT_WIN32 */
+
 #ifdef OD_MULTITHREADED
       /* Mutlithreaded versions of OpenDoors must shutdown the kernel */
       /* before closing the serial port.                              */
@@ -411,14 +418,14 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
       /* Close serial port. */
       if(od_control.baud != 0)
       {
-#ifdef ODPLAT_WIN32
-         /* Disable DTR response by the modem before closing the serial */
-         /* port, if this is required.                                  */
-         ODInExDisableDTR();
-#endif /* ODPLAT_WIN32 */         
          ODComClose(hSerialPort);
       }
    }
+
+#ifdef OD_MULTITHREADED
+   if(nModeFlag != P_WAIT)
+      nSavedAPILevel = ODSyncAPIRelease();
+#endif /* OD_MULTITHREADED */
 
    /* Execute specified program with the specified arguments. */
 #ifdef ODPLAT_DOS32
@@ -427,11 +434,13 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    nToReturn = _spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
 #endif
 
+#ifdef OD_MULTITHREADED
+   if(nModeFlag != P_WAIT)
+      ODSyncAPIReacquire(nSavedAPILevel);
+#endif /* OD_MULTITHREADED */
+
    if(nModeFlag == P_WAIT)
    {
-#ifdef OD_MULTITHREADED
-      ODSyncAPIReacquire(nSavedAPILevel);
-#endif
       /* Re-open serial port. */
       if(od_control.baud != 0)
       {
@@ -439,6 +448,8 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
       }
 
 #ifdef OD_MULTITHREADED
+      ODSyncAPIReacquire(nSavedAPILevel);
+
       /* Mutlithreaded versions of OpenDoors must shutdown the kernel    */
       /* before closing the serial port, so reinitialize the kernel now. */
       if(ODKrnlRestart() != kODRCSuccess)

@@ -27,6 +27,7 @@ void ODSyncInitializationComplete(void);
 void ODSyncSessionShutdown(void);
 BOOL ODSyncIsOwnerThread(void);
 BOOL ODSyncSessionActive(void);
+BOOL ODSyncAPIWriterHeldByCurrentThread(void);
 void ODSyncAPIEntry(void);
 void ODSyncAPIExit(void);
 BOOL ODSyncAPICheckpoint(void);

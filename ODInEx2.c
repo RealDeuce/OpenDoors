@@ -263,6 +263,10 @@ BOOL ODCALL ODDropFileClose(tODDropFileWriter *pWriter)
 static BOOL ODSendModemCommand(char *pszCommand, int nRetries);
 static BOOL ODSendModemCommandOnce(char *pszCommand);
 static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout);
+static void ODOwnerThreadSleep(tODMilliSec Milliseconds);
+#if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
+static void ODDiagnosticMessage(const char *pszText, const char *pszTitle);
+#endif
 #endif /* ODPLAT_WIN32 */
 
 #ifdef OD_DIAGNOSTICS
@@ -304,8 +308,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
    {
-      MessageBox(NULL, "Starting up od_exit()", "OpenDoors Diagnostics",
-         MB_OK);
+      ODDiagnosticMessage("Starting up od_exit()", "OpenDoors Diagnostics");
    }
 #endif
 
@@ -848,16 +851,25 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
       ODWaitDrain(10000);
 
       /* Wait up to five seconds for no carrier */
+#ifdef OD_MULTITHREADED
+      nSavedAPILevel = ODSyncAPIRelease();
+#endif
       ODComSetDTR(hSerialPort, FALSE);
       nMaxTime = time(NULL) + 5L;
 
       do
       {
          ODComCarrier(hSerialPort, &bCarrier);
+#ifdef OD_MULTITHREADED
+         if(bCarrier) ODThreadSleep(10);
+#endif
       } while(bCarrier && time(NULL) <= nMaxTime);
 
       /* Raise DTR signal again. */
       ODComSetDTR(hSerialPort, TRUE);
+#ifdef OD_MULTITHREADED
+      ODSyncAPIReacquire(nSavedAPILevel);
+#endif
    }
 
    /* In Win32 version, disable DTR before closing serial port, if */
@@ -893,17 +905,18 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    }
 #endif /* !ODPLAT_WIN32 */
 
-#if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
-   if(od_control.od_internal_debug)
-   {
-      MessageBox(NULL, "Terminating kernel threads", "OpenDoors Diagnostics",
-         MB_OK);
-   }
-#endif
    /* Kernel workers and Windows UI threads may be waiting to read session
     * state. Release the API writer while stopping and joining them. */
 #ifdef OD_MULTITHREADED
    nSavedAPILevel = ODSyncAPIRelease();
+#endif
+
+#if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
+   if(od_control.od_internal_debug)
+   {
+      ODDiagnosticMessage("Terminating kernel threads",
+         "OpenDoors Diagnostics");
+   }
 #endif
 
    /* Shutdown the OpenDoors kernel. */
@@ -915,15 +928,11 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    ODFrameShutdown(&hFrameThread);
 #endif /* ODPLAT_WIN32 */
 
-#ifdef OD_MULTITHREADED
-   ODSyncAPIReacquire(nSavedAPILevel);
-#endif
-
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
    {
-      MessageBox(NULL, "Shutting down local screen", "OpenDoors Diagnostics",
-         MB_OK);
+      ODDiagnosticMessage("Shutting down local screen",
+         "OpenDoors Diagnostics");
    }
 #endif
    /* Shutdown OpenDoors local screen module. */
@@ -933,8 +942,8 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
    {
-      MessageBox(NULL, "Performing any final serial port deallocation",
-         "OpenDoors Diagnostics", MB_OK);
+      ODDiagnosticMessage("Performing any final serial port deallocation",
+         "OpenDoors Diagnostics");
    }
 #endif
    /* If not operating in local mode, then deallocate serial port resources. */
@@ -950,8 +959,8 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
    {
-      MessageBox(NULL, "Deallocating common queue", "OpenDoors Diagnostics",
-         MB_OK);
+      ODDiagnosticMessage("Deallocating common queue",
+         "OpenDoors Diagnostics");
    }
 #endif
    /* Deallocate input buffer. */
@@ -960,10 +969,14 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
    {
-      MessageBox(NULL, "Going to inactive mode", "OpenDoors Diagnostics",
-         MB_OK);
+      ODDiagnosticMessage("Going to inactive mode", "OpenDoors Diagnostics");
    }
 #endif
+
+#ifdef OD_MULTITHREADED
+   ODSyncAPIReacquire(nSavedAPILevel);
+#endif
+
    /* OpenDoors is no longer active. */
    bODInitialized = FALSE;
 
@@ -988,7 +1001,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
    {
-      MessageBox(NULL, "Terminating process", "OpenDoors Diagnostics", MB_OK);
+      ODDiagnosticMessage("Terminating process", "OpenDoors Diagnostics");
    }
 #endif
    /* Exit with appropriate errorlevel. */
@@ -1448,7 +1461,7 @@ static BOOL ODSendModemCommandOnce(char *pszCommand)
             case '|':
                /* A pipe character denotes that a carriage return should be */
                /* send to the modem.                                        */
-               ODComSendByte(hSerialPort, '\r');
+               ODCoreSendRemoteByte('\r');
 #ifdef OD_DIAGNOSTICS
                strcat(szDebugWorkString, "\n");
 #endif /* OD_DIAGNOSTICS */
@@ -1456,16 +1469,12 @@ static BOOL ODSendModemCommandOnce(char *pszCommand)
 
             case '~':
                /* A tilde character denotes a 1 second pause. */
-#ifdef OD_MULTITHREADED
-               ODThreadSleep(1000);
-#else
-               od_sleep(1000);
-#endif
+               ODOwnerThreadSleep(1000);
                break;
 
             default:
                /* Otherwise, send this character as is. */
-               ODComSendByte(hSerialPort, *pchCurrent);
+               ODCoreSendRemoteByte((BYTE)*pchCurrent);
 #ifdef OD_DIAGNOSTICS
                {
                   char szAppend[2];
@@ -1476,11 +1485,7 @@ static BOOL ODSendModemCommandOnce(char *pszCommand)
 #endif /* OD_DIAGNOSTICS */
          }
 
-#ifdef OD_MULTITHREADED
-         ODThreadSleep(200);
-#else
-         od_sleep(200);
-#endif
+         ODOwnerThreadSleep(200);
       }
       else
       {
@@ -1541,6 +1546,10 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
    tODTimer Timer;
    char szReceived[MAX_RESPONSE_LEN + 1] = "\0";
    tODInputEvent InputEvent;
+   tODResult Result;
+#ifdef OD_MULTITHREADED
+   unsigned nSavedAPILevel;
+#endif
 
    ASSERT(pszResponse != NULL);
    ASSERT(ResponseTimeout > 0);
@@ -1558,8 +1567,15 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
    ODTimerStart(&Timer, ResponseTimeout);
    while(!ODTimerElapsed(&Timer))
    {
-      if(ODInQueueGetNextEvent(hODInputQueue, &InputEvent,
-         ODTimerLeft(&Timer)) == kODRCSuccess)
+#ifdef OD_MULTITHREADED
+      nSavedAPILevel = ODSyncAPIRelease();
+#endif
+      Result = ODInQueueGetNextEvent(hODInputQueue, &InputEvent,
+         ODTimerLeft(&Timer));
+#ifdef OD_MULTITHREADED
+      ODSyncAPIReacquire(nSavedAPILevel);
+#endif
+      if(Result == kODRCSuccess)
       {
          if(InputEvent.bFromRemote && InputEvent.EventType == EVENT_CHARACTER)
          {
@@ -1593,11 +1609,7 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
       else
       {
          /* When no characters are waiting, allow other processes to run. */
-#ifdef OD_MULTITHREADED
-         ODThreadSleep(0);
-#else
-         od_sleep(0);
-#endif
+         ODOwnerThreadSleep(0);
       }
    }
 
@@ -1608,6 +1620,44 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
    /* Indicate that string was not received in the time alotted. */
    return(FALSE);
 }
+
+
+/* ----------------------------------------------------------------------------
+ * ODOwnerThreadSleep()                               *** PRIVATE FUNCTION ***
+ *
+ * Sleeps from inside an owner-thread API operation without dispatching
+ * pending owner work in the middle of that operation.
+ */
+static void ODOwnerThreadSleep(tODMilliSec Milliseconds)
+{
+#ifdef OD_MULTITHREADED
+   unsigned nSavedAPILevel = ODSyncAPIRelease();
+   ODThreadSleep(Milliseconds);
+   ODSyncAPIReacquire(nSavedAPILevel);
+#else
+   od_sleep(Milliseconds);
+#endif
+}
+
+
+#if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
+static void ODDiagnosticMessage(const char *pszText, const char *pszTitle)
+{
+#ifdef OD_MULTITHREADED
+   unsigned nSavedAPILevel = 0;
+
+   if(ODSyncAPIWriterHeldByCurrentThread())
+      nSavedAPILevel = ODSyncAPIRelease();
+#endif
+
+   MessageBox(NULL, pszText, pszTitle, MB_OK);
+
+#ifdef OD_MULTITHREADED
+   if(nSavedAPILevel != 0)
+      ODSyncAPIReacquire(nSavedAPILevel);
+#endif
+}
+#endif
 
 
 /* ----------------------------------------------------------------------------
@@ -1643,8 +1693,7 @@ void ODInExDisableDTR(void)
 #ifdef OD_DIAGNOSTICS
             if(od_control.od_internal_debug)
             {
-               MessageBox(NULL, szDebugWorkString, "DTR Disable FAILED!",
-                  MB_OK);
+               ODDiagnosticMessage(szDebugWorkString, "DTR Disable FAILED!");
                szDebugWorkString[0] = '\0';
             }
 #endif /* OD_DIAGNOSTICS */
@@ -1654,8 +1703,8 @@ void ODInExDisableDTR(void)
 #ifdef OD_DIAGNOSTICS
             if(od_control.od_internal_debug)
             {
-               MessageBox(NULL, szDebugWorkString, "DTR Disable Succeeded!",
-                  MB_OK);
+               ODDiagnosticMessage(szDebugWorkString,
+                  "DTR Disable Succeeded!");
                szDebugWorkString[0] = '\0';
             }
 #endif /* OD_DIAGNOSTICS */

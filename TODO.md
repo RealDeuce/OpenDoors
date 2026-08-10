@@ -105,6 +105,16 @@
   owner dispatch; blocking owner operations also stop promptly if a
   checkpoint completed session teardown.
 
+- [x] Release the session-state lock around blocking owner-thread operations.
+  Blocking input, sleep, communications output, modem-response, process,
+  hangup, output-drain, shutdown, and Windows paint paths previously retained
+  the API writer or presentation reader while waiting. Owner operations now
+  save and restore their complete nested API level around the blocking call;
+  only established input and sleep checkpoints dispatch pending work. The
+  Windows presenter draws from a coherent screen snapshot after releasing its
+  reader, and internal assertions reject raw waits entered with the owner
+  writer held.
+
 ## Defects found during the documentation audit
 
 - [x] Correct the popup-menu level bounds check in `od_popup_menu()`.

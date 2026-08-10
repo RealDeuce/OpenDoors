@@ -67,7 +67,8 @@ The control lock is a writer-preferring read/write lock implemented from a
 mutex and a change event or condition variable. An outer public API call holds
 its write side while it operates on shared session state. Internal workers
 take only the narrow read access required to make a decision. The Windows
-screen presenter takes read access while copying cells for a paint.
+screen presenter takes read access only long enough to copy a coherent screen
+image. It releases the lock before making any GDI calls.
 
 The kernel-state mutex protects stop and pending-operation flags. Code must
 not hold it while acquiring the control lock or invoking application code.
@@ -109,15 +110,31 @@ There are two callback contexts:
 No application callback is invoked while the kernel-state mutex or input-queue
 mutex is held. A function which adds a new callback must classify it into one
 of these contexts and document the classification before implementation.
+Owner callbacks retain the API writer because the established ABI permits them
+to access `od_control` directly and to call OpenDoors recursively. They should
+therefore return promptly. Ordinary filesystem and C runtime operations also
+remain part of their containing API operation; transport-backed standard I/O
+is treated as communications I/O instead.
 
 ## Blocking calls and shutdown
 
-Blocking input waits use short bounded queue waits. Between waits the owner
-temporarily gives up the API writer, dispatches pending work, and reacquires
-the writer before touching session state again.
+Blocking input waits use short bounded queue waits. The owner gives up the API
+writer before each queue or operating-system wait and reacquires it before
+touching session state again. This lets the remote-input worker finish placing
+a received byte in the input queue while the owner is blocked. Once the wait
+returns, the owner also dispatches pending work at a checkpoint before the
+next bounded wait.
 [`od_sleep()`](../reference/api/od_sleep.md) uses the same
 checkpoint. This permits carrier loss, time expiration, and local commands to
 be handled without suspending the owner at an arbitrary instruction.
+
+Communications writes, modem-response waits, process creation, carrier polling,
+and teardown waits also release and restore the complete nested API level.
+They do not dispatch pending owner work: shutdown, timer changes, and
+application callbacks remain deferred until the surrounding API call reaches
+an established input, sleep, or outer-exit checkpoint. Low-level
+communications and thread-wait helpers assert that the owner writer is not
+held, so a new blocking call cannot silently recreate this failure mode.
 
 [`od_spawnvpe()`](../reference/api/od_spawnvpe.md) with
 [`P_WAIT`](../reference/constants/general.md#p_wait) stops and joins the kernel
@@ -157,8 +174,9 @@ When adding worker activity or shared state, verify all of the following:
 2. Partial startup unwinds every worker and support object already created.
 3. The worker never invokes public API or application code.
 4. Cross-thread work is represented as data and dispatched by the owner.
-5. No lock is held while joining a thread. Application callbacks never run
-   under the kernel-state or input-queue mutex; owner callbacks run within the
+5. No lock is held while sleeping, waiting for input, performing communications
+   I/O, painting, or joining a thread. Application callbacks never run under
+   the kernel-state or input-queue mutex; owner callbacks run within the
    recursive API boundary established by the control writer.
 6. [`od_noexit`](../reference/control/customization.md#od_noexit), failed
    initialization, and child-process restart leave no

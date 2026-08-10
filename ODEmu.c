@@ -580,12 +580,12 @@ end_transmission:
       /* Wait while file is being sent. */
       if(od_control.baud != 0)
       {
-         int nOutboundSize;
-         do
+         ODWaitDrain(OD_NO_TIMEOUT);
+         if(!bODInitialized)
          {
-            CALL_KERNEL_IF_NEEDED();
-            ODComOutbound(hSerialPort, &nOutboundSize);
-         } while(nOutboundSize != 0);
+            OD_API_EXIT();
+            return(TRUE);
+         }
       }
 
       /* Get rid of the window. */
@@ -979,12 +979,12 @@ end_transmission:
       /* Wait while file is being sent. */
       if(od_control.baud != 0)
       {
-         int nOutboundSize;
-         do
+         ODWaitDrain(OD_NO_TIMEOUT);
+         if(!bODInitialized)
          {
-            CALL_KERNEL_IF_NEEDED();
-            ODComOutbound(hSerialPort, &nOutboundSize);
-         } while(nOutboundSize != 0);
+            OD_API_EXIT();
+            return(TRUE);
+         }
       }
 
       /* Get rid of the window. */
@@ -2386,7 +2386,7 @@ static void ODEmulateFromBuffer(const char *pszBuffer, BOOL bRemoteEcho,
 
       if(bEchoThisChar && od_control.baud != 0)
       {
-         ODComSendByte(hSerialPort, chCurrent);
+         ODCoreSendRemoteByte((BYTE)chCurrent);
       }
 
       ++pszBuffer;

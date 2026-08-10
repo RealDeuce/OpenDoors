@@ -62,6 +62,8 @@ def main() -> int:
         peer.sendall(b"socket\r")
         receive_until(peer, b"KEY", transcript)
         peer.sendall(b"K")
+        receive_until(peer, b"WAITKEY", transcript)
+        peer.sendall(b"W")
         receive_until(peer, b"CLEAR", transcript)
         peer.sendall(b"C")
         receive_until(peer, b"AUTODETECT", transcript)
