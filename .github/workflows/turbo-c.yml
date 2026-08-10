@@ -1,4 +1,4 @@
-name: Turbo C DOS experiment
+name: Turbo C DOS
 
 on:
   workflow_dispatch:
