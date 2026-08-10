@@ -78,6 +78,15 @@
 #include "ODFrame.h"
 #endif /* ODPLAT_WIN32 */
 
+#ifdef OD_SPAWN_DIAGNOSTICS
+#define OD_SPAWN_PHASE(phase) do { \
+   fprintf(stderr, "OpenDoors spawn phase: %s\n", phase); \
+   fflush(stderr); \
+} while(0)
+#else
+#define OD_SPAWN_PHASE(phase) ((void)0)
+#endif
+
 #ifdef ODPLAT_DOS
 
 /* Local and global variables for memory swapping spawn routines. */
@@ -388,6 +397,7 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 
    if(nModeFlag == P_WAIT)
    {
+      OD_SPAWN_PHASE("P_WAIT begin");
       /* Display the spawn message box under Win32. */
 #ifdef ODPLAT_WIN32
       pWindow = ODScrnShowMessage("Running sub-program...", 0);
@@ -411,8 +421,11 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 #ifdef OD_MULTITHREADED
       /* Mutlithreaded versions of OpenDoors must shutdown the kernel */
       /* before closing the serial port.                              */
+      OD_SPAWN_PHASE("releasing API writer");
       nSavedAPILevel = ODSyncAPIRelease();
+      OD_SPAWN_PHASE("stopping kernel");
       ODKrnlShutdown();
+      OD_SPAWN_PHASE("kernel stopped");
 #endif /* OD_MULTITHREADED */
 
       /* Close serial port. */
@@ -428,11 +441,13 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 #endif /* OD_MULTITHREADED */
 
    /* Execute specified program with the specified arguments. */
+   OD_SPAWN_PHASE("calling spawnvpe");
 #ifdef ODPLAT_DOS32
    nToReturn = spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
 #else
    nToReturn = _spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
 #endif
+   OD_SPAWN_PHASE("spawnvpe returned");
 
 #ifdef OD_MULTITHREADED
    if(nModeFlag != P_WAIT)
@@ -448,15 +463,18 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
       }
 
 #ifdef OD_MULTITHREADED
+      OD_SPAWN_PHASE("reacquiring API writer");
       ODSyncAPIReacquire(nSavedAPILevel);
 
       /* Mutlithreaded versions of OpenDoors must shutdown the kernel    */
       /* before closing the serial port, so reinitialize the kernel now. */
+      OD_SPAWN_PHASE("restarting kernel");
       if(ODKrnlRestart() != kODRCSuccess)
       {
          od_control.od_error = ERR_GENERALFAILURE;
          nToReturn = -1;
       }
+      OD_SPAWN_PHASE("kernel restarted");
 #endif /* OD_MULTITHREADED */
 
       if(!(bIsShell || od_control.od_spawn_freeze_time))

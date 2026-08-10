@@ -143,13 +143,16 @@ jobs:
 
       - name: Configure
         shell: msys2 {0}
-        run: >-
-          cmake
-          -S .
-          -B build/mingw
-          -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DOPENDOORS_WARNINGS_AS_ERRORS=ON
+        run: |
+          if test "${{ matrix.msystem }}" = UCRT64; then
+            export CFLAGS="${CFLAGS:-} -DOD_SPAWN_DIAGNOSTICS -g"
+          fi
+          cmake \
+            -S . \
+            -B build/mingw \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DOPENDOORS_WARNINGS_AS_ERRORS=ON
 
       - name: Build and test
         shell: msys2 {0}
