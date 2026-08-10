@@ -62,11 +62,14 @@
 #include <ctype.h>
 #include <time.h>
 #include <limits.h>
-#ifdef __WATCOMC__
-#include <dos.h>
-#endif
-
 #include "OpenDoor.h"
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#include <conio.h>
+#include <dos.h>
+#ifdef __WATCOMC__
+#include <i86.h>
+#endif
+#endif
 #ifdef ODPLAT_NIX
 #include <sys/ioctl.h>
 #include <signal.h>
@@ -117,6 +120,7 @@
 #endif /* ODPLAT_DOS */
 #ifdef ODPLAT_DOS32
 #define INCLUDE_FOSSIL_COM                      /* Real-mode INT 14h via DPMI. */
+#define INCLUDE_UART_COM              /* Protected-mode interrupt driven I/O. */
 #endif /* ODPLAT_DOS32 */
 
 /* Serial I/O mechanisms supported under Win32 version. */
@@ -217,6 +221,20 @@ typedef struct
 /* ========================================================================= */
 
 #ifdef INCLUDE_UART_COM
+
+#ifdef __WATCOMC__
+#pragma intrinsic(inp, outp)
+#endif
+#define OD_COM_PORT_READ(address) ((BYTE)inp(address))
+#define OD_COM_PORT_WRITE(address, value) \
+   ((void)outp((address), (BYTE)(value)))
+#ifdef ODPLAT_DOS32
+#define OD_COM_INTERRUPTS_DISABLE() _disable()
+#define OD_COM_INTERRUPTS_ENABLE() _enable()
+#else
+#define OD_COM_INTERRUPTS_DISABLE() ASM cli
+#define OD_COM_INTERRUPTS_ENABLE() ASM sti
+#endif
 
 /* Private function prototypes, used by internal UART async serial I/O. */
 static void ODComSetVect(BYTE btVector, void (INTERRUPT far *pfISR)(void));
@@ -444,16 +462,13 @@ static BOOL ODComInternalTXReady(void)
 static void ODComInternalResetTX(void)
 {
    /* Disable interrupts. */
-   ASM cli
+   OD_COM_INTERRUPTS_DISABLE();
 
    /* If we are using 16550A FIFO buffers, then clear the FIFO transmit */
    /* buffer.                                                           */
    if(bUsingFIFO)
    {
-      ASM mov al, btBaseFIFOCtrl
-      ASM or al, TR
-      ASM mov dx, nIntIDRegAddr
-      ASM out dx, al
+      OD_COM_PORT_WRITE(nIntIDRegAddr, btBaseFIFOCtrl | TR);
    }
 
    /* Reset start, end and total count of characters in buffer      */
@@ -462,7 +477,7 @@ static void ODComInternalResetTX(void)
    nTXChars = nTXInIndex = nTXOutIndex = 0;
 
    /* Re-enable interrupts. */
-   ASM sti
+   OD_COM_INTERRUPTS_ENABLE();
 }
 
 
@@ -478,16 +493,13 @@ static void ODComInternalResetTX(void)
 static void ODComInternalResetRX(void)
 {
    /* Disable interrupts. */
-   ASM cli
+   OD_COM_INTERRUPTS_DISABLE();
 
    /* If we are using 16550A FIFO buffers, then clear the FIFO receive */
    /* buffer.                                                          */
    if(bUsingFIFO)
    {
-      ASM mov al, btBaseFIFOCtrl
-      ASM or al, RR
-      ASM mov dx, nIntIDRegAddr
-      ASM out dx, al
+      OD_COM_PORT_WRITE(nIntIDRegAddr, btBaseFIFOCtrl | RR);
    }
 
    /* Reset start, end and total count of characters in buffer           */
@@ -496,7 +508,7 @@ static void ODComInternalResetRX(void)
    nRXChars = nRXInIndex = nRXOutIndex = 0;
 
    /* Re-enable interrupts. */
-   ASM sti
+   OD_COM_INTERRUPTS_ENABLE();
 }
 
 
@@ -520,9 +532,7 @@ static void INTERRUPT ODComInternalISR()
    {
       /* While bit 0 of the UART IIR is 0, there remains pending operations. */
       /* Read IIR. */
-      ASM mov dx, nIntIDRegAddr
-      ASM in al, dx
-      ASM mov btIIR, al
+      btIIR = OD_COM_PORT_READ(nIntIDRegAddr);
 
       /* If IIR bit 0 is set, then UART processing is finished.             */
       if(btIIR & 0x01) break;
@@ -537,9 +547,7 @@ static void INTERRUPT ODComInternalISR()
             /* Operation: modem status has changed. */
 
             /* Read modem status register. */
-            ASM mov dx, nModemStatusRegAddr
-            ASM in al, dx
-            ASM mov btTemp, al
+            btTemp = OD_COM_PORT_READ(nModemStatusRegAddr);
 
             /* We only care about the modem status register if we are */
             /* using RTS/CTS flow control, and the CTS register has  */
@@ -556,10 +564,8 @@ static void INTERRUPT ODComInternalISR()
                   if(nTXChars > 0)
                   {
                      /* Enable transmit interrupt. */
-                     ASM mov dx, nIntEnableRegAddr
-                     ASM in al, dx
-                     ASM or al, THRE
-                     ASM out dx, al
+                     btTemp = OD_COM_PORT_READ(nIntEnableRegAddr);
+                     OD_COM_PORT_WRITE(nIntEnableRegAddr, btTemp | THRE);
                   }
                }
                else
@@ -578,10 +584,8 @@ static void INTERRUPT ODComInternalISR()
             {
                /* If we cannot send more characters, then turn off */
                /* transmit interrupts.                             */
-               ASM mov dx, nIntEnableRegAddr
-               ASM in al, dx
-               ASM and al, 0xfd
-               ASM out dx, al
+               btTemp = OD_COM_PORT_READ(nIntEnableRegAddr);
+               OD_COM_PORT_WRITE(nIntEnableRegAddr, btTemp & 0xfd);
             }
             else
             {
@@ -591,9 +595,7 @@ static void INTERRUPT ODComInternalISR()
                /* register/FIFO truly has room. Some UARTs trigger transmit */
                /* interrupts before the character has been tranmistted,     */
                /* causing transmitted characters to be lost.                */
-               ASM mov dx, nLineStatusRegAddr
-               ASM in al, dx
-               ASM mov btTemp, al
+               btTemp = OD_COM_PORT_READ(nLineStatusRegAddr);
 
                if(btTemp & TXR)
                {
@@ -603,9 +605,7 @@ static void INTERRUPT ODComInternalISR()
                   btTemp = pbtTXQueue[nTXOutIndex++];
 
                   /* Write character to UART data register. */
-                  ASM mov dx, nDataRegAddr
-                  ASM mov al, btTemp
-                  ASM out dx, al
+                  OD_COM_PORT_WRITE(nDataRegAddr, btTemp);
 
                   /* Wrap-around transmit buffer pointer, if needed. */
                   if (nTXOutIndex == nTXQueueSize)
@@ -623,9 +623,7 @@ static void INTERRUPT ODComInternalISR()
             /* Operation: Receive Data. */
 
             /* Get character from receive buffer ASAP. */
-            ASM mov dx, nDataRegAddr
-            ASM in al, dx
-            ASM mov btTemp, al
+            btTemp = OD_COM_PORT_READ(nDataRegAddr);
 
             /* If receive buffer is above high water mark. */
             if(nRXChars >= nRXHighWaterMark)
@@ -635,10 +633,8 @@ static void INTERRUPT ODComInternalISR()
                if(btFlowControl & FLOW_RTSCTS)
                {
                   /* If using RTS/CTS flow control, then lower RTS line. */
-                  ASM mov dx, nModemCtrlRegAddr
-                  ASM in al, dx
-                  ASM and al, NOT_RTS
-                  ASM out dx, al
+                  btTemp = OD_COM_PORT_READ(nModemCtrlRegAddr);
+                  OD_COM_PORT_WRITE(nModemCtrlRegAddr, btTemp & NOT_RTS);
                }
             }
 
@@ -661,22 +657,17 @@ static void INTERRUPT ODComInternalISR()
             /* Operation: Change in line status register. */
 
             /* We just read the register to move on to further operations. */
-            ASM mov dx, nLineStatusRegAddr
-            ASM in al, dx
+            btTemp = OD_COM_PORT_READ(nLineStatusRegAddr);
             break;
       }
    }
 
    /* Send end of interrupt to interrupt controller(s). */
-   ASM mov dx, nI8259EndOfIntRegAddr
-   ASM mov al, 0x20
-   ASM out dx, al
+   OD_COM_PORT_WRITE(nI8259EndOfIntRegAddr, 0x20);
 
    if(nI8259MasterEndOfIntRegAddr != 0)
    {
-      ASM mov dx, nI8259MasterEndOfIntRegAddr
-      ASM mov al, 0x20
-      ASM out dx, al
+      OD_COM_PORT_WRITE(nI8259MasterEndOfIntRegAddr, 0x20);
    }
 }
 #endif /* INCLUDE_UART_COM */
@@ -1260,7 +1251,7 @@ tODResult ODComOpen(tPortHandle hPort)
 {
 #ifdef INCLUDE_UART_COM
    unsigned int uDivisor;
-   unsigned long ulQuotient, ulRemainder;
+   DWORD dwQuotient, dwRemainder;
 #endif /* INCLUDE_UART_COM */
 #if defined(INCLUDE_FOSSIL_COM) || defined(INCLUDE_UART_COM)
    BYTE btTemp;
@@ -1275,11 +1266,6 @@ tODResult ODComOpen(tPortHandle hPort)
 
    /* Ensure that port is not already open. */
    VERIFY_CALL(!pPortInfo->bIsOpen);
-
-#ifdef ODPLAT_DOS32
-   if(pPortInfo->Method == kComMethodUART)
-      return(kODRCUnsupported);
-#endif
 
    /* The following code is used to handle FOSSIL-based serial I/O open */
    /* operations.                                                       */
@@ -1493,18 +1479,12 @@ no_fossil:
       }
 
       /* Save original state of UART IER register. */
-      ASM mov dx, nIntEnableRegAddr
-      ASM in al, dx
-      ASM mov btOldIntEnableReg, al
+      btOldIntEnableReg = OD_COM_PORT_READ(nIntEnableRegAddr);
 
       /* Test that a UART is indeed installed at this port address. */
-      ASM mov dx, nIntEnableRegAddr
-      ASM mov al, 0
-      ASM out dx, al
+      OD_COM_PORT_WRITE(nIntEnableRegAddr, 0);
 
-      ASM mov dx, nIntEnableRegAddr
-      ASM in al, dx
-      ASM mov btTemp, al
+      btTemp = OD_COM_PORT_READ(nIntEnableRegAddr);
 
       if (btTemp != 0)
       {
@@ -1515,9 +1495,7 @@ no_fossil:
       if(btFlowControl & FLOW_RTSCTS)
       {
          /* Read modem status register. */
-         ASM mov dx, nModemStatusRegAddr
-         ASM in al, dx
-         ASM mov btTemp, al
+         btTemp = OD_COM_PORT_READ(nModemStatusRegAddr);
 
          /* Enable transmission only if CTS is high. */
          bStopTrans = !(btTemp & CTS);
@@ -1525,20 +1503,17 @@ no_fossil:
 
       /* Save original PIC interrupt settings, and temporarily disable */
       /* interrupts on this IRQ line while we perform initialization.  */
-      ASM cli
+      OD_COM_INTERRUPTS_DISABLE();
 
-      ASM mov dx, nI8259MaskRegAddr
-      ASM in al, dx
-      ASM mov btI8259Mask, al
-      ASM or  al, btI8259Bit
-      ASM out dx, al
+      btI8259Mask = OD_COM_PORT_READ(nI8259MaskRegAddr);
+      OD_COM_PORT_WRITE(nI8259MaskRegAddr, btI8259Mask | btI8259Bit);
 
       /* Initialize transmit and recieve buffers. */
       ODComInternalResetTX();
       ODComInternalResetRX();
 
       /* Re-enable interrupts. */
-      ASM sti
+      OD_COM_INTERRUPTS_ENABLE();
 
       /* Save original interrupt vector. */
       pfOldISR = ODComGetVect(btIntVector);
@@ -1553,22 +1528,16 @@ no_fossil:
       /* Set line control register to 8 data bits, no parity bits, 1 stop */
       /* bit. */
       btTemp = pPortInfo->btWordFormat;
-      ASM mov dx, nLineCtrlRegAddr
-      ASM mov al, btTemp
-      ASM out dx, al
+      OD_COM_PORT_WRITE(nLineCtrlRegAddr, btTemp);
 
       /* Save original modem control register. */
-      ASM cli
+      OD_COM_INTERRUPTS_DISABLE();
 
-      ASM mov dx, nModemCtrlRegAddr
-      ASM in al, dx
-      ASM mov btOldModemCtrlReg, al
+      btOldModemCtrlReg = OD_COM_PORT_READ(nModemCtrlRegAddr);
 
       /* Keep current DTR setting, and activate RTS. */
       btTemp = (btOldModemCtrlReg & DTR) | (OUT2 + RTS);
-      ASM mov dx, nModemCtrlRegAddr
-      ASM mov al, btTemp
-      ASM out dx, al
+      OD_COM_PORT_WRITE(nModemCtrlRegAddr, btTemp);
 
       /* Enable use of 16550A FIFOs, if available. */
       if(pPortInfo->btFIFOSetting & FIFO_ENABLE)
@@ -1577,82 +1546,65 @@ no_fossil:
          btBaseFIFOCtrl = pPortInfo->btFIFOSetting;
 
          /* Attempt to enable use of FIFO buffers. */
-         ASM mov al, btBaseFIFOCtrl
-         ASM mov dx, nIntIDRegAddr
-         ASM out dx, al
+         OD_COM_PORT_WRITE(nIntIDRegAddr, btBaseFIFOCtrl);
 
          /* Check whether a 16550A UART is actually present by reading */
          /* state of FIFO buffer. */
-         ASM mov dx, nIntIDRegAddr
-         ASM in al, dx
-         ASM mov btTemp, al
+         btTemp = OD_COM_PORT_READ(nIntIDRegAddr);
 
          bUsingFIFO = btTemp & 0xc0;
       }
 
-      ASM sti
+      OD_COM_INTERRUPTS_ENABLE();
 
       /* Enable receive and modem status interrupts on the UART. */
-      ASM mov dx, nIntEnableRegAddr
-      ASM mov al, DR + MS
-      ASM out dx, al
+      OD_COM_PORT_WRITE(nIntEnableRegAddr, DR | MS);
 
-      ASM cli
+      OD_COM_INTERRUPTS_DISABLE();
 
-      ASM mov dx, nI8259MaskRegAddr
-      ASM in al, dx
-      ASM mov ah, btI8259Bit
-      ASM not ah
-      ASM and al, ah
-      ASM out dx, al
+      btTemp = OD_COM_PORT_READ(nI8259MaskRegAddr);
+      OD_COM_PORT_WRITE(nI8259MaskRegAddr, btTemp & ~btI8259Bit);
 
-      ASM sti
+      OD_COM_INTERRUPTS_ENABLE();
 
       /* Set baud rate, if possible. */
 
       /* Calculate baud rate divisor. */
       if(pPortInfo->lSpeed != SPEED_UNSPECIFIED)
       {
-         ODDWordDivide(&ulQuotient, &ulRemainder, 115200UL, pPortInfo->lSpeed);
+         ODDWordDivide(&dwQuotient, &dwRemainder, 115200UL,
+            pPortInfo->lSpeed);
 
          /* If division results in a remainder, then this is an invalid     */
          /* baud rate. We only change the UART baud rate if we have a valid */
          /* rate to set it to. Otherwise, we cross our fingers and proceed  */
          /* with the currently set UART baud rate.                          */
-         if(ulRemainder == 0L)
+         if(dwRemainder == 0L)
          {
-            uDivisor = (unsigned int)ulQuotient;
+            uDivisor = (unsigned int)dwQuotient;
 
             /* Disable interrupts. */
-            ASM cli
+            OD_COM_INTERRUPTS_DISABLE();
 
             /* Set baud rate divisor latch. */
             /* The data register now becomes the lower byte of the baud rate */
             /* divisor, and the interrupt enable register becomes the upper  */
             /* byte of the divisor.                                          */
-            ASM mov dx, nLineCtrlRegAddr
-            ASM in al, dx
-            ASM or al, DLATCH
-            ASM out dx, al
+            btTemp = OD_COM_PORT_READ(nLineCtrlRegAddr);
+            OD_COM_PORT_WRITE(nLineCtrlRegAddr, btTemp | DLATCH);
 
             /* Write lower byte of baud rate divisor. */
-            ASM mov dx, nDataRegAddr
-            ASM mov ax, uDivisor
-            ASM out dx, al
+            OD_COM_PORT_WRITE(nDataRegAddr, uDivisor & 0xff);
 
             /* Write upper byte of baud rate divisor. */
-            ASM mov dx, nIntEnableRegAddr
-            ASM mov al, ah
-            ASM out dx, al
+            OD_COM_PORT_WRITE(nIntEnableRegAddr, uDivisor >> 8);
 
             /* Reset baud rate divisor latch. */
-            ASM mov dx, nLineCtrlRegAddr
-            ASM in al, dx
-            ASM and al, NOT_DL
-            ASM out dx, al
+            btTemp = OD_COM_PORT_READ(nLineCtrlRegAddr);
+            OD_COM_PORT_WRITE(nLineCtrlRegAddr, btTemp & NOT_DL);
 
             /* Re-enable interrupts. */
-            ASM sti
+            OD_COM_INTERRUPTS_ENABLE();
          }
       }
 
@@ -2012,30 +1964,22 @@ tODResult ODComClose(tPortHandle hPort)
 #ifdef INCLUDE_UART_COM
       case kComMethodUART:
          /* Reset UART registers to their original values. */
-         ASM mov dx, nModemCtrlRegAddr
-         ASM mov al, btOldModemCtrlReg
-         ASM out dx, al
-         ASM mov dx, nIntEnableRegAddr
-         ASM mov al, btOldIntEnableReg
-         ASM out dx, al
+         OD_COM_PORT_WRITE(nModemCtrlRegAddr, btOldModemCtrlReg);
+         OD_COM_PORT_WRITE(nIntEnableRegAddr, btOldIntEnableReg);
 
          /* Disable interrupts. */
-         ASM cli
+         OD_COM_INTERRUPTS_DISABLE();
 
          /* Reset this line's interrupt enable status on the PIC to its */
          /* original state.                                             */
-         ASM mov dx, nI8259MaskRegAddr
-         ASM in al, dx
-         ASM mov btTemp, al
+         btTemp = OD_COM_PORT_READ(nI8259MaskRegAddr);
 
          btTemp = (btTemp  & ~btI8259Bit) | (btI8259Mask &  btI8259Bit);
 
-         ASM mov dx, nI8259MaskRegAddr
-         ASM mov al, btTemp
-         ASM out dx, al
+         OD_COM_PORT_WRITE(nI8259MaskRegAddr, btTemp);
 
          /* Re-enable interrupts. */
-         ASM sti
+         OD_COM_INTERRUPTS_ENABLE();
 
          /* Reset vector to original interrupt handler. */
 #ifdef _MSC_VER
@@ -2143,11 +2087,7 @@ tODResult ODComCarrier(tPortHandle hPort, BOOL *pbIsCarrier)
 #ifdef INCLUDE_UART_COM
       case kComMethodUART:
       {
-         BYTE btMSR = 0;
-
-         ASM mov dx, nModemStatusRegAddr
-         ASM in al, dx
-         ASM mov btMSR, al
+         BYTE btMSR = OD_COM_PORT_READ(nModemStatusRegAddr);
 
          *pbIsCarrier = btMSR & RLSD;
          break;
@@ -2304,25 +2244,17 @@ set_dtr:
       case kComMethodUART:
          if(bHigh)
          {
-            ASM cli
-
-            ASM mov dx, nModemCtrlRegAddr
-            ASM in al, dx
-            ASM or al, DTR
-            ASM out dx, al
-
-            ASM sti
+            OD_COM_INTERRUPTS_DISABLE();
+            OD_COM_PORT_WRITE(nModemCtrlRegAddr,
+               OD_COM_PORT_READ(nModemCtrlRegAddr) | DTR);
+            OD_COM_INTERRUPTS_ENABLE();
          }
          else
          {
-            ASM cli
-
-            ASM mov dx, nModemCtrlRegAddr
-            ASM in al, dx
-            ASM and al, NOT_DTR
-            ASM out dx, al
-
-            ASM sti
+            OD_COM_INTERRUPTS_DISABLE();
+            OD_COM_PORT_WRITE(nModemCtrlRegAddr,
+               OD_COM_PORT_READ(nModemCtrlRegAddr) & NOT_DTR);
+            OD_COM_INTERRUPTS_ENABLE();
          }
          break;
 #endif /* INCLUDE_UART_COM */
@@ -2862,7 +2794,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
          }
 
          /* Disable interrupts. */
-         ASM cli
+         OD_COM_INTERRUPTS_DISABLE();
 
          /* Get next character from receive queue. */
          *pbtNext = pbtRXQueue[nRXOutIndex++];
@@ -2877,7 +2809,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
          nRXChars--;
 
          /* Re-enable interrupts. */
-         ASM sti
+         OD_COM_INTERRUPTS_ENABLE();
 
          /* If receive buffer is below low water mark. */
          if(nRXChars <= nRXLowWaterMark)
@@ -2887,10 +2819,8 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
             if(btFlowControl & FLOW_RTSCTS)
             {
                /* If using RTS/CTS flow control, then raise RTS line. */
-               ASM mov dx, nModemCtrlRegAddr
-               ASM in al, dx
-               ASM or al, RTS
-               ASM out dx, al
+               OD_COM_PORT_WRITE(nModemCtrlRegAddr,
+                  OD_COM_PORT_READ(nModemCtrlRegAddr) | RTS);
             }
          }
 
@@ -3240,7 +3170,7 @@ keep_going:
          }
 
          /* Disable interrupts. */
-         ASM cli
+         OD_COM_INTERRUPTS_DISABLE();
 
          /* Place the character in the queue. */
          pbtTXQueue[nTXInIndex++] = btToSend;
@@ -3255,12 +3185,10 @@ keep_going:
          nTXChars++;
 
          /* Enable transmit interrupt on the UART. */
-         ASM mov dx, nIntEnableRegAddr
-         ASM in al, dx
-         ASM or al, THRE
-         ASM out dx, al
+         OD_COM_PORT_WRITE(nIntEnableRegAddr,
+            OD_COM_PORT_READ(nIntEnableRegAddr) | THRE);
 
-         ASM sti
+         OD_COM_INTERRUPTS_ENABLE();
 
          break;
 #endif /* INCLUDE_UART_COM */
@@ -3470,7 +3398,7 @@ tODResult ODComGetBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize,
          char *pbtSource;
 
          /* Disable interrupts. */
-         ASM cli
+         OD_COM_INTERRUPTS_DISABLE();
 
          /* Number of bytes to transfer is minimum of buffer size, and */
          /* number of bytes in receive queue.                          */
@@ -3525,7 +3453,7 @@ tODResult ODComGetBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize,
          *pnBytesRead = nTransferSize;
 
          /* Re-enable interrupts. */
-         ASM sti
+         OD_COM_INTERRUPTS_ENABLE();
 
          break;
       }
@@ -3749,7 +3677,7 @@ try_again:
          for(;;)
          {
             /* Disable interrupts. */
-            ASM cli
+            OD_COM_INTERRUPTS_DISABLE();
 
             /* Try to transfer all of buffer if possible. */
             nTransferSize = nSize;
@@ -3813,13 +3741,11 @@ try_again:
             nTXChars += nTransferSize;
 
             /* Enable transmit interrupt on the UART. */
-            ASM mov dx, nIntEnableRegAddr
-            ASM in al, dx
-            ASM or al, THRE
-            ASM out dx, al
+            OD_COM_PORT_WRITE(nIntEnableRegAddr,
+               OD_COM_PORT_READ(nIntEnableRegAddr) | THRE);
 
             /* Re-enable interrupts. */
-            ASM sti
+            OD_COM_INTERRUPTS_ENABLE();
 
             /* Adjust count of characters left to transfer down by number of */
             /* characters transferred.                                       */

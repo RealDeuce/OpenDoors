@@ -992,6 +992,9 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 
 /* Structure for directories entries returned by DOS. */
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#ifdef ODPLAT_DOS32
+#pragma pack( __push, 1 )
+#endif
 typedef struct
 {
    BYTE abtReserved[21];
@@ -1001,6 +1004,10 @@ typedef struct
    DWORD dwFileSize;
    char szFileName[13];
 } tDOSDirEntry;
+#ifdef ODPLAT_DOS32
+#pragma pack( __pop )
+typedef char tODDOSDirEntrySizeCheck[(sizeof(tDOSDirEntry) == 43) ? 1 : -1];
+#endif
 #endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 

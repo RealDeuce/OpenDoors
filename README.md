@@ -145,9 +145,8 @@ LX executables with the extender embedded, add
 This produces `ODOOR32R.lib` for Open Watcom's `-3r` register convention and
 `ODOOR32S.lib` for its `-3s` stack convention. The DOS32 examples use `-3r`.
 CI builds and runs both library conventions with the native DOS/4GW and
-DOS/32A linker systems, and exercises the FOSSIL serial path through a DPMI
-conventional-memory buffer. Direct UART access is not supported on the
-flat-model target.
+DOS/32A linker systems. It exercises both protected-mode direct UART access
+and the FOSSIL serial path through a DPMI conventional-memory buffer.
 
 ## Legacy builds
 

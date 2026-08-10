@@ -6,6 +6,7 @@ objs-*
 /build/
 /site/
 /tools/__pycache__/
+/tests/acceptance/__pycache__/
 
 # Generated binaries and intermediate files
 *.a

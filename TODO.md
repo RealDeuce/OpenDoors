@@ -1,5 +1,14 @@
 # OpenDoors TODO
 
+## Defects found during DOS32 serial acceptance testing
+
+- [x] Give the DOS find-first/find-next transfer area its required packed
+  layout on DOS32. Open Watcom's normal flat-model alignment inserted two
+  bytes before the file-size field, so the runtime interpreted the first two
+  filename characters as part of the size and returned a filename beginning
+  at its third character. The private structure now has an explicit 43-byte
+  DOS layout and a compile-time size check.
+
 ## Defects found during Windows acceptance testing
 
 - [x] Replace forced Windows thread termination and suspension with

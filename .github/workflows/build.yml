@@ -596,6 +596,7 @@ jobs:
           test -s build/dos/odtest.exe
           test -s build/dos/odpers.exe
           test -s build/dos/odapi.exe
+          test -s build/dos/odserial.exe
           test "$(od -An -tx1 -N2 build/dos/dos_link_smoke.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/ex_chat.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/ex_diag.exe | tr -d ' ')" = '4d5a'
@@ -604,10 +605,12 @@ jobs:
           test "$(od -An -tx1 -N2 build/dos/odtest.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/odpers.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/odapi.exe | tr -d ' ')" = '4d5a'
+          test "$(od -An -tx1 -N2 build/dos/odserial.exe | tr -d ' ')" = '4d5a'
           file build/dos/ODoorl.lib build/dos/dos_link_smoke.exe \
             build/dos/ex_chat.exe build/dos/ex_diag.exe \
             build/dos/ex_hello.exe build/dos/ex_music.exe \
-            build/dos/odtest.exe build/dos/odpers.exe build/dos/odapi.exe
+            build/dos/odtest.exe build/dos/odpers.exe build/dos/odapi.exe \
+            build/dos/odserial.exe
 
       - name: Install DOSBox runtime
         run: |
@@ -643,6 +646,14 @@ jobs:
           fi
           test -s build/dos/APIPASS.OK
 
+      - name: Run DOS serial acceptance test
+        env:
+          SDL_AUDIODRIVER: dummy
+        run: |
+          timeout --signal=TERM --kill-after=5s 90s \
+            xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
+              "$(command -v dosbox)" "$PWD/build/dos/odserial.exe"
+
       - name: Upload OpenDoors DOS outputs
         if: always()
         uses: actions/upload-artifact@v7
@@ -654,12 +665,15 @@ jobs:
             build/dos/odtest.exe
             build/dos/odpers.exe
             build/dos/odapi.exe
+            build/dos/odserial.exe
             build/dos/DOSPASS.OK
             build/dos/DOSFAIL.TXT
             build/dos/PERSPASS.OK
             build/dos/PERSFAIL.TXT
             build/dos/APIPASS.OK
             build/dos/dosbox.log
+            build/dos/ODFAIL.TXT
+            build/dos/dos-serial-odserial.log
 
   dos32:
     name: DOS Open Watcom 32-bit
@@ -693,6 +707,36 @@ jobs:
         with:
           path: ~/watcom
           key: open-watcom-${{ runner.os }}-${{ runner.arch }}-2.0-2026-08-01
+
+      - name: Restore X00 test-driver cache
+        id: x00-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/x00/x00150.zip
+          key: x00-1.50-4577e1ad1d89a652
+
+      - name: Download X00 test driver
+        if: steps.x00-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/x00"
+          curl --fail --location --retry 3 \
+            --output "$HOME/x00/x00150.zip" \
+            https://raw.githubusercontent.com/deadbeatz/mystic_a45/4df1f1fef349e2b192f6dbe2b29717bcd6742314/dosemu/drive_c/x00/x00150.zip
+
+      - name: Verify X00 test driver
+        run: |
+          echo '4577e1ad1d89a65209ca3b2be9522191c4c25119c9de4938adb2dd4f5a819eab  '"$HOME/x00/x00150.zip" | sha256sum --check
+          unzip -t "$HOME/x00/x00150.zip"
+
+      - name: Save X00 test-driver cache
+        if: >-
+          steps.x00-cache.outputs.cache-hit != 'true' &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache/save@v6
+        with:
+          path: ~/x00/x00150.zip
+          key: x00-1.50-4577e1ad1d89a652
 
       - name: Configure Open Watcom environment
         run: |
@@ -732,6 +776,10 @@ jobs:
           test -s build/dos32/odapir.exe
           test -s build/dos32/odapis.exe
           test -s build/dos32/od32foss.exe
+          test -s build/dos32/od32uar.exe
+          test -s build/dos32/od32uas.exe
+          test -s build/dos32/od32for.exe
+          test -s build/dos32/od32fos.exe
           test -s build/dos32/FOSSTSR.com
           test -s build/dos32/ex_chat.exe
           test -s build/dos32/ex_diag.exe
@@ -798,6 +846,23 @@ jobs:
           require_marker APIRPASS.OK
           require_marker APISPASS.OK
 
+      - name: Run DOS/4GW serial acceptance tests
+        env:
+          SDL_AUDIODRIVER: dummy
+        run: |
+          unzip -p "$HOME/x00/x00150.zip" X00.SYS > build/dos32/X00.EXE
+          for door in od32uar.exe od32uas.exe; do
+            timeout --signal=TERM --kill-after=5s 90s \
+              xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
+                "$(command -v dosbox)" "$PWD/build/dos32/$door"
+          done
+          for door in od32for.exe od32fos.exe; do
+            timeout --signal=TERM --kill-after=5s 90s \
+              xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
+                --pre-command 'x00.exe E' \
+                "$(command -v dosbox)" "$PWD/build/dos32/$door"
+          done
+
       - name: Configure native DOS/32A build
         env:
           CC: wcl386
@@ -821,6 +886,10 @@ jobs:
           test -s build/dos32a/ODOOR32S.lib
           test -s build/dos32a/FOSSTSR.com
           test -s build/dos32a/od32foss.exe
+          test -s build/dos32a/od32uar.exe
+          test -s build/dos32a/od32uas.exe
+          test -s build/dos32a/od32for.exe
+          test -s build/dos32a/od32fos.exe
           test -s build/dos32a/od32test.exe
           test -s build/dos32a/od32tsts.exe
           test -s build/dos32a/OD32CHLD.exe
@@ -892,6 +961,27 @@ jobs:
             \( -iname 'od32test.exe' -o -iname 'ex_*.exe' \) \
             -exec grep -aFl 'DOS/32A' {} \; | wc -l)
           test "$embedded_count" -eq 5
+
+      - name: Run DOS/32A serial acceptance tests
+        env:
+          SDL_AUDIODRIVER: dummy
+        run: |
+          unzip -p "$HOME/x00/x00150.zip" X00.SYS > build/dos32a/X00.EXE
+          for door in od32uar.exe od32uas.exe; do
+            timeout --signal=TERM --kill-after=5s 90s \
+              xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
+                "$(command -v dosbox)" "$PWD/build/dos32a/$door"
+          done
+          for door in od32for.exe od32fos.exe; do
+            timeout --signal=TERM --kill-after=5s 90s \
+              xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
+                --pre-command 'x00.exe E' \
+                "$(command -v dosbox)" "$PWD/build/dos32a/$door"
+          done
+
+      - name: Remove third-party X00 test driver
+        if: always()
+        run: rm -f build/dos32/X00.EXE build/dos32a/X00.EXE
 
       - name: Upload OpenDoors DOS32 outputs
         if: always()

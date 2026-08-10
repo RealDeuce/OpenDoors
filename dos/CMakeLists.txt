@@ -210,6 +210,19 @@ target_compile_definitions(dos_acceptance_surface PRIVATE
     OPENDOORS_HAVE_VSNPRINTF=1)
 target_link_libraries(dos_acceptance_surface PRIVATE opendoors_dos)
 
+add_executable(dos_acceptance_serial
+    "${OPENDOORS_ROOT}/tests/acceptance/socket_door.c")
+set_target_properties(dos_acceptance_serial PROPERTIES OUTPUT_NAME odserial)
+target_include_directories(dos_acceptance_serial PRIVATE
+    "${OPENDOORS_ROOT}/tests/acceptance")
+target_compile_options(dos_acceptance_serial PRIVATE -ml -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(dos_acceptance_serial PRIVATE -we)
+endif()
+target_compile_definitions(dos_acceptance_serial PRIVATE
+    OPENDOORS_HAVE_VSNPRINTF=1)
+target_link_libraries(dos_acceptance_serial PRIVATE opendoors_dos)
+
 else()
 
 function(opendoors_configure_dos32_target target convention)
@@ -380,5 +393,39 @@ endif()
 target_compile_definitions(dos32_acceptance_surface_s PRIVATE
     OPENDOORS_HAVE_VSNPRINTF=1)
 target_link_libraries(dos32_acceptance_surface_s PRIVATE opendoors_dos32s)
+
+foreach(convention IN ITEMS r s)
+    if(convention STREQUAL "r")
+        set(serial_library opendoors_dos32r)
+        set(serial_switch 3r)
+    else()
+        set(serial_library opendoors_dos32s)
+        set(serial_switch 3s)
+    endif()
+
+    add_executable(dos32_acceptance_uart_${convention}
+        "${OPENDOORS_ROOT}/tests/acceptance/socket_door.c")
+    set_target_properties(dos32_acceptance_uart_${convention} PROPERTIES
+        OUTPUT_NAME "od32ua${convention}")
+    target_include_directories(dos32_acceptance_uart_${convention} PRIVATE
+        "${OPENDOORS_ROOT}/tests/acceptance")
+    opendoors_configure_dos32_target(
+        dos32_acceptance_uart_${convention} ${serial_switch})
+    target_link_libraries(dos32_acceptance_uart_${convention} PRIVATE
+        ${serial_library})
+
+    add_executable(dos32_acceptance_fossil_${convention}
+        "${OPENDOORS_ROOT}/tests/acceptance/socket_door.c")
+    set_target_properties(dos32_acceptance_fossil_${convention} PROPERTIES
+        OUTPUT_NAME "od32fo${convention}")
+    target_include_directories(dos32_acceptance_fossil_${convention} PRIVATE
+        "${OPENDOORS_ROOT}/tests/acceptance")
+    opendoors_configure_dos32_target(
+        dos32_acceptance_fossil_${convention} ${serial_switch})
+    target_compile_definitions(dos32_acceptance_fossil_${convention} PRIVATE
+        OD_ACCEPTANCE_DOS_FOSSIL=1)
+    target_link_libraries(dos32_acceptance_fossil_${convention} PRIVATE
+        ${serial_library})
+endforeach()
 
 endif()

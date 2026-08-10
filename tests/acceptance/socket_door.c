@@ -1,10 +1,11 @@
 #include <stdlib.h>
 
+#define OD_ACCEPTANCE_NO_LOCAL_CONFIG
 #include "test_support.h"
 
 static int before_chat_calls;
 
-static void EndChat(void)
+static void ODCALL EndChat(void)
 {
    ++before_chat_calls;
    od_control.od_chat_active = FALSE;
@@ -18,8 +19,14 @@ int main(int argc, char **argv)
    char edit_input[4];
    char edit_format[2];
    char menu_choice;
+#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
    DWORD_PTR handle;
+#endif
 
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   (void)argc;
+   (void)argv;
+#else
    OD_TEST_CHECK(argc == 2);
 #ifdef ODPLAT_WIN32
    handle = (DWORD_PTR)_strtoui64(argv[1], NULL, 10);
@@ -27,20 +34,42 @@ int main(int argc, char **argv)
    handle = (DWORD_PTR)strtoul(argv[1], NULL, 10);
 #endif
    OD_TEST_CHECK(handle != 0);
+#endif
    memset(&od_control, 0, sizeof(od_control));
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   OD_TEST_CHECK(od_set_port(0));
+#endif
    od_control.baud = 38400;
    od_control.od_connect_speed = 38400;
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#ifndef OD_ACCEPTANCE_DOS_FOSSIL
+   od_control.od_no_fossil = TRUE;
+#endif
+   od_control.od_com_flow_control = COM_NO_FLOW;
+#else
    od_control.od_use_socket = TRUE;
    od_control.od_open_handle = handle;
+#endif
    od_control.od_disable = DIS_INFOFILE | DIS_NAME_PROMPT | DIS_TIMEOUT |
       DIS_LOCAL_INPUT | DIS_SYSOP_KEYS;
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   od_control.od_disable |= DIS_CARRIERDETECT;
+#endif
    od_control.od_silent_mode = TRUE;
    od_control.od_nocopyright = TRUE;
    od_control.od_noexit = TRUE;
    od_control.user_ansi = TRUE;
    od_init();
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#ifdef OD_ACCEPTANCE_DOS_FOSSIL
+   OD_TEST_CHECK(od_control.od_com_method == COM_FOSSIL);
+#else
+   OD_TEST_CHECK(od_control.od_com_method == COM_INTERNAL);
+#endif
+#else
    OD_TEST_CHECK(od_control.od_com_method == COM_SOCKET);
    OD_TEST_CHECK(od_carrier());
+#endif
 
    od_disp("READY", 5, FALSE);
    OD_TEST_CHECK(od_get_input(&event, 5000, GETIN_NORMAL));
@@ -58,7 +87,7 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(strcmp(input, "socket") == 0);
 
    od_disp("KEY", 3, FALSE);
-   od_sleep(50);
+   od_sleep(250);
    od_kernel();
    OD_TEST_CHECK(od_key_pending());
    OD_TEST_CHECK(od_get_key(FALSE) == 'K');
@@ -68,7 +97,7 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(od_get_key(TRUE) == 'W');
 
    od_disp("CLEAR", 5, FALSE);
-   od_sleep(50);
+   od_sleep(250);
    od_clear_keybuffer();
    OD_TEST_CHECK(!od_key_pending());
    OD_TEST_CHECK(od_get_key(FALSE) == 0);
@@ -106,8 +135,14 @@ int main(int argc, char **argv)
    od_printf("RESULT %s %d", input, 7);
    od_disp_emu("\x1b[31mEMU\x1b[0m", TRUE);
    od_disp("DONE", 4, FALSE);
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   OD_TEST_CHECK(od_get_key(TRUE) == 'X');
+#else
    fprintf(stderr, "socket: shutting down\n");
+#endif
    od_exit(0, FALSE);
+#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
    fprintf(stderr, "socket: shut down\n");
+#endif
    return(0);
 }

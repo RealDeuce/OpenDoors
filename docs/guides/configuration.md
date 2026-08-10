@@ -91,7 +91,7 @@ LockedBPS -  BPS rate at which door should communicate with the modem.  Valid ra
 
 FossilPort - Specifies the FOSSIL driver port number that the modem is connected to. FOSSIL port 0 usually corresponds to COM1, port 1 to COM2, and so on. This option is not normally needed, as the information is usually available from the door information file.
 
-PortAddress - Specifies the hexadecimal base I/O address of a serial port when using direct UART communications under DOS. OpenDoors skips characters preceding the first hexadecimal digit and reads the value which follows as a 16-bit hexadecimal number. If the option contains no hexadecimal digits, the current port-address setting is left unchanged. This option is normally required only for ports above COM4 and has no effect when a FOSSIL driver is used.
+PortAddress - Specifies the hexadecimal base I/O address of a serial port when using direct UART communications under DOS or DOS32. OpenDoors skips characters preceding the first hexadecimal digit and reads the value which follows as a 16-bit hexadecimal number. If the option contains no hexadecimal digits, the current port-address setting is left unchanged. This option is normally required only for ports above COM4 and has no effect when a FOSSIL driver is used.
 
 CustomFileName - Specifies the filename used by the custom door information file format. Described in more detail below.
 

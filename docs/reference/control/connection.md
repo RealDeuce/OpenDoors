@@ -308,14 +308,13 @@ the field after initialization has no effect on the open object.
 BOOL od_control.od_no_fossil;
 ```
 
-When true on 16-bit DOS, this initialization setting prevents automatic use
+When true on DOS or DOS32, this initialization setting prevents automatic use
 of an installed FOSSIL driver and requests the internal UART implementation.
 It defaults to [`FALSE`](../constants/general.md#false) and can be enabled by the `-NOFOSSIL` option or the
 configuration file's `NoFossil` keyword.
 
-The DOS32 platform provides the FOSSIL path but not the legacy direct-UART
-path. Other platforms do not select between these DOS implementations. The
-field is read only while a numbered communications port is opened.
+Other platforms do not select between these DOS implementations. The field is
+read only while a numbered communications port is opened.
 
 ### `od_com_address`
 

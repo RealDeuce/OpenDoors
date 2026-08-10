@@ -71,8 +71,8 @@
 #define OD_HEADLESS
 #endif /* ODPLAT_DOS */
 
-/* DOS specific definitions. */
-#ifdef ODPLAT_DOS
+/* DOS-family compiler definitions. */
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 
 /* Keyword to flag ISR functions. */
 #define INTERRUPT interrupt
@@ -83,8 +83,10 @@
 #else
 #define ASM asm
 #endif
+#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
 
 /* Memory model information. */
+#ifdef ODPLAT_DOS
 #ifdef __TINY__
 #define SMALLDATA
 #define SMALLCODE

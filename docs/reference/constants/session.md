@@ -123,10 +123,10 @@ Selecting the constant does not load one.
 
 ### `COM_INTERNAL`
 
-Use OpenDoors' direct internal UART implementation. This is a legacy 16-bit DOS
-path requiring correct port address, IRQ, buffer, FIFO, and flow-control
-settings. It is not supported by the DOS32 platform and is not a synonym for
-the operating system's normal serial API.
+Use OpenDoors' direct internal UART implementation. This DOS and DOS32 path
+requires correct port address, IRQ, buffer, FIFO, and flow-control settings.
+On DOS32, OpenDoors installs a protected-mode interrupt handler through the DOS
+extender. This is not a synonym for an operating system serial API.
 
 ### `COM_WIN32`
 

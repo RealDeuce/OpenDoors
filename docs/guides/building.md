@@ -121,12 +121,14 @@ DOS/4GW LE and native DOS/32A LX programs. Release example executables use the
 native DOS/32A link system and do not require a separate extender file. This
 product uses DOS/32 Advanced DOS Extender technology.
 
-The 32-bit DOS communication implementation supports
-[`COM_FOSSIL`](../reference/constants/session.md#communication-methods).
-Block calls use DPMI conventional memory as a transfer buffer and fall back to
-byte-at-a-time FOSSIL calls when that buffer is unavailable.
-[`COM_INTERNAL`](../reference/constants/session.md#communication-methods), the
-direct-UART implementation, is not supported on this target.
+The 32-bit DOS communication implementation supports both
+[`COM_FOSSIL`](../reference/constants/session.md#communication-methods) and
+[`COM_INTERNAL`](../reference/constants/session.md#communication-methods).
+FOSSIL block calls use DPMI conventional memory as a transfer buffer and fall
+back to byte-at-a-time calls when that buffer is unavailable. The internal
+method accesses the UART directly and installs its interrupt handler through
+the DOS extender. CI exercises both paths through DOSBox's TCP-backed COM1;
+the FOSSIL integration tests use X00 1.50.
 
 ## Older build systems
 

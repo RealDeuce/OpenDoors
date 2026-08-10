@@ -12,6 +12,17 @@ static int ODTestCheck(int condition, const char *file, int line,
    if(condition)
       return(1);
    fprintf(stderr, "%s:%d: check failed: %s\n", file, line, expression);
+#ifdef ODPLAT_DOS
+   {
+      FILE *failure = fopen("ODFAIL.TXT", "w");
+      if(failure != NULL)
+      {
+         fprintf(failure, "%s:%d: check failed: %s\n",
+            file, line, expression);
+         fclose(failure);
+      }
+   }
+#endif
    return(0);
 }
 
