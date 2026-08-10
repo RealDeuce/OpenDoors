@@ -34,7 +34,8 @@ static int NoFossilTest(void)
    CHECK("NOFSFAIL.TXT", ODComOpen(port) != kODRCSuccess);
    CHECK("NOFSFAIL.TXT",
       ODComSetPreferredMethod(port, kComMethodUART) == kODRCSuccess);
-   CHECK("NOFSFAIL.TXT", ODComOpen(port) == kODRCUnsupported);
+   CHECK("NOFSFAIL.TXT", ODComOpen(port) == kODRCSuccess);
+   CHECK("NOFSFAIL.TXT", ODComClose(port) == kODRCSuccess);
    CHECK("NOFSFAIL.TXT", ODComFree(port) == kODRCSuccess);
    {
       FILE *sentinel = fopen("NOFSPASS.OK", "w");
