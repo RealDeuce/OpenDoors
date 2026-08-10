@@ -1300,7 +1300,8 @@ tODResult ODComOpen(tPortHandle hPort)
 #ifdef ODPLAT_DOS32
       if(!OD32FossilDetect((BYTE)nPort))
          goto no_fossil;
-#elif defined(__WATCOMC__)
+#else
+# ifdef __WATCOMC__
       Registers.h.ah = 4;
       Registers.x.dx = nPort;
       Registers.x.bx = 0;
@@ -1321,6 +1322,7 @@ tODResult ODComOpen(tPortHandle hPort)
       goto no_fossil;
 
 fossil:
+# endif
 #endif
       pPortInfo->Method = kComMethodFOSSIL;
 
@@ -2274,7 +2276,8 @@ tODResult ODComSetDTR(tPortHandle hPort, BOOL bHigh)
 
 #ifdef ODPLAT_DOS32
          OD32FossilSetDTR((BYTE)nPort, bHigh);
-#elif defined(__WATCOMC__)
+#else
+# ifdef __WATCOMC__
          Registers.h.al = bHigh ? 1 : 0;
          Registers.h.ah = 6;
          Registers.x.dx = nPort;
@@ -2292,6 +2295,7 @@ set_dtr:
          ASM    mov ah, 6
          ASM    mov dx, nPort
          ASM    int 20
+# endif
 #endif
       }
 #endif /* INCLUDE_FOSSIL_COM */
@@ -2403,7 +2407,8 @@ tODResult ODComOutbound(tPortHandle hPort, int *pnOutboundWaiting)
          *pnOutboundWaiting = (OD32FossilStatus((BYTE)nPort) & 0x4000)
             ? 0 : SIZE_NON_ZERO;
          break;
-#elif defined(__WATCOMC__)
+#else
+# ifdef __WATCOMC__
          Registers.h.ah = 3;
          Registers.x.dx = nPort;
          int86(0x14, &Registers, &Registers);
@@ -2422,6 +2427,7 @@ tODResult ODComOutbound(tPortHandle hPort, int *pnOutboundWaiting)
 still_sending:
          *pnOutboundWaiting = SIZE_NON_ZERO;
          break;
+# endif
 #endif
       }
 #endif /* INCLUDE_FOSSIL_COM */
@@ -3180,7 +3186,8 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
             if(pPortInfo->pfIdleCallback != NULL)
                (*pPortInfo->pfIdleCallback)();
          }
-#elif defined(__WATCOMC__)
+#else
+# ifdef __WATCOMC__
          do
          {
             Registers.h.ah = 0x0b;
@@ -3213,6 +3220,7 @@ try_again:
 
          goto try_again;
 keep_going:
+# endif
 #endif
          break;
       }

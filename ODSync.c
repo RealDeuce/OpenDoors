@@ -2,6 +2,8 @@
 
 #define BUILDING_OPENDOORS
 
+#include <stddef.h>
+
 #include "OpenDoor.h"
 #include "ODCore.h"
 #include "ODGen.h"

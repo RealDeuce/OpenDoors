@@ -172,7 +172,8 @@
 #define ODCALL WINAPI
 #define ODVCALL WINAPIV
 #define OD_GLOBAL_CONV WINAPI
-#elif defined(ODPLAT_DOS32)
+#else
+# ifdef ODPLAT_DOS32
 # ifdef __SW_3S
 #  define ODCALL __cdecl
 #  define OD_GLOBAL_CONV __cdecl
@@ -181,10 +182,11 @@
 #  define OD_GLOBAL_CONV __watcall
 # endif
 #define ODVCALL __cdecl
-#else /* !ODPLAT_WIN32 */
+# else /* !ODPLAT_DOS32 */
 #define ODCALL
 #define ODVCALL
 #define OD_GLOBAL_CONV
+# endif /* !ODPLAT_DOS32 */
 #endif /* !ODPLAT_WIN32 */
 
 #ifdef ODPLAT_DOS32
@@ -573,11 +575,13 @@ ODAPIDEF void ODCALL ODMPSEnable(void);
 /* Optional OpenDoors component settings. */
 #ifdef ODPLAT_DOS32
 typedef void ODCALL OD_COMPONENT(void);
-#elif defined(__TURBOC__) && (defined(__MEDIUM__) || defined(__LARGE__) \
-   || defined(__HUGE__))
-typedef void OD_COMPONENT(void);
 #else
+# if defined(__TURBOC__) && (defined(__MEDIUM__) || defined(__LARGE__) \
+    || defined(__HUGE__))
+typedef void OD_COMPONENT(void);
+# else
 typedef void(ODFAR OD_COMPONENT)(void);
+# endif
 #endif
 #define INCLUDE_CONFIG_FILE   (OD_COMPONENT *)ODConfigInit
 #define NO_CONFIG_FILE        NULL
@@ -595,11 +599,13 @@ ODAPIDEF void ODCALL pdef_wildcat(BYTE btOperation);
 /* Personality proc type. */
 #ifdef ODPLAT_DOS32
 typedef void ODCALL OD_PERSONALITY_PROC(BYTE);
-#elif defined(__TURBOC__) && (defined(__MEDIUM__) || defined(__LARGE__) \
-   || defined(__HUGE__))
-typedef void OD_PERSONALITY_PROC(BYTE);
 #else
+# if defined(__TURBOC__) && (defined(__MEDIUM__) || defined(__LARGE__) \
+    || defined(__HUGE__))
+typedef void OD_PERSONALITY_PROC(BYTE);
+# else
 typedef void(ODFAR OD_PERSONALITY_PROC)(BYTE);
+# endif
 #endif
 
 /* Personality identifiers. */
