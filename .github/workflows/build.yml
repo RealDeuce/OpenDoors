@@ -181,31 +181,20 @@ jobs:
         run: |
           cmake --build build/mingw --parallel
           test_status=0
-          procdump_pid=
           if test "${{ matrix.msystem }}" = UCRT64; then
             dump_directory="$(cygpath -w "$PWD/build/ucrt-dumps")"
             "$PWD/build/procdump/procdump64.exe" \
-              -accepteula -ma -e -w opendoors_acceptance_spawn.exe \
-              "$dump_directory" > build/procdump.log 2>&1 &
-            procdump_pid=$!
-            sleep 1
+              -accepteula -ma -i "$dump_directory" \
+              > build/procdump-install.log 2>&1
+            cat build/procdump-install.log
           fi
 
           ctest --test-dir build/mingw --output-on-failure || test_status=$?
 
-          if test -n "$procdump_pid"; then
-            if test "$test_status" -ne 0; then
-              capture_attempt=0
-              while test "$capture_attempt" -lt 10 && \
-                  kill -0 "$procdump_pid" 2>/dev/null && \
-                  ! compgen -G 'build/ucrt-dumps/*.dmp' >/dev/null; do
-                sleep 1
-                capture_attempt=$((capture_attempt + 1))
-              done
-            fi
-            kill "$procdump_pid" 2>/dev/null || true
-            wait "$procdump_pid" 2>/dev/null || true
-            cat build/procdump.log
+          if test "${{ matrix.msystem }}" = UCRT64; then
+            "$PWD/build/procdump/procdump64.exe" -accepteula -u \
+              > build/procdump-uninstall.log 2>&1 || true
+            cat build/procdump-uninstall.log
           fi
           exit "$test_status"
 
@@ -217,7 +206,7 @@ jobs:
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
           if (-not $dump) {
-            Write-Warning 'ProcDump did not produce a dump.'
+            Write-Warning 'The ProcDump post-mortem debugger did not produce a dump.'
             exit 0
           }
 
@@ -249,7 +238,8 @@ jobs:
           if-no-files-found: warn
           path: |
             build/ucrt-dumps/*.dmp
-            build/procdump.log
+            build/procdump-install.log
+            build/procdump-uninstall.log
             build/mingw/tests/acceptance/opendoors_acceptance_spawn.exe
             build/mingw/tests/acceptance/opendoors_acceptance_spawn_child.exe
 
