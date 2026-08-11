@@ -34,3 +34,4 @@ Features/Changes which will break the API and so must go into v7
 	od_status_addkey()
 	od_status_delkey()
 - OD_DISP_EMU() has problems with ANSI music (of course)
+- A general "known" vs "default" shadow of od_control stuff
