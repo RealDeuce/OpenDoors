@@ -120,7 +120,7 @@ class MockDeclarationTests(unittest.TestCase):
                 "#define UT_CUSTOM_MOCK_strncat\n"
                 "#define UT_CUSTOM_MOCK_strncpy\n"
                 "#define UT_CUSTOM_MOCK_time\n")
-        self.assertEqual(explicit_mock_names(case),
+        self.assertEqual(explicit_mock_names(case, ["-D__unix__"]),
                          {"memcpy", "mktime", "printf", "sigemptyset",
                           "sscanf", "vfprintf",
                           "strcat", "strcpy", "strncat", "strncpy",
@@ -133,6 +133,13 @@ class MockDeclarationTests(unittest.TestCase):
                 "stricmp", "strlwr", "strnicmp", "strupr", "toupper"))
         self.assertEqual(explicit_mock_names(case, ["-D__unix__"]),
                          {"toupper"})
+
+    def test_windows_ignores_inactive_posix_mocks_but_keeps_localtime(self):
+        case = ("#define UT_CUSTOM_MOCK_localtime\n"
+                "#define UT_CUSTOM_MOCK_sigemptyset\n"
+                "#define UT_CUSTOM_MOCK_sigprocmask\n")
+        flags = ["-target", "x86_64-pc-windows-msvc"]
+        self.assertEqual(explicit_mock_names(case, flags), {"localtime"})
 
     def test_dos_does_not_force_modern_header_macro_interception(self):
         case = ("#define UT_CUSTOM_MOCK_isspace\n"
@@ -166,6 +173,11 @@ class MockDeclarationTests(unittest.TestCase):
         names = {"stricmp", "strlwr", "strnicmp", "strupr", "toupper"}
         self.assertEqual(late_mock_names(names, ["-D__unix__"]),
                          {"toupper"})
+
+    def test_windows_defers_localtime_but_not_inactive_posix_apis(self):
+        names = {"localtime", "sigemptyset", "sigprocmask"}
+        flags = ["-target", "x86_64-pc-windows-msvc"]
+        self.assertEqual(late_mock_names(names, flags), {"localtime"})
 
     def test_declares_header_macro_mocks_missing_from_the_ast(self):
         self.assertEqual(mock_declarations(

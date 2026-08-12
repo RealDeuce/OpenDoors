@@ -26,7 +26,7 @@ CTYPE_APIS = {
 HEADER_MACRO_APIS = CTYPE_APIS | {
     "fprintf",
     "memchr", "memcmp", "memcpy", "memmove", "memset",
-    "mktime", "printf",
+    "localtime", "mktime", "printf",
     "sigaddset", "sigemptyset", "sigismember", "sigpending", "sigprocmask",
     "snprintf", "sprintf", "sscanf", "strcat", "strcpy", "strdup", "stricmp",
     "strlwr", "strncat", "strncpy", "strnicmp", "strupr",
@@ -34,6 +34,9 @@ HEADER_MACRO_APIS = CTYPE_APIS | {
     "vfprintf", "vsnprintf", "vsprintf",
 }
 ODSTR_COMPATIBILITY_APIS = {"stricmp", "strlwr", "strnicmp", "strupr"}
+POSIX_HEADER_APIS = {
+    "sigaddset", "sigemptyset", "sigismember", "sigpending", "sigprocmask",
+}
 
 HEADER_MOCK_DECLARATIONS = {
     "isalnum": "int utm_isalnum(int);",
@@ -54,6 +57,7 @@ HEADER_MOCK_DECLARATIONS = {
     "memcpy": "void *utm_memcpy(void *, const void *, size_t);",
     "memmove": "void *utm_memmove(void *, const void *, size_t);",
     "memset": "void *utm_memset(void *, int, size_t);",
+    "localtime": "struct tm *utm_localtime(const time_t *);",
     "mktime": "time_t utm_mktime(struct tm *);",
     "printf": "int utm_printf(const char *, ...);",
     "sigaddset": "int utm_sigaddset(sigset_t *, int);",
@@ -114,6 +118,8 @@ def explicit_mock_names(case_text: str,
     result = set(CUSTOM_MOCK.findall(case_text)) & HEADER_MACRO_APIS
     if any(flag.startswith("-D__unix__") for flag in flags):
         result -= ODSTR_COMPATIBILITY_APIS
+    else:
+        result -= POSIX_HEADER_APIS
     return result
 
 
@@ -125,6 +131,8 @@ def late_mock_names(names: set[str], flags: list[str]) -> set[str]:
     result = names & HEADER_MACRO_APIS
     if any(flag.startswith("-D__unix__") for flag in flags):
         result -= ODSTR_COMPATIBILITY_APIS
+    else:
+        result -= POSIX_HEADER_APIS
     return result
 
 
