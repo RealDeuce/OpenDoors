@@ -25,6 +25,49 @@ an issue is not treated as a contract change until it is resolved deliberately.
   when `od_noexit` is enabled, so a later public API can currently enter this
   sequence.
 
+- [ ] Define and enforce a one-session post-exit contract. Every ordinary
+  public API currently calls `od_init()` when `bODInitialized` is false, so an
+  API call made after a returning `od_exit()` implicitly starts another
+  session. The historical `od_noexit` documentation promises only that the
+  host application may continue after shutdown; it does not promise that
+  OpenDoors can be initialized or used again. The recent API reference and
+  `config_reinit_test` added a two-session guarantee which the older lifecycle
+  was not designed to satisfy and which exposes retained and stale per-session
+  state. Resolve this deliberately by rejecting every OpenDoors call after
+  completed teardown, retaining `od_noexit` only to let the host perform
+  non-OpenDoors work, and reconciling the recent documentation and tests with
+  that lifetime rule.
+
+## Kernel dispatch and shutdown
+
+- [ ] Dispatch multithreaded pending work at outermost API entry as well as
+  exit. `ODSyncAPIEntry()` currently acquires the session writer without
+  dispatching. A worker or Windows UI request queued after one API exit is
+  therefore applied only after the next API operation has completed, reversing
+  the observable order of the asynchronous event and that operation. Entry
+  dispatch must run only for the outermost call, retain the API writer across
+  the requested operation, and preserve recursive callback behavior; exit
+  dispatch remains necessary for work queued while the operation runs.
+
+- [ ] Do not resume a single-threaded kernel or its containing API after a
+  returning forced shutdown. Carrier, timeout, inactivity, and local sysop
+  handling call `od_exit()` synchronously from `od_kernel()`. When `od_noexit`
+  is true, `od_exit()` frees the communications object, input queue, and screen
+  state and returns, after which `od_kernel()` can continue draining input or
+  call `ODKrnlTimeUpdate()` with the freed queue, and the outer API can continue
+  as well. This is an internal violation of the rule that no OpenDoors
+  operation may continue after teardown, even when the application made no
+  post-exit API call.
+
+- [ ] Report or prevent input-event loss when the common queue is full.
+  `ODInQueueAddEvent()` returns `kODRCNoMemory` when the ring has no free slot,
+  but `ODKrnlHandleReceivedChar()` ignores that result, silently dropping the
+  local or remote character. A caller waiting for a terminator or complete
+  response can consequently wait indefinitely. Also reconcile capacity: the
+  implementation allocates 128 entries by default and the ring reserves one
+  slot, while the current reference says that zero selects a capacity of 256
+  events.
+
 ## Door-information files
 
 - [ ] Give every binary `EXITINFO.BBS` record an explicitly defined,
@@ -59,6 +102,32 @@ an issue is not treated as a contract change until it is resolved deliberately.
   runtime initialization and cleanup, including the static-runtime builds.
   Windows workers are now created with `_beginthreadex()` and return through
   its runtime-managed thread wrapper.
+
+- [ ] Handle failure to deliver cooperative UI shutdown messages before
+  waiting indefinitely for the target thread. `ODScrnStopWindow()` ignores the
+  result of `PostThreadMessage(WM_QUIT)`, and `ODFrameShutdown()` ignores the
+  results of `PostMessage(WM_OD_SHUTDOWN)` and its fallback
+  `PostThreadMessage(WM_QUIT)`. Each path then performs an infinite thread
+  join. A stale window handle, missing message queue, or failed post can
+  therefore turn a recoverable shutdown-delivery failure into a permanent
+  process hang.
+
+- [ ] Exercise the real Windows control lock under contention. The isolated
+  Windows unit cases mock `WaitForSingleObject()` and manually change the lock
+  predicate, while `windows_chat_failure_test` does not create competing
+  control-lock readers or writers. Add repeated multi-reader wakeup, queued
+  writer preference, entry/exit dispatch, and shutdown contention coverage
+  using the actual Windows event and critical section so missed wakes,
+  starvation, and lifecycle races are observable.
+
+- [ ] Enforce owner-thread API entry in non-asserting Windows builds. Public
+  API entry currently relies on `ASSERT(ODSyncIsOwnerThread())`, but
+  `nAPILevel` and the physical-writer bookkeeping are process-global. A
+  non-owner application thread entering concurrently in a release build can
+  mistake the owner's active call for recursion, skip physical exclusion, and
+  release or reacquire the owner's writer from a blocking path. The documented
+  single-owner requirement should fail deterministically rather than corrupt
+  synchronization state.
 
 ## Resolved during acceptance-suite development
 

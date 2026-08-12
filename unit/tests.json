@@ -1,0 +1,2101 @@
+{
+  "version": 1,
+  "source_native_flags": {
+    "ODCom.c": {
+      "windows": [
+        "-Wno-unknown-warning-option",
+        "-Wno-old-style-declaration"
+      ]
+    }
+  },
+  "tests": [
+    {
+      "source": "ODPlat.c", "function": "ODTimerStart",
+      "case": "unit/cases/ODPlat/ODTimerStart.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "OD32BIOSClock",
+      "case": "unit/cases/ODPlat/OD32BIOSClock.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODProcessExit",
+      "case": "unit/cases/ODPlat/ODProcessExit.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODFileDelete",
+      "case": "unit/cases/ODPlat/ODFileDelete.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODDirChangeCurrent",
+      "case": "unit/cases/ODPlat/ODDirChangeCurrent.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODDirAttributesMatch",
+      "case": "unit/cases/ODPlat/ODDirAttributesMatch.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODDirClose",
+      "case": "unit/cases/ODPlat/ODDirClose.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "DOSToCTime",
+      "case": "unit/cases/ODPlat/DOSToCTime.c",
+      "platforms": ["windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODDirGetCurrent",
+      "case": "unit/cases/ODPlat/ODDirGetCurrent.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODPlatYield",
+      "case": "unit/cases/ODPlat/ODPlatYield.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODThreadSetPriority",
+      "case": "unit/cases/ODPlat/ODThreadSetPriority.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODThreadWaitForExit",
+      "case": "unit/cases/ODPlat/ODThreadWaitForExit.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODThreadSleep",
+      "case": "unit/cases/ODPlat/ODThreadSleep.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "odthread_wrapper",
+      "case": "unit/cases/ODPlat/odthread_wrapper.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODThreadCreate",
+      "case": "unit/cases/ODPlat/ODThreadCreate.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODSemaphoreFree",
+      "case": "unit/cases/ODPlat/ODSemaphoreFree.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODSemaphoreUp",
+      "case": "unit/cases/ODPlat/ODSemaphoreUp.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODSemaphoreAlloc",
+      "case": "unit/cases/ODPlat/ODSemaphoreAlloc.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODSemaphoreDown",
+      "case": "unit/cases/ODPlat/ODSemaphoreDown.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODDirWinMatchesAttributes",
+      "case": "unit/cases/ODPlat/ODDirWinMatchesAttributes.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODDirDOSFindFirst",
+      "case": "unit/cases/ODPlat/ODDirDOSFindFirst.c",
+      "platforms": ["dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODDirDOSFindNext",
+      "case": "unit/cases/ODPlat/ODDirDOSFindNext.c",
+      "platforms": ["dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODDirOpen",
+      "case": "unit/cases/ODPlat/ODDirOpen.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODFileAccessMode",
+      "case": "unit/cases/ODPlat/ODFileAccessMode.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODPlatInit",
+      "case": "unit/cases/ODPlat/ODPlatInit.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODDirRead",
+      "case": "unit/cases/ODPlat/ODDirRead.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "native_flags": ["-Wno-sign-compare"]
+      }]
+    },
+    {
+      "source": "ODPlat.c", "function": "od_sleep",
+      "case": "unit/cases/ODPlat/od_sleep.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {"source":"ODEdit.c","function":"ODEditGetCurrentLineInArea","case":"unit/cases/ODEdit/ODEditGetCurrentLineInArea.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditPastEndOfCurLine","case":"unit/cases/ODEdit/ODEditPastEndOfCurLine.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditRememberBufferSize","case":"unit/cases/ODEdit/ODEditRememberBufferSize.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditBufferGetTotalLines","case":"unit/cases/ODEdit/ODEditBufferGetTotalLines.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditBufferGetCharacter","case":"unit/cases/ODEdit/ODEditBufferGetCharacter.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditIsEOLForMode","case":"unit/cases/ODEdit/ODEditIsEOLForMode.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditGetActualCurPos","case":"unit/cases/ODEdit/ODEditGetActualCurPos.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditBufferGetLineLength","case":"unit/cases/ODEdit/ODEditBufferGetLineLength.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditCursorLeft","case":"unit/cases/ODEdit/ODEditCursorLeft.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditRecommendFullRedraw","case":"unit/cases/ODEdit/ODEditRecommendFullRedraw.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditEstDrawBytes","case":"unit/cases/ODEdit/ODEditEstDrawBytes.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditUpdateCursorPos","case":"unit/cases/ODEdit/ODEditUpdateCursorPos.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditUpdateCursorIfMoved","case":"unit/cases/ODEdit/ODEditUpdateCursorIfMoved.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditTryToGrow","case":"unit/cases/ODEdit/ODEditTryToGrow.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditBufferMakeSpace","case":"unit/cases/ODEdit/ODEditBufferMakeSpace.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditSetBreakSequence","case":"unit/cases/ODEdit/ODEditSetBreakSequence.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditCleanupInstance","case":"unit/cases/ODEdit/ODEditCleanupInstance.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditRememberArea","case":"unit/cases/ODEdit/ODEditRememberArea.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditGotoPreviousLine","case":"unit/cases/ODEdit/ODEditGotoPreviousLine.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditGotoNextLine","case":"unit/cases/ODEdit/ODEditGotoNextLine.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditDeleteCurrentChar","case":"unit/cases/ODEdit/ODEditDeleteCurrentChar.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditDeleteCurrentLine","case":"unit/cases/ODEdit/ODEditDeleteCurrentLine.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditRedrawArea","case":"unit/cases/ODEdit/ODEditRedrawArea.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditDrawAreaLine","case":"unit/cases/ODEdit/ODEditDrawAreaLine.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditRedrawChanged","case":"unit/cases/ODEdit/ODEditRedrawChanged.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditScrollArea","case":"unit/cases/ODEdit/ODEditScrollArea.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditRedrawSubArea","case":"unit/cases/ODEdit/ODEditRedrawSubArea.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditDetermineChanged","case":"unit/cases/ODEdit/ODEditDetermineChanged.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditBufferFormatAndIndex","case":"unit/cases/ODEdit/ODEditBufferFormatAndIndex.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditEnterText","case":"unit/cases/ODEdit/ODEditEnterText.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditSetupInstance","case":"unit/cases/ODEdit/ODEditSetupInstance.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"ODEditMainLoop","case":"unit/cases/ODEdit/ODEditMainLoop.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODEdit.c","function":"od_multiline_edit","case":"unit/cases/ODEdit/od_multiline_edit.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
+    {"source":"ODCom.c","function":"ODComClose","case":"unit/cases/ODCom/ODComClose.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable","close=UTCloseSocket"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration"]}]},
+    {"source":"ODCom.c","function":"ODComOpen","case":"unit/cases/ODCom/ODComOpen.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration","-Wno-cast-function-type"],"windows_fixture":"unit/fixtures/door32/door32.c","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
+    {"source":"ODCom.c","function":"ODComSendByte","case":"unit/cases/ODCom/ODComSendByte.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration"],"turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
+    {"source":"ODCom.c","function":"ODComGetByte","case":"unit/cases/ODCom/ODComGetByte.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
+    {"source":"ODCom.c","function":"ODComGetBuffer","case":"unit/cases/ODCom/ODComGetBuffer.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm"}]},
+    {"source":"ODCom.c","function":"ODComSendBuffer","case":"unit/cases/ODCom/ODComSendBuffer.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
+    {"source":"ODInEx2.c","function":"ODOwnerThreadSleep","case":"unit/cases/ODInEx2/ODOwnerThreadSleep.c","platforms":["windows"]},
+    {"source":"ODInEx2.c","function":"ODDiagnosticMessage","case":"unit/cases/ODInEx2/ODDiagnosticMessage.c","platforms":["windows"],"configurations":[{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"]}]},
+    {"source":"ODInEx2.c","function":"ODInExDisableDTR","case":"unit/cases/ODInEx2/ODInExDisableDTR.c","platforms":["windows"],"configurations":[{"name":"release"},{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"]}]},
+    {"source":"ODInEx2.c","function":"ODAtExitCallback","case":"unit/cases/ODInEx2/ODAtExitCallback.c","platforms":["unix","pthread","dos16","dos32"]},
+    {"source":"ODInEx2.c","function":"ODSendModemCommand","case":"unit/cases/ODInEx2/ODSendModemCommand.c","platforms":["windows"]},
+    {"source":"ODInEx2.c","function":"ODSendModemCommandOnce","case":"unit/cases/ODInEx2/ODSendModemCommandOnce.c","platforms":["windows"],"configurations":[{"name":"release"},{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"]}]},
+    {"source":"ODInEx2.c","function":"ODWaitForString","case":"unit/cases/ODInEx2/ODWaitForString.c","platforms":["windows"],"configurations":[{"name":"release"},{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"]}]},
+    {"source":"ODInEx2.c","function":"ODSearchForDropFile","case":"unit/cases/ODInEx2/ODSearchForDropFile.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODInEx2.c","function":"ODSearchInDir","case":"unit/cases/ODInEx2/ODSearchInDir.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODInEx2.c","function":"ODReadExitInfoPrimitive","case":"unit/cases/ODInEx2/ODReadExitInfoPrimitive.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODInEx2.c","function":"ODWriteExitInfoPrimitive","case":"unit/cases/ODInEx2/ODWriteExitInfoPrimitive.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODInEx2.c","function":"od_exit","case":"unit/cases/ODInEx2/od_exit.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"release"},{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"]}]},
+    {"source":"ODSpawn.c","function":"od_spawn","case":"unit/cases/ODSpawn/od_spawn.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODSpawn.c","function":"od_spawnvpe","case":"unit/cases/ODSpawn/od_spawnvpe.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODSpawn.c","function":"ODUnixExecProgram","case":"unit/cases/ODSpawn/ODUnixExecProgram.c","platforms":["unix","pthread"]},
+    {"source":"ODSpawn.c","function":"ODUnixReportSpawnError","case":"unit/cases/ODSpawn/ODUnixReportSpawnError.c","platforms":["unix","pthread"]},
+    {"source":"ODSpawn.c","function":"ODUnixReadSpawnError","case":"unit/cases/ODSpawn/ODUnixReadSpawnError.c","platforms":["unix","pthread"]},
+    {"source":"ODSpawn.c","function":"ODUnixWaitForChild","case":"unit/cases/ODSpawn/ODUnixWaitForChild.c","platforms":["unix","pthread"]},
+    {"source":"ODSpawn.c","function":"_spawnvpe","case":"unit/cases/ODSpawn/_spawnvpe_unix.c","platforms":["unix","pthread","dos16"],"configurations":[{"name":"runtime-environment","provided_variables":["environ"]}]},
+    {"source":"ODSpawn.c","function":"addvect","case":"unit/cases/ODSpawn/addvect.c","platforms":["dos16"]},
+    {"source":"ODSpawn.c","function":"savevect","case":"unit/cases/ODSpawn/savevect.c","platforms":["dos16"]},
+    {"source":"ODSpawn.c","function":"_spawnve","case":"unit/cases/ODSpawn/_spawnve.c","platforms":["dos16"]},
+    {"source":"ODSpawn.c","function":"cmdenv","case":"unit/cases/ODSpawn/cmdenv.c","platforms":["dos16"]},
+    {"source":"ODSpawn.c","function":"testfile","case":"unit/cases/ODSpawn/testfile.c","platforms":["dos16"]},
+    {"source":"ODSpawn.c","function":"tempfile","case":"unit/cases/ODSpawn/tempfile.c","platforms":["dos16"]},
+    {"source":"ODSpawn.c","function":"doxspawn","case":"unit/cases/ODSpawn/doxspawn.c","platforms":["dos16"]},
+    {
+      "source": "ODPlat.c", "function": "ODTimerElapsed",
+      "case": "unit/cases/ODPlat/ODTimerElapsed.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODTimerWaitForElapse",
+      "case": "unit/cases/ODPlat/ODTimerWaitForElapse.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODTimerLeft",
+      "case": "unit/cases/ODPlat/ODTimerLeft.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenRectValid",
+      "case": "unit/cases/ODScrn/ODSessionScreenRectValid.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenGetInfo",
+      "case": "unit/cases/ODScrn/ODSessionScreenGetInfo.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenSetBoundary",
+      "case": "unit/cases/ODScrn/ODSessionScreenSetBoundary.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenSetCursorPos",
+      "case": "unit/cases/ODScrn/ODSessionScreenSetCursorPos.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenEndEmulation",
+      "case": "unit/cases/ODScrn/ODSessionScreenEndEmulation.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenDisplayBuffer",
+      "case": "unit/cases/ODScrn/ODSessionScreenDisplayBuffer.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenDisplayString",
+      "case": "unit/cases/ODScrn/ODSessionScreenDisplayString.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenShutdown",
+      "case": "unit/cases/ODScrn/ODSessionScreenShutdown.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenAvailable",
+      "case": "unit/cases/ODScrn/ODSessionScreenAvailable.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenError",
+      "case": "unit/cases/ODScrn/ODSessionScreenError.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenWidth",
+      "case": "unit/cases/ODScrn/ODSessionScreenWidth.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenHeight",
+      "case": "unit/cases/ODScrn/ODSessionScreenHeight.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenIsEmulating",
+      "case": "unit/cases/ODScrn/ODSessionScreenIsEmulating.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenSetAttribute",
+      "case": "unit/cases/ODScrn/ODSessionScreenSetAttribute.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenEnableScrolling",
+      "case": "unit/cases/ODScrn/ODSessionScreenEnableScrolling.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenBeginEmulation",
+      "case": "unit/cases/ODScrn/ODSessionScreenBeginEmulation.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenCell",
+      "case": "unit/cases/ODScrn/ODSessionScreenCell.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionSnapshotPutDWORD",
+      "case": "unit/cases/ODScrn/ODSessionSnapshotPutDWORD.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionSnapshotGetDWORD",
+      "case": "unit/cases/ODScrn/ODSessionSnapshotGetDWORD.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenMarkDirty",
+      "case": "unit/cases/ODScrn/ODSessionScreenMarkDirty.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionSnapshotDimensions",
+      "case": "unit/cases/ODScrn/ODSessionSnapshotDimensions.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenSnapshotSize",
+      "case": "unit/cases/ODScrn/ODSessionScreenSnapshotSize.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenClear",
+      "case": "unit/cases/ODScrn/ODSessionScreenClear.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenClearToEndOfLine",
+      "case": "unit/cases/ODScrn/ODSessionScreenClearToEndOfLine.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenGetText",
+      "case": "unit/cases/ODScrn/ODSessionScreenGetText.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenPutText",
+      "case": "unit/cases/ODScrn/ODSessionScreenPutText.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenCopyText",
+      "case": "unit/cases/ODScrn/ODSessionScreenCopyText.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenScrollUpOneLine",
+      "case": "unit/cases/ODScrn/ODSessionScreenScrollUpOneLine.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenDisplayChar",
+      "case": "unit/cases/ODScrn/ODSessionScreenDisplayChar.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenPresent",
+      "case": "unit/cases/ODScrn/ODSessionScreenPresent.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenInitialize",
+      "case": "unit/cases/ODScrn/ODSessionScreenInitialize.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenSave",
+      "case": "unit/cases/ODScrn/ODSessionScreenSave.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODSessionScreenRestore",
+      "case": "unit/cases/ODScrn/ODSessionScreenRestore.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {"source":"ODScrn.c","function":"ODScrnSetBoundary","case":"unit/cases/ODScrn/ODScrnSetBoundary.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnSetCursorPos","case":"unit/cases/ODScrn/ODScrnSetCursorPos.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnSetAttribute","case":"unit/cases/ODScrn/ODScrnSetAttribute.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnEnableScrolling","case":"unit/cases/ODScrn/ODScrnEnableScrolling.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnGetTextInfo","case":"unit/cases/ODScrn/ODScrnGetTextInfo.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnDisplayString","case":"unit/cases/ODScrn/ODScrnDisplayString.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnShutdown","case":"unit/cases/ODScrn/ODScrnShutdown.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnRingBell","case":"unit/cases/ODScrn/ODScrnRingBell.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnScrollUpAndInvalidate","case":"unit/cases/ODScrn/ODScrnScrollUpAndInvalidate.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnClearToEndOfLine","case":"unit/cases/ODScrn/ODScrnClearToEndOfLine.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnClear","case":"unit/cases/ODScrn/ODScrnClear.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnGetText","case":"unit/cases/ODScrn/ODScrnGetText.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnPutText","case":"unit/cases/ODScrn/ODScrnPutText.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnCopyText","case":"unit/cases/ODScrn/ODScrnCopyText.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnScrollUpOneLine","case":"unit/cases/ODScrn/ODScrnScrollUpOneLine.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnDestroyWindow","case":"unit/cases/ODScrn/ODScrnDestroyWindow.c","platforms":["unix","pthread","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnCreateWindow","case":"unit/cases/ODScrn/ODScrnCreateWindow.c","platforms":["unix","pthread","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnRemoveMessage","case":"unit/cases/ODScrn/ODScrnRemoveMessage.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnShowMessage","case":"unit/cases/ODScrn/ODScrnShowMessage.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnPrintf","case":"unit/cases/ODScrn/ODScrnPrintf.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnDisplayChar","case":"unit/cases/ODScrn/ODScrnDisplayChar.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnDisplayBuffer","case":"unit/cases/ODScrn/ODScrnDisplayBuffer.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnLocalInput","case":"unit/cases/ODScrn/ODScrnLocalInput.c","platforms":["dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnGetCursorPos","case":"unit/cases/ODScrn/ODScrnGetCursorPos.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnUpdateCaretPos","case":"unit/cases/ODScrn/ODScrnUpdateCaretPos.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnEnableCaret","case":"unit/cases/ODScrn/ODScrnEnableCaret.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnInvalidate","case":"unit/cases/ODScrn/ODScrnInvalidate.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnSetFocusToWindow","case":"unit/cases/ODScrn/ODScrnSetFocusToWindow.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnSetWinCaretPos","case":"unit/cases/ODScrn/ODScrnSetWinCaretPos.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnStopWindow","case":"unit/cases/ODScrn/ODScrnStopWindow.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnWaitWithMessages","case":"unit/cases/ODScrn/ODScrnWaitWithMessages.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnStartWindow","case":"unit/cases/ODScrn/ODScrnStartWindow.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnMessageLoop","case":"unit/cases/ODScrn/ODScrnMessageLoop.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnSetCurrentFont","case":"unit/cases/ODScrn/ODScrnSetCurrentFont.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnAdjustWindows","case":"unit/cases/ODScrn/ODScrnAdjustWindows.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnCreateWin","case":"unit/cases/ODScrn/ODScrnCreateWin.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnPaint","case":"unit/cases/ODScrn/ODScrnPaint.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnWindowProc","case":"unit/cases/ODScrn/ODScrnWindowProc.c","platforms":["windows"],"configurations":[{"name":"default","native_flags":["-Wno-sign-compare"]}]},
+    {"source":"ODScrn.c","function":"ODScrnThreadProc","case":"unit/cases/ODScrn/ODScrnThreadProc.c","platforms":["windows"]},
+    {"source":"ODScrn.c","function":"ODScrnInitialize","case":"unit/cases/ODScrn/ODScrnInitialize.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlInitialize","case":"unit/cases/ODKrnl/ODKrnlInitialize.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRestart","case":"unit/cases/ODKrnl/ODKrnlRestart.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlStart","case":"unit/cases/ODKrnl/ODKrnlStart.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlDeliverTimeMessage","case":"unit/cases/ODKrnl/ODKrnlDeliverTimeMessage.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlForceOpenDoorsShutdown","case":"unit/cases/ODKrnl/ODKrnlForceOpenDoorsShutdown.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlDispatchPending","case":"unit/cases/ODKrnl/ODKrnlDispatchPending.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlTimeUpdate","case":"unit/cases/ODKrnl/ODKrnlTimeUpdate.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"od_chat","case":"unit/cases/ODKrnl/od_chat.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlChatMode","case":"unit/cases/ODKrnl/ODKrnlChatMode.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlChatCleanup","case":"unit/cases/ODKrnl/ODKrnlChatCleanup.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"od_kernel","case":"unit/cases/ODKrnl/od_kernel.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"sig_run_kernel","case":"unit/cases/ODKrnl/sig_run_kernel.c","platforms":["unix"],"configurations":[{"name":"signal-kernel","defines":["USE_KERNEL_SIGNAL"]}]},
+    {"source":"ODKrnl.c","function":"sig_get_char","case":"unit/cases/ODKrnl/sig_get_char.c","platforms":["unix"],"configurations":[{"name":"signal-kernel","defines":["USE_KERNEL_SIGNAL"]}]},
+    {"source":"ODKrnl.c","function":"sig_no_carrier","case":"unit/cases/ODKrnl/sig_no_carrier.c","platforms":["unix"],"configurations":[{"name":"signal-kernel","defines":["USE_KERNEL_SIGNAL"]}]},
+    {"source":"ODKrnl.c","function":"ODStatStartArrowUse","case":"unit/cases/ODKrnl/ODStatStartArrowUse.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODStatEndArrowUse","case":"unit/cases/ODKrnl/ODStatEndArrowUse.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlEndChatMode","case":"unit/cases/ODKrnl/ODKrnlEndChatMode.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRequestChatToggle","case":"unit/cases/ODKrnl/ODKrnlRequestChatToggle.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRequestTimeUpdate","case":"unit/cases/ODKrnl/ODKrnlRequestTimeUpdate.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRequestKeyboardToggle","case":"unit/cases/ODKrnl/ODKrnlRequestKeyboardToggle.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRequestSysopNextToggle","case":"unit/cases/ODKrnl/ODKrnlRequestSysopNextToggle.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRequestInactivityToggle","case":"unit/cases/ODKrnl/ODKrnlRequestInactivityToggle.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRequestTimeAdjustment","case":"unit/cases/ODKrnl/ODKrnlRequestTimeAdjustment.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRequestTimeValue","case":"unit/cases/ODKrnl/ODKrnlRequestTimeValue.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRequestLockout","case":"unit/cases/ODKrnl/ODKrnlRequestLockout.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlWorkerWait","case":"unit/cases/ODKrnl/ODKrnlWorkerWait.c","platforms":["pthread","windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlJoinThread","case":"unit/cases/ODKrnl/ODKrnlJoinThread.c","platforms":["pthread","windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlQueueShutdown","case":"unit/cases/ODKrnl/ODKrnlQueueShutdown.c","platforms":["pthread","windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlDiscardTimeMessages","case":"unit/cases/ODKrnl/ODKrnlDiscardTimeMessages.c","platforms":["pthread","windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlTimeUpdateThread","case":"unit/cases/ODKrnl/ODKrnlTimeUpdateThread.c","platforms":["pthread","windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRemoteInputThread","case":"unit/cases/ODKrnl/ODKrnlRemoteInputThread.c","platforms":["pthread","windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlNoCarrierThread","case":"unit/cases/ODKrnl/ODKrnlNoCarrierThread.c","platforms":["pthread","windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlQueueTimeMessage","case":"unit/cases/ODKrnl/ODKrnlQueueTimeMessage.c","platforms":["pthread","windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlDispatchTimeMessages","case":"unit/cases/ODKrnl/ODKrnlDispatchTimeMessages.c","platforms":["pthread","windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlShutdown","case":"unit/cases/ODKrnl/ODKrnlShutdown.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default"},{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"],"platforms":["windows"]}]},
+    {"source":"ODKrnl.c","function":"ODKrnlHandleLocalKey","case":"unit/cases/ODKrnl/ODKrnlHandleLocalKey.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlHandleReceivedChar","case":"unit/cases/ODKrnl/ODKrnlHandleReceivedChar.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODFrame.c","function":"ODFrameCopyProgramName","case":"unit/cases/ODFrame/ODFrameCopyProgramName.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameDestroyStatusBar","case":"unit/cases/ODFrame/ODFrameDestroyStatusBar.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameSizeStatusBar","case":"unit/cases/ODFrame/ODFrameSizeStatusBar.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameGetUsedClientAtTop","case":"unit/cases/ODFrame/ODFrameGetUsedClientAtTop.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameGetUsedClientAtBottom","case":"unit/cases/ODFrame/ODFrameGetUsedClientAtBottom.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameDestroyToolbar","case":"unit/cases/ODFrame/ODFrameDestroyToolbar.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameToolbarProc","case":"unit/cases/ODFrame/ODFrameToolbarProc.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameTimeEditProc","case":"unit/cases/ODFrame/ODFrameTimeEditProc.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameUpdateTimeLeft","case":"unit/cases/ODFrame/ODFrameUpdateTimeLeft.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameCenterWindowInParent","case":"unit/cases/ODFrame/ODFrameCenterWindowInParent.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameMessageLoop","case":"unit/cases/ODFrame/ODFrameMessageLoop.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameTranslateAccelerator","case":"unit/cases/ODFrame/ODFrameTranslateAccelerator.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFramePostThreadQuit","case":"unit/cases/ODFrame/ODFramePostThreadQuit.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameSetMainStatusText","case":"unit/cases/ODFrame/ODFrameSetMainStatusText.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameUpdateTimeDisplay","case":"unit/cases/ODFrame/ODFrameUpdateTimeDisplay.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameDestroyWindow","case":"unit/cases/ODFrame/ODFrameDestroyWindow.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameAboutDlgProc","case":"unit/cases/ODFrame/ODFrameAboutDlgProc.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameMessageDlgProc","case":"unit/cases/ODFrame/ODFrameMessageDlgProc.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameUpdateCmdUI","case":"unit/cases/ODFrame/ODFrameUpdateCmdUI.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameUpdateWantChat","case":"unit/cases/ODFrame/ODFrameUpdateWantChat.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameCreateStatusBar","case":"unit/cases/ODFrame/ODFrameCreateStatusBar.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameThreadProc","case":"unit/cases/ODFrame/ODFrameThreadProc.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameShutdown","case":"unit/cases/ODFrame/ODFrameShutdown.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameStart","case":"unit/cases/ODFrame/ODFrameStart.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameCreateToolbar","case":"unit/cases/ODFrame/ODFrameCreateToolbar.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameCreateWindow","case":"unit/cases/ODFrame/ODFrameCreateWindow.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameWindowProc","case":"unit/cases/ODFrame/ODFrameWindowProc.c","platforms":["windows"],"configurations":[{"name":"legacy-time-edit-fallthrough","native_flags":["-Wno-implicit-fallthrough"]}]},
+    {
+      "source": "ODInEx2.c",
+      "function": "ODGetElapsedMinutes",
+      "case": "unit/cases/ODInEx2/ODGetElapsedMinutes.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx2.c",
+      "function": "ODDropFileOpen",
+      "case": "unit/cases/ODInEx2/ODDropFileOpen.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx2.c",
+      "function": "ODDropFileRecordWriteFailure",
+      "case": "unit/cases/ODInEx2/ODDropFileRecordWriteFailure.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx2.c",
+      "function": "ODDropFileWrite",
+      "case": "unit/cases/ODInEx2/ODDropFileWrite.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx2.c",
+      "function": "ODTextDropFileWrite",
+      "case": "unit/cases/ODInEx2/ODTextDropFileWrite.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx2.c",
+      "function": "ODDropFileClose",
+      "case": "unit/cases/ODInEx2/ODDropFileClose.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODAuto.c",
+      "function": "ODWaitDiscard",
+      "case": "unit/cases/ODAuto/ODWaitDiscard.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODAuto.c",
+      "function": "ODWaitNoCase",
+      "case": "unit/cases/ODAuto/ODWaitNoCase.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODAuto.c",
+      "function": "od_autodetect",
+      "case": "unit/cases/ODAuto/od_autodetect.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_gettext",
+      "case": "unit/cases/ODBlock/od_gettext.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_puttext",
+      "case": "unit/cases/ODBlock/od_puttext.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_restore_screen",
+      "case": "unit/cases/ODBlock/od_restore_screen.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_restore_screen_ex",
+      "case": "unit/cases/ODBlock/od_restore_screen_ex.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_scroll",
+      "case": "unit/cases/ODBlock/od_scroll.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_save_screen",
+      "case": "unit/cases/ODBlock/od_save_screen.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_save_screen_ex",
+      "case": "unit/cases/ODBlock/od_save_screen_ex.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_save_screen_size",
+      "case": "unit/cases/ODBlock/od_save_screen_size.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCFile.c",
+      "function": "ODConfigInit",
+      "case": "unit/cases/ODCFile/ODConfigInit.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCFile.c",
+      "function": "ODCfgGetWordDecimal",
+      "case": "unit/cases/ODCFile/ODCfgGetWordDecimal.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "turbo_late_defines": ["atol=utm_atoi"]
+      }]
+    },
+    {
+      "source": "ODCFile.c",
+      "function": "ODCfgGetDWordDecimal",
+      "case": "unit/cases/ODCFile/ODCfgGetDWordDecimal.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCFile.c",
+      "function": "ODCfgGetWordHex",
+      "case": "unit/cases/ODCFile/ODCfgGetWordHex.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCFile.c",
+      "function": "ODCfgGetNextTime",
+      "case": "unit/cases/ODCFile/ODCfgGetNextTime.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCFile.c",
+      "function": "ODCfgIsTrue",
+      "case": "unit/cases/ODCFile/ODCfgIsTrue.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCmdLn.c",
+      "function": "od_free_split_cmd_line",
+      "case": "unit/cases/ODCmdLn/od_free_split_cmd_line.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCmdLn.c",
+      "function": "od_split_cmd_line",
+      "case": "unit/cases/ODCmdLn/od_split_cmd_line.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCmdLn.c",
+      "function": "od_parse_cmd_line",
+      "case": "unit/cases/ODCmdLn/od_parse_cmd_line.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "turbo_late_defines": ["atol=utm_atoi"]
+      }]
+    },
+    {
+      "source": "ODCmdLn.c",
+      "function": "ODParseOpenHandle",
+      "case": "unit/cases/ODCmdLn/ODParseOpenHandle.c",
+      "platforms": ["unix", "pthread", "windows"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "ODEmulateGetTextInfo",
+      "case": "unit/cases/ODEmu/ODEmulateGetTextInfo.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "ODEmulateSetCursorPos",
+      "case": "unit/cases/ODEmu/ODEmulateSetCursorPos.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "ODEmulateCopyText",
+      "case": "unit/cases/ODEmu/ODEmulateCopyText.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "ODEmulatePathExtension",
+      "case": "unit/cases/ODEmu/ODEmulatePathExtension.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "ODEmulateExtensionIsRIP",
+      "case": "unit/cases/ODEmu/ODEmulateExtensionIsRIP.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "ODEmulateAutoNameFits",
+      "case": "unit/cases/ODEmu/ODEmulateAutoNameFits.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "ODEmulateBuildRIPMessage",
+      "case": "unit/cases/ODEmu/ODEmulateBuildRIPMessage.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "ODEmulateFindCompatFile",
+      "case": "unit/cases/ODEmu/ODEmulateFindCompatFile.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "ODEmulateFillArea",
+      "case": "unit/cases/ODEmu/ODEmulateFillArea.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "od_disp_emu",
+      "case": "unit/cases/ODEmu/od_disp_emu.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "od_emulate",
+      "case": "unit/cases/ODEmu/od_emulate.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "od_hotkey_menu",
+      "case": "unit/cases/ODEmu/od_hotkey_menu.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "od_send_file",
+      "case": "unit/cases/ODEmu/od_send_file.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "od_send_file_section",
+      "case": "unit/cases/ODEmu/od_send_file_section.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEmu.c",
+      "function": "ODEmulateFromBuffer",
+      "case": "unit/cases/ODEmu/ODEmulateFromBuffer.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "native_flags": ["-Wno-implicit-fallthrough"]
+      }]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComInternalTXReady",
+      "case": "unit/cases/ODCom/ODComInternalTXReady.c",
+      "platforms": ["dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetVect",
+      "case": "unit/cases/ODCom/ODComSetVect.c",
+      "platforms": ["dos16", "dos32"],
+      "configurations": [
+        {"name": "isolated-vector", "defines": ["_dos_setvect=UTDosSetVect"]}
+      ]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComGetVect",
+      "case": "unit/cases/ODCom/ODComGetVect.c",
+      "platforms": ["dos16", "dos32"],
+      "configurations": [
+        {"name": "isolated-vector", "defines": ["_dos_getvect=UTDosGetVect"]}
+      ]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComInternalResetTX",
+      "case": "unit/cases/ODCom/ODComInternalResetTX.c",
+      "platforms": ["dos16", "dos32"],
+      "configurations": [
+        {"name": "isolated-port", "defines": ["outp=UTOutp"]}
+      ]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComInternalResetRX",
+      "case": "unit/cases/ODCom/ODComInternalResetRX.c",
+      "platforms": ["dos16", "dos32"],
+      "configurations": [
+        {"name": "isolated-port", "defines": ["outp=UTOutp"]}
+      ]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComInternalISR",
+      "case": "unit/cases/ODCom/ODComInternalISR.c",
+      "platforms": ["dos16", "dos32"],
+      "configurations": [
+        {"name": "isolated-port", "defines": ["inp=UTInp", "outp=UTOutp"]}
+      ]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComAlloc",
+      "case": "unit/cases/ODCom/ODComAlloc.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComFree",
+      "case": "unit/cases/ODCom/ODComFree.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComDOS32DisableFossilBlockIO",
+      "case": "unit/cases/ODCom/ODComDOS32DisableFossilBlockIO.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComWin32SetReadTimeouts",
+      "case": "unit/cases/ODCom/ODComWin32SetReadTimeouts.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetIdleFunction",
+      "case": "unit/cases/ODCom/ODComSetIdleFunction.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetFlowControl",
+      "case": "unit/cases/ODCom/ODComSetFlowControl.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetSpeed",
+      "case": "unit/cases/ODCom/ODComSetSpeed.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetPort",
+      "case": "unit/cases/ODCom/ODComSetPort.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetPortAddress",
+      "case": "unit/cases/ODCom/ODComSetPortAddress.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetIRQ",
+      "case": "unit/cases/ODCom/ODComSetIRQ.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetWordFormat",
+      "case": "unit/cases/ODCom/ODComSetWordFormat.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetRXBuf",
+      "case": "unit/cases/ODCom/ODComSetRXBuf.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetTXBuf",
+      "case": "unit/cases/ODCom/ODComSetTXBuf.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetFIFO",
+      "case": "unit/cases/ODCom/ODComSetFIFO.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetPreferredMethod",
+      "case": "unit/cases/ODCom/ODComSetPreferredMethod.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComGetMethod",
+      "case": "unit/cases/ODCom/ODComGetMethod.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComOpenFromExistingHandle",
+      "case": "unit/cases/ODCom/ODComOpenFromExistingHandle.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComCarrier",
+      "case": "unit/cases/ODCom/ODComCarrier.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [
+        {"name": "isolated-port", "defines": ["inp=UTInp"]}
+      ]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComSetDTR",
+      "case": "unit/cases/ODCom/ODComSetDTR.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [
+        {"name": "isolated-io", "defines": ["inp=UTInp", "outp=UTOutp", "_disable=UTDisable", "_enable=UTEnable", "close=UTCloseSocket"]}
+      ]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComOutbound",
+      "case": "unit/cases/ODCom/ODComOutbound.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComClearOutbound",
+      "case": "unit/cases/ODCom/ODComClearOutbound.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComClearInbound",
+      "case": "unit/cases/ODCom/ODComClearInbound.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComInbound",
+      "case": "unit/cases/ODCom/ODComInbound.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "dos_tsr_fixture": "tests/fossil_tsr.asm",
+        "turbo_tsr_fixture": "tests/fossil_tsr.asm"
+      }]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComWaitEvent",
+      "case": "unit/cases/ODCom/ODComWaitEvent.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "native_flags": ["-Wno-unknown-warning-option", "-Wno-old-style-declaration"]
+      }]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComCP437ToUnicodeLen",
+      "case": "unit/cases/ODCom/ODComCP437ToUnicodeLen.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComCP437ToUnicode",
+      "case": "unit/cases/ODCom/ODComCP437ToUnicode.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCmdLn.c",
+      "function": "ODAdvanceToNextArg",
+      "case": "unit/cases/ODCmdLn/ODAdvanceToNextArg.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCmdLn.c",
+      "function": "ODGetNextArgName",
+      "case": "unit/cases/ODCmdLn/ODGetNextArgName.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCmdLn.c",
+      "function": "ODGetCommandLineParameter",
+      "case": "unit/cases/ODCmdLn/ODGetCommandLineParameter.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSafe.c",
+      "function": "ODSizeAdd",
+      "case": "unit/cases/ODSafe/ODSizeAdd.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSafe.c",
+      "function": "ODSizeMultiply",
+      "case": "unit/cases/ODSafe/ODSizeMultiply.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODStringCopy",
+      "case": "unit/cases/ODUtil/ODStringCopy.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODStringNormalizeLine",
+      "case": "unit/cases/ODUtil/ODStringNormalizeLine.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODStringCToPascal",
+      "case": "unit/cases/ODUtil/ODStringCToPascal.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODStringPascalToC",
+      "case": "unit/cases/ODUtil/ODStringPascalToC.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODStringHasTail",
+      "case": "unit/cases/ODUtil/ODStringHasTail.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODMakeFilename",
+      "case": "unit/cases/ODUtil/ODMakeFilename.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODFileSize",
+      "case": "unit/cases/ODUtil/ODFileSize.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODDWordShiftLeft",
+      "case": "unit/cases/ODUtil/ODDWordShiftLeft.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODDWordShiftRight",
+      "case": "unit/cases/ODUtil/ODDWordShiftRight.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODDWordDivide",
+      "case": "unit/cases/ODUtil/ODDWordDivide.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODUtil.c",
+      "function": "ODDWordMultiply",
+      "case": "unit/cases/ODUtil/ODDWordMultiply.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODStr.c",
+      "function": "od_strlwr",
+      "case": "unit/cases/ODStr/od_strlwr.c",
+      "platforms": ["unix", "pthread"]
+    },
+    {
+      "source": "ODStr.c",
+      "function": "od_strupr",
+      "case": "unit/cases/ODStr/od_strupr.c",
+      "platforms": ["unix", "pthread"]
+    },
+    {
+      "source": "ODStat.c",
+      "function": "ODStatAddKey",
+      "case": "unit/cases/ODStat/ODStatAddKey.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODStat.c",
+      "function": "ODStatRemoveKey",
+      "case": "unit/cases/ODStat/ODStatRemoveKey.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODStat.c",
+      "function": "ODStatGetUserAge",
+      "case": "unit/cases/ODStat/ODStatGetUserAge.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODStat.c",
+      "function": "ODStatForceStatusUpdate",
+      "case": "unit/cases/ODStat/ODStatForceStatusUpdate.c",
+      "platforms": ["dos16", "dos32"]
+    },
+    {
+      "source": "ODEdStr.c",
+      "function": "od_edit_str",
+      "case": "unit/cases/ODEdStr/od_edit_str.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEdStr.c",
+      "function": "ODEditIsCharValidForPos",
+      "case": "unit/cases/ODEdStr/ODEditIsCharValidForPos.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEdStr.c",
+      "function": "ODEditAsCharForPos",
+      "case": "unit/cases/ODEdStr/ODEditAsCharForPos.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEdStr.c",
+      "function": "ODEditDisplayPermaliteral",
+      "case": "unit/cases/ODEdStr/ODEditDisplayPermaliteral.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODEdStr.c",
+      "function": "ODEditGetWindowSize",
+      "case": "unit/cases/ODEdStr/ODEditGetWindowSize.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODGetIn.c",
+      "function": "ODGetInputWait",
+      "case": "unit/cases/ODGetIn/ODGetInputWait.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODGetIn.c",
+      "function": "od_get_input",
+      "case": "unit/cases/ODGetIn/od_get_input.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODGetIn.c",
+      "function": "ODLongestFullCode",
+      "case": "unit/cases/ODGetIn/ODLongestFullCode.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "native_flags": ["-Wno-sign-compare"]
+      }]
+    },
+    {
+      "source": "ODGetIn.c",
+      "function": "ODHaveStartOfSequence",
+      "case": "unit/cases/ODGetIn/ODHaveStartOfSequence.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "native_flags": ["-Wno-sign-compare"]
+      }]
+    },
+    {
+      "source": "ODGetIn.c",
+      "function": "ODGetCodeIfLongest",
+      "case": "unit/cases/ODGetIn/ODGetCodeIfLongest.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "native_flags": ["-Wno-sign-compare"]
+      }]
+    },
+    {
+      "source": "ODGetIn.c",
+      "function": "ODShiftSeq",
+      "case": "unit/cases/ODGetIn/ODShiftSeq.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODFormat.c",
+      "function": "ODVsnprintf",
+      "case": "unit/cases/ODFormat/ODVsnprintf.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [
+        {"name": "runtime", "defines": ["OPENDOORS_HAVE_VSNPRINTF=1"]},
+        {"name": "fallback", "undefines": ["OPENDOORS_HAVE_VSNPRINTF"]}
+      ]
+    },
+    {
+      "source": "ODFmtFB.c",
+      "function": "ODFallbackVsnprintf",
+      "case": "unit/cases/ODFmtFB/ODFallbackVsnprintf.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [
+        {
+          "name": "fallback",
+          "undefines": ["OPENDOORS_HAVE_VSNPRINTF"],
+          "native_flags": ["-Wno-ignored-qualifiers"]
+        }
+      ]
+    },
+    {
+      "source": "ODPrntf.c",
+      "function": "od_printf",
+      "case": "unit/cases/ODPrntf/od_printf.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODStand.c",
+      "function": "pdef_opendoors",
+      "case": "unit/cases/ODStand/pdef_opendoors.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPCB.c",
+      "function": "pdef_pcboard",
+      "case": "unit/cases/ODPCB/pdef_pcboard.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODWCat.c",
+      "function": "pdef_wildcat",
+      "case": "unit/cases/ODWCat/pdef_wildcat.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "OD32DPMI.c",
+      "function": "OD32DPMIRealModeInterrupt",
+      "case": "unit/cases/OD32DPMI/OD32DPMIRealModeInterrupt.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilCall",
+      "case": "unit/cases/OD32Foss/OD32FossilCall.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilDetect",
+      "case": "unit/cases/OD32Foss/OD32FossilDetect.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilInitialize",
+      "case": "unit/cases/OD32Foss/OD32FossilInitialize.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilClose",
+      "case": "unit/cases/OD32Foss/OD32FossilClose.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilSetFlow",
+      "case": "unit/cases/OD32Foss/OD32FossilSetFlow.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilStatus",
+      "case": "unit/cases/OD32Foss/OD32FossilStatus.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilSetDTR",
+      "case": "unit/cases/OD32Foss/OD32FossilSetDTR.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilSimpleCall",
+      "case": "unit/cases/OD32Foss/OD32FossilSimpleCall.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilClearOutbound",
+      "case": "unit/cases/OD32Foss/OD32FossilClearOutbound.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilClearInbound",
+      "case": "unit/cases/OD32Foss/OD32FossilClearInbound.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilGetByte",
+      "case": "unit/cases/OD32Foss/OD32FossilGetByte.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilSendByte",
+      "case": "unit/cases/OD32Foss/OD32FossilSendByte.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilBufferAllocate",
+      "case": "unit/cases/OD32Foss/OD32FossilBufferAllocate.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilBufferFree",
+      "case": "unit/cases/OD32Foss/OD32FossilBufferFree.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilReceiveBlock",
+      "case": "unit/cases/OD32Foss/OD32FossilReceiveBlock.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "OD32Foss.c",
+      "function": "OD32FossilSendBlock",
+      "case": "unit/cases/OD32Foss/OD32FossilSendBlock.c",
+      "platforms": ["dos32"]
+    },
+    {
+      "source": "ODDrBox.c",
+      "function": "od_draw_box",
+      "case": "unit/cases/ODDrBox/od_draw_box.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODGraph.c",
+      "function": "od_clr_line",
+      "case": "unit/cases/ODGraph/od_clr_line.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODGraph.c",
+      "function": "od_set_cursor",
+      "case": "unit/cases/ODGraph/od_set_cursor.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODGraph.c",
+      "function": "od_get_cursor",
+      "case": "unit/cases/ODGraph/od_get_cursor.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODWin.c",
+      "function": "od_window_create",
+      "case": "unit/cases/ODWin/od_window_create.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "native_flags": ["-Wno-unused-but-set-parameter"]
+      }]
+    },
+    {
+      "source": "ODWin.c",
+      "function": "od_window_remove",
+      "case": "unit/cases/ODWin/od_window_remove.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueAlloc",
+      "case": "unit/cases/ODInQue/ODInQueueAlloc.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueFree",
+      "case": "unit/cases/ODInQue/ODInQueueFree.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueWaiting",
+      "case": "unit/cases/ODInQue/ODInQueueWaiting.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueAddEvent",
+      "case": "unit/cases/ODInQue/ODInQueueAddEvent.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueGetNextEvent",
+      "case": "unit/cases/ODInQue/ODInQueueGetNextEvent.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueEmpty",
+      "case": "unit/cases/ODInQue/ODInQueueEmpty.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueGetLastActivity",
+      "case": "unit/cases/ODInQue/ODInQueueGetLastActivity.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueResetLastActivity",
+      "case": "unit/cases/ODInQue/ODInQueueResetLastActivity.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODLog.c",
+      "function": "ODLogTimeRecordSucceeded",
+      "case": "unit/cases/ODLog/ODLogTimeRecordSucceeded.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODLog.c",
+      "function": "ODLogFormatWorkString",
+      "case": "unit/cases/ODLog/ODLogFormatWorkString.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODLog.c",
+      "function": "ODLogEnable",
+      "case": "unit/cases/ODLog/ODLogEnable.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODLog.c",
+      "function": "od_log_open",
+      "case": "unit/cases/ODLog/od_log_open.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODLog.c",
+      "function": "ODLogWriteStandardMsg",
+      "case": "unit/cases/ODLog/ODLogWriteStandardMsg.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODLog.c",
+      "function": "od_log_write",
+      "case": "unit/cases/ODLog/od_log_write.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODLog.c",
+      "function": "ODLogClose",
+      "case": "unit/cases/ODLog/ODLogClose.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODMulti.c",
+      "function": "ODMPSEnable",
+      "case": "unit/cases/ODMulti/ODMPSEnable.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODMulti.c",
+      "function": "od_set_personality",
+      "case": "unit/cases/ODMulti/od_set_personality.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODMulti.c",
+      "function": "od_add_personality",
+      "case": "unit/cases/ODMulti/od_add_personality.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPopup.c",
+      "function": "ODPopupDisplayMenuItem",
+      "case": "unit/cases/ODPopup/ODPopupDisplayMenuItem.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPopup.c",
+      "function": "ODPopupCheckForKey",
+      "case": "unit/cases/ODPopup/ODPopupCheckForKey.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPopup.c",
+      "function": "od_popup_menu",
+      "case": "unit/cases/ODPopup/od_popup_menu.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "safe_strcpy",
+      "case": "unit/cases/ODInEx1/safe_strcpy.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "safe_strcat",
+      "case": "unit/cases/ODInEx1/safe_strcat.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "od_set_port",
+      "case": "unit/cases/ODInEx1/od_set_port.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "ODInitTerminalSpeedToBaud",
+      "case": "unit/cases/ODInEx1/ODInitTerminalSpeedToBaud.c",
+      "platforms": ["unix", "pthread"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "ODInitSelectTerminalBaud",
+      "case": "unit/cases/ODInEx1/ODInitSelectTerminalBaud.c",
+      "platforms": ["unix", "pthread"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "ODInitApplyUserInfo",
+      "case": "unit/cases/ODInEx1/ODInitApplyUserInfo.c",
+      "platforms": ["unix", "pthread"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "ODInitError",
+      "case": "unit/cases/ODInEx1/ODInitError.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "ODInitLoginDlgProc",
+      "case": "unit/cases/ODInEx1/ODInitLoginDlgProc.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "ODInitReadSFDoorsDAT",
+      "case": "unit/cases/ODInEx1/ODInitReadSFDoorsDAT.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "ODInitReadExitInfo",
+      "case": "unit/cases/ODInEx1/ODInitReadExitInfo.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "ODInitPartTwo",
+      "case": "unit/cases/ODInEx1/ODInitPartTwo.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "od_init",
+      "case": "unit/cases/ODInEx1/od_init.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "turbo_shards": 4
+    },
+    {
+      "source": "ODList.c",
+      "function": "ODListFilenameMerge",
+      "case": "unit/cases/ODList/ODListFilenameMerge.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODList.c",
+      "function": "ODListGetFirstWord",
+      "case": "unit/cases/ODList/ODListGetFirstWord.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODList.c",
+      "function": "ODListGetRemainingWords",
+      "case": "unit/cases/ODList/ODListGetRemainingWords.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODList.c",
+      "function": "ODListFilenameSplit",
+      "case": "unit/cases/ODList/ODListFilenameSplit.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODList.c",
+      "function": "od_list_files",
+      "case": "unit/cases/ODList/od_list_files.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRA.c",
+      "function": "ODRADisplayPageInfo",
+      "case": "unit/cases/ODRA/ODRADisplayPageInfo.c",
+      "platforms": ["dos16", "dos32"]
+    },
+    {
+      "source": "ODRA.c",
+      "function": "ODRADisplayTime",
+      "case": "unit/cases/ODRA/ODRADisplayTime.c",
+      "platforms": ["dos16", "dos32"]
+    },
+    {
+      "source": "ODRA.c",
+      "function": "ODRADisplayDate",
+      "case": "unit/cases/ODRA/ODRADisplayDate.c",
+      "platforms": ["dos16", "dos32"]
+    },
+    {
+      "source": "ODRA.c",
+      "function": "ODRADisplayFlags",
+      "case": "unit/cases/ODRA/ODRADisplayFlags.c",
+      "platforms": ["dos16", "dos32"]
+    },
+    {
+      "source": "ODRA.c",
+      "function": "pdef_ra",
+      "case": "unit/cases/ODRA/pdef_ra.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODMutexInitialize",
+      "case": "unit/cases/ODSync/ODMutexInitialize.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODMutexDestroy",
+      "case": "unit/cases/ODSync/ODMutexDestroy.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODMutexLock",
+      "case": "unit/cases/ODSync/ODMutexLock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODMutexUnlock",
+      "case": "unit/cases/ODSync/ODMutexUnlock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncSessionActive",
+      "case": "unit/cases/ODSync/ODSyncSessionActive.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncIsOwnerThread",
+      "case": "unit/cases/ODSync/ODSyncIsOwnerThread.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncAPIWriterHeldByCurrentThread",
+      "case": "unit/cases/ODSync/ODSyncAPIWriterHeldByCurrentThread.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncControlReadLock",
+      "case": "unit/cases/ODSync/ODSyncControlReadLock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncControlReadUnlock",
+      "case": "unit/cases/ODSync/ODSyncControlReadUnlock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncControlWriteLock",
+      "case": "unit/cases/ODSync/ODSyncControlWriteLock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncControlWriteUnlock",
+      "case": "unit/cases/ODSync/ODSyncControlWriteUnlock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODControlWakeWaiters",
+      "case": "unit/cases/ODSync/ODControlWakeWaiters.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODControlReadAcquire",
+      "case": "unit/cases/ODSync/ODControlReadAcquire.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODControlReadRelease",
+      "case": "unit/cases/ODSync/ODControlReadRelease.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODControlWriteAcquire",
+      "case": "unit/cases/ODSync/ODControlWriteAcquire.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODControlWriteRelease",
+      "case": "unit/cases/ODSync/ODControlWriteRelease.c",
+      "platforms": ["pthread", "windows"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncAPICheckpoint",
+      "case": "unit/cases/ODSync/ODSyncAPICheckpoint.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncAPIRelease",
+      "case": "unit/cases/ODSync/ODSyncAPIRelease.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncAPIReacquire",
+      "case": "unit/cases/ODSync/ODSyncAPIReacquire.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncAPIEntry",
+      "case": "unit/cases/ODSync/ODSyncAPIEntry.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncAPIExit",
+      "case": "unit/cases/ODSync/ODSyncAPIExit.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODReleasePublicLock",
+      "case": "unit/cases/ODSync/ODReleasePublicLock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODAcquirePublicLock",
+      "case": "unit/cases/ODSync/ODAcquirePublicLock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODDispatch",
+      "case": "unit/cases/ODSync/ODDispatch.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncSessionInitialize",
+      "case": "unit/cases/ODSync/ODSyncSessionInitialize.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncInitializationComplete",
+      "case": "unit/cases/ODSync/ODSyncInitializationComplete.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "ODSyncSessionShutdown",
+      "case": "unit/cases/ODSync/ODSyncSessionShutdown.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "od_control_read_lock",
+      "case": "unit/cases/ODSync/od_control_read_lock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "od_control_read_unlock",
+      "case": "unit/cases/ODSync/od_control_read_unlock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "od_control_write_lock",
+      "case": "unit/cases/ODSync/od_control_write_lock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSync.c",
+      "function": "od_control_write_unlock",
+      "case": "unit/cases/ODSync/od_control_write_unlock.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "ODCoreSendRemoteByte",
+      "case": "unit/cases/ODCore/ODCoreSendRemoteByte.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "ODCoreSendRemoteBuffer",
+      "case": "unit/cases/ODCore/ODCoreSendRemoteBuffer.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "ODWaitDrain",
+      "case": "unit/cases/ODCore/ODWaitDrain.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "ODCoreCarrierResult",
+      "case": "unit/cases/ODCore/ODCoreCarrierResult.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_carrier",
+      "case": "unit/cases/ODCore/od_carrier.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_clear_keybuffer",
+      "case": "unit/cases/ODCore/od_clear_keybuffer.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_key_pending",
+      "case": "unit/cases/ODCore/od_key_pending.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "ODStoreTextInfo",
+      "case": "unit/cases/ODCore/ODStoreTextInfo.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "ODRestoreTextInfo",
+      "case": "unit/cases/ODCore/ODRestoreTextInfo.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_set_color",
+      "case": "unit/cases/ODCore/od_set_color.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "ODCoreSetDTRResult",
+      "case": "unit/cases/ODCore/ODCoreSetDTRResult.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_control_get",
+      "case": "unit/cases/ODCore/od_control_get.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "ODAddANSIParameter",
+      "case": "unit/cases/ODCore/ODAddANSIParameter.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_set_dtr",
+      "case": "unit/cases/ODCore/od_set_dtr.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "ODStringToName",
+      "case": "unit/cases/ODCore/ODStringToName.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_get_answer",
+      "case": "unit/cases/ODCore/od_get_answer.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_disp",
+      "case": "unit/cases/ODCore/od_disp.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_disp_str",
+      "case": "unit/cases/ODCore/od_disp_str.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_putch",
+      "case": "unit/cases/ODCore/od_putch.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_repeat",
+      "case": "unit/cases/ODCore/od_repeat.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_input_str",
+      "case": "unit/cases/ODCore/od_input_str.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_get_key",
+      "case": "unit/cases/ODCore/od_get_key.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_clr_scr",
+      "case": "unit/cases/ODCore/od_clr_scr.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_color_config",
+      "case": "unit/cases/ODCore/od_color_config.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "ODPagePrompt",
+      "case": "unit/cases/ODCore/ODPagePrompt.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_set_statusline",
+      "case": "unit/cases/ODCore/od_set_statusline.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_set_attrib",
+      "case": "unit/cases/ODCore/od_set_attrib.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCore.c",
+      "function": "od_page",
+      "case": "unit/cases/ODCore/od_page.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__getdrv",
+      "case": "unit/cases/ODSwap/__getdrv.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__savemap",
+      "case": "unit/cases/ODSwap/__savemap.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__restmap",
+      "case": "unit/cases/ODSwap/__restmap.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__getems",
+      "case": "unit/cases/ODSwap/__getems.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__getrc",
+      "case": "unit/cases/ODSwap/__getrc.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__getvect",
+      "case": "unit/cases/ODSwap/__getvect.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__setdrvcd",
+      "case": "unit/cases/ODSwap/__setdrvcd.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "mapems",
+      "case": "unit/cases/ODSwap/mapems.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "setvectsub",
+      "case": "unit/cases/ODSwap/setvectsub.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "safevect",
+      "case": "unit/cases/ODSwap/safevect.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__dskspace",
+      "case": "unit/cases/ODSwap/__dskspace.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__create",
+      "case": "unit/cases/ODSwap/__create.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__getcd",
+      "case": "unit/cases/ODSwap/__getcd.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__setvect",
+      "case": "unit/cases/ODSwap/__setvect.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__chkems",
+      "case": "unit/cases/ODSwap/__chkems.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__xsize",
+      "case": "unit/cases/ODSwap/__xsize.c",
+      "platforms": ["dos16"]
+    },
+    {
+      "source": "ODSwap.asm",
+      "function": "__xspawn",
+      "case": "unit/cases/ODSwap/__xspawn.c",
+      "platforms": ["dos16"]
+    }
+  ]
+}

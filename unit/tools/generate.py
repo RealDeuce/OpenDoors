@@ -1,0 +1,348 @@
+#!/usr/bin/env python3
+"""Generate an isolated, single-function OpenDoors unit translation unit."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from pathlib import Path
+
+from clang_model import (Callable, Variable, build_model, declaration,
+                         insert_name, replace_c_includes)
+from inventory import ROOT, scan_c
+
+CASE_ROOT = (ROOT / "unit" / "cases").resolve()
+LOCAL_CASE_INCLUDE = re.compile(
+    r'^[ \t]*#[ \t]*include[ \t]*"([^"\r\n]+)"[ \t]*(?:\r?\n)?$')
+
+
+def embedded_case(case: Path, stack: tuple[Path, ...] = ()) -> str:
+    """Embed a case and its case-local quoted includes for DOS staging."""
+    case = case.resolve()
+    if case in stack:
+        raise RuntimeError(f"recursive unit case include: {case}")
+    result = []
+    for line in case.read_text(encoding="latin-1").splitlines(keepends=True):
+        match = LOCAL_CASE_INCLUDE.match(line)
+        candidate = ((case.parent / match.group(1)).resolve()
+                     if match else None)
+        if (candidate is not None and candidate.is_file() and
+                candidate.is_relative_to(CASE_ROOT)):
+            result.append(embedded_case(candidate, stack + (case,)))
+        else:
+            result.append(line)
+    return "".join(result)
+
+
+def macro_name(name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_]", "_", name)
+
+
+def early_mock_declarations(names: set[str]) -> list[str]:
+    """Declare CRT errno accessors before later runtime headers use them."""
+    declarations = []
+    if "__error" in names:
+        declarations.append("int *utm___error(void);")
+    if "_errno" in names:
+        declarations.append("int *utm__errno(void);")
+    if "vsnprintf" in names:
+        declarations.extend([
+            "#include <stdarg.h>",
+            "int utm_vsnprintf(char *, size_t, const char *, va_list);",
+        ])
+    return declarations
+
+
+def blank_body(text: str) -> str:
+    return ";" + "".join("\n" if char == "\n" else " " for char in text[1:])
+
+
+def insert_late_defines(text: str, line: int,
+                        definitions: list[str],
+                        undefinitions: list[str] | None = None,
+                        declarations: list[str] | None = None) -> str:
+    """Reassert command-line definitions after source headers redefine them."""
+    if not definitions and not undefinitions and not declarations:
+        return text
+    lines = []
+    for name in undefinitions or []:
+        lines.append(f"#undef {name}")
+    for definition in definitions:
+        name, separator, value = definition.partition("=")
+        lines.extend((f"#undef {name}",
+                      f"#define {name} {value if separator else '1'}"))
+    lines.extend(declarations or [])
+    lines.append(f"#line {line}")
+    offset = 0
+    for unused in range(1, line):
+        offset = text.index("\n", offset) + 1
+    return text[:offset] + "\n".join(lines) + "\n" + text[offset:]
+
+
+def mock_definitions(target_name: str, mocks: dict[str, object]) -> list[str]:
+    """Return aliases that must survive headers which undefine CRT macros."""
+    definitions = [f"{target_name}=utt_{macro_name(target_name)}"]
+    definitions.extend(
+        f"{name}=utm_{macro_name(name)}" for name in sorted(mocks))
+    return definitions
+
+
+def instrument(text: str, decisions, switches, state_points) -> tuple[str, list[dict[str, object]], list[dict[str, object]]]:
+    starts: dict[int, list[tuple[int, int, str]]] = {}
+    ends: dict[int, list[tuple[int, int, str]]] = {}
+    metadata = []
+    seen = set()
+    decision_id = 0
+    for decision in decisions:
+        key = (decision.start, decision.end)
+        if key in seen:
+            continue
+        seen.add(key)
+        decision_id += 1
+        count = len(decision.conditions)
+        starts.setdefault(decision.start, []).append((
+            decision.end, 0,
+            f"(ut_cov_begin({decision_id}), ut_cov_result({decision_id}, {count}, ("))
+        ends.setdefault(decision.end, []).append((decision.start, 1, ")))"))
+        for condition_id, (start, end) in enumerate(decision.conditions):
+            starts.setdefault(start, []).append((
+                end, 1,
+                f"ut_cov_condition({decision_id}, {condition_id}, !!("))
+            ends.setdefault(end, []).append((start, 0, "))"))
+        metadata.append({
+            "id": decision_id,
+            "kind": decision.kind,
+            "line": text.count("\n", 0, decision.start) + 1,
+            "conditions": count,
+        })
+    branch_metadata = []
+    branch_id = 0
+    for switch_id, switch in enumerate(switches, 1):
+        case_calls = []
+        default_id = 0
+        for branch in switch.branches:
+            branch_id += 1
+            branch_metadata.append({
+                "id": branch_id,
+                "kind": branch.kind,
+                "line": branch.line,
+                "switch": switch_id,
+            })
+            if branch.kind == "DefaultStmt":
+                default_id = branch_id
+            else:
+                value = text[branch.value_start:branch.value_end]
+                case_calls.append(
+                    f", ut_cov_switch_case_value({switch_id}, {branch_id}, "
+                    f"(unsigned long)({value}))")
+        if default_id == 0:
+            branch_id += 1
+            default_id = branch_id
+            branch_metadata.append({
+                "id": branch_id,
+                "kind": "ImplicitDefault",
+                "line": switch.line,
+                "switch": switch_id,
+            })
+        starts.setdefault(switch.expression_start, []).append((
+            switch.expression_end, -1,
+            f"(ut_cov_switch_begin({switch_id}, (unsigned long)("))
+        ends.setdefault(switch.expression_end, []).append((
+            switch.expression_start, 2,
+            "))" + "".join(case_calls) +
+            f", ({switch.expression_type})ut_cov_switch_result("
+            f"{switch_id}, {default_id}))"))
+
+    insertions = {}
+    for position, values in starts.items():
+        insertions[position] = insertions.get(position, "") + "".join(
+            value[2] for value in sorted(values, key=lambda value: (-value[0], value[1])))
+    for position, values in ends.items():
+        ending = "".join(
+            value[2] for value in sorted(values, key=lambda value: (-value[0], value[1])))
+        insertions[position] = ending + insertions.get(position, "")
+    for point in state_points:
+        registrations = "".join(
+            f" ut_state_register((void *)&{name}, sizeof({name}));"
+            for name in point.names)
+        insertions[point.position] = (insertions.get(point.position, "") +
+                                      registrations)
+    result = text
+    for position in sorted(insertions, reverse=True):
+        result = result[:position] + insertions[position] + result[position:]
+    return result, metadata, branch_metadata
+
+
+def variable_definition(item: Variable) -> str:
+    if item.calling_macro and "(*)" in item.type:
+        return item.type.replace(
+            "(*)", f"({item.calling_macro} *{item.name})", 1) + ";"
+    return insert_name(item.type, item.name) + ";"
+
+
+def variable_definitions(variables: list[Variable],
+                         provided_variables: set[str]) -> list[str]:
+    """Define external objects except those supplied by the runtime."""
+    return [variable_definition(item) for item in variables
+            if item.name not in provided_variables]
+
+
+def default_mock(item: Callable, mock_id: int) -> str:
+    name = "utm_" + macro_name(item.name)
+    lines = [declaration(item, name, include_storage=True), "{"]
+    if item.result != "void":
+        lines.extend([
+            f"   {item.result} ut_result;",
+            "   unsigned char *ut_result_bytes = (unsigned char *)&ut_result;",
+            "   size_t ut_result_index;",
+        ])
+    for parameter in item.parameters:
+        lines.append(f"   (void){parameter.name};")
+    lines.append(f"   ut_unexpected_mock({mock_id}, \"{item.name}\");")
+    if item.result != "void":
+        lines.extend([
+            "   for(ut_result_index = 0; ut_result_index < sizeof(ut_result);",
+            "      ++ut_result_index)",
+            "      ut_result_bytes[ut_result_index] = 0;",
+            "   return ut_result;",
+        ])
+    lines.append("}")
+    return "\n".join(lines)
+
+
+def generate(source: Path, target_name: str, case: Path, output: Path,
+             clang: str, flags: list[str],
+             late_defines: list[str] | None = None,
+             late_undefines: list[str] | None = None,
+             late_declarations: list[str] | None = None,
+             provided_variables: set[str] | None = None,
+             uninstrumented_output: Path | None = None) -> None:
+    source = source.resolve()
+    text = source.read_text(encoding="latin-1")
+    model = build_model(source, clang, flags, target_name=target_name)
+    targets = [item for item in model if item.name == target_name]
+    if len(targets) != 1:
+        raise RuntimeError(
+            f"{source.name}:{target_name} has {len(targets)} active definitions")
+    target = targets[0]
+    mocks = {}
+    for item in target.functions:
+        mocks[item.name] = item
+    alias_definitions = mock_definitions(target_name, mocks)
+
+    replacements = []
+    for item in scan_c(text):
+        if item.name != target_name:
+            replacements.append((item.body_offset, item.end_offset,
+                                 blank_body(text[item.body_offset:item.end_offset])))
+    transformed = text
+    for start, end, replacement in sorted(replacements, reverse=True):
+        transformed = transformed[:start] + replacement + transformed[end:]
+    uninstrumented = transformed
+    transformed, decision_metadata, branch_metadata = instrument(
+        transformed, target.decisions, target.switches, target.state_points)
+    uninstrumented, _, _ = instrument(
+        uninstrumented, [], [], target.state_points)
+
+    def finalize_body(value: str) -> str:
+        value = replace_c_includes(value)
+        return insert_late_defines(
+            value, target.signature_line,
+            (late_defines or []) + alias_definitions,
+            late_undefines or [], late_declarations or [])
+
+    transformed = finalize_body(transformed)
+    uninstrumented = finalize_body(uninstrumented)
+
+    macros = [tuple(definition.split("=", 1))
+              for definition in alias_definitions]
+    lines = [
+        "/* Generated file: do not edit. */",
+        '#include "ut.h"',
+        "",
+    ]
+    lines.extend(early_mock_declarations(set(mocks)))
+    if early_mock_declarations(set(mocks)):
+        lines.append("")
+    for original, replacement in macros:
+        lines.append(f"#define {original} {replacement}")
+    lines.append(f'#line 1 "{source.name}"')
+    body_index = len(lines)
+    lines.append(transformed)
+    for original, unused in macros:
+        lines.append(f"#undef {original}")
+    lines.extend(["", "/* Controllable external object dependencies. */"])
+    lines.extend(variable_definitions(
+        target.variables, provided_variables or set()))
+    lines.extend([
+        "",
+        "static void ut_register_file_state(void)",
+        "{",
+    ])
+    for variable in target.state_variables:
+        lines.append(
+            f"   ut_state_register((void *)&{variable.name}, sizeof({variable.name}));")
+    lines.extend([
+        "}",
+        "",
+        "/* Embedded unit case and case-local support. */",
+        embedded_case(case).rstrip("\r\n"),
+        "",
+        "/* Default mocks fail immediately; a case may provide an override. */",
+    ])
+    for mock_id, item in enumerate(sorted(mocks.values(), key=lambda value: value.name), 1):
+        guard = "UT_CUSTOM_MOCK_" + macro_name(item.name)
+        lines.extend([f"#ifndef {guard}", default_mock(item, mock_id), "#endif", ""])
+    lines.extend([
+        "int main(int argc, char **argv)",
+        "{",
+        "   const char *report = argc > 1 ? argv[1] : NULL;",
+        "   ut_register_file_state();",
+        "   return ut_run(ut_cases,",
+        "      (unsigned short)(sizeof(ut_cases) / sizeof(ut_cases[0])),",
+        "      report);",
+        "}",
+    ])
+    metadata = json.dumps({
+        "version": 1,
+        "source": source.name,
+        "function": target_name,
+        "decisions": decision_metadata,
+        "branches": branch_metadata,
+    }, indent=2) + "\n"
+
+    def write_unit(destination: Path, body: str) -> None:
+        rendered = list(lines)
+        rendered[body_index] = body
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text("\n".join(rendered) + "\n", encoding="latin-1")
+        destination.with_suffix(".model.json").write_text(
+            metadata, encoding="utf-8")
+
+    write_unit(output, transformed)
+    if uninstrumented_output is not None:
+        write_unit(uninstrumented_output, uninstrumented)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("source", type=Path)
+    parser.add_argument("function")
+    parser.add_argument("case", type=Path)
+    parser.add_argument("output", type=Path)
+    parser.add_argument("--clang", default="clang")
+    parser.add_argument("--flag", action="append", default=[])
+    parser.add_argument("--provided-variable", action="append", default=[])
+    parser.add_argument("--uninstrumented-output", type=Path)
+    args = parser.parse_args()
+    flags = args.flag or ["-std=c89", "-D__unix__", "-DHAS_INTTYPES_H",
+                          "-DOPENDOORS_HAVE_VSNPRINTF=1"]
+    generate(args.source, args.function, args.case, args.output,
+             args.clang, flags, provided_variables=set(args.provided_variable),
+             uninstrumented_output=args.uninstrumented_output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

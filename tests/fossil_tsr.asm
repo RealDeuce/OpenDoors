@@ -1,4 +1,4 @@
-; Minimal FOSSIL-compatible test fixture for the DOS32 CI tests.
+; Minimal FOSSIL-compatible fixture for DOS unit tests.
 
 .8086
 .model tiny
@@ -41,11 +41,37 @@ fossil_handler proc far
         je      receive_block
         cmp     ah, 19h
         je      send_block
+        cmp     ah, 0fch
+        je      fixture_block_limit
+        cmp     ah, 0fdh
+        je      fixture_send_failures
+        cmp     ah, 0feh
+        je      fixture_control
         xor     ax, ax
         iret
 
 detect:
+        cmp     byte ptr cs:fossil_enabled, 0
+        je      detect_disabled
         mov     ax, 1954h
+        iret
+detect_disabled:
+        xor     ax, ax
+        iret
+
+fixture_control:
+        mov     cs:fossil_enabled, al
+        mov     ax, 1
+        iret
+
+fixture_send_failures:
+        mov     cs:send_failures, al
+        mov     ax, 1
+        iret
+
+fixture_block_limit:
+        mov     cs:block_limit, al
+        mov     ax, 1
         iret
 
 simple_success:
@@ -73,6 +99,12 @@ status_done:
         iret
 
 send_byte:
+        cmp     byte ptr cs:send_failures, 0
+        je      send_byte_ready
+        dec     byte ptr cs:send_failures
+        xor     ax, ax
+        iret
+send_byte_ready:
         push    bx
         mov     bx, cs:rx_tail
         mov     cs:rx_buffer[bx], al
@@ -111,6 +143,13 @@ send_block:
 send_block_loop:
         cmp     cx, 0
         je      send_block_done
+        cmp     byte ptr cs:block_limit, 0ffh
+        je      send_block_capacity
+        xor     bx, bx
+        mov     bl, cs:block_limit
+        cmp     si, bx
+        jae     send_block_done
+send_block_capacity:
         cmp     word ptr cs:rx_count, 4096
         jae     send_block_done
         mov     bx, cs:rx_tail
@@ -165,6 +204,9 @@ receive_block_done:
 fossil_handler endp
 
 dtr_state db 1
+fossil_enabled db 1
+send_failures db 0
+block_limit db 0ffh
 rx_head   dw 0
 rx_tail   dw 0
 rx_count  dw 0

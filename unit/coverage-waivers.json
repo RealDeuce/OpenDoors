@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "waivers": [
+    {
+      "source": "ODBlock.c",
+      "function": "od_scroll",
+      "platform": "unix",
+      "start_line": 730,
+      "end_line": 730,
+      "kind": "branch",
+      "reason": "Validated scroll widths are at least one, and the preceding loop leaves nCount in the inclusive range 1 through 255.",
+      "evidence": "nWidth is nRight - nLeft + 1 after nLeft <= nRight; while (nCount > 255) subtracts 255.",
+      "source_sha256": "e20864cd9c0a2d440d8f38174893ca2bbe32190507558b33db75e1a8bc8abebe"
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_scroll",
+      "platform": "pthread",
+      "start_line": 730,
+      "end_line": 730,
+      "kind": "branch",
+      "reason": "Validated scroll widths are at least one, and the preceding loop leaves nCount in the inclusive range 1 through 255.",
+      "evidence": "The arithmetic and loop are platform-independent.",
+      "source_sha256": "e20864cd9c0a2d440d8f38174893ca2bbe32190507558b33db75e1a8bc8abebe"
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_scroll",
+      "platform": "windows",
+      "start_line": 730,
+      "end_line": 730,
+      "kind": "branch",
+      "reason": "Validated scroll widths are at least one, and the preceding loop leaves nCount in the inclusive range 1 through 255.",
+      "evidence": "The arithmetic and loop are platform-independent.",
+      "source_sha256": "e20864cd9c0a2d440d8f38174893ca2bbe32190507558b33db75e1a8bc8abebe"
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_scroll",
+      "platform": "dos16",
+      "start_line": 730,
+      "end_line": 730,
+      "kind": "branch",
+      "reason": "Validated scroll widths are at least one, and the preceding loop leaves nCount in the inclusive range 1 through 255.",
+      "evidence": "INT remains sufficient because AVATAR widths above 255 are rejected and the non-AVATAR screen coordinate type bounds the valid width.",
+      "source_sha256": "e20864cd9c0a2d440d8f38174893ca2bbe32190507558b33db75e1a8bc8abebe"
+    },
+    {
+      "source": "ODBlock.c",
+      "function": "od_scroll",
+      "platform": "dos32",
+      "start_line": 730,
+      "end_line": 730,
+      "kind": "branch",
+      "reason": "Validated scroll widths are at least one, and the preceding loop leaves nCount in the inclusive range 1 through 255.",
+      "evidence": "The arithmetic and loop are platform-independent.",
+      "source_sha256": "e20864cd9c0a2d440d8f38174893ca2bbe32190507558b33db75e1a8bc8abebe"
+    }
+  ]
+}

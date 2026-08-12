@@ -1,0 +1,81 @@
+#define UT_CUSTOM_MOCK_ODDispatch
+#define UT_CUSTOM_MOCK_ODSyncAPIReacquire
+#define UT_CUSTOM_MOCK_ODSyncAPIRelease
+#define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
+
+static BOOL ut_owner;
+static unsigned ut_owner_calls;
+static unsigned ut_release_calls;
+static unsigned ut_dispatch_calls;
+static unsigned ut_reacquire_calls;
+static BOOL ut_allow_callbacks;
+static unsigned ut_reacquire_level;
+
+BOOL utm_ODSyncIsOwnerThread(void)
+{
+   ++ut_owner_calls;
+   return ut_owner;
+}
+
+unsigned utm_ODSyncAPIRelease(void)
+{
+   ++ut_release_calls;
+   return 3;
+}
+
+void utm_ODDispatch(BOOL allow_callbacks)
+{
+   ++ut_dispatch_calls;
+   ut_allow_callbacks = allow_callbacks;
+}
+
+void utm_ODSyncAPIReacquire(unsigned level)
+{
+   ++ut_reacquire_calls;
+   ut_reacquire_level = level;
+}
+
+static void reset_checkpoint(void)
+{
+   ut_owner = TRUE;
+   ut_owner_calls = 0;
+   ut_release_calls = 0;
+   ut_dispatch_calls = 0;
+   ut_reacquire_calls = 0;
+   ut_allow_callbacks = TRUE;
+   ut_reacquire_level = 0;
+   bODInitialized = TRUE;
+}
+
+static void returns_state_without_releasing_outside_an_owned_api_call(void)
+{
+   reset_checkpoint();
+   nAPILevel = 0;
+   UT_ASSERT_EQ_INT(TRUE, utt_ODSyncAPICheckpoint());
+   UT_ASSERT_EQ_UINT(0, ut_owner_calls);
+   UT_ASSERT_EQ_UINT(0, ut_release_calls);
+
+   nAPILevel = 1;
+   ut_owner = FALSE;
+   bODInitialized = FALSE;
+   UT_ASSERT_EQ_INT(FALSE, utt_ODSyncAPICheckpoint());
+   UT_ASSERT_EQ_UINT(1, ut_owner_calls);
+   UT_ASSERT_EQ_UINT(0, ut_release_calls);
+}
+
+static void releases_dispatches_and_reacquires_for_the_owner(void)
+{
+   reset_checkpoint();
+   nAPILevel = 1;
+   UT_ASSERT_EQ_INT(TRUE, utt_ODSyncAPICheckpoint());
+   UT_ASSERT_EQ_UINT(1, ut_release_calls);
+   UT_ASSERT_EQ_UINT(1, ut_dispatch_calls);
+   UT_ASSERT_EQ_INT(FALSE, ut_allow_callbacks);
+   UT_ASSERT_EQ_UINT(1, ut_reacquire_calls);
+   UT_ASSERT_EQ_UINT(3, ut_reacquire_level);
+}
+
+static const UTTestCase ut_cases[] = {
+   {"unowned checkpoint", returns_state_without_releasing_outside_an_owned_api_call},
+   {"owned checkpoint", releases_dispatches_and_reacquires_for_the_owner}
+};

@@ -41,6 +41,16 @@ jobs:
           echo "asset_version=$asset_version" >> "$GITHUB_OUTPUT"
           echo "tagged=$tagged" >> "$GITHUB_OUTPUT"
 
+      - name: Enforce strict unit-test coverage policy
+        run: python3 unit/tools/check.py
+
+  unit-tests:
+    name: Full strict unit suite
+    needs: validate
+    uses: ./.github/workflows/unit-tests.yml
+    with:
+      full: true
+
   windows-msvc:
     name: MSVC ${{ matrix.architecture }} SDK
     needs: validate
@@ -711,6 +721,7 @@ jobs:
       - dos-openwatcom32
       - dos-turboc
       - acceptance
+      - unit-tests
     runs-on: ubuntu-latest
     permissions:
       contents: write

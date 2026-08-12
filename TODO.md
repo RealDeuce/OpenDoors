@@ -1,5 +1,132 @@
 # OpenDoors TODO
 
+## Defects found during unit-test implementation
+
+- [ ] Report no byte for a nonblocking socket receive that would block. In
+  `ODComGetByte()`, `recv()` returning `SOCKET_ERROR` with
+  `WSAEWOULDBLOCK` leaves the retry loop when `bWait` is false, then falls
+  through as `kODRCSuccess` without storing a byte. Preserve this existing
+  behavior until a test-driven fix establishes the intended result.
+
+- [ ] Do not write stdio output after its readiness wait expires. In
+  `ODComSendByte()`, ten consecutive `select()` timeouts currently leave
+  `retval` at -1, exit the bounded loop, and proceed to `fwrite()` even though
+  stdout was never reported writable. Preserve this existing behavior until a
+  test-driven fix defines and verifies the intended timeout result.
+
+- [ ] Initialize the complete `struct tm` in `DOSToCTime()`. The non-Turbo
+  implementation assigns the six encoded calendar fields but leaves
+  `tm_isdst` indeterminate before calling `mktime()`, so daylight-saving
+  interpretation can depend on uninitialized automatic storage.
+
+- [ ] Return an OpenDoors result code from Unix `ODFileDelete()`. The Unix
+  branch currently returns `unlink()` directly, producing `-1` on failure
+  instead of the documented `kODRCGeneralFailure` used by the other platform
+  implementations.
+
+- [ ] Correct the pthread `ODThreadSleep()` interruption test. POSIX
+  `nanosleep()` reports interruption by returning `-1` and setting `errno` to
+  `EINTR`; the current loop compares the return value itself with `EINTR`, so
+  an interrupted sleep returns early instead of resuming with the remaining
+  interval.
+
+- [ ] Place `static` before `const` in `ODCom.c`'s
+  `cp437_unicode_table` declaration. MinGW diagnoses the current
+  `const static` order with `-Wold-style-declaration`, and because the table
+  is file-scope state in every isolated `ODCom.c` unit, `-Werror` prevents
+  every such Windows unit from compiling before its selected function runs.
+
+- [x] Split exact Turbo unit execution around a host WASM assembly pass.
+  DOS JWasm 2.20 could write an object and then run indefinitely under
+  DOSBox for otherwise valid generated assembly. Turbo C now emits and
+  normalizes every selected assembly file in one DOSBox pass, host Open
+  Watcom WASM creates the OMF objects, and a second DOSBox pass links and
+  executes them with Turbo C.
+
+- [x] Avoid function-local `static const` arrays in Turbo-compatible tests.
+  Turbo C 2.01 generated references relative to its BSS base while emitting
+  the initializer bytes in the data segment, so every element read as zero.
+  The affected kernel switch test now spells out its eight inputs while
+  preserving the same branch coverage.
+
+- [ ] Narrow the repeated initialized-state term in deferred timer dispatch.
+  On the pthread path, `ODKrnlDispatchPending()` already returns when
+  OpenDoors is not initialized and makes no intervening call capable of
+  clearing that state before timer dispatch, so the duplicate term cannot
+  independently affect the decision. The Windows frame-update callbacks can
+  end the session and therefore still require the later guard.
+
+- [ ] Preserve a received UART byte while lowering RTS in
+  `ODComInternalISR()`. The receive-data path reused its byte temporary to
+  read the modem-control register at the high-water mark, then enqueued that
+  modem-control value instead of the byte received from the UART. The received
+  byte needs separate storage from subsequent register operations.
+
+- [ ] Store the interrupt-vector segment returned by DOS in
+  `ODComGetVect()`. The Borland inline-assembly path stored `BX` into both
+  words of its far function pointer instead of storing the `ES:BX` returned
+  by DOS interrupt 21h function 35h. The exact Turbo C regression test
+  installs, obtains, compares, and restores a disposable interrupt vector.
+
+- [x] Analyze Turbo C unit tests with the exact Turbo preprocessor path. The
+  Turbo runner currently recompiles translation units generated from a Watcom
+  16-bit analysis. A function containing `__WATCOMC__` alternatives can
+  therefore be instrumented as the Watcom implementation but compiled as the
+  Borland implementation, invalidating both its mocks and coverage model. The
+  Turbo path must generate from Turbo-compatible definitions and route any
+  selected inline assembly through the configured WASM/TASM-compatible step.
+
+- [x] Analyze Windows unit tests with Windows platform definitions. The unit
+  runner previously generated isolated translation units using a host-UNIX
+  Clang AST and then compiled them with MinGW, so Windows-only functions and
+  dependencies could remain active but unisolated. The analyzer now uses a
+  GNU Windows target, with a regression requiring the corresponding target
+  flag before either MinGW architecture is compiled.
+
+- [x] Do not replay cross-target coverage through the host Unix preprocessor.
+  A Windows-modeled unit retained platform guards and target-only coverage
+  probes, but the independent LLVM executable was then compiled and run as
+  Unix. It executed different, uninstrumented branches and could neither test
+  nor satisfy the Windows coverage model. LLVM coverage is now limited to the
+  host-compatible Unix configurations; Windows and DOS retain strict branch
+  and MC/DC gating through portable probes executed by their target compiler.
+
+- [x] Preserve DOS unit-test assertion output on failure. The Watcom runner
+  previously left stdout on the emulated display and retained only a `.BAD`
+  marker, so a failed CI test identified the function but not its assertion.
+  Each DOS test now writes a separate `.OUT` file and the runner includes its
+  contents in the aggregated failure report.
+
+- [x] Keep Turbo unit configuration out of its 126-byte DOS command tail.
+  Repeating several manifest `-D`/`-U` options after generating an already
+  configured translation unit truncated the TCC command before its filename,
+  yielding the misleading error “No file names given.” Configuration defines
+  and undefines are now reasserted in the generated source; only a Turbo-shard
+  selector, when needed, remains on the compiler command line.
+
+- [x] Preserve and require LLVM MC/DC records for instrumented nested boolean
+  expressions. The portable condition probes currently turn expressions such
+  as `active && !(inside && owner)` into a form for which Clang declines MC/DC
+  mapping, and the LLVM coverage gate does not reject a missing MC/DC record.
+  Portable MC/DC remains green, but the intended independent LLVM oracle is
+  absent at those sites.
+  The LLVM gate now compares mapped records with every modeled compound
+  decision and reports, waives, or fails absent records explicitly.
+
+- [ ] Discard every fragment of an overlong `FILES.BBS` line in
+  `od_list_files()`. When `ODStringNormalizeLine()` reports the first truncated
+  fragment as incomplete, [`ODList.c`](ODList.c) marks later fragments for
+  suppression but continues parsing and displaying the first fragment. This
+  can display a fabricated entry and perform a filesystem lookup using an
+  incomplete filename token.
+
+- [ ] Preserve the first eight characters of an overlength undotted filename
+  in `ODListFilenameSplit()`. [`ODList.c`](ODList.c) currently reports the
+  filename component as present but copies zero characters when the base name
+  exceeds eight characters and has no extension. The equivalent dotted case
+  retains the first eight characters, so an undotted entry can resolve to an
+  empty filename instead of receiving the same eight-character truncation.
+
 ## Defects found during DOS32 serial acceptance testing
 
 - [x] Give the DOS find-first/find-next transfer area its required packed
@@ -613,3 +740,232 @@
   The primitive `EXITINFO.BBS` time-limit calculation uses the same private
   elapsed-minutes helper, so clock failure and backward movement have the same
   retain-existing-value fallback in both paths.
+
+- [ ] Accept an empty string in `ODStringToName()` without reading before it.
+  [`ODCore.c`](ODCore.c) indexes `strlen(pszToConvert) - 1` while checking for
+  trailing newline and carriage-return characters. For an empty custom
+  drop-file field, that expression reads one byte before the supplied buffer.
+
+- [ ] Handle a failed local-time conversion while deciding whether to page.
+  [`od_page()`](ODCore.c) dereferences the result of `localtime()` without
+  checking it. If the current time cannot be converted, a nonblank page reason
+  crashes before `od_okaytopage` can allow or reject the request.
+
+- [ ] Prevent `od_edit_str()` from inserting Control-Y into unrestricted fields.
+  The Control-Y handler clears the current value by jumping into the shared
+  whole-line deletion block, but then falls through to ordinary character
+  insertion with the original Control-Y byte. The unrestricted `?` format
+  accepts that byte, so the documented erase-field command leaves a one-byte
+  control character instead of an empty value.
+- [ ] Ensure `ODInitReadSFDoorsDAT()` closes `SFDOORS.DAT` when a mandatory
+  line is missing. Each of the first 32 failed `fgets()` paths currently
+  returns without closing the successfully opened stream.
+
+- [ ] Invalidate only the rectangle changed by `ODScrnPutText()` on Windows.
+  [`ODScrn.c`](ODScrn.c) adds the requested zero-based right and bottom
+  coordinates to the active window's right and bottom boundaries. The left
+  and top coordinates are instead added to their corresponding starting
+  boundaries, so a write to a subrectangle can invalidate an unrelated and
+  potentially out-of-window area.
+
+- [ ] Validate complete, ordered source and destination rectangles in
+  `ODScrnCopyText()`. [`ODScrn.c`](ODScrn.c) checks each supplied coordinate
+  against the active window independently, but does not require left to be no
+  greater than right or top to be no greater than bottom. It also checks only
+  the destination origin, although the function contract requires the whole
+  copied rectangle to fit. Invalid input can therefore underflow the temporary
+  allocation size or pass out-of-window coordinates to `ODScrnPutText()`.
+
+- [ ] Handle one-row boundaries in `ODScrnScrollUpOneLine()`.
+  [`ODScrn.c`](ODScrn.c) calculates the number of rows to move as bottom minus
+  top and executes that copy with a `do` loop. A valid one-row boundary makes
+  the byte count zero, but the loop still runs and then underflows it to 255,
+  copying well beyond the boundary instead of merely clearing its only row.
+
+- [ ] Advance past silent bells and tab characters in `ODScrnDisplayBuffer()`.
+  [`ODScrn.c`](ODScrn.c) advances its input pointer for an audible bell but not
+  for a bell suppressed by silent mode, and never advances it for a tab. The
+  loop count still decreases, so every remaining iteration processes the same
+  control byte and any following buffered characters are discarded.
+
+- [ ] Use the tab-expanded column when `ODScrnDisplayBuffer()` positions its
+  destination pointer. After calculating the next tab stop in
+  `btCurrentColumn`, [`ODScrn.c`](ODScrn.c) rebuilds `pDest` with the unchanged
+  `btCursorColumn`. Once input advancement is corrected, the next printable
+  character would therefore be stored at the pre-tab position while cursor
+  and invalidation accounting report the expanded position.
+
+- [ ] Repair or remove the dormant `USE_KERNEL_SIGNAL` no-carrier handler.
+  [`sig_no_carrier()`](ODKrnl.c) contains the incomplete expression
+  `od_control.baud != 0 &&`, so enabling this Unix-only configuration cannot
+  compile and its intended additional condition is not recoverable from the
+  implementation alone.
+
+- [ ] Use an array-compatible type for key-sequence table indices.
+  [`ODLongestFullCode()`](ODGetIn.c), [`ODHaveStartOfSequence()`](ODGetIn.c),
+  and [`ODGetCodeIfLongest()`](ODGetIn.c) compare a signed `int` index with the
+  unsigned result of `DIM(aKeySequences)`, producing strict modern-compiler
+  warnings. Any correction must retain values and arithmetic suitable for
+  16-bit DOS compilers.
+
+- [ ] Use an array-compatible type for the Windows key-table index in
+  `ODScrnWindowProc()`. [`ODScrn.c`](ODScrn.c) declares `nKeyTableIndex` as a
+  signed `int` and compares it with the unsigned result of
+  `DIM(aWinKeyToODKey)`, producing a strict MinGW warning. Any correction must
+  retain a type and loop form accepted by the supported legacy compilers.
+
+- [ ] Explicitly discard the reserved `od_window_create()` argument.
+  In non-debug builds, [`od_window_create()`](ODWin.c) assigns zero to
+  `nReserved` but never reads it, producing a strict modern-compiler warning.
+  Preserve the existing public signature and behavior while expressing that
+  the reserved argument is intentionally unused.
+
+- [ ] Remove unreachable configuration-token overflow handling.
+  [`ODConfigInit()`](ODCFile.c) increments `wCurrent` only while it is below
+  32, so the following `wCurrent <= 32` test is always true and its overflow
+  branch cannot run. Preserve the established 32-character truncation while
+  making the bound and termination behavior explicit.
+
+- [ ] Remove the invariant configuration-scan completion test.
+  [`ODConfigInit()`](ODCFile.c) always lets its `wCurrent < TEXT_SIZE` keyword
+  loop terminate normally, including after a built-in match, so the later
+  `wCurrent >= TEXT_SIZE` callback condition is always true. Preserve the
+  established behavior in which the developer callback receives every
+  configuration line.
+
+- [x] Give each unit-test platform a distinct generated build path.
+  Concurrent selector runs for the same source and function currently write
+  the same generated source, object, and executable names. Running Unix and
+  pthread coverage together can therefore corrupt a compiler input while it
+  is being parsed; Clang 19 crashed when the two `ODComInbound` runs collided.
+  Default output paths now include the platform, DOS Watcom convention, and
+  Windows architecture; explicit `--build` paths remain supported.
+
+- [x] Allow enough DOSBox runtime for the complete unit suite.
+  The Watcom runner uses a fixed 120-second default and killed the DOS16 batch
+  after 252 cases, causing every remaining coverage record to be reported as
+  missing. Use a full-suite allowance consistent with the Turbo C runner while
+  retaining the explicit timeout override.
+
+- [ ] Test the Windows communications event mask instead of its union.
+  [`ODComWaitEvent()`](ODCom.c) uses bitwise OR when deciding whether a
+  completed wait includes `EV_RLSD`. Since that expression is always nonzero,
+  an unrelated event causes a carrier-status query and can make the function
+  return before the requested carrier-loss event occurs.
+
+- [ ] Remove the dominated unknown-attribute check from ANSI brightness output.
+  The brightness comparison in [`od_set_attrib()`](ODCore.c) is inside the
+  `else` of a test that handles `od_control.od_cur_attrib == -1`, so its own
+  repeated `od_cur_attrib == -1` term cannot be true. The original
+  implementation and its behavioral unit suite must be retained as the
+  pre-refactor baseline before simplifying this decision.
+
+- [ ] Remove the invariant `bNormal` edit-loop dispatch.
+  [`od_edit_str()`](ODEdStr.c) initializes `bNormal` to `TRUE`, never changes
+  it, and then conditionally jumps to `keep_going` when it is true. The false
+  path is unreachable, so the variable and conditional obscure the actual
+  unconditional initial control flow.
+
+- [ ] Express the chat input-color transition as the Boolean state change it
+  tests. [`ODKrnlChatMode()`](ODKrnl.c) repeated both the input-source and
+  current-color terms to spell out their two differing combinations. The
+  equivalent inequality would retain the established behavior while allowing
+  each decision condition to be tested independently.
+
+- [ ] Mark the unused signal numbers in the legacy Unix kernel handlers.
+  [`sig_run_kernel()`](ODKrnl.c) and [`sig_get_char()`](ODKrnl.c) should
+  explicitly discard the required POSIX handler argument, allowing their dormant
+  `USE_KERNEL_SIGNAL` configuration to compile under strict warnings.
+
+- [ ] Remove dominated section-found checks from the section-file scanners.
+  Both loops in [`od_send_file_section()`](ODEmu.c) repeated
+  `bSectionFound` in an `else if` reached only after the two not-found paths
+  had failed. Removing the locally guaranteed term retains the established
+  section boundary behavior and makes the actual marker decision independently
+  testable.
+
+- [ ] Remove dominated ANSI erase-command parameter-count checks.
+  In [`ODEmulateFromBuffer()`](ODEmu.c), the final `J` branch and the latter
+  two `K` branches can only be reached after the zero-parameter cases have
+  failed. Their repeated `btNumParams >= 1` terms were therefore guaranteed;
+  retaining only the parameter-value tests preserves terminal behavior and
+  permits independent MC/DC evidence.
+
+- [ ] Use a compiler-recognized fallthrough annotation in the emulator.
+  The escape-character branch in [`ODEmulateFromBuffer()`](ODEmu.c) intentionally
+  reaches the ordinary AVATAR dispatcher when an AVATAR sequence is active.
+  Its historical prose comment did not suppress GCC's strict fallthrough
+  warning. Use a form recognized by supported modern compilers without
+  changing the established control flow or breaking legacy compilers.
+
+- [ ] Preserve a detected DESQview or Windows multitasker in the Turbo C
+  `ODPlatInit()` path. Unlike the Watcom implementation, the inline-assembly
+  implementation falls through after assigning `kMultitaskerDV` and
+  `kMultitaskerWin`, then unconditionally assigns `kMultitaskerNone`. As a
+  result, only its OS/2 branch can currently retain a detected multitasker.
+
+- [ ] Use an unsigned path index in the Unix `ODDirRead()` implementation.
+  [`ODPlat.c`](ODPlat.c) stores the current `glob()` position in an `int` but
+  compares it with `glob_t.gl_pathc`, whose type is `size_t`. This produces a
+  signed/unsigned comparison warning and can represent only part of the
+  theoretical `glob()` result range where `int` is narrower than `size_t`.
+
+- [ ] Replace the Unix `ODDirRead()` EOF-controlled loop with an unconditional
+  search loop. Every branch that sets `bEOF` also returns from the function,
+  so the false outcome of `while(!pDirInfo->bEOF)` cannot be reached. Expressing
+  the loop as unconditional would preserve behavior and remove the misleading
+  dead exit condition.
+
+- [ ] Initialize every field of `ODEditOptionsDefault`.
+  [`ODEdit.c`](ODEdit.c) predates the `pszFinalBuffer` member now present at
+  the end of `tODEditOptions`, so its positional initializer stops after
+  `wFlags`. Static storage still zero-initializes the omitted pointer, but
+  strict modern compilers report the incomplete initializer.
+
+- [ ] Compile the `ODEditTryToGrow()` size-width check only when `size_t` is
+  wider than `UINT`. The `nGrownSize > (UINT)-1` defense is meaningful on
+  64-bit targets, but is invariantly false on Windows x86 where both types are
+  32-bit, leaving an unreachable MC/DC condition in that configuration.
+
+- [ ] Remove or justify the unreachable unfinished-range fallback in
+  `ODEditDetermineChanged()`. Once a difference sets `bFoundStart`, each inner
+  line scan continues until equal characters or one of the two line endings
+  sets `bFoundFinish`; the scan cannot leave its line while that flag remains
+  false. Consequently, the final `if(!bFoundFinish)` body cannot execute.
+
+- [ ] Preserve the width-boundary character when hard-wrapping editor text.
+  `ODEditBufferFormatAndIndex()` breaks with `pch` pointing at the ordinary
+  character that reached the width limit, then follows the same path used for
+  an explicit EOL and increments `pch`. Word wrapping deliberately consumes
+  the selected space, but hard wrapping currently drops a real character from
+  the indexed display.
+
+- [ ] Remove the contradictory NUL path from the paired-EOL test in
+  `ODEditEnterText()`. `IS_EOL_CHAR(pch[1])` treats NUL as an EOL character,
+  but the same condition immediately requires `pch[1] != '\0'`. The behavior
+  is correct, but the expanded expression contains conditions that cannot vary
+  independently for MC/DC.
+
+- [ ] Destroy the time-edit control when toolbar construction fails after
+  creating it. `ODFrameCreateToolbar()` currently calls
+  `DestroyWindow(hwndTimeUpDown)` in both cleanup branches; when creation of
+  the up-down control fails, that value is `NULL`, the successfully created
+  edit control is leaked, and its subclass remains installed until its parent
+  is destroyed.
+
+- [ ] Unwind DOS screen state and allocations when `od_spawnvpe()` loses its
+  initialized session while draining output. The DOS path allocates its screen
+  and directory buffers, saves and changes the screen boundary, attribute, and
+  cursor state, then returns immediately if `ODWaitDrain()` leaves
+  `bODInitialized` false. That return currently leaks both allocations and
+  leaves the locally modified screen state in place instead of using the normal
+  restoration path.
+
+- [x] Diagnose the Windows `ODLog` isolated-test null-page fault.
+  The generated `od_log_open()` unit executable faults while reading address
+  zero under both 32-bit and 64-bit Wine. The following `od_log_write()` and
+  `ODLogClose()` cases fail similarly, so their shared fixture or production
+  state must be inspected in a debugger before changing expectations or code.
+  Address-to-line and instruction inspection identified MinGW's `_errno()`
+  accessor as the null return. The test-only errno fixture now supplies that
+  Windows CRT accessor, and strict x86 and x64 `ODLog.c` suites pass.
