@@ -386,7 +386,9 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    /* Remember when spawned to program was executed. */
    nStartUnixTime = time(NULL);
 
-   if(nModeFlag == P_WAIT)
+#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
+   if(nModeFlag != P_WAIT) goto after_wait_shutdown;
+#endif
    {
       /* Display the spawn message box under Win32. */
 #ifdef ODPLAT_WIN32
@@ -421,6 +423,9 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
          ODComClose(hSerialPort);
       }
    }
+#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
+after_wait_shutdown:
+#endif
 
 #ifdef OD_MULTITHREADED
    if(nModeFlag != P_WAIT)
@@ -439,7 +444,9 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
       ODSyncAPIReacquire(nSavedAPILevel);
 #endif /* OD_MULTITHREADED */
 
-   if(nModeFlag == P_WAIT)
+#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
+   if(nModeFlag != P_WAIT) goto after_wait_restart;
+#endif
    {
       /* Re-open serial port. */
       if(od_control.baud != 0)
@@ -482,6 +489,9 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
       ODScrnRemoveMessage(pWindow);
 #endif /* ODPLAT_WIN32 */
    }
+#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
+after_wait_restart:
+#endif
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    /* Redisplay the door screen. */

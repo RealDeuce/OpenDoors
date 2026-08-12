@@ -60,7 +60,6 @@ typedef struct
 #ifdef OD_MULTITHREADED
    tODSemaphoreHandle hItemCountSemaphore;
    tODMutex QueueMutex;
-   BOOL bQueueMutexInitialized;
 #endif /* OD_MULTITHREADED */
 } tInputQueueInfo;
 
@@ -106,7 +105,6 @@ tODResult ODInQueueAlloc(tODInQueueHandle *phInQueue, INT nInitialQueueSize)
    /* Initialize semaphore handles to NULL. */
 #ifdef OD_MULTITHREADED
    pInputQueueInfo->hItemCountSemaphore = NULL;
-   pInputQueueInfo->bQueueMutexInitialized = FALSE;
 #endif /* OD_MULTITHREADED */
    
    /* Attempt to allocate space for the queue itself. */
@@ -125,7 +123,6 @@ tODResult ODInQueueAlloc(tODInQueueHandle *phInQueue, INT nInitialQueueSize)
    {
       goto CleanUp;
    }
-   pInputQueueInfo->bQueueMutexInitialized = TRUE;
 #endif /* OD_MULTITHREADED */
 
    /* Initialize input queue information structure. */
@@ -151,12 +148,11 @@ CleanUp:
       {
          ODSemaphoreFree(pInputQueueInfo->hItemCountSemaphore);
       }
-
-      if(pInputQueueInfo != NULL && pInputQueueInfo->bQueueMutexInitialized)
-         ODMutexDestroy(&pInputQueueInfo->QueueMutex);
 #endif /* OD_MULTITHREADED */
 
+#ifdef OD_MULTITHREADED
       if(pInputQueue != NULL) free(pInputQueue);
+#endif
       if(pInputQueueInfo != NULL) free(pInputQueueInfo);
       *phInQueue = ODPTR2HANDLE(NULL, tInputQueueInfo);
    }
@@ -185,7 +181,6 @@ void ODInQueueFree(tODInQueueHandle hInQueue)
 #ifdef OD_MULTITHREADED
    ASSERT(pInputQueueInfo->hItemCountSemaphore != NULL);
    ODSemaphoreFree(pInputQueueInfo->hItemCountSemaphore);
-   ASSERT(pInputQueueInfo->bQueueMutexInitialized);
    ODMutexDestroy(&pInputQueueInfo->QueueMutex);
 #endif /* OD_MULTITHREADED */
 
@@ -381,8 +376,6 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
          /* Call od_kernel(). */
          if (Timeout == OD_NO_TIMEOUT)
             ODMaxMSToWait = 250; /* Kernel timer period. */
-         else if (Timeout == 0)
-            ODMaxMSToWait = 1;
          else {
             ODMaxMSToWait = ODTimerLeft(&Timer);
             if (ODMaxMSToWait == 0)

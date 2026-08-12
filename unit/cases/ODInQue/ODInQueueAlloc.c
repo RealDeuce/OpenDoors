@@ -193,7 +193,6 @@ static void initializes_a_queue(void)
 #ifdef OD_MULTITHREADED
    UT_ASSERT(info->hItemCountSemaphore ==
       (tODSemaphoreHandle)(void *)&ut_semaphore_token);
-   UT_ASSERT(info->bQueueMutexInitialized);
 #endif
 }
 

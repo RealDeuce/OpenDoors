@@ -1,13 +1,6 @@
 {
   "version": 1,
-  "source_native_flags": {
-    "ODCom.c": {
-      "windows": [
-        "-Wno-unknown-warning-option",
-        "-Wno-old-style-declaration"
-      ]
-    }
-  },
+  "source_native_flags": {},
   "tests": [
     {
       "source": "ODPlat.c", "function": "ODTimerStart",
@@ -139,8 +132,7 @@
       "case": "unit/cases/ODPlat/ODDirRead.c",
       "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
       "configurations": [{
-        "name": "default",
-        "native_flags": ["-Wno-sign-compare"]
+        "name": "default"
       }]
     },
     {
@@ -148,45 +140,45 @@
       "case": "unit/cases/ODPlat/od_sleep.c",
       "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
     },
-    {"source":"ODEdit.c","function":"ODEditGetCurrentLineInArea","case":"unit/cases/ODEdit/ODEditGetCurrentLineInArea.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditPastEndOfCurLine","case":"unit/cases/ODEdit/ODEditPastEndOfCurLine.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditRememberBufferSize","case":"unit/cases/ODEdit/ODEditRememberBufferSize.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditBufferGetTotalLines","case":"unit/cases/ODEdit/ODEditBufferGetTotalLines.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditBufferGetCharacter","case":"unit/cases/ODEdit/ODEditBufferGetCharacter.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditIsEOLForMode","case":"unit/cases/ODEdit/ODEditIsEOLForMode.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditGetActualCurPos","case":"unit/cases/ODEdit/ODEditGetActualCurPos.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditBufferGetLineLength","case":"unit/cases/ODEdit/ODEditBufferGetLineLength.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditCursorLeft","case":"unit/cases/ODEdit/ODEditCursorLeft.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditRecommendFullRedraw","case":"unit/cases/ODEdit/ODEditRecommendFullRedraw.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditEstDrawBytes","case":"unit/cases/ODEdit/ODEditEstDrawBytes.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditUpdateCursorPos","case":"unit/cases/ODEdit/ODEditUpdateCursorPos.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditUpdateCursorIfMoved","case":"unit/cases/ODEdit/ODEditUpdateCursorIfMoved.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditTryToGrow","case":"unit/cases/ODEdit/ODEditTryToGrow.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditBufferMakeSpace","case":"unit/cases/ODEdit/ODEditBufferMakeSpace.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditSetBreakSequence","case":"unit/cases/ODEdit/ODEditSetBreakSequence.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditCleanupInstance","case":"unit/cases/ODEdit/ODEditCleanupInstance.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditRememberArea","case":"unit/cases/ODEdit/ODEditRememberArea.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditGotoPreviousLine","case":"unit/cases/ODEdit/ODEditGotoPreviousLine.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditGotoNextLine","case":"unit/cases/ODEdit/ODEditGotoNextLine.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditDeleteCurrentChar","case":"unit/cases/ODEdit/ODEditDeleteCurrentChar.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditDeleteCurrentLine","case":"unit/cases/ODEdit/ODEditDeleteCurrentLine.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditRedrawArea","case":"unit/cases/ODEdit/ODEditRedrawArea.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditDrawAreaLine","case":"unit/cases/ODEdit/ODEditDrawAreaLine.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditRedrawChanged","case":"unit/cases/ODEdit/ODEditRedrawChanged.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditScrollArea","case":"unit/cases/ODEdit/ODEditScrollArea.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditRedrawSubArea","case":"unit/cases/ODEdit/ODEditRedrawSubArea.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditDetermineChanged","case":"unit/cases/ODEdit/ODEditDetermineChanged.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditBufferFormatAndIndex","case":"unit/cases/ODEdit/ODEditBufferFormatAndIndex.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditEnterText","case":"unit/cases/ODEdit/ODEditEnterText.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditSetupInstance","case":"unit/cases/ODEdit/ODEditSetupInstance.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"ODEditMainLoop","case":"unit/cases/ODEdit/ODEditMainLoop.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODEdit.c","function":"od_multiline_edit","case":"unit/cases/ODEdit/od_multiline_edit.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"default","native_flags":["-Wno-missing-field-initializers"]}]},
-    {"source":"ODCom.c","function":"ODComClose","case":"unit/cases/ODCom/ODComClose.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable","close=UTCloseSocket"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration"]}]},
-    {"source":"ODCom.c","function":"ODComOpen","case":"unit/cases/ODCom/ODComOpen.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration","-Wno-cast-function-type"],"windows_fixture":"unit/fixtures/door32/door32.c","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
-    {"source":"ODCom.c","function":"ODComSendByte","case":"unit/cases/ODCom/ODComSendByte.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration"],"turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
-    {"source":"ODCom.c","function":"ODComGetByte","case":"unit/cases/ODCom/ODComGetByte.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
-    {"source":"ODCom.c","function":"ODComGetBuffer","case":"unit/cases/ODCom/ODComGetBuffer.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm"}]},
-    {"source":"ODCom.c","function":"ODComSendBuffer","case":"unit/cases/ODCom/ODComSendBuffer.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-unknown-warning-option","-Wno-old-style-declaration"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
+    {"source":"ODEdit.c","function":"ODEditGetCurrentLineInArea","case":"unit/cases/ODEdit/ODEditGetCurrentLineInArea.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditPastEndOfCurLine","case":"unit/cases/ODEdit/ODEditPastEndOfCurLine.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditRememberBufferSize","case":"unit/cases/ODEdit/ODEditRememberBufferSize.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditBufferGetTotalLines","case":"unit/cases/ODEdit/ODEditBufferGetTotalLines.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditBufferGetCharacter","case":"unit/cases/ODEdit/ODEditBufferGetCharacter.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditIsEOLForMode","case":"unit/cases/ODEdit/ODEditIsEOLForMode.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditGetActualCurPos","case":"unit/cases/ODEdit/ODEditGetActualCurPos.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditBufferGetLineLength","case":"unit/cases/ODEdit/ODEditBufferGetLineLength.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditCursorLeft","case":"unit/cases/ODEdit/ODEditCursorLeft.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditRecommendFullRedraw","case":"unit/cases/ODEdit/ODEditRecommendFullRedraw.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditEstDrawBytes","case":"unit/cases/ODEdit/ODEditEstDrawBytes.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditUpdateCursorPos","case":"unit/cases/ODEdit/ODEditUpdateCursorPos.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditUpdateCursorIfMoved","case":"unit/cases/ODEdit/ODEditUpdateCursorIfMoved.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditTryToGrow","case":"unit/cases/ODEdit/ODEditTryToGrow.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditBufferMakeSpace","case":"unit/cases/ODEdit/ODEditBufferMakeSpace.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditSetBreakSequence","case":"unit/cases/ODEdit/ODEditSetBreakSequence.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditCleanupInstance","case":"unit/cases/ODEdit/ODEditCleanupInstance.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditRememberArea","case":"unit/cases/ODEdit/ODEditRememberArea.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditGotoPreviousLine","case":"unit/cases/ODEdit/ODEditGotoPreviousLine.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditGotoNextLine","case":"unit/cases/ODEdit/ODEditGotoNextLine.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditDeleteCurrentChar","case":"unit/cases/ODEdit/ODEditDeleteCurrentChar.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditDeleteCurrentLine","case":"unit/cases/ODEdit/ODEditDeleteCurrentLine.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditRedrawArea","case":"unit/cases/ODEdit/ODEditRedrawArea.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditDrawAreaLine","case":"unit/cases/ODEdit/ODEditDrawAreaLine.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditRedrawChanged","case":"unit/cases/ODEdit/ODEditRedrawChanged.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditScrollArea","case":"unit/cases/ODEdit/ODEditScrollArea.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditRedrawSubArea","case":"unit/cases/ODEdit/ODEditRedrawSubArea.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditDetermineChanged","case":"unit/cases/ODEdit/ODEditDetermineChanged.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditBufferFormatAndIndex","case":"unit/cases/ODEdit/ODEditBufferFormatAndIndex.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditEnterText","case":"unit/cases/ODEdit/ODEditEnterText.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditSetupInstance","case":"unit/cases/ODEdit/ODEditSetupInstance.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditMainLoop","case":"unit/cases/ODEdit/ODEditMainLoop.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"od_multiline_edit","case":"unit/cases/ODEdit/od_multiline_edit.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODCom.c","function":"ODComClose","case":"unit/cases/ODCom/ODComClose.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable","close=UTCloseSocket"]}]},
+    {"source":"ODCom.c","function":"ODComOpen","case":"unit/cases/ODCom/ODComOpen.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"native_flags":["-Wno-cast-function-type"],"windows_fixture":"unit/fixtures/door32/door32.c","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
+    {"source":"ODCom.c","function":"ODComSendByte","case":"unit/cases/ODCom/ODComSendByte.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
+    {"source":"ODCom.c","function":"ODComGetByte","case":"unit/cases/ODCom/ODComGetByte.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
+    {"source":"ODCom.c","function":"ODComGetBuffer","case":"unit/cases/ODCom/ODComGetBuffer.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["_disable=UTDisable","_enable=UTEnable"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm"}]},
+    {"source":"ODCom.c","function":"ODComSendBuffer","case":"unit/cases/ODCom/ODComSendBuffer.c","platforms":["unix","pthread","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
     {"source":"ODInEx2.c","function":"ODOwnerThreadSleep","case":"unit/cases/ODInEx2/ODOwnerThreadSleep.c","platforms":["windows"]},
     {"source":"ODInEx2.c","function":"ODDiagnosticMessage","case":"unit/cases/ODInEx2/ODDiagnosticMessage.c","platforms":["windows"],"configurations":[{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"]}]},
     {"source":"ODInEx2.c","function":"ODInExDisableDTR","case":"unit/cases/ODInEx2/ODInExDisableDTR.c","platforms":["windows"],"configurations":[{"name":"release"},{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"]}]},
@@ -430,7 +422,7 @@
     {"source":"ODScrn.c","function":"ODScrnAdjustWindows","case":"unit/cases/ODScrn/ODScrnAdjustWindows.c","platforms":["windows"]},
     {"source":"ODScrn.c","function":"ODScrnCreateWin","case":"unit/cases/ODScrn/ODScrnCreateWin.c","platforms":["windows"]},
     {"source":"ODScrn.c","function":"ODScrnPaint","case":"unit/cases/ODScrn/ODScrnPaint.c","platforms":["windows"]},
-    {"source":"ODScrn.c","function":"ODScrnWindowProc","case":"unit/cases/ODScrn/ODScrnWindowProc.c","platforms":["windows"],"configurations":[{"name":"default","native_flags":["-Wno-sign-compare"]}]},
+    {"source":"ODScrn.c","function":"ODScrnWindowProc","case":"unit/cases/ODScrn/ODScrnWindowProc.c","platforms":["windows"]},
     {"source":"ODScrn.c","function":"ODScrnThreadProc","case":"unit/cases/ODScrn/ODScrnThreadProc.c","platforms":["windows"]},
     {"source":"ODScrn.c","function":"ODScrnInitialize","case":"unit/cases/ODScrn/ODScrnInitialize.c","platforms":["unix","pthread","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlInitialize","case":"unit/cases/ODKrnl/ODKrnlInitialize.c","platforms":["unix","pthread","windows","dos16","dos32"]},
@@ -444,9 +436,6 @@
     {"source":"ODKrnl.c","function":"ODKrnlChatMode","case":"unit/cases/ODKrnl/ODKrnlChatMode.c","platforms":["unix","pthread","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlChatCleanup","case":"unit/cases/ODKrnl/ODKrnlChatCleanup.c","platforms":["unix","pthread","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"od_kernel","case":"unit/cases/ODKrnl/od_kernel.c","platforms":["unix","pthread","windows","dos16","dos32"]},
-    {"source":"ODKrnl.c","function":"sig_run_kernel","case":"unit/cases/ODKrnl/sig_run_kernel.c","platforms":["unix"],"configurations":[{"name":"signal-kernel","defines":["USE_KERNEL_SIGNAL"]}]},
-    {"source":"ODKrnl.c","function":"sig_get_char","case":"unit/cases/ODKrnl/sig_get_char.c","platforms":["unix"],"configurations":[{"name":"signal-kernel","defines":["USE_KERNEL_SIGNAL"]}]},
-    {"source":"ODKrnl.c","function":"sig_no_carrier","case":"unit/cases/ODKrnl/sig_no_carrier.c","platforms":["unix"],"configurations":[{"name":"signal-kernel","defines":["USE_KERNEL_SIGNAL"]}]},
     {"source":"ODKrnl.c","function":"ODStatStartArrowUse","case":"unit/cases/ODKrnl/ODStatStartArrowUse.c","platforms":["unix","pthread","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODStatEndArrowUse","case":"unit/cases/ODKrnl/ODStatEndArrowUse.c","platforms":["unix","pthread","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlEndChatMode","case":"unit/cases/ODKrnl/ODKrnlEndChatMode.c","platforms":["unix","pthread","windows","dos16","dos32"]},
@@ -967,8 +956,7 @@
       "case": "unit/cases/ODCom/ODComWaitEvent.c",
       "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
       "configurations": [{
-        "name": "default",
-        "native_flags": ["-Wno-unknown-warning-option", "-Wno-old-style-declaration"]
+        "name": "default"
       }]
     },
     {
@@ -1163,8 +1151,7 @@
       "case": "unit/cases/ODGetIn/ODLongestFullCode.c",
       "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
       "configurations": [{
-        "name": "default",
-        "native_flags": ["-Wno-sign-compare"]
+        "name": "default"
       }]
     },
     {
@@ -1173,8 +1160,7 @@
       "case": "unit/cases/ODGetIn/ODHaveStartOfSequence.c",
       "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
       "configurations": [{
-        "name": "default",
-        "native_flags": ["-Wno-sign-compare"]
+        "name": "default"
       }]
     },
     {
@@ -1183,8 +1169,7 @@
       "case": "unit/cases/ODGetIn/ODGetCodeIfLongest.c",
       "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
       "configurations": [{
-        "name": "default",
-        "native_flags": ["-Wno-sign-compare"]
+        "name": "default"
       }]
     },
     {

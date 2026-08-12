@@ -24,17 +24,23 @@
   instead of the documented `kODRCGeneralFailure` used by the other platform
   implementations.
 
-- [ ] Correct the pthread `ODThreadSleep()` interruption test. POSIX
+- [x] Correct the pthread `ODThreadSleep()` interruption test. POSIX
   `nanosleep()` reports interruption by returning `-1` and setting `errno` to
   `EINTR`; the current loop compares the return value itself with `EINTR`, so
   an interrupted sleep returns early instead of resuming with the remaining
   interval.
 
-- [ ] Place `static` before `const` in `ODCom.c`'s
+- [x] Place `static` before `const` in `ODCom.c`'s
   `cp437_unicode_table` declaration. MinGW diagnoses the current
   `const static` order with `-Wold-style-declaration`, and because the table
   is file-scope state in every isolated `ODCom.c` unit, `-Werror` prevents
   every such Windows unit from compiling before its selected function runs.
+
+- [x] Resolve the unit runner's default build path before creating it.
+  [`unit/tools/run.py`](unit/tools/run.py) currently calls `mkdir()` on the
+  optional `--build` value before replacing an omitted value with the
+  documented platform-specific default, so every documented invocation that
+  omits `--build` fails before compiling a test.
 
 - [x] Split exact Turbo unit execution around a host WASM assembly pass.
   DOS JWasm 2.20 could write an object and then run indefinitely under
@@ -49,7 +55,7 @@
   The affected kernel switch test now spells out its eight inputs while
   preserving the same branch coverage.
 
-- [ ] Narrow the repeated initialized-state term in deferred timer dispatch.
+- [x] Narrow the repeated initialized-state term in deferred timer dispatch.
   On the pthread path, `ODKrnlDispatchPending()` already returns when
   OpenDoors is not initialized and makes no intervening call capable of
   clearing that state before timer dispatch, so the duplicate term cannot
@@ -761,7 +767,7 @@
   line is missing. Each of the first 32 failed `fgets()` paths currently
   returns without closing the successfully opened stream.
 
-- [ ] Invalidate only the rectangle changed by `ODScrnPutText()` on Windows.
+- [x] Invalidate only the rectangle changed by `ODScrnPutText()` on Windows.
   [`ODScrn.c`](ODScrn.c) adds the requested zero-based right and bottom
   coordinates to the active window's right and bottom boundaries. The left
   and top coordinates are instead added to their corresponding starting
@@ -795,38 +801,38 @@
   character would therefore be stored at the pre-tab position while cursor
   and invalidation accounting report the expanded position.
 
-- [ ] Repair or remove the dormant `USE_KERNEL_SIGNAL` no-carrier handler.
+- [x] Repair or remove the dormant `USE_KERNEL_SIGNAL` no-carrier handler.
   [`sig_no_carrier()`](ODKrnl.c) contains the incomplete expression
   `od_control.baud != 0 &&`, so enabling this Unix-only configuration cannot
   compile and its intended additional condition is not recoverable from the
   implementation alone.
 
-- [ ] Use an array-compatible type for key-sequence table indices.
+- [x] Use an array-compatible type for key-sequence table indices.
   [`ODLongestFullCode()`](ODGetIn.c), [`ODHaveStartOfSequence()`](ODGetIn.c),
   and [`ODGetCodeIfLongest()`](ODGetIn.c) compare a signed `int` index with the
   unsigned result of `DIM(aKeySequences)`, producing strict modern-compiler
   warnings. Any correction must retain values and arithmetic suitable for
   16-bit DOS compilers.
 
-- [ ] Use an array-compatible type for the Windows key-table index in
+- [x] Use an array-compatible type for the Windows key-table index in
   `ODScrnWindowProc()`. [`ODScrn.c`](ODScrn.c) declares `nKeyTableIndex` as a
   signed `int` and compares it with the unsigned result of
   `DIM(aWinKeyToODKey)`, producing a strict MinGW warning. Any correction must
   retain a type and loop form accepted by the supported legacy compilers.
 
-- [ ] Explicitly discard the reserved `od_window_create()` argument.
+- [x] Explicitly discard the reserved `od_window_create()` argument.
   In non-debug builds, [`od_window_create()`](ODWin.c) assigns zero to
   `nReserved` but never reads it, producing a strict modern-compiler warning.
   Preserve the existing public signature and behavior while expressing that
   the reserved argument is intentionally unused.
 
-- [ ] Remove unreachable configuration-token overflow handling.
+- [x] Remove unreachable configuration-token overflow handling.
   [`ODConfigInit()`](ODCFile.c) increments `wCurrent` only while it is below
   32, so the following `wCurrent <= 32` test is always true and its overflow
   branch cannot run. Preserve the established 32-character truncation while
   making the bound and termination behavior explicit.
 
-- [ ] Remove the invariant configuration-scan completion test.
+- [x] Remove the invariant configuration-scan completion test.
   [`ODConfigInit()`](ODCFile.c) always lets its `wCurrent < TEXT_SIZE` keyword
   loop terminate normally, including after a built-in match, so the later
   `wCurrent >= TEXT_SIZE` callback condition is always true. Preserve the
@@ -853,45 +859,45 @@
   an unrelated event causes a carrier-status query and can make the function
   return before the requested carrier-loss event occurs.
 
-- [ ] Remove the dominated unknown-attribute check from ANSI brightness output.
+- [x] Remove the dominated unknown-attribute check from ANSI brightness output.
   The brightness comparison in [`od_set_attrib()`](ODCore.c) is inside the
   `else` of a test that handles `od_control.od_cur_attrib == -1`, so its own
   repeated `od_cur_attrib == -1` term cannot be true. The original
   implementation and its behavioral unit suite must be retained as the
   pre-refactor baseline before simplifying this decision.
 
-- [ ] Remove the invariant `bNormal` edit-loop dispatch.
+- [x] Remove the invariant `bNormal` edit-loop dispatch.
   [`od_edit_str()`](ODEdStr.c) initializes `bNormal` to `TRUE`, never changes
   it, and then conditionally jumps to `keep_going` when it is true. The false
   path is unreachable, so the variable and conditional obscure the actual
   unconditional initial control flow.
 
-- [ ] Express the chat input-color transition as the Boolean state change it
+- [x] Express the chat input-color transition as the Boolean state change it
   tests. [`ODKrnlChatMode()`](ODKrnl.c) repeated both the input-source and
   current-color terms to spell out their two differing combinations. The
   equivalent inequality would retain the established behavior while allowing
   each decision condition to be tested independently.
 
-- [ ] Mark the unused signal numbers in the legacy Unix kernel handlers.
-  [`sig_run_kernel()`](ODKrnl.c) and [`sig_get_char()`](ODKrnl.c) should
-  explicitly discard the required POSIX handler argument, allowing their dormant
-  `USE_KERNEL_SIGNAL` configuration to compile under strict warnings.
+- [x] Resolve the unused signal-number warnings in the legacy Unix kernel
+  handlers. The handlers existed only in the uncompilable dormant
+  `USE_KERNEL_SIGNAL` implementation and were removed with that implementation,
+  so there are no remaining handler arguments to discard.
 
-- [ ] Remove dominated section-found checks from the section-file scanners.
+- [x] Remove dominated section-found checks from the section-file scanners.
   Both loops in [`od_send_file_section()`](ODEmu.c) repeated
   `bSectionFound` in an `else if` reached only after the two not-found paths
   had failed. Removing the locally guaranteed term retains the established
   section boundary behavior and makes the actual marker decision independently
   testable.
 
-- [ ] Remove dominated ANSI erase-command parameter-count checks.
+- [x] Remove dominated ANSI erase-command parameter-count checks.
   In [`ODEmulateFromBuffer()`](ODEmu.c), the final `J` branch and the latter
   two `K` branches can only be reached after the zero-parameter cases have
   failed. Their repeated `btNumParams >= 1` terms were therefore guaranteed;
   retaining only the parameter-value tests preserves terminal behavior and
   permits independent MC/DC evidence.
 
-- [ ] Use a compiler-recognized fallthrough annotation in the emulator.
+- [x] Use a compiler-recognized fallthrough annotation in the emulator.
   The escape-character branch in [`ODEmulateFromBuffer()`](ODEmu.c) intentionally
   reaches the ordinary AVATAR dispatcher when an AVATAR sequence is active.
   Its historical prose comment did not suppress GCC's strict fallthrough
@@ -904,30 +910,30 @@
   `kMultitaskerWin`, then unconditionally assigns `kMultitaskerNone`. As a
   result, only its OS/2 branch can currently retain a detected multitasker.
 
-- [ ] Use an unsigned path index in the Unix `ODDirRead()` implementation.
+- [x] Use an unsigned path index in the Unix `ODDirRead()` implementation.
   [`ODPlat.c`](ODPlat.c) stores the current `glob()` position in an `int` but
   compares it with `glob_t.gl_pathc`, whose type is `size_t`. This produces a
   signed/unsigned comparison warning and can represent only part of the
   theoretical `glob()` result range where `int` is narrower than `size_t`.
 
-- [ ] Replace the Unix `ODDirRead()` EOF-controlled loop with an unconditional
+- [x] Replace the Unix `ODDirRead()` EOF-controlled loop with an unconditional
   search loop. Every branch that sets `bEOF` also returns from the function,
   so the false outcome of `while(!pDirInfo->bEOF)` cannot be reached. Expressing
   the loop as unconditional would preserve behavior and remove the misleading
   dead exit condition.
 
-- [ ] Initialize every field of `ODEditOptionsDefault`.
+- [x] Initialize every field of `ODEditOptionsDefault`.
   [`ODEdit.c`](ODEdit.c) predates the `pszFinalBuffer` member now present at
   the end of `tODEditOptions`, so its positional initializer stops after
   `wFlags`. Static storage still zero-initializes the omitted pointer, but
   strict modern compilers report the incomplete initializer.
 
-- [ ] Compile the `ODEditTryToGrow()` size-width check only when `size_t` is
+- [x] Compile the `ODEditTryToGrow()` size-width check only when `size_t` is
   wider than `UINT`. The `nGrownSize > (UINT)-1` defense is meaningful on
   64-bit targets, but is invariantly false on Windows x86 where both types are
   32-bit, leaving an unreachable MC/DC condition in that configuration.
 
-- [ ] Remove or justify the unreachable unfinished-range fallback in
+- [x] Remove or justify the unreachable unfinished-range fallback in
   `ODEditDetermineChanged()`. Once a difference sets `bFoundStart`, each inner
   line scan continues until equal characters or one of the two line endings
   sets `bFoundFinish`; the scan cannot leave its line while that flag remains
@@ -940,7 +946,7 @@
   the selected space, but hard wrapping currently drops a real character from
   the indexed display.
 
-- [ ] Remove the contradictory NUL path from the paired-EOL test in
+- [x] Remove the contradictory NUL path from the paired-EOL test in
   `ODEditEnterText()`. `IS_EOL_CHAR(pch[1])` treats NUL as an EOL character,
   but the same condition immediately requires `pch[1] != '\0'`. The behavior
   is correct, but the expanded expression contains conditions that cannot vary

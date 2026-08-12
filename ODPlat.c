@@ -417,7 +417,7 @@ void ODThreadSleep(tODMilliSec Milliseconds)
 
    ts.tv_sec = Milliseconds / 1000;
    ts.tv_nsec = (long)(Milliseconds % 1000) * 1000000L;
-   while(nanosleep(&ts, &ts) == EINTR) ;
+   while(nanosleep(&ts, &ts) == -1 && errno == EINTR) ;
 #endif
 }
 
@@ -1025,7 +1025,7 @@ typedef struct
 #endif /* ODPLAT_WIN32 */
 #ifdef ODPLAT_NIX
    glob_t	g;
-   int		pos;
+   size_t	pos;
    int		wAttributes;
 #endif
 } tODDirInfo;
@@ -1315,7 +1315,7 @@ tODResult ODDirRead(tODDirHandle hDir, tODDirEntry *pDirEntry)
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   while(!pDirInfo->bEOF)
+   for(;;)
    {
       pszPath = pDirInfo->g.gl_pathv[pDirInfo->pos];
       ++pDirInfo->pos;

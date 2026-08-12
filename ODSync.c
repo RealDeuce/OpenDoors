@@ -273,7 +273,7 @@ BOOL ODSyncAPIWriterHeldByCurrentThread(void)
 void ODSyncControlReadLock(void)
 {
 #ifdef OD_MULTITHREADED
-   if(bSyncActive && !(nAPILevel != 0 && ODSyncIsOwnerThread()))
+   if(bSyncActive && (nAPILevel == 0 || !ODSyncIsOwnerThread()))
       ODControlReadAcquire();
 #endif
 }
@@ -281,7 +281,7 @@ void ODSyncControlReadLock(void)
 void ODSyncControlReadUnlock(void)
 {
 #ifdef OD_MULTITHREADED
-   if(bSyncActive && !(nAPILevel != 0 && ODSyncIsOwnerThread()))
+   if(bSyncActive && (nAPILevel == 0 || !ODSyncIsOwnerThread()))
       ODControlReadRelease();
 #endif
 }
@@ -289,7 +289,7 @@ void ODSyncControlReadUnlock(void)
 void ODSyncControlWriteLock(void)
 {
 #ifdef OD_MULTITHREADED
-   if(bSyncActive && !(nAPILevel != 0 && ODSyncIsOwnerThread()))
+   if(bSyncActive && (nAPILevel == 0 || !ODSyncIsOwnerThread()))
       ODControlWriteAcquire();
 #endif
 }
@@ -297,7 +297,7 @@ void ODSyncControlWriteLock(void)
 void ODSyncControlWriteUnlock(void)
 {
 #ifdef OD_MULTITHREADED
-   if(bSyncActive && !(nAPILevel != 0 && ODSyncIsOwnerThread()))
+   if(bSyncActive && (nAPILevel == 0 || !ODSyncIsOwnerThread()))
       ODControlWriteRelease();
 #endif
 }

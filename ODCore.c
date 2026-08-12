@@ -1353,8 +1353,7 @@ ansi_reset:
          }
 
          /* If bright has to be turned on. */
-         if((nColor & 0x08) != (od_control.od_cur_attrib & 0x08)
-            || od_control.od_cur_attrib == -1)
+         if((nColor & 0x08) != (od_control.od_cur_attrib & 0x08))
          {
             /* Add it to the ANSI color sequence. */
             ODAddANSIParameter(szControlSequence, 1);
@@ -1677,7 +1676,7 @@ ODAPIDEF BYTE ODCALL od_color_config(char *pszColorDesc)
                   btColor |= 0x08;
                }
 
-               else if(btIdentifier == 11)
+               else
                {
                   btColor |= 0x80;
                }

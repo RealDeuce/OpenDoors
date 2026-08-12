@@ -365,7 +365,7 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
       }
 
       /* If you have a *local* char, send it immediately */
-      if((!LastInputEvent.bFromRemote) && (LastInputEvent.chKeyPress != 0)
+      if(!LastInputEvent.bFromRemote
 #if 0
             && (LastInputEvent.EventType == EVENT_EXTENDED_KEY)) {
 #else
@@ -416,12 +416,10 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
 
    /* If we don't have a complete sequence, send a single char */
    pInputEvent->chKeyPress = szCurrentSequence[0];
-   if(szCurrentSequence[0]) {
-      pInputEvent->EventType = EVENT_CHARACTER;
-      pInputEvent->bFromRemote = LastInputEvent.bFromRemote;
-      /* Shift the sequence buffer over one */
-      ODShiftSeq(1);
-   }
+   pInputEvent->EventType = EVENT_CHARACTER;
+   pInputEvent->bFromRemote = LastInputEvent.bFromRemote;
+   /* Shift the sequence buffer over one */
+   ODShiftSeq(1);
    OD_API_EXIT();
    /* Return false if something broke */
    return(pInputEvent->chKeyPress);
@@ -441,7 +439,7 @@ static int ODLongestFullCode(WORD wFlags)
 {
    int CurrLen=0;
    int seqlen;
-   int i;
+   size_t i;
    int retval=NO_MATCH;;
 
    if(wFlags & GETIN_RAW)
@@ -453,7 +451,7 @@ static int ODLongestFullCode(WORD wFlags)
       seqlen=strlen(aKeySequences[i].pszSequence);
       if(seqlen>CurrLen) {
          if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen)==0) {
-            retval=i;
+            retval=(int)i;
             CurrLen=seqlen;
          }
       }
@@ -475,7 +473,7 @@ static int ODHaveStartOfSequence(WORD wFlags)
 {
    int seqlen1;
    int seqlen2;
-   int i;
+   size_t i;
 
    if(wFlags & GETIN_RAW)
       return(FALSE);
@@ -510,7 +508,7 @@ static int ODGetCodeIfLongest(WORD wFlags)
    int CurrLen=0;
    int seqlen1;
    int seqlen2;
-   int i;
+   size_t i;
    int retval=NO_MATCH;;
 
    if(wFlags & GETIN_RAW)
@@ -524,7 +522,7 @@ static int ODGetCodeIfLongest(WORD wFlags)
       if(seqlen2>CurrLen) {
          if(seqlen2<=seqlen1) {	/* The sequence would be completed in buffer */
             if(strncmp(aKeySequences[i].pszSequence, szCurrentSequence, seqlen2)==0) {
-               retval=i;
+               retval=(int)i;
                CurrLen=seqlen2;
             }
          }

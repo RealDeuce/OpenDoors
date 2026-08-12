@@ -209,7 +209,7 @@ quick_print:
       /* Display the entire string in one shot. */
       od_disp_str(pszWorkBuffer);
    }
-   else if(nCharCount != 0)
+   else
    {
       /* If there are remaining characters in the string, then display them. */
       od_disp(pchStart, nCharCount, TRUE);

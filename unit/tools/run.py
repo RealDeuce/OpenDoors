@@ -721,6 +721,9 @@ def main() -> int:
     if not tests:
         print("no selected unit tests")
         return 0
+    if args.build is None:
+        args.build = default_build_path(
+            args.platform, args.toolchain, args.windows_architecture)
     args.build.mkdir(parents=True, exist_ok=True)
     supported_platforms = {"unix", "pthread", "windows", "dos16", "dos32"}
     if args.platform not in supported_platforms:
@@ -733,9 +736,6 @@ def main() -> int:
         parser.error("DOS platforms require a Watcom toolchain")
     if args.windows_architecture and args.platform != "windows":
         parser.error("--windows-architecture requires --platform windows")
-    if args.build is None:
-        args.build = default_build_path(
-            args.platform, args.toolchain, args.windows_architecture)
     watcom = None
     if args.toolchain != "native":
         watcom = os.environ.get("WATCOM")

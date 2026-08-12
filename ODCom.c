@@ -540,10 +540,9 @@ static void INTERRUPT ODComInternalISR()
       /* Bits 1 and 2 of the IIR register identify the type of operation */
       /* to be performed with the UART.                                  */
 
-      /* Switch on bits 1 and 2 of IIR register. */
-      switch(btIIR & 0x06)
+      /* Dispatch on bits 1 and 2 of IIR register. */
+      if((btIIR & 0x06) == 0x00)
       {
-         case 0x00:
             /* Operation: modem status has changed. */
 
             /* Read modem status register. */
@@ -574,10 +573,9 @@ static void INTERRUPT ODComInternalISR()
                   bStopTrans = TRUE;
                }
             }
-
-            break;
-
-         case 0x02:
+      }
+      else if((btIIR & 0x06) == 0x02)
+      {
             /* Operation: room in transmit register/FIFO. */
             /* Check whether we can send further characters to transmit. */
             if(nTXChars <= 0 || bStopTrans)
@@ -617,9 +615,9 @@ static void INTERRUPT ODComInternalISR()
                   nTXChars--;
                }
             }
-            break;
-
-         case 0x04:
+      }
+      else if((btIIR & 0x06) == 0x04)
+      {
             /* Operation: Receive Data. */
 
             /* Get character from receive buffer ASAP. */
@@ -651,14 +649,13 @@ static void INTERRUPT ODComInternalISR()
                /* Increment count of characters in the buffer. */
                nRXChars++;
             }
-            break;
-
-         case 0x06:
+      }
+      else
+      {
             /* Operation: Change in line status register. */
 
             /* We just read the register to move on to further operations. */
             btTemp = OD_COM_PORT_READ(nLineStatusRegAddr);
-            break;
       }
    }
 
@@ -1752,7 +1749,7 @@ no_fossil:
       {
          dcb.ByteSize = 7;
       }
-      else if((pPortInfo->btWordFormat & DATABITS_MASK) == DATABITS_EIGHT)
+      else
       {
          dcb.ByteSize = 8;
       }
@@ -1779,13 +1776,9 @@ no_fossil:
       {
          dcb.StopBits = ONESTOPBIT;
       }
-      else if((pPortInfo->btWordFormat & STOP_MASK) == STOP_ONE_POINT_FIVE)
+      else
       {
          dcb.StopBits = ONE5STOPBITS;
-      }
-      else if((pPortInfo->btWordFormat & STOP_MASK) == STOP_TWO)
-      {
-         dcb.StopBits = TWOSTOPBITS;
       }
 
       /* Set comm state from device control block. */
@@ -2991,7 +2984,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
    return(0);
 }
 
-const static WORD cp437_unicode_table[128] = {
+static const WORD cp437_unicode_table[128] = {
 	0x00C7, 0x00FC, 0x00E9, 0x00E2, 0x00E4, 0x00E0, 0x00E5, 0x00E7,
 	0x00EA, 0x00EB, 0x00E8, 0x00EF, 0x00EE, 0x00EC, 0x00C4, 0x00C5,
 	0x00C9, 0x00E6, 0x00C6, 0x00F4, 0x00F6, 0x00F2, 0x00FB, 0x00F9,
@@ -3118,7 +3111,7 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
          }
 #else
 # ifdef __WATCOMC__
-         do
+         for(;;)
          {
             Registers.h.ah = 0x0b;
             Registers.h.al = btToSend;
@@ -3132,7 +3125,7 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
             {
                (*pPortInfo->pfIdleCallback)();
             }
-         } while(TRUE);
+         }
 #else
 try_again:
          ASM    mov ah, 0x0b
@@ -3792,8 +3785,6 @@ try_again:
             return(kODRCGeneralFailure);
          }
          break;
-         if (od_control.od_cp437_to_utf8_out) free(buf);
-         return(kODRCUnsupported);
 #endif /* INCLUDE_DOOR32_COM */
 
 #ifdef INCLUDE_SOCKET_COM
@@ -4039,7 +4030,7 @@ tODResult ODComWaitEvent(tPortHandle hPort, tComEvent Event)
             // Re-post the semaphore in case someone else waits...
             ODSemaphoreUp(pPortInfo->hCarrierLostSemaphore, 1);
 #else
-            while(1) 
+            for(;;)
             {
                char ch;
                int recv_ret = recv(pPortInfo->socket, &ch, 1, MSG_PEEK);

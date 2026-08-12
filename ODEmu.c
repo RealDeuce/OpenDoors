@@ -855,7 +855,7 @@ abort_send:
                   /* Section not found yet, continue loop */
                   continue;
                } 
-               else if (bSectionFound && strncmp(szODWorkString,
+               else if (strncmp(szODWorkString,
                   szSectionMarker, sizeof(szSectionMarker) - 1) == 0)
                {
                   /* New Section Intercepted */
@@ -883,7 +883,7 @@ abort_send:
          /* Section hasn't been found yet */
          continue;
       } 
-      else if (bSectionFound && strncmp(szODWorkString, szSectionMarker,
+      else if (strncmp(szODWorkString, szSectionMarker,
          sizeof(szSectionMarker) - 1) == 0)
       {
          /* New section found, terminate send */
@@ -1383,7 +1383,7 @@ static void ODEmulateFromBuffer(const char *pszBuffer, BOOL bRemoteEcho,
                      break;
                   }
 
-                  /* Deliberate fallthrough to default case. */
+                  /* FALLTHROUGH */
 
                /* If not start of an ANSI sequence. */
                default:
@@ -2219,7 +2219,7 @@ static void ODEmulateFromBuffer(const char *pszBuffer, BOOL bRemoteEcho,
                      break;
 
                   case 'J':
-                     if(btNumParams >= 1 && anANSIParams[0] == 2)
+                     if(anANSIParams[0] == 2)
                      {
                         /* Clear entire screen. */
                         ODScrnClear();
@@ -2229,7 +2229,7 @@ static void ODEmulateFromBuffer(const char *pszBuffer, BOOL bRemoteEcho,
                         /* Not supported - Clears from cursor to end of */
                         /* screen.                                      */
                      }
-                     else if(btNumParams>=1 && anANSIParams[0]==1)
+                     else if(anANSIParams[0] == 1)
                      {
                         /* Not supported - Clears from beginning of screen to */
                         /* cursor.                                            */
@@ -2242,11 +2242,11 @@ static void ODEmulateFromBuffer(const char *pszBuffer, BOOL bRemoteEcho,
                         /* Clear to end of line. */
                         ODScrnClearToEndOfLine();
                      }
-                     else if(btNumParams >= 1 && anANSIParams[0] == 1)
+                     else if(anANSIParams[0] == 1)
                      {
                         /* Not supported - should clear to beginning of line. */
                      }
-                     else if(btNumParams >= 1 && anANSIParams[0] == 2)
+                     else if(anANSIParams[0] == 2)
                      {
                         /* Not supported - should clear entire line. */
                      }

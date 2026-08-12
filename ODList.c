@@ -334,13 +334,6 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
          }
          else
          {
-            if(strlen(szFilename) >= sizeof(szResolvedPath))
-            {
-               fclose(pfFilesBBS);
-               od_control.od_error = ERR_LIMIT;
-               OD_API_EXIT();
-               return(FALSE);
-            }
             ODStringCopy(szResolvedPath, szFilename,
                sizeof(szResolvedPath));
          }

@@ -191,6 +191,12 @@ static void advances_over_characters_and_each_eol_pair_case(void)
 
    reset_entry(&instance, buffer, &remembered);
    UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODEditEnterText(&instance, "\n\r", FALSE));
+   UT_ASSERT_EQ_UINT(1, instance.unCurrentLine);
+   UT_ASSERT_EQ_UINT(0, instance.unCurrentColumn);
+
+   reset_entry(&instance, buffer, &remembered);
+   UT_ASSERT_EQ_INT(kODRCSuccess,
       utt_ODEditEnterText(&instance, "\r\r", FALSE));
    UT_ASSERT_EQ_UINT(2, instance.unCurrentLine);
    UT_ASSERT_EQ_UINT(0, instance.unCurrentColumn);

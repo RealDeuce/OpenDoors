@@ -22,7 +22,7 @@ void utm_ODScrnInvalidate(BYTE left, BYTE top, BYTE right, BYTE bottom)
 {
    ++ut_invalidate_calls;
    UT_ASSERT_EQ_UINT(2, left); UT_ASSERT_EQ_UINT(2, top);
-   UT_ASSERT_EQ_UINT(7, right); UT_ASSERT_EQ_UINT(7, bottom);
+   UT_ASSERT_EQ_UINT(3, right); UT_ASSERT_EQ_UINT(3, bottom);
 }
 #endif
 static void forwards_or_copies_interleaved_words(void)

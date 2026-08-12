@@ -120,7 +120,6 @@ ODAPIDEF WORD ODCALL od_edit_str(char *pszInput, char *pszFormat, INT nRow,
    WORD wToReturn;
    BOOL bInsertMode = TRUE;
    char chAddAtEnd = '\0';
-   BOOL bNormal = TRUE;
    tODInputEvent InputEvent;
    INT nWindowWidth;
    INT nWindowHeight;
@@ -333,8 +332,8 @@ ODAPIDEF WORD ODCALL od_edit_str(char *pszInput, char *pszFormat, INT nRow,
    /* Set the cursor to appropriate position. */
    od_set_cursor(nRow, nColumn + nCursorPos);
 
-   /* Normally, we start the input loop at the keep_going tag. */
-   if(bNormal) goto keep_going;
+   /* Start the input loop at the keep_going tag. */
+   goto keep_going;
 
    for(;;)
    {
@@ -1182,13 +1181,6 @@ static char ODEditAsCharForPos(char chEntered, INT nPosition)
 
          /* Check for other base cases. */
          if(abCurrentFormatLiteral[nPosition-1]) return(toupper(chEntered));
-         if(toupper(pszCurrentFormat[anCurrentFormatOffset[nPosition]]) != 'M'
-            && toupper(pszCurrentFormat[anCurrentFormatOffset[nPosition]])
-            != 'C')
-         {
-            return(toupper(chEntered));
-         }
-
          /* If previous character is a word delimiter, then this character */
          /* should be uppper case.                                         */
          if(pszCurrentInput[nPosition-1] == ' '

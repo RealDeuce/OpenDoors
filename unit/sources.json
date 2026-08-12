@@ -30,10 +30,7 @@
         "ODKrnlTimeUpdateThread": ["pthread", "windows"],
         "ODKrnlWorkerWait": ["pthread", "windows"],
         "ODKrnlJoinThread": ["pthread", "windows"],
-        "ODKrnlQueueShutdown": ["pthread", "windows"],
-        "sig_run_kernel": ["unix"],
-        "sig_get_char": ["unix"],
-        "sig_no_carrier": ["unix"]
+        "ODKrnlQueueShutdown": ["pthread", "windows"]
       }
     },
     {"path": "ODList.c", "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]},

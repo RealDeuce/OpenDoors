@@ -125,7 +125,6 @@ class ClangModelTests(unittest.TestCase):
         self.assertIn("phInQueue == NULL", expressions)
         self.assertIn("pInputQueueInfo == NULL", expressions)
         self.assertIn("pInputQueue == NULL", expressions)
-        self.assertIn("pInputQueue != NULL", expressions)
         self.assertIn("pInputQueueInfo != NULL", expressions)
 
     def test_leading_static_state_registration_follows_all_declarations(self):

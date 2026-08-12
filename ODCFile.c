@@ -140,7 +140,7 @@ ODAPIDEF void ODCALL ODConfigInit(void)
       {
          wCurrent = strlen(od_control.od_config_filename);
          pchConfigText = (char *)od_control.od_config_filename + (wCurrent - 1);
-         while(wCurrent > 0)
+         for(;;)
          {
             if(*pchConfigText == DIRSEP || *pchConfigText == ':')
             {
@@ -201,20 +201,13 @@ ODAPIDEF void ODCALL ODConfigInit(void)
 
          /* Get first token from line. */
          wCurrent = 0;
-         while(*pchConfigText
-            && !(*pchConfigText == ' ' || *pchConfigText == '\t'))
+         while(*pchConfigText != '\0' && *pchConfigText != ' '
+            && *pchConfigText != '\t')
          {
             if(wCurrent < 32) szToken[wCurrent++] = *pchConfigText;
             ++pchConfigText;
          }
-         if(wCurrent <= 32)
-         {
-            szToken[wCurrent] = '\0';
-         }
-         else
-         {
-            szToken[32] = '\0';
-         }
+         szToken[wCurrent] = '\0';
          strupr(szToken);
 
          /* Find beginning of configuration option parameters */
@@ -739,7 +732,7 @@ ODAPIDEF void ODCALL ODConfigInit(void)
          }
 
          /* Check if command is a programmer customized option. */
-         if(wCurrent >= TEXT_SIZE && custom_line_function != NULL)
+         if(custom_line_function != NULL)
          {
             (*custom_line_function)((char *)&szToken, pchConfigText);
          }

@@ -83,7 +83,7 @@ class InventoryTests(unittest.TestCase):
         self.assertTrue(all(platforms[name] == ["pthread", "windows"]
                             for name in threaded))
         signals = {"sig_run_kernel", "sig_get_char", "sig_no_carrier"}
-        self.assertTrue(all(platforms[name] == ["unix"] for name in signals))
+        self.assertTrue(signals.isdisjoint(platforms))
 
     def test_c_scanner_ignores_comments_literals_and_control_blocks(self):
         source = r'''

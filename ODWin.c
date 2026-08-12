@@ -98,7 +98,7 @@ ODAPIDEF void * ODCALL od_window_create(INT nLeft, INT nTop, INT nRight,
 
    OD_API_ENTRY();
 
-   nReserved &= 0x00;
+   (void)nReserved;
 
    /* Setup od_box_chars appropriately. */
    if(od_control.od_box_chars[BOX_BOTTOM]==0)

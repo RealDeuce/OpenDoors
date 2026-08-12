@@ -727,8 +727,7 @@ ODAPIDEF BOOL ODCALL od_scroll(INT nLeft, INT nTop, INT nRight, INT nBottom,
                   od_repeat(' ', 255);
                   nCount -= 255;
                }
-               if(nCount > 0)
-                  od_repeat(' ', (BYTE)nCount);
+               od_repeat(' ', (BYTE)nCount);
             }
          }
       }

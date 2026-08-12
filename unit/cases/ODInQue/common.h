@@ -15,7 +15,6 @@ static tODInQueueHandle ut_queue_handle(INT entries, INT input, INT output)
 #ifdef OD_MULTITHREADED
    ut_queue.hItemCountSemaphore =
       (tODSemaphoreHandle)(void *)&ut_semaphore_token;
-   ut_queue.bQueueMutexInitialized = TRUE;
 #endif
    return ODPTR2HANDLE(&ut_queue, tInputQueueInfo);
 }

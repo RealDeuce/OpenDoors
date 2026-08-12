@@ -115,13 +115,6 @@ static void ODKrnlHandleReceivedChar(char chReceived, BOOL bFromRemote);
 static BOOL ODKrnlTimeUpdate(BOOL bAllowApplicationCallbacks);
 static void ODKrnlChatCleanup(void);
 static void ODKrnlChatMode(void);
-#ifdef ODPLAT_NIX
-#ifdef USE_KERNEL_SIGNAL
-static void sig_run_kernel(int sig);
-static void sig_get_char(int sig);
-static void sig_no_carrier(int sig);
-#endif
-#endif
 
 static tODResult ODKrnlStart(BOOL bPreservePending);
 
@@ -256,10 +249,6 @@ static tODResult ODKrnlStart(BOOL bPreservePending)
 {
 #ifdef ODPLAT_NIX
    sigset_t		block;
-#ifdef USE_KERNEL_SIGNAL
-   struct sigaction act;
-   struct itimerval itv;
-#endif
 #endif
 
    tODResult Result = kODRCSuccess;
@@ -272,50 +261,10 @@ static tODResult ODKrnlStart(BOOL bPreservePending)
 #endif
    
 #ifdef ODPLAT_NIX
-#ifdef USE_KERNEL_SIGNAL
-   /* HUP Detection */
-   act.sa_handler=sig_no_carrier;
-   /* If two HUP signals are recieved, die on the second */
-   act.sa_flags=SA_RESETHAND|SA_RESTART;
-   sigemptyset(&(act.sa_mask));
-   sigaction(SIGHUP,&act,NULL);
-
-   /* Run kernel on SIGALRM (Every .01 seconds) */
-   act.sa_handler=sig_run_kernel;
-   act.sa_flags=SA_RESTART;
-   sigemptyset(&(act.sa_mask));
-   sigaction(SIGALRM,&act,NULL);
-   itv.it_interval.tv_sec=0;
-   itv.it_interval.tv_usec=10000;
-   itv.it_value.tv_sec=0;
-   itv.it_value.tv_usec=10000;
-   setitimer(ITIMER_REAL,&itv,NULL);
-
-   /* Make stdin signal driven. */
-//   act.sa_handler=sig_get_char;
-//   act.sa_flags=0;
-//   sigemptyset(&(act.sa_mask));
-//   sigaction(SIGIO,&act,NULL);
-//
-//   /* Have SIGIO signals delivered to this process */
-//   fcntl(0,F_SETOWN,getpid());
-//   
-//   /* Enable SIGIO when read possible on stdin */
-//   fcntl(0,F_SETFL,fcntl(0,F_GETFL)|O_ASYNC); 
-
-   /* Make sure SIGHUP, SIGALRM, and SIGIO are unblocked */
-   sigemptyset(&block);
-   sigaddset(&block,SIGHUP);
-   sigaddset(&block,SIGALRM);
-#if 0
-   sigaddset(&block,SIGIO);
-#endif
-   sigprocmask(SIG_UNBLOCK,&block,NULL);
-#else	/* Using ODComCarrier... don't catch HUP signal */
+   /* Carrier state is polled by the kernel; do not catch SIGHUP. */
    sigemptyset(&block);
    sigaddset(&block,SIGHUP);
    sigprocmask(SIG_BLOCK,&block,NULL);
-#endif
 #endif
 
    /* Initialize time of next status update and next time deduction. */
@@ -516,7 +465,6 @@ ODAPIDEF void ODCALL od_kernel(void)
    /* activies.                                                         */
    if(od_control.baud != 0)
    {
-#ifndef USE_KERNEL_SIGNAL
       /* If carrier detection is enabled, then shutdown OpenDoors if */
       /* the carrier detect signal is no longer high.                */
       if(!(od_control.od_disable&DIS_CARRIERDETECT))
@@ -527,8 +475,6 @@ ODAPIDEF void ODCALL od_kernel(void)
             ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_NOCARRIER);
          }
       }
-#endif
-
       /* Loop, obtaining any new characters from the serial port and */
       /* adding them to the common local/remote input queue.         */
       while(ODComGetByte(hSerialPort, &ch, FALSE) == kODRCSuccess)
@@ -1341,7 +1287,11 @@ void ODKrnlDispatchPending(BOOL bAllowApplicationCallbacks)
       return;
    }
 
-   if(bUpdateTime && bODInitialized && !bTimeShutdownDeferred &&
+   if(bUpdateTime
+#ifdef ODPLAT_WIN32
+      && bODInitialized
+#endif
+      && !bTimeShutdownDeferred &&
       ODKrnlTimeUpdate(bAllowApplicationCallbacks))
       return;
 
@@ -1725,8 +1675,7 @@ static void ODKrnlChatMode(void)
 #endif /* !OD_MULTITHREADED */
 
       /* If color not set correctly. */
-      if((od_control.od_last_input && !bSysopColor)
-         || (!od_control.od_last_input && bSysopColor))
+      if(od_control.od_last_input != bSysopColor)
       {
          /* If sysop was last person to type. */
          if(od_control.od_last_input)
@@ -1926,44 +1875,3 @@ static void ODKrnlChatCleanup(void)
 #endif /* ODPLAT_WIN32 */
 
 }
-
-#ifdef ODPLAT_NIX
-#ifdef USE_KERNEL_SIGNAL
-/* ----------------------------------------------------------------------------
- * sig_run_kernel(sig)				   *** PRIVATE FUNCTION ***
- *
- * Runs od_kernel() on a SIGALRM
- *
- */
-static void sig_run_kernel(int sig)
-{
-   od_kernel();
-}
-
-/* ----------------------------------------------------------------------------
- * sig_run_kernel(sig)				   *** PRIVATE FUNCTION ***
- *
- * Runs od_kernel() on a SIGALRM
- *
- */
-static void sig_get_char(int sig)
-{
-   static char ch;
-   /* Loop, obtaining any new characters from the serial port and */
-   /* adding them to the common local/remote input queue.         */
-   while(ODComGetByte(hSerialPort, &ch, FALSE) == kODRCSuccess)
-   {
-      ODKrnlHandleReceivedChar(ch, TRUE);
-   }
-}
-
-static void sig_no_carrier(int sig)
-{
-   if(od_control.baud != 0 && )
-   {
-      if(!(od_control.od_disable&DIS_CARRIERDETECT))
-      	ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_NOCARRIER);
-   }
-}
-#endif
-#endif

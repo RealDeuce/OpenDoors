@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -44,6 +45,14 @@ class DosObjectNamingTests(unittest.TestCase):
             default_build_path("dos32", "watcom32s", None),
         }
         self.assertEqual(len(paths), 7)
+
+    def test_runner_accepts_the_documented_omitted_build_argument(self):
+        completed = subprocess.run(
+            [sys.executable, str(Path(run_module.__file__)),
+             "--platform", "pthread", "--function", "ODThreadSleep"],
+            cwd=Path(run_module.__file__).resolve().parents[2],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
 
 
 class TestSelectionTests(unittest.TestCase):

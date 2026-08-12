@@ -89,6 +89,7 @@ static tODEditOptions ODEditOptionsDefault =
    NULL,
    NULL,
    EFLAG_NORMAL,
+   NULL
 };
 
 
@@ -1433,7 +1434,7 @@ static tODResult ODEditEnterText(tEditInstance *pEditInstance,
    /* past the end of the edit area or past the end of the buffer.      */
    for(pch = pszEntered; *pch != '\0'; ++pch)
    {
-      if(IS_EOL_CHAR(*pch))
+      if(*pch == '\n' || *pch == '\r')
       {
          /* A carriage return character advances the cursor to the */
          /* leftmost column on the next line.                      */
@@ -1442,7 +1443,7 @@ static tODResult ODEditEnterText(tEditInstance *pEditInstance,
 
          /* If the next character is a different EOL character, and is */
          /* not the end of the string, then skip that character.       */
-         if(IS_EOL_CHAR(pch[1]) && pch[1] != '\0' && pch[1] != *pch)
+         if((pch[1] == '\n' || pch[1] == '\r') && pch[1] != *pch)
          {
             ++pch;
          }
@@ -2051,14 +2052,6 @@ static BOOL ODEditDetermineChanged(tEditInstance *pEditInstance,
       return(FALSE);
    }
 
-   /* If we haven't found an end to the portion of the area that has */
-   /* changed, then we must redraw up to the end of the edit area.   */
-   if(!bFoundFinish)
-   {
-      *punFinishRedrawLine = unLowerBoundary;
-      *punFinishRedrawColumn = unColumn;
-   }
-
    /* Return indicating that ther has been some change. */
    return(TRUE);
 }
@@ -2629,7 +2622,7 @@ static tODResult ODEditBufferMakeSpace(tEditInstance *pEditInstance,
       unColumn -= unExtendLineBy;
       if(!ODSizeAdd((size_t)unNumChars, (size_t)unExtendLineBy,
          &nSizeNeeded)
-#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
+#if defined(ODPLAT_NIX) || defined(_WIN64)
          || nSizeNeeded > (UINT)-1
 #endif
          )
@@ -2650,7 +2643,7 @@ static tODResult ODEditBufferMakeSpace(tEditInstance *pEditInstance,
       /* characters, then attempt to grow the buffer to make more room.   */
       if(!ODSizeAdd((size_t)unBufferUsed, (size_t)unNumChars,
          &nSizeNeeded)
-#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
+#if defined(ODPLAT_NIX) || defined(_WIN64)
          || nSizeNeeded > (UINT)-1
 #endif
          )
@@ -2720,7 +2713,7 @@ static tODResult ODEditTryToGrow(tEditInstance *pEditInstance,
       /* realloc function provided by the client application.         */
       if(!ODSizeAdd((size_t)pEditInstance->unBufferSize, BUFFER_GROW_SIZE,
          &nGrownSize)
-#if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
+#if defined(ODPLAT_NIX) || defined(_WIN64)
          || nGrownSize > (UINT)-1
 #endif
          )

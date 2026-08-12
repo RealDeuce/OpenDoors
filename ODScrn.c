@@ -439,7 +439,7 @@ LRESULT CALLBACK ODScrnWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
       {
          int nVirtKeyPressed = (int)wParam;
          WORD wRepeatCount = LOWORD(lParam);
-         int nKeyTableIndex;
+         size_t nKeyTableIndex;
          WORD wKey = 0;
 
          /* Look for a matching key in the OpenDoors key table. */
@@ -1122,7 +1122,9 @@ static void ODScrnSetWinCaretPos(void)
  */
 tODResult ODScrnInitialize(void)
 {
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    BOOL bClear = TRUE;
+#endif
 
 #ifdef ODPLAT_DOS32
    if(od_control.od_silent_mode)
@@ -1324,11 +1326,13 @@ tODResult ODScrnInitialize(void)
    btCurrentAttribute = 0x07;
    bScrollEnabled = 1;
 
-   /* Clear local screen. */
+   /* Clear local screen unless an existing DOS screen was preserved. */
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    if(bClear)
-   {
       ODScrnClear();
-   }
+#else
+   ODScrnClear();
+#endif
 
    /* Enable flashing cursor. */
    bCaretOn = FALSE;
@@ -2247,8 +2251,8 @@ BOOL ODCALL ODScrnPutText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
    /* Force the updated area of the screen window to be redrawn. */
    ODScrnInvalidate((BYTE)(btLeftBoundary + btLeft), 
       (BYTE)(btTopBoundary + btTop),
-      (BYTE)(btRightBoundary + btRight),
-      (BYTE)(btBottomBoundary + btBottom));
+      (BYTE)(btLeftBoundary + btRight),
+      (BYTE)(btTopBoundary + btBottom));
 #endif /* ODPLAT_WIN32 */
 
    return(TRUE);
@@ -2451,7 +2455,6 @@ void ODCALL ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay)
 
                if(btColumn < btLeftMost) btLeftMost = btColumn;
                if(btColumn > btRightMost) btRightMost = btColumn;
-               if(btRow < btTopMost) btTopMost = btRow;
                if(btRow > btBottomMost) btBottomMost = btRow;
             }
 #endif /* ODPLAT_WIN32 */
@@ -2550,12 +2553,12 @@ BOOL ODScrnCopyText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
    ASSERT(btDestColumn <= btRightBoundary - btLeftBoundary);
    ASSERT(btDestRow <= btBottomBoundary - btTopBoundary);
 
-   if(   !(btLeft <= btRightBoundary - btLeftBoundary
-         && btTop <= btBottomBoundary - btTopBoundary)
-      || !(btRight <= btRightBoundary - btLeftBoundary
-         && btBottom <= btBottomBoundary - btTopBoundary)
-      || !(btDestColumn <= btRightBoundary - btLeftBoundary
-         && btDestRow <= btBottomBoundary - btTopBoundary))
+   if(btLeft > btRightBoundary - btLeftBoundary
+      || btTop > btBottomBoundary - btTopBoundary
+      || btRight > btRightBoundary - btLeftBoundary
+      || btBottom > btBottomBoundary - btTopBoundary
+      || btDestColumn > btRightBoundary - btLeftBoundary
+      || btDestRow > btBottomBoundary - btTopBoundary)
    {
       return(FALSE);
    }
@@ -3101,11 +3104,13 @@ void ODSessionScreenInitialize(INT nMinimumWidth, INT nMinimumHeight)
    }
 
    ulCells = (unsigned long)nWidth * (unsigned long)nHeight;
+#ifndef ODPLAT_DOS
    if(ulCells > 0xffffffffUL / 2UL)
    {
       nSessionScreenError = ERR_LIMIT;
       return;
    }
+#endif
    ulBytes = ulCells * 2UL;
 #ifdef ODPLAT_DOS
    /* Leave room for the extended snapshot header in one DOS object. */
@@ -3116,11 +3121,6 @@ void ODSessionScreenInitialize(INT nMinimumWidth, INT nMinimumHeight)
    }
 #endif
    nBytes = (size_t)ulBytes;
-   if((unsigned long)nBytes != ulBytes)
-   {
-      nSessionScreenError = ERR_LIMIT;
-      return;
-   }
 
    SessionScreen.pCells = (BYTE ODFAR *)malloc(nBytes);
    if(SessionScreen.pCells == NULL)
@@ -3758,7 +3758,7 @@ BOOL ODSessionScreenRestore(const void *pBuffer, DWORD dwBufferSize)
       {
          od_clr_scr();
          pRow = pBytes + OD_SESSION_SNAPSHOT_HEADER_SIZE;
-         for(nRow = 1; nRow <= nCurrentHeight; ++nRow)
+         for(nRow = 1;; ++nRow)
          {
             nLastColumn = nCurrentWidth;
             while(nLastColumn > 1

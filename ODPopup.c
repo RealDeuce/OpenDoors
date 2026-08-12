@@ -219,14 +219,11 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
          return(POPUP_ERROR);
       }
 
-      if(paMenuItems == NULL)
+      if((paMenuItems = malloc(sizeof(tMenuItem) * MAX_MENU_ITEMS)) == NULL)
       {
-         if((paMenuItems = malloc(sizeof(tMenuItem) * MAX_MENU_ITEMS)) == NULL)
-         {
-            od_control.od_error = ERR_MEMORY;
-            OD_API_EXIT();
-            return(POPUP_ERROR);
-         }
+         od_control.od_error = ERR_MEMORY;
+         OD_API_EXIT();
+         return(POPUP_ERROR);
       }
       btCurrentNumMenuItems = 0;
       btWidth = 0;
@@ -269,7 +266,7 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
       /* of the string, then it should form an additional menu entry. This   */
       /* handles the case of a menu string to no terminating | for the last  */
       /* entry.                                                              */
-      if(btCount != 0 && btCurrentNumMenuItems < MAX_MENU_ITEMS)
+      if(btCount != 0)
       {
          /* null-terminate current menu entry string */
          paMenuItems[btCurrentNumMenuItems].szItemText[btCount] = '\0';
@@ -376,8 +373,7 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
       MenuLevelInfo[nLevel].paMenuItems = paMenuItems;
       ODPopupCheckForKey(FALSE);
       btCursor = btCorrectItem;
-      for(btCount = 0; btCount < btCurrentNumMenuItems
-         && btLineCount < btBottom; ++btCount)
+      for(btCount = 0; btCount < btCurrentNumMenuItems; ++btCount)
       {
          ODPopupCheckForKey(FALSE);
          if(nCommand != NO_COMMAND && !(wCurrentFlags & MENU_KEEP))
@@ -467,8 +463,7 @@ session_ended:
    free(paMenuItems);
    MenuLevelInfo[nLevel].pWindow = NULL;
    MenuLevelInfo[nLevel].paMenuItems = NULL;
-   if(grabbedArrow)
-      ODStatEndArrowUse();
+   ODStatEndArrowUse();
    OD_API_EXIT();
    return(POPUP_ESCAPE);
 
@@ -485,7 +480,7 @@ destroy:
          MenuLevelInfo[nLevel].paMenuItems = NULL;
       }
    }
-   else if(wCurrentFlags & MENU_KEEP)
+   else
    {
       MenuLevelInfo[nLevel].paMenuItems = paMenuItems;
       MenuLevelInfo[nLevel].btNumMenuItems = btCurrentNumMenuItems;

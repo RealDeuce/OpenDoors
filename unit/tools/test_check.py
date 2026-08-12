@@ -153,7 +153,7 @@ class WaiverProposalTests(unittest.TestCase):
             "reason": "reason",
             "evidence": "evidence",
             "source_sha256":
-                "e20864cd9c0a2d440d8f38174893ca2bbe32190507558b33db75e1a8bc8abebe",
+                "46d305d60b449c1191ec7524e827e0b9f7d632bbdce9b128c67cdee84837bd5b",
         }
 
     def test_accepts_well_formed_proposal(self):
