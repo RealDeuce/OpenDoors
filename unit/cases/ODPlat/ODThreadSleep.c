@@ -18,12 +18,15 @@ void WINAPI utm_Sleep(DWORD milliseconds)
 #else
 #define UT_CUSTOM_MOCK_nanosleep
 #define UT_CUSTOM_MOCK___error
+#define UT_CUSTOM_MOCK___errno_location
 #define __error utm___error
+#define __errno_location utm___errno_location
 static unsigned ut_sleep_calls;
 static BOOL ut_non_interrupt_error;
 static int ut_errno;
 
 int *utm___error(void) { return(&ut_errno); }
+int *utm___errno_location(void) { return(&ut_errno); }
 
 int utm_nanosleep(const struct timespec *requested,
    struct timespec *remaining)

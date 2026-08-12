@@ -24,6 +24,7 @@ from run import (analyzer_platform_flags, coverage_disposition,
                  run_step, selected_tests, selection_owners,
                  watcom_ast_compatibility_flags,
                  watcom_environment, watcom_target_flags,
+                 windows_batch, windows_batch_arguments,
                  windows_fixture_arguments)  # noqa: E402
 
 
@@ -419,6 +420,35 @@ class WindowsASTCompatibilityTests(unittest.TestCase):
             Path("/usr/local/bin/wine64"))
         self.assertEqual(arguments, [
             "/usr/local/bin/wine64", "build/test.exe", "build/test.cov"])
+
+    def test_batch_records_each_failure_and_continues_to_completion(self):
+        text = windows_batch([
+            ("ODCom-ODComGetByte.exe", "ODCom-ODComGetByte.native.cov"),
+            ("ODCom-ODComSendByte.exe", "ODCom-ODComSendByte.native.cov"),
+        ])
+        self.assertTrue(text.startswith("@ECHO OFF\r\n"))
+        self.assertIn(
+            '"%~dp0ODCom-ODComGetByte.exe" '
+            '"%~dp0ODCom-ODComGetByte.native.cov" '
+            '>"%~dp0ODCom-ODComGetByte.OUT" 2>&1\r\n', text)
+        self.assertIn("IF NOT ERRORLEVEL 1 GOTO OK0\r\n", text)
+        self.assertIn(
+            'ECHO FAIL>"%~dp0ODCom-ODComGetByte.BAD"\r\n:OK0\r\n',
+            text)
+        self.assertIn(
+            '"%~dp0ODCom-ODComSendByte.exe" '
+            '"%~dp0ODCom-ODComSendByte.native.cov" '
+            '>"%~dp0ODCom-ODComSendByte.OUT" 2>&1\r\n', text)
+        self.assertIn('ECHO DONE>"%~dp0UTDONE.OK"\r\n', text)
+        self.assertTrue(text.endswith(
+            'ECHO DONE>"%~dp0UTDONE.OK"\r\nEXIT /B 0\r\n'))
+
+    def test_wine_runs_one_cmd_batch_through_the_default_z_drive(self):
+        batch = Path("/tmp/unit windows/UTRUN.CMD")
+        self.assertEqual(windows_batch_arguments(
+            batch, Path("/usr/local/bin/wine64")), [
+                "/usr/local/bin/wine64", "cmd.exe", "/d", "/c",
+                r"Z:\tmp\unit windows\UTRUN.CMD"])
 
 
 class FailureAggregationTests(unittest.TestCase):

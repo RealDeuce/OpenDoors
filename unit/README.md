@@ -101,10 +101,12 @@ tools/unit-xvfb --display :91 turbo --generated build/unit-turbo-generated \
     --wasm "$WATCOM/binl/wasm" --dosbox-config tools/turboc/dosbox.conf
 ```
 
-The runner gives MinGW outputs their required `.exe` suffix and passes the
-portable coverage-report path through Wine. Omit `--wine` on a native Windows
-runner. `--windows-architecture` also applies to test-only DLL fixtures, so an
-x86 isolated executable never accidentally loads an x64 `DOOR32.DLL` or vice
+The runner gives MinGW outputs their required `.exe` suffix. After compiling
+the selected cases, it runs every isolated executable synchronously from one
+`cmd.exe` process and retains a separate output, failure marker, and portable
+coverage report for each case. Omit `--wine` on a native Windows runner.
+`--windows-architecture` also applies to test-only DLL fixtures, so an x86
+isolated executable never accidentally loads an x64 `DOOR32.DLL` or vice
 versa. Cross-host MinGW uses the default GNU Windows ABI; native Windows Clang
 uses `--windows-abi msvc` so analysis uses the same SDK and calling convention
 as execution.

@@ -113,6 +113,36 @@ def native_test_arguments(executable: Path, report: Path,
     return arguments
 
 
+def windows_batch(executables: list[tuple[str, str]]) -> str:
+    """Run isolated Windows units synchronously in one CMD process."""
+    lines = ["@ECHO OFF"]
+    for index, (executable, report) in enumerate(executables):
+        stem = Path(executable).stem
+        prefix = "%~dp0"
+        lines.extend([
+            f'"{prefix}{executable}" "{prefix}{report}" '
+            f'>"{prefix}{stem}.OUT" 2>&1',
+            f"IF NOT ERRORLEVEL 1 GOTO OK{index}",
+            f'ECHO FAIL>"{prefix}{stem}.BAD"',
+            f":OK{index}",
+        ])
+    lines.extend([
+        'ECHO DONE>"%~dp0UTDONE.OK"',
+        "EXIT /B 0",
+    ])
+    return "\r\n".join(lines) + "\r\n"
+
+
+def windows_batch_arguments(batch: Path,
+                            wine: Path | None = None) -> list[str]:
+    """Return one native or Wine CMD invocation for a Windows unit batch."""
+    resolved = str(batch.resolve())
+    if wine is not None:
+        resolved = "Z:" + resolved.replace("/", "\\")
+        return [str(wine), "cmd.exe", "/d", "/c", resolved]
+    return ["cmd.exe", "/d", "/c", resolved]
+
+
 def windows_fixture_arguments(compiler: str, source: Path,
                               output: Path,
                               architecture_flags: list[str] | None = None
@@ -767,6 +797,7 @@ def main() -> int:
                  *args.ast_flag]
     failures = []
     dos_runs = []
+    windows_runs = []
     dos_stems = set()
     for test in tests:
         configuration = test["configuration"]
@@ -881,6 +912,16 @@ def main() -> int:
             })
             continue
         native_report = args.build / (stem + ".native.cov")
+        if args.platform == "windows":
+            windows_runs.append({
+                "label": label,
+                "generated": generated,
+                "executable": executable,
+                "report": native_report,
+                "failure": args.build / (stem + ".BAD"),
+                "output": args.build / (stem + ".OUT"),
+            })
+            continue
         native_ran = run_step(
             failures, stem + " native test",
             lambda: command(native_test_arguments(
@@ -917,6 +958,48 @@ def main() -> int:
                         test["function"], args.platform, llvm_generated,
                         args.build / (stem + ".coverage.json"),
                         args.allow_proposed_coverage_waivers))
+    if windows_runs:
+        done = args.build / "UTDONE.OK"
+        done.unlink(missing_ok=True)
+        for record in windows_runs:
+            record["report"].unlink(missing_ok=True)
+            record["failure"].unlink(missing_ok=True)
+            record["output"].unlink(missing_ok=True)
+        batch = args.build / "UTRUN.CMD"
+        batch.write_bytes(windows_batch([
+            (record["executable"].name, record["report"].name)
+            for record in windows_runs
+        ]).encode("ascii"))
+        batch_ran = run_step(
+            failures, "Windows unit batch",
+            lambda: command(windows_batch_arguments(batch, args.wine)))
+        if batch_ran and not done.is_file():
+            failures.append(
+                "Windows unit batch: UTDONE.OK was not produced")
+        for record in windows_runs:
+            label = record["label"]
+            if (record["failure"].is_file() and
+                    record["failure"].stat().st_size != 0):
+                detail = ""
+                if record["output"].is_file():
+                    detail = record["output"].read_text(
+                        encoding="ascii", errors="replace").strip()
+                suffix = f": {detail}" if detail else ""
+                failures.append(
+                    f"{label} Windows test returned failure{suffix}")
+            if not record["report"].is_file():
+                failures.append(
+                    f"{label} Windows coverage report is missing")
+                continue
+            run_step(
+                failures, label + " portable coverage",
+                lambda record=record: native_coverage(
+                    record["report"],
+                    record["generated"].with_suffix(".model.json"),
+                    args.platform,
+                    args.build / (record["executable"].stem +
+                                  ".native-coverage.json"),
+                    args.allow_proposed_coverage_waivers))
     if dos_runs:
         if args.dosbox is None:
             parser.error("DOS execution requires --dosbox (or use --compile-only)")
