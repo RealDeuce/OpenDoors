@@ -128,10 +128,13 @@ jobs:
         include:
           - msystem: MINGW32
             architecture: i686
+            prefix: mingw32
           - msystem: MINGW64
             architecture: x86_64
+            prefix: mingw64
           - msystem: UCRT64
             architecture: x86_64
+            prefix: ucrt64
 
     steps:
       - uses: actions/checkout@v7
@@ -190,27 +193,66 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DOPENDOORS_WARNINGS_AS_ERRORS=ON
 
-      - name: Build and test
+      - name: Build
         shell: msys2 {0}
+        run: cmake --build build/mingw --parallel
+
+      - name: Test native Windows binaries
+        shell: pwsh
         run: |
-          cmake --build build/mingw --parallel
-          test_status=0
-          if test "${{ matrix.msystem }}" = UCRT64; then
-            dump_directory="$(cygpath -w "$PWD/build/ucrt-dumps")"
-            "$PWD/build/procdump/procdump64.exe" \
-              -accepteula -ma -i "$dump_directory" \
-              > build/procdump-install.log 2>&1
-            cat build/procdump-install.log
-          fi
+          $ctest = 'C:\msys64\${{ matrix.prefix }}\bin\ctest.exe'
+          if (-not (Test-Path -LiteralPath $ctest)) {
+            throw "CTest was not found at $ctest"
+          }
+          $toolDirectory = Split-Path -Parent $ctest
+          $env:PATH = "$toolDirectory;$env:PATH"
+          if ('${{ matrix.msystem }}' -ne 'UCRT64') {
+            & $ctest --test-dir build\mingw --output-on-failure
+            exit $LASTEXITCODE
+          }
 
-          ctest --test-dir build/mingw --output-on-failure || test_status=$?
+          $dumpDirectory = (Resolve-Path 'build\ucrt-dumps').Path
+          $procdump = (Resolve-Path `
+            'build\procdump\procdump64.exe').Path
+          $spawnDirectory = (Resolve-Path `
+            'build\mingw\tests\acceptance').Path
+          $spawn = Join-Path $spawnDirectory `
+            'opendoors_acceptance_spawn.exe'
+          $child = Join-Path $spawnDirectory `
+            'opendoors_acceptance_spawn_child.exe'
+          $env:PATH = "$((Resolve-Path 'build\mingw').Path);$env:PATH"
+          $testStatus = 0
 
-          if test "${{ matrix.msystem }}" = UCRT64; then
-            "$PWD/build/procdump/procdump64.exe" -accepteula -u \
-              > build/procdump-uninstall.log 2>&1 || true
-            cat build/procdump-uninstall.log
-          fi
-          exit "$test_status"
+          & $procdump -accepteula -ma -i $dumpDirectory 2>&1 |
+            Tee-Object -FilePath 'build\procdump-install.log'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'ProcDump could not install its postmortem debugger.'
+          }
+          try {
+            Push-Location $spawnDirectory
+            try {
+              & $procdump -accepteula -ma -e -x $dumpDirectory `
+                $spawn $child
+              if ($LASTEXITCODE -ne 0) {
+                $testStatus = $LASTEXITCODE
+              }
+            } finally {
+              Pop-Location
+            }
+
+            & $ctest --test-dir build\mingw --output-on-failure `
+              -E '^acceptance\.spawn$'
+            if ($LASTEXITCODE -ne 0) {
+              $testStatus = $LASTEXITCODE
+            }
+            if (Get-ChildItem -Path $dumpDirectory -Filter '*.dmp') {
+              $testStatus = 1
+            }
+          } finally {
+            & $procdump -accepteula -u 2>&1 |
+              Tee-Object -FilePath 'build\procdump-uninstall.log'
+          }
+          exit $testStatus
 
       - name: Collect UCRT crash events
         if: failure() && matrix.msystem == 'UCRT64'
