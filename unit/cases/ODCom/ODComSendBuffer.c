@@ -5,10 +5,9 @@ static unsigned ut_free_calls;
 static BOOL ut_convert_fails;
 
 #ifdef ODPLAT_NIX
-#define UT_CUSTOM_MOCK___error
-#define __error utm___error
 static int ut_errno;
-int *utm___error(void) { return(&ut_errno); }
+#define UT_ERRNO_STORAGE ut_errno
+#include "../unix_errno_mock.h"
 #endif
 
 #define UT_CUSTOM_MOCK_ODComCP437ToUnicode

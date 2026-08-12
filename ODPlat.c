@@ -671,7 +671,7 @@ static DWORD OD32BIOSClock(void)
 void ODTimerStart(tODTimer *pTimer, tODMilliSec Duration)
 {
 #ifdef ODPLAT_NIX
-   struct timeval tv;
+   struct timespec ts;
 #endif
    ASSERT(pTimer != NULL);
    ASSERT(Duration >= 0);
@@ -697,8 +697,8 @@ void ODTimerStart(tODTimer *pTimer, tODMilliSec Duration)
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   gettimeofday(&tv,NULL);
-   pTimer->Start=tv.tv_sec*1000+tv.tv_usec/1000;
+   clock_gettime(CLOCK_MONOTONIC, &ts);
+   pTimer->Start=ts.tv_sec*1000+ts.tv_nsec/1000000;
    pTimer->Duration = Duration;
 #endif
 }
@@ -800,7 +800,7 @@ void ODTimerWaitForElapse(tODTimer *pTimer)
 tODMilliSec ODTimerLeft(tODTimer *pTimer)
 {
 #ifdef ODPLAT_NIX
-   struct timeval tv;
+   struct timespec ts;
    time_t nowtick;
 #endif
    ASSERT(pTimer != NULL);
@@ -833,8 +833,8 @@ tODMilliSec ODTimerLeft(tODTimer *pTimer)
       return((pTimer->Duration - Elapsed) * 55UL);
    }
 #elif defined(ODPLAT_NIX)
-   gettimeofday(&tv,NULL);
-   nowtick=tv.tv_sec*1000+(tv.tv_usec/1000);
+   clock_gettime(CLOCK_MONOTONIC, &ts);
+   nowtick=ts.tv_sec*1000+(ts.tv_nsec/1000000);
    if(pTimer->Start+pTimer->Duration <= nowtick)
       return(0);
    return((tODMilliSec)(pTimer->Start + pTimer->Duration - nowtick));

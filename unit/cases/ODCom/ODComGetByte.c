@@ -16,10 +16,9 @@ void utm_ODComCallIdleFunction(tPortInfo *port)
 }
 
 #ifdef ODPLAT_NIX
-#define UT_CUSTOM_MOCK___error
-#define __error utm___error
 static int ut_errno;
-int *utm___error(void) { return(&ut_errno); }
+#define UT_ERRNO_STORAGE ut_errno
+#include "../unix_errno_mock.h"
 #endif
 
 #if defined(__TURBOC__) || (defined(__WATCOMC__) && !defined(ODPLAT_DOS32))

@@ -32,17 +32,13 @@ DWORD WINAPI utm_GetTickCount(void)
    return(ut_clock_value);
 }
 #elif defined(ODPLAT_NIX)
-#define UT_CUSTOM_MOCK_gettimeofday
-static struct timeval ut_time_value;
+#define UT_CUSTOM_MOCK_clock_gettime
+static struct timespec ut_time_value;
 
-#ifdef __FreeBSD__
-int utm_gettimeofday(struct timeval *value, struct timezone *zone)
-#else
-int utm_gettimeofday(struct timeval *value, void *zone)
-#endif
+int utm_clock_gettime(clockid_t clock_id, struct timespec *value)
 {
+   UT_ASSERT_EQ_INT(CLOCK_MONOTONIC, clock_id);
    UT_ASSERT_NOT_NULL(value);
-   UT_ASSERT_NULL(zone);
    *value = ut_time_value;
    return(0);
 }
@@ -90,9 +86,9 @@ static void reports_time_remaining_and_expiration(void)
    ut_timer.Start = 100000;
    ut_timer.Duration = 20;
    ut_time_value.tv_sec = 100;
-   ut_time_value.tv_usec = 10000;
+   ut_time_value.tv_nsec = 10000000;
    UT_ASSERT_EQ_UINT(10, utt_ODTimerLeft(&ut_timer));
-   ut_time_value.tv_usec = 20000;
+   ut_time_value.tv_nsec = 20000000;
    UT_ASSERT_EQ_UINT(0, utt_ODTimerLeft(&ut_timer));
 #endif
 }

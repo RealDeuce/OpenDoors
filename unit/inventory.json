@@ -693,7 +693,7 @@
           "name": "ODComOpen",
           "signature_line": 1256,
           "body_line": 1270,
-          "end_line": 1851,
+          "end_line": 1858,
           "platforms": [
             "unix",
             "pthread",
@@ -705,9 +705,9 @@
         },
         {
           "name": "ODComOpenFromExistingHandle",
-          "signature_line": 1851,
-          "body_line": 1869,
-          "end_line": 1927,
+          "signature_line": 1858,
+          "body_line": 1876,
+          "end_line": 1934,
           "platforms": [
             "unix",
             "pthread",
@@ -719,9 +719,9 @@
         },
         {
           "name": "ODComClose",
-          "signature_line": 1927,
-          "body_line": 1940,
-          "end_line": 2049,
+          "signature_line": 1934,
+          "body_line": 1947,
+          "end_line": 2056,
           "platforms": [
             "unix",
             "pthread",
@@ -733,9 +733,9 @@
         },
         {
           "name": "ODComCarrier",
-          "signature_line": 2049,
-          "body_line": 2065,
-          "end_line": 2198,
+          "signature_line": 2056,
+          "body_line": 2072,
+          "end_line": 2205,
           "platforms": [
             "unix",
             "pthread",
@@ -747,9 +747,9 @@
         },
         {
           "name": "ODComSetDTR",
-          "signature_line": 2198,
-          "body_line": 2213,
-          "end_line": 2312,
+          "signature_line": 2205,
+          "body_line": 2220,
+          "end_line": 2319,
           "platforms": [
             "unix",
             "pthread",
@@ -761,9 +761,9 @@
         },
         {
           "name": "ODComOutbound",
-          "signature_line": 2312,
-          "body_line": 2333,
-          "end_line": 2434,
+          "signature_line": 2319,
+          "body_line": 2340,
+          "end_line": 2441,
           "platforms": [
             "unix",
             "pthread",
@@ -775,9 +775,9 @@
         },
         {
           "name": "ODComClearOutbound",
-          "signature_line": 2434,
-          "body_line": 2447,
-          "end_line": 2512,
+          "signature_line": 2441,
+          "body_line": 2454,
+          "end_line": 2519,
           "platforms": [
             "unix",
             "pthread",
@@ -789,9 +789,9 @@
         },
         {
           "name": "ODComClearInbound",
-          "signature_line": 2512,
-          "body_line": 2525,
-          "end_line": 2589,
+          "signature_line": 2519,
+          "body_line": 2532,
+          "end_line": 2596,
           "platforms": [
             "unix",
             "pthread",
@@ -803,9 +803,9 @@
         },
         {
           "name": "ODComInbound",
-          "signature_line": 2589,
-          "body_line": 2610,
-          "end_line": 2719,
+          "signature_line": 2596,
+          "body_line": 2617,
+          "end_line": 2726,
           "platforms": [
             "unix",
             "pthread",
@@ -817,9 +817,9 @@
         },
         {
           "name": "ODComGetByte",
-          "signature_line": 2740,
-          "body_line": 2742,
-          "end_line": 3006,
+          "signature_line": 2747,
+          "body_line": 2749,
+          "end_line": 3013,
           "platforms": [
             "unix",
             "pthread",
@@ -831,9 +831,9 @@
         },
         {
           "name": "ODComCP437ToUnicodeLen",
-          "signature_line": 3025,
-          "body_line": 3028,
-          "end_line": 3051,
+          "signature_line": 3032,
+          "body_line": 3035,
+          "end_line": 3058,
           "platforms": [
             "unix",
             "pthread",
@@ -845,9 +845,9 @@
         },
         {
           "name": "ODComCP437ToUnicode",
-          "signature_line": 3051,
-          "body_line": 3054,
-          "end_line": 3090,
+          "signature_line": 3058,
+          "body_line": 3061,
+          "end_line": 3097,
           "platforms": [
             "unix",
             "pthread",
@@ -859,9 +859,9 @@
         },
         {
           "name": "ODComSendByte",
-          "signature_line": 3090,
-          "body_line": 3104,
-          "end_line": 3317,
+          "signature_line": 3097,
+          "body_line": 3111,
+          "end_line": 3324,
           "platforms": [
             "unix",
             "pthread",
@@ -873,9 +873,9 @@
         },
         {
           "name": "ODComGetBuffer",
-          "signature_line": 3317,
-          "body_line": 3340,
-          "end_line": 3551,
+          "signature_line": 3324,
+          "body_line": 3347,
+          "end_line": 3558,
           "platforms": [
             "unix",
             "pthread",
@@ -887,9 +887,9 @@
         },
         {
           "name": "ODComSendBuffer",
-          "signature_line": 3551,
-          "body_line": 3569,
-          "end_line": 3900,
+          "signature_line": 3558,
+          "body_line": 3576,
+          "end_line": 3907,
           "platforms": [
             "unix",
             "pthread",
@@ -901,9 +901,9 @@
         },
         {
           "name": "ODComWaitEvent",
-          "signature_line": 3900,
-          "body_line": 3916,
-          "end_line": 4064,
+          "signature_line": 3907,
+          "body_line": 3923,
+          "end_line": 4071,
           "platforms": [
             "unix",
             "pthread",

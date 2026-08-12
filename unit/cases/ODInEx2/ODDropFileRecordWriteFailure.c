@@ -5,21 +5,16 @@
 #elif defined(__WATCOMC__)
 #define UT_CUSTOM_MOCK___get_errno_ptr
 #define __get_errno_ptr utm___get_errno_ptr
-#else
-#define UT_CUSTOM_MOCK___error
-#define __error utm___error
 #endif
 static int ut_errno;
 #ifdef ODPLAT_WIN32
-int *utm__errno(void)
+int *utm__errno(void) { return &ut_errno; }
 #elif defined(__WATCOMC__)
-int *utm___get_errno_ptr(void)
+int *utm___get_errno_ptr(void) { return &ut_errno; }
 #else
-int *utm___error(void)
+#define UT_ERRNO_STORAGE ut_errno
+#include "../unix_errno_mock.h"
 #endif
-{
-   return &ut_errno;
-}
 #endif
 
 static void records_only_the_first_failure(void)

@@ -1828,7 +1828,14 @@ no_fossil:
 		if (isatty(STDIN_FILENO))  {
 			tcgetattr(STDIN_FILENO,&sio_tio_default);
 			tio_raw = sio_tio_default;
-			cfmakeraw(&tio_raw);
+			tio_raw.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP |
+			   INLCR | IGNCR | ICRNL | IXON);
+			tio_raw.c_oflag &= ~OPOST;
+			tio_raw.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+			tio_raw.c_cflag &= ~(CSIZE | PARENB);
+			tio_raw.c_cflag |= CS8;
+			tio_raw.c_cc[VMIN] = 1;
+			tio_raw.c_cc[VTIME] = 0;
 			tcsetattr(STDIN_FILENO,TCSANOW,&tio_raw);
 			setvbuf(stdout, NULL, _IONBF, 0);
 		}

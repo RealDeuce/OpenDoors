@@ -102,8 +102,15 @@ class LateDefineTests(unittest.TestCase):
 
 class EarlyMockDeclarationTests(unittest.TestCase):
     def test_declares_errno_accessors_before_runtime_headers_use_them(self):
-        self.assertEqual(early_mock_declarations({"_errno", "fopen"}),
-                         ["int *utm__errno(void);"])
+        self.assertEqual(early_mock_declarations(
+            {"__error", "__errno_location", "_errno", "fopen"}), [
+                "int *__error(void);",
+                "int *utm___error(void);",
+                "int *__errno_location(void);",
+                "int *utm___errno_location(void);",
+                "int *_errno(void);",
+                "int *utm__errno(void);",
+            ])
 
     def test_declares_vsnprintf_before_mingw_headers_replace_its_macro(self):
         self.assertEqual(early_mock_declarations({"vsnprintf"}), [
@@ -114,7 +121,6 @@ class EarlyMockDeclarationTests(unittest.TestCase):
     def test_reasserts_dependency_aliases_after_runtime_headers(self):
         self.assertEqual(mock_definitions("target", {"__error": object()}),
                          ["target=utt_target", "__error=utm___error"])
-
 
 class DefaultMockTests(unittest.TestCase):
     def test_zeroes_results_without_a_mockable_libc_dependency(self):

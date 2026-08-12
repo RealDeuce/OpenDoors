@@ -37,12 +37,13 @@ def default_build_path(platform: str, toolchain: str,
 
 def platform_defines(platform: str) -> list[str]:
     definitions = {
-        "unix": ["-D__unix__", POSIX_API_FLAG],
-        "pthread": ["-D__unix__", POSIX_API_FLAG,
+        "unix": ["-D__unix__", POSIX_API_FLAG, "-U_FORTIFY_SOURCE"],
+        "pthread": ["-D__unix__", POSIX_API_FLAG, "-U_FORTIFY_SOURCE",
                     "-DOPENDOORS_ENABLE_PTHREAD_KERNEL=1"],
         # A renamed CRT declaration must not retain dllimport when its test
         # supplies the corresponding mock definition.
-        "windows": ["-D_CRTIMP=", "-DDECLSPEC_IMPORT="],
+        "windows": ["-D_CRTIMP=", "-DDECLSPEC_IMPORT=",
+                    "-D_CRT_SECURE_NO_WARNINGS"],
         "dos16": ["-U__unix__", "-U__unix", "-Uunix", "-U__FreeBSD__",
                   "-Dfar=", "-D__LARGE__", "-D__WATCOMC__=1300",
                   "-D__I86__", "-D_M_IX86=100", "-D_M_I86=1",

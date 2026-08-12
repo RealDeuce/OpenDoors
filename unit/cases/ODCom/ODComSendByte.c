@@ -1,10 +1,9 @@
 #define UT_CUSTOM_MOCK_ODComSendBuffer
 #define UT_CUSTOM_MOCK_ODComCallIdleFunction
 #ifdef ODPLAT_NIX
-#define UT_CUSTOM_MOCK___error
-#define __error utm___error
 static int ut_errno;
-int *utm___error(void) { return(&ut_errno); }
+#define UT_ERRNO_STORAGE ut_errno
+#include "../unix_errno_mock.h"
 #endif
 static tPortInfo ut_port;
 static BYTE ut_tx_queue[4];

@@ -237,8 +237,12 @@ static void reads_and_filters_unix_entries(void)
    static char plain_name[] = "PLAIN";
    static char other_name[] = "OTHER";
    static char *paths[3];
+   struct utm_stat root_information;
    tODDirInfo directory;
    tODDirEntry entry;
+
+   UT_ASSERT_EQ_INT(0, lstat("/", &root_information));
+   UT_ASSERT(S_ISDIR(root_information.st_mode));
 
    memset(&directory, 0, sizeof(directory));
    paths[0] = bad_name;
@@ -249,7 +253,7 @@ static void reads_and_filters_unix_entries(void)
    ut_stat_count = 0;
    ut_stat_results[0] = -1;
    ut_stat_results[1] = 0;
-   ut_stat_modes[1] = S_IFDIR;
+   ut_stat_modes[1] = root_information.st_mode & ~(S_IRUSR | S_IWUSR);
    ut_stat_sizes[1] = 222;
    ut_stat_times[1] = (time_t)333;
    ut_attribute_count = 0;

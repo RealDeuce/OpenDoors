@@ -280,12 +280,10 @@ int utm_sprintf(char *buffer, const char *format, ...)
 #ifdef INCLUDE_STDIO_COM
 #define UT_CUSTOM_MOCK_isatty
 #define UT_CUSTOM_MOCK_tcgetattr
-#define UT_CUSTOM_MOCK_cfmakeraw
 #define UT_CUSTOM_MOCK_tcsetattr
 #define UT_CUSTOM_MOCK_setvbuf
 static int ut_isatty_result;
 static unsigned ut_tcgetattr_calls;
-static unsigned ut_raw_calls;
 static unsigned ut_tcsetattr_calls;
 static unsigned ut_setvbuf_calls;
 int utm_isatty(int descriptor)
@@ -297,19 +295,30 @@ int utm_tcgetattr(int descriptor, struct termios *settings)
 {
    UT_ASSERT_EQ_INT(STDIN_FILENO, descriptor);
    UT_ASSERT_EQ_PTR(&sio_tio_default, settings);
+   settings->c_iflag = (tcflag_t)~0;
+   settings->c_oflag = (tcflag_t)~0;
+   settings->c_lflag = (tcflag_t)~0;
+   settings->c_cflag = (tcflag_t)~0;
+   settings->c_cc[VMIN] = 0;
+   settings->c_cc[VTIME] = 1;
    ++ut_tcgetattr_calls;
    return(0);
-}
-void utm_cfmakeraw(struct termios *settings)
-{
-   UT_ASSERT_NOT_NULL(settings);
-   ++ut_raw_calls;
 }
 int utm_tcsetattr(int descriptor, int action, const struct termios *settings)
 {
    UT_ASSERT_EQ_INT(STDIN_FILENO, descriptor);
    UT_ASSERT_EQ_INT(TCSANOW, action);
    UT_ASSERT_NOT_NULL(settings);
+   UT_ASSERT(settings->c_iflag == ((tcflag_t)~0 &
+      ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL |
+      IXON)));
+   UT_ASSERT(settings->c_oflag == ((tcflag_t)~0 & ~OPOST));
+   UT_ASSERT(settings->c_lflag == ((tcflag_t)~0 &
+      ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN)));
+   UT_ASSERT(settings->c_cflag == (((tcflag_t)~0 & ~(CSIZE | PARENB)) |
+      CS8));
+   UT_ASSERT_EQ_INT(1, settings->c_cc[VMIN]);
+   UT_ASSERT_EQ_INT(0, settings->c_cc[VTIME]);
    ++ut_tcsetattr_calls;
    return(0);
 }
@@ -367,7 +376,7 @@ static void reset_open(void)
 #endif
 #ifdef INCLUDE_STDIO_COM
    ut_isatty_result = 0;
-   ut_tcgetattr_calls = ut_raw_calls = ut_tcsetattr_calls = 0;
+   ut_tcgetattr_calls = ut_tcsetattr_calls = 0;
    ut_setvbuf_calls = 0;
 #endif
 }
@@ -575,7 +584,6 @@ static void opens_stdio_with_and_without_a_terminal(void)
    UT_ASSERT_EQ_INT(kODRCSuccess,
       utt_ODComOpen(ODPTR2HANDLE(&ut_port, tPortInfo)));
    UT_ASSERT_EQ_UINT(1, ut_tcgetattr_calls);
-   UT_ASSERT_EQ_UINT(1, ut_raw_calls);
    UT_ASSERT_EQ_UINT(1, ut_tcsetattr_calls);
    UT_ASSERT_EQ_UINT(1, ut_setvbuf_calls);
 }

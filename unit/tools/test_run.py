@@ -66,6 +66,15 @@ class PlatformDefinitionTests(unittest.TestCase):
         self.assertNotIn(feature, platform_defines("dos16"))
         self.assertNotIn(feature, platform_defines("dos32"))
 
+    def test_libc_fortification_does_not_bypass_unix_mocks(self):
+        flag = "-U_FORTIFY_SOURCE"
+        self.assertIn(flag, platform_defines("unix"))
+        self.assertIn(flag, platform_defines("pthread"))
+        self.assertNotIn(flag, platform_defines("windows"))
+
+    def test_windows_runtime_deprecation_aliases_do_not_fail_the_harness(self):
+        self.assertIn("-D_CRT_SECURE_NO_WARNINGS", platform_defines("windows"))
+
 
 class TestSelectionTests(unittest.TestCase):
     def test_loads_exact_owners_from_selector_output(self):

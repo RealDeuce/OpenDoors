@@ -245,15 +245,12 @@ static void waits_for_threaded_socket_carrier_loss(void)
 
 #if defined(INCLUDE_SOCKET_COM) && !defined(OD_MULTITHREADED)
 #define UT_CUSTOM_MOCK_recv
-#define UT_CUSTOM_MOCK___error
 static unsigned ut_recv_calls;
 static int ut_socket_errno;
 static BOOL ut_recv_would_block;
 
-int *utm___error(void)
-{
-   return(&ut_socket_errno);
-}
+#define UT_ERRNO_STORAGE ut_socket_errno
+#include "../unix_errno_mock.h"
 
 ssize_t utm_recv(int socket_handle, void *buffer, size_t size, int flags)
 {

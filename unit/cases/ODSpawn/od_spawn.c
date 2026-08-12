@@ -3,16 +3,10 @@
 #define __get_errno_ptr utm___get_errno_ptr
 static int ut_errno_value;
 int *utm___get_errno_ptr(void) { return(&ut_errno_value); }
-#elif defined(ODPLAT_NIX) && defined(__FreeBSD__)
-#define UT_CUSTOM_MOCK___error
-#define __error utm___error
+#elif defined(ODPLAT_NIX)
 static int ut_errno_value;
-int *utm___error(void) { return(&ut_errno_value); }
-#elif defined(ODPLAT_NIX) && defined(__GLIBC__)
-#define UT_CUSTOM_MOCK___errno_location
-#define __errno_location utm___errno_location
-static int ut_errno_value;
-int *utm___errno_location(void) { return(&ut_errno_value); }
+#define UT_ERRNO_STORAGE ut_errno_value
+#include "../unix_errno_mock.h"
 #endif
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)

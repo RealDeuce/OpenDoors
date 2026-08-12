@@ -603,7 +603,8 @@ def build_model(source: Path, clang: str = "clang",
             state_points.append(StatePoint(leading_end, leading_state_names))
         definitions.append(Definition(
             **base.__dict__,
-            signature_line=expected.signature_line,
+            signature_line=text.count("\n", 0, source_range(node)[0]) + 1
+            if source_range(node) is not None else expected.signature_line,
             body_line=expected.body_line,
             end_line=expected.end_line,
             body_start=body_begin,

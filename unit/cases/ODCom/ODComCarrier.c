@@ -111,21 +111,29 @@ ssize_t utm_recv(int socket_handle, void *buffer, size_t size, int flags)
 
 #ifdef INCLUDE_STDIO_COM
 #define UT_CUSTOM_MOCK_sigpending
+#ifndef __APPLE__
 #define UT_CUSTOM_MOCK_sigismember
+#endif
 static int ut_hangup_pending;
 
 int utm_sigpending(sigset_t *set)
 {
    UT_ASSERT_NOT_NULL(set);
+#ifdef __APPLE__
+   sigemptyset(set);
+   if(ut_hangup_pending)
+      sigaddset(set, SIGHUP);
+#endif
    return(0);
 }
-
+#ifndef __APPLE__
 int utm_sigismember(const sigset_t *set, int signal_number)
 {
    UT_ASSERT_NOT_NULL(set);
    UT_ASSERT_EQ_INT(SIGHUP, signal_number);
    return(ut_hangup_pending);
 }
+#endif
 #endif
 
 static tPortInfo ut_port;

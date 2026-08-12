@@ -4,9 +4,6 @@
 #elif defined(ODPLAT_WIN32)
 #define UT_CUSTOM_MOCK__errno
 #define _errno utm__errno
-#else
-#define UT_CUSTOM_MOCK___error
-#define __error utm___error
 #endif
 
 static int ut_errno_value;
@@ -16,5 +13,6 @@ int *utm___get_errno_ptr(void) { return &ut_errno_value; }
 #elif defined(ODPLAT_WIN32)
 int *utm__errno(void) { return &ut_errno_value; }
 #else
-int *utm___error(void) { return &ut_errno_value; }
+#define UT_ERRNO_STORAGE ut_errno_value
+#include "../unix_errno_mock.h"
 #endif

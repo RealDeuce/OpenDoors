@@ -43,17 +43,13 @@ DWORD WINAPI utm_GetTickCount(void)
 #endif
 
 #ifdef ODPLAT_NIX
-#define UT_CUSTOM_MOCK_gettimeofday
-static struct timeval ut_time_value;
+#define UT_CUSTOM_MOCK_clock_gettime
+static struct timespec ut_time_value;
 
-#ifdef __FreeBSD__
-int utm_gettimeofday(struct timeval *value, struct timezone *zone)
-#else
-int utm_gettimeofday(struct timeval *value, void *zone)
-#endif
+int utm_clock_gettime(clockid_t clock_id, struct timespec *value)
 {
+   UT_ASSERT_EQ_INT(CLOCK_MONOTONIC, clock_id);
    UT_ASSERT_NOT_NULL(value);
-   UT_ASSERT_NULL(zone);
    *value = ut_time_value;
    return(0);
 }
@@ -91,7 +87,7 @@ static void stores_the_current_time_and_requested_duration(void)
 
 #ifdef ODPLAT_NIX
    ut_time_value.tv_sec = 123;
-   ut_time_value.tv_usec = 456000;
+   ut_time_value.tv_nsec = 456000000;
    utt_ODTimerStart(&timer, 789);
    UT_ASSERT_EQ_UINT(123456, timer.Start);
    UT_ASSERT_EQ_UINT(789, timer.Duration);

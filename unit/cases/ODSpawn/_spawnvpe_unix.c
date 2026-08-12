@@ -1,16 +1,8 @@
 #ifdef ODPLAT_NIX
 #include <setjmp.h>
-#if defined(__FreeBSD__)
-#define UT_CUSTOM_MOCK___error
-#define __error utm___error
 static int ut_errno_value;
-int *utm___error(void) { return(&ut_errno_value); }
-#elif defined(__GLIBC__)
-#define UT_CUSTOM_MOCK___errno_location
-#define __errno_location utm___errno_location
-static int ut_errno_value;
-int *utm___errno_location(void) { return(&ut_errno_value); }
-#endif
+#define UT_ERRNO_STORAGE ut_errno_value
+#include "../unix_errno_mock.h"
 #define UT_CUSTOM_MOCK_strchr
 #define UT_CUSTOM_MOCK_getenv
 #define UT_CUSTOM_MOCK_confstr

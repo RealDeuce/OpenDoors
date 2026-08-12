@@ -43,9 +43,14 @@ def early_mock_declarations(names: set[str]) -> list[str]:
     """Declare CRT errno accessors before later runtime headers use them."""
     declarations = []
     if "__error" in names:
-        declarations.append("int *utm___error(void);")
+        declarations.extend(("int *__error(void);",
+                             "int *utm___error(void);"))
+    if "__errno_location" in names:
+        declarations.extend(("int *__errno_location(void);",
+                             "int *utm___errno_location(void);"))
     if "_errno" in names:
-        declarations.append("int *utm__errno(void);")
+        declarations.extend(("int *_errno(void);",
+                             "int *utm__errno(void);"))
     if "vsnprintf" in names:
         declarations.extend([
             "#include <stdarg.h>",

@@ -139,7 +139,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: msys2/setup-msys2@v2
+      - id: msys2
+        uses: msys2/setup-msys2@v2
         with:
           msystem: ${{ matrix.msystem }}
           update: true
@@ -200,7 +201,8 @@ jobs:
       - name: Test native Windows binaries
         shell: pwsh
         run: |
-          $ctest = 'C:\msys64\${{ matrix.prefix }}\bin\ctest.exe'
+          $ctest = Join-Path '${{ steps.msys2.outputs.msys2-location }}' `
+            '${{ matrix.prefix }}\bin\ctest.exe'
           if (-not (Test-Path -LiteralPath $ctest)) {
             throw "CTest was not found at $ctest"
           }

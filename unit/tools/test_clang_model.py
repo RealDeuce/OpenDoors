@@ -90,6 +90,21 @@ class ClangModelTests(unittest.TestCase):
             selected = definitions[0]
             self.assertEqual(len(selected.decisions), 1)
 
+    def test_definition_signature_uses_the_active_ast_source_range(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.c"
+            source.write_text(
+                "#ifdef INACTIVE\n"
+                "static int previous(void) { return 0; }\n"
+                "#endif\n"
+                "\n"
+                "/* documentation */\n"
+                "static\n"
+                "int selected(void) { return 1; }\n",
+                encoding="ascii")
+            target = build_model(source, target_name="selected")[0]
+            self.assertEqual(target.signature_line, 6)
+
     def test_runtime_library_objects_are_not_redefined(self):
         definitions = build_model(ROOT / "ODCmdLn.c")
         target = next(item for item in definitions
