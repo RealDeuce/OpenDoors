@@ -126,6 +126,14 @@ class MockDeclarationTests(unittest.TestCase):
                           "strcat", "strcpy", "strncat", "strncpy",
                           "time"})
 
+    def test_unix_ignores_inactive_odstr_compatibility_mocks(self):
+        case = "\n".join(
+            f"#define UT_CUSTOM_MOCK_{name}"
+            for name in (
+                "stricmp", "strlwr", "strnicmp", "strupr", "toupper"))
+        self.assertEqual(explicit_mock_names(case, ["-D__unix__"]),
+                         {"toupper"})
+
     def test_dos_does_not_force_modern_header_macro_interception(self):
         case = ("#define UT_CUSTOM_MOCK_isspace\n"
                 "#define UT_CUSTOM_MOCK_strcpy\n")
@@ -151,6 +159,11 @@ class MockDeclarationTests(unittest.TestCase):
                          set())
         self.assertEqual(late_mock_names(names, ["-D__TURBOC__=0x0201"]),
                          set())
+        self.assertEqual(late_mock_names(names, ["-D__unix__"]),
+                         {"toupper"})
+
+    def test_unix_keeps_opendoors_compatibility_aliases_early(self):
+        names = {"stricmp", "strlwr", "strnicmp", "strupr", "toupper"}
         self.assertEqual(late_mock_names(names, ["-D__unix__"]),
                          {"toupper"})
 

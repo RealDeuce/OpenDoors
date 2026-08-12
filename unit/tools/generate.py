@@ -33,6 +33,7 @@ HEADER_MACRO_APIS = CTYPE_APIS | {
     "time",
     "vfprintf", "vsnprintf", "vsprintf",
 }
+ODSTR_COMPATIBILITY_APIS = {"stricmp", "strlwr", "strnicmp", "strupr"}
 
 HEADER_MOCK_DECLARATIONS = {
     "isalnum": "int utm_isalnum(int);",
@@ -110,7 +111,10 @@ def explicit_mock_names(case_text: str,
     if any(flag.startswith(("-D__WATCOMC__", "-D__TURBOC__"))
            for flag in flags):
         return set()
-    return set(CUSTOM_MOCK.findall(case_text)) & HEADER_MACRO_APIS
+    result = set(CUSTOM_MOCK.findall(case_text)) & HEADER_MACRO_APIS
+    if any(flag.startswith("-D__unix__") for flag in flags):
+        result -= ODSTR_COMPATIBILITY_APIS
+    return result
 
 
 def late_mock_names(names: set[str], flags: list[str]) -> set[str]:
@@ -118,7 +122,10 @@ def late_mock_names(names: set[str], flags: list[str]) -> set[str]:
     if any(flag.startswith(("-D__WATCOMC__", "-D__TURBOC__"))
            for flag in flags):
         return set()
-    return names & HEADER_MACRO_APIS
+    result = names & HEADER_MACRO_APIS
+    if any(flag.startswith("-D__unix__") for flag in flags):
+        result -= ODSTR_COMPATIBILITY_APIS
+    return result
 
 
 def generated_type_spelling(text: str) -> str:
