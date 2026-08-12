@@ -1,4 +1,5 @@
 #define UT_CUSTOM_MOCK_ODComSendBuffer
+#define UT_CUSTOM_MOCK_ODComCallIdleFunction
 #ifdef ODPLAT_NIX
 #define UT_CUSTOM_MOCK___error
 #define __error utm___error
@@ -21,6 +22,12 @@ tODResult utm_ODComSendBuffer(tPortHandle handle, BYTE *buffer, int size)
 
 static unsigned ut_idle_calls;
 static void ODCALL ut_idle(void) { ++ut_idle_calls; }
+
+void utm_ODComCallIdleFunction(tPortInfo *port)
+{
+   UT_ASSERT_NOT_NULL(port);
+   if(port->pfIdleCallback != NULL) (*port->pfIdleCallback)();
+}
 
 #ifdef __TURBOC__
 static void ut_turbo_fossil_send_failures(BYTE count)

@@ -1,6 +1,7 @@
 #if defined(INCLUDE_UART_COM) || defined(INCLUDE_FOSSIL_COM) || \
    defined(INCLUDE_STDIO_COM) || defined(INCLUDE_WIN32_COM)
 #define UT_CUSTOM_MOCK_ODComCarrier
+#define UT_CUSTOM_MOCK_ODComCallIdleFunction
 static int ut_carrier_calls;
 static int ut_carrier_before_loss;
 
@@ -20,6 +21,12 @@ static unsigned ut_idle_calls;
 static void ODCALL ut_idle(void)
 {
    ++ut_idle_calls;
+}
+
+void utm_ODComCallIdleFunction(tPortInfo *port)
+{
+   UT_ASSERT_NOT_NULL(port);
+   if(port->pfIdleCallback != NULL) (*port->pfIdleCallback)();
 }
 
 static void waits_for_carrier_loss(tComMethod method, BOOL with_idle)

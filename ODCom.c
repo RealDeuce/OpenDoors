@@ -216,6 +216,8 @@ typedef struct
 #endif
 } tPortInfo;
 
+static void ODComCallIdleFunction(tPortInfo *pPortInfo);
+
 /* ========================================================================= */
 /* Internal interrupt-driven serial I/O specific defintions & functions.     */
 /* ========================================================================= */
@@ -748,6 +750,25 @@ static tODResult ODComWin32SetReadTimeouts(tPortInfo *pPortInfo,
 /* ========================================================================= */
 /* Implementation of generic serial I/O functions.                           */
 /* ========================================================================= */
+
+/* ----------------------------------------------------------------------------
+ * ODComCallIdleFunction()                            *** PRIVATE FUNCTION ***
+ *
+ * Calls the serial port's optional idle callback, if one is installed.
+ *
+ * Parameters: pPortInfo - Serial port object whose callback should be called.
+ *
+ *     Return: void
+ */
+static void ODComCallIdleFunction(tPortInfo *pPortInfo)
+{
+   ASSERT(pPortInfo != NULL);
+
+   if(pPortInfo->pfIdleCallback != NULL)
+   {
+      (*pPortInfo->pfIdleCallback)();
+   }
+}
 
 /* ----------------------------------------------------------------------------
  * ODComAlloc()
@@ -2781,10 +2802,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
          /* Loop, calling idle function, until next character arrives. */
          while(!nRXChars)
          {
-            if(pPortInfo->pfIdleCallback != NULL)
-            {
-               (*pPortInfo->pfIdleCallback)();
-            }
+            ODComCallIdleFunction(pPortInfo);
          }
 
          /* Disable interrupts. */
@@ -3109,8 +3127,7 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
 #ifdef ODPLAT_DOS32
          while(!OD32FossilSendByte((BYTE)nPort, btToSend))
          {
-            if(pPortInfo->pfIdleCallback != NULL)
-               (*pPortInfo->pfIdleCallback)();
+            ODComCallIdleFunction(pPortInfo);
          }
 #else
 # ifdef __WATCOMC__
@@ -3124,10 +3141,7 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
                break;
 
             /* Call idle function, if any. */
-            if(pPortInfo->pfIdleCallback != NULL)
-            {
-               (*pPortInfo->pfIdleCallback)();
-            }
+            ODComCallIdleFunction(pPortInfo);
          }
 #else
 try_again:
@@ -3139,10 +3153,7 @@ try_again:
          ASM    jne keep_going
 
          /* Call idle function, if any. */
-         if(pPortInfo->pfIdleCallback != NULL)
-         {
-            (*pPortInfo->pfIdleCallback)();
-         }
+         ODComCallIdleFunction(pPortInfo);
 
          goto try_again;
 keep_going:
@@ -3159,10 +3170,7 @@ keep_going:
          while(!ODComInternalTXReady())
          {
             /* Call idle function, if any. */
-            if(pPortInfo->pfIdleCallback != NULL)
-            {
-               (*pPortInfo->pfIdleCallback)();
-            }
+            ODComCallIdleFunction(pPortInfo);
          }
 
          /* Disable interrupts. */
@@ -3607,8 +3615,7 @@ tODResult ODComSendBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize)
                   {
                      while(!OD32FossilSendByte((BYTE)nPort, *pCurrent))
                      {
-                        if(pPortInfo->pfIdleCallback != NULL)
-                           (*pPortInfo->pfIdleCallback)();
+                        ODComCallIdleFunction(pPortInfo);
                      }
                      ++pCurrent;
                   }
@@ -3616,8 +3623,7 @@ tODResult ODComSendBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize)
                }
                if(nCount == 0)
                {
-                  if(pPortInfo->pfIdleCallback != NULL)
-                     (*pPortInfo->pfIdleCallback)();
+                  ODComCallIdleFunction(pPortInfo);
                   continue;
                }
                pCurrent += nCount;
@@ -3647,10 +3653,7 @@ try_again:
          if(nCount<nSize)
          {
             /* Call idle function, if any. */
-            if(pPortInfo->pfIdleCallback != NULL)
-            {
-               (*pPortInfo->pfIdleCallback)();
-            }
+            ODComCallIdleFunction(pPortInfo);
 
             nSize-=nCount;
             buf+=nCount;
@@ -3755,10 +3758,7 @@ try_again:
             if(nSize == 0) break;
 
             /* Call idle function, if any. */
-            if(pPortInfo->pfIdleCallback != NULL)
-            {
-               (*pPortInfo->pfIdleCallback)();
-            }
+            ODComCallIdleFunction(pPortInfo);
          }
          break;
       }
@@ -3937,10 +3937,7 @@ tODResult ODComWaitEvent(tPortHandle hPort, tComEvent Event)
                   ODComCarrier(hPort, &bCarrier);
                   if(!bCarrier) break;
 
-                  if(pPortInfo->pfIdleCallback != NULL)
-                  {
-                     (*pPortInfo->pfIdleCallback)();
-                  }
+                  ODComCallIdleFunction(pPortInfo);
                }
                break;
             }

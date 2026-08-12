@@ -168,6 +168,8 @@ static void ODEditRedrawSubArea(tEditInstance *pEditInstance,
 static void ODEditGetActualCurPos(tEditInstance *pEditInstance,
    UINT *punRow, UINT *punColumn);
 static BOOL ODEditIsEOLForMode(tEditInstance *pEditInstance, char chToTest);
+static BOOL ODEditCalculateLineArrayGrowth(UINT unCurrentSize,
+   UINT *punNewSize, size_t *pnNewBytes);
 
 /* Low level buffer manipulation functions. */
 static BOOL ODEditBufferFormatAndIndex(tEditInstance *pEditInstance);
@@ -2246,6 +2248,44 @@ static BOOL ODEditIsEOLForMode(tEditInstance *pEditInstance, char chToTest)
 /* ========================================================================= */
 
 /* ----------------------------------------------------------------------------
+ * ODEditCalculateLineArrayGrowth()                    *** PRIVATE FUNCTION ***
+ *
+ * Calculates the element count and allocation size for the next line-array
+ * growth operation without performing the allocation.
+ *
+ * Parameters: unCurrentSize - Current line-array element count.
+ *
+ *             punNewSize    - Location to store the new element count.
+ *
+ *             pnNewBytes    - Location to store the corresponding allocation
+ *                             size in bytes.
+ *
+ *     Return: TRUE on success, or FALSE if either calculation overflows.
+ */
+static BOOL ODEditCalculateLineArrayGrowth(UINT unCurrentSize,
+   UINT *punNewSize, size_t *pnNewBytes)
+{
+   UINT unNewSize;
+
+   ASSERT(punNewSize != NULL);
+   ASSERT(pnNewBytes != NULL);
+
+   if(unCurrentSize > (UINT)-1 - LINE_ARRAY_GROW_SIZE)
+   {
+      return(FALSE);
+   }
+
+   unNewSize = unCurrentSize + LINE_ARRAY_GROW_SIZE;
+   if(!ODSizeMultiply((size_t)unNewSize, sizeof(char *), pnNewBytes))
+   {
+      return(FALSE);
+   }
+
+   *punNewSize = unNewSize;
+   return(TRUE);
+}
+
+/* ----------------------------------------------------------------------------
  * ODEditBufferFormatAndIndex()                        *** PRIVATE FUNCTION ***
  *
  * Regenerates the count of lines in the buffer, and the array of pointers to
@@ -2314,15 +2354,8 @@ static BOOL ODEditBufferFormatAndIndex(tEditInstance *pEditInstance)
       if(unProcessingLine == pEditInstance->unLineArraySize)
       {
          /* Determine the size to grow the array to. */
-         if(pEditInstance->unLineArraySize > (UINT)-1 - LINE_ARRAY_GROW_SIZE)
-         {
-            od_control.od_error = ERR_LIMIT;
-            return(FALSE);
-         }
-         unNewArraySize = pEditInstance->unLineArraySize
-            + LINE_ARRAY_GROW_SIZE;
-
-         if(!ODSizeMultiply((size_t)unNewArraySize, sizeof(char *),
+         if(!ODEditCalculateLineArrayGrowth(
+            pEditInstance->unLineArraySize, &unNewArraySize,
             &nLineArrayBytes))
          {
             od_control.od_error = ERR_LIMIT;

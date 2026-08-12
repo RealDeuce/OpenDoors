@@ -1,4 +1,5 @@
 #define UT_CUSTOM_MOCK_ODComInbound
+#define UT_CUSTOM_MOCK_ODComCallIdleFunction
 static tPortInfo ut_port;
 static int ut_inbound_size;
 tODResult utm_ODComInbound(tPortHandle port, int *waiting)
@@ -6,6 +7,12 @@ tODResult utm_ODComInbound(tPortHandle port, int *waiting)
    UT_ASSERT_NOT_NULL(port); UT_ASSERT_NOT_NULL(waiting);
    *waiting = ut_inbound_size;
    return(kODRCSuccess);
+}
+
+void utm_ODComCallIdleFunction(tPortInfo *port)
+{
+   UT_ASSERT_NOT_NULL(port);
+   if(port->pfIdleCallback != NULL) (*port->pfIdleCallback)();
 }
 
 #ifdef ODPLAT_NIX

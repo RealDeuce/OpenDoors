@@ -1,13 +1,14 @@
 #define UT_CUSTOM_MOCK_ODEditIsEOLForMode
-#define UT_CUSTOM_MOCK_ODSizeMultiply
+#define UT_CUSTOM_MOCK_ODEditCalculateLineArrayGrowth
 #define UT_CUSTOM_MOCK_realloc
 #define UT_CUSTOM_MOCK_memmove
 #define UT_CUSTOM_MOCK_strlen
 #define UT_CUSTOM_MOCK_ODEditSetBreakSequence
 
-static BOOL ut_multiply_result;
-static size_t ut_multiply_value;
-static unsigned ut_multiply_calls;
+static BOOL ut_growth_result;
+static UINT ut_growth_size;
+static size_t ut_growth_bytes;
+static unsigned ut_growth_calls;
 static void *ut_realloc_result;
 static unsigned ut_realloc_calls;
 static char ut_break_first[8];
@@ -21,21 +22,24 @@ BOOL utm_ODEditIsEOLForMode(tEditInstance *instance, char character)
    return(character == '\r' || character == '\n' || character == '\0');
 }
 
-int utm_ODSizeMultiply(size_t left, size_t right, size_t *result)
+BOOL utm_ODEditCalculateLineArrayGrowth(UINT current, UINT *new_size,
+   size_t *new_bytes)
 {
-   ++ut_multiply_calls;
-   UT_ASSERT_EQ_UINT(LINE_ARRAY_GROW_SIZE, left);
-   UT_ASSERT(right == sizeof(char *));
-   UT_ASSERT_NOT_NULL(result);
-   *result = ut_multiply_value;
-   return(ut_multiply_result);
+   ++ut_growth_calls;
+   UT_ASSERT_EQ_UINT(0, current);
+   UT_ASSERT_NOT_NULL(new_size);
+   UT_ASSERT_NOT_NULL(new_bytes);
+   if(!ut_growth_result) return(FALSE);
+   *new_size = ut_growth_size;
+   *new_bytes = ut_growth_bytes;
+   return(TRUE);
 }
 
 void *utm_realloc(void *allocation, size_t size)
 {
    ++ut_realloc_calls;
    UT_ASSERT_NOT_NULL(allocation);
-   UT_ASSERT(size == ut_multiply_value);
+   UT_ASSERT(size == ut_growth_bytes);
    return(ut_realloc_result);
 }
 
@@ -92,9 +96,10 @@ static void reset_format(tEditInstance *instance, tODEditOptions *options,
    instance->bWordWrapLongLines = FALSE;
    instance->pUserOptions = options;
    options->TextFormat = FORMAT_LINE_BREAKS;
-   ut_multiply_result = TRUE;
-   ut_multiply_value = LINE_ARRAY_GROW_SIZE * sizeof(char *);
-   ut_multiply_calls = 0;
+   ut_growth_result = TRUE;
+   ut_growth_size = LINE_ARRAY_GROW_SIZE;
+   ut_growth_bytes = LINE_ARRAY_GROW_SIZE * sizeof(char *);
+   ut_growth_calls = 0;
    ut_realloc_result = lines;
    ut_realloc_calls = 0;
    ut_break_calls = 0;
@@ -111,7 +116,7 @@ static void indexes_an_empty_buffer(void)
    UT_ASSERT_EQ_INT(TRUE, utt_ODEditBufferFormatAndIndex(&instance));
    UT_ASSERT_EQ_UINT(1, instance.unLinesInBuffer);
    UT_ASSERT_EQ_PTR(buffer, lines[0]);
-   UT_ASSERT_EQ_UINT(0, ut_multiply_calls);
+   UT_ASSERT_EQ_UINT(0, ut_growth_calls);
    UT_ASSERT_EQ_UINT(0, ut_break_calls);
 }
 
@@ -124,7 +129,7 @@ static void reports_line_array_growth_failures_and_success(void)
    tODEditOptions options;
 
    reset_format(&instance, &options, buffer, old_lines, 0, 10);
-   ut_multiply_result = FALSE;
+   ut_growth_result = FALSE;
    UT_ASSERT_EQ_INT(FALSE, utt_ODEditBufferFormatAndIndex(&instance));
    UT_ASSERT_EQ_INT(ERR_LIMIT, od_control.od_error);
    UT_ASSERT_EQ_UINT(0, ut_realloc_calls);

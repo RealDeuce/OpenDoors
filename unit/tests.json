@@ -172,6 +172,7 @@
     {"source":"ODEdit.c","function":"ODEditScrollArea","case":"unit/cases/ODEdit/ODEditScrollArea.c","platforms":["unix","pthread","windows","dos16","dos32"]},
     {"source":"ODEdit.c","function":"ODEditRedrawSubArea","case":"unit/cases/ODEdit/ODEditRedrawSubArea.c","platforms":["unix","pthread","windows","dos16","dos32"]},
     {"source":"ODEdit.c","function":"ODEditDetermineChanged","case":"unit/cases/ODEdit/ODEditDetermineChanged.c","platforms":["unix","pthread","windows","dos16","dos32"]},
+    {"source":"ODEdit.c","function":"ODEditCalculateLineArrayGrowth","case":"unit/cases/ODEdit/ODEditCalculateLineArrayGrowth.c","platforms":["unix","pthread","windows","dos16","dos32"]},
     {"source":"ODEdit.c","function":"ODEditBufferFormatAndIndex","case":"unit/cases/ODEdit/ODEditBufferFormatAndIndex.c","platforms":["unix","pthread","windows","dos16","dos32"]},
     {"source":"ODEdit.c","function":"ODEditEnterText","case":"unit/cases/ODEdit/ODEditEnterText.c","platforms":["unix","pthread","windows","dos16","dos32"]},
     {"source":"ODEdit.c","function":"ODEditSetupInstance","case":"unit/cases/ODEdit/ODEditSetupInstance.c","platforms":["unix","pthread","windows","dos16","dos32"]},
@@ -804,6 +805,12 @@
       "configurations": [
         {"name": "isolated-port", "defines": ["inp=UTInp", "outp=UTOutp"]}
       ]
+    },
+    {
+      "source": "ODCom.c",
+      "function": "ODComCallIdleFunction",
+      "case": "unit/cases/ODCom/ODComCallIdleFunction.c",
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
     },
     {
       "source": "ODCom.c",

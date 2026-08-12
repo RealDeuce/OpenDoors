@@ -318,7 +318,6 @@ static HWND ODFrameCreateToolbar(HWND hwndParent, HANDLE hInstance,
    HWND hwndTimeEdit = NULL;
    HWND hwndTimeUpDown = NULL;
    HWND hwndToolTip;
-   BOOL bSuccess = FALSE;
 
    ASSERT(hwndParent != NULL);
    ASSERT(hInstance != NULL);
@@ -332,7 +331,7 @@ static HWND ODFrameCreateToolbar(HWND hwndParent, HANDLE hInstance,
 
    if(hwndToolbar == NULL)
    {
-      goto CleanUp;
+      return(NULL);
    }
 
    /* Change the window proc for the toolbar window to our own, keeping a */
@@ -348,7 +347,8 @@ static HWND ODFrameCreateToolbar(HWND hwndParent, HANDLE hInstance,
 
    if(hwndTimeEdit == NULL)
    {
-      goto CleanUp;
+      DestroyWindow(hwndToolbar);
+      return(NULL);
    }
 
    /* Now that the edit window has the appropriate parent, we set its */
@@ -393,7 +393,9 @@ static HWND ODFrameCreateToolbar(HWND hwndParent, HANDLE hInstance,
 
    if(hwndTimeUpDown == NULL)
    {
-      goto CleanUp;
+      DestroyWindow(hwndTimeEdit);
+      DestroyWindow(hwndToolbar);
+      return(NULL);
    }
 
    /* Set the up-down control's buddy control to be the edit control that */
@@ -410,29 +412,7 @@ static HWND ODFrameCreateToolbar(HWND hwndParent, HANDLE hInstance,
    /* Next, we set the default text for the edit control. */
    ODFrameUpdateTimeLeft(pWindowInfo);
 
-   /* Return with success. */
-   bSuccess = TRUE;
-
-CleanUp:
-   if(!bSuccess)
-   {
-      /* On failure, free any allocated resources. */
-      if(hwndTimeUpDown != NULL)
-      {
-         DestroyWindow(hwndTimeUpDown);
-      }
-      if(hwndTimeEdit != NULL)
-      {
-         DestroyWindow(hwndTimeEdit);
-      }
-      if(hwndToolbar != NULL)
-      {
-         DestroyWindow(hwndToolbar);
-         hwndToolbar = NULL;
-      }
-   }
-
-   /* Return handle to newly created toolbar, or NULL on failure. */
+   /* Return handle to newly created toolbar. */
    return(hwndToolbar);
 }
 

@@ -56,6 +56,12 @@
 static WORD awTimeVal[3];
 static BYTE btTimeNumVals;
 
+/* ODConfigInit() handles every bounded option index explicitly except for
+ * the final option, which is represented by the switch default. */
+#define OD_CONFIG_NO_DTR_DISABLE 48
+typedef char tODConfigOptionCountCheck[
+   (TEXT_SIZE == OD_CONFIG_NO_DTR_DISABLE + 1) ? 1 : -1];
+
 
 /* Local functions. */
 static WORD ODCfgGetWordDecimal(char *pszConfigText);
@@ -723,7 +729,7 @@ ODAPIDEF void ODCALL ODConfigInit(void)
                         sizeof(od_control.od_disable_dtr));
                      break;
 
-                  case 48:
+                  default:
                      /* "NoDTRDisable" */
                      od_control.od_disable |= DIS_DTR_DISABLE;
                      break;

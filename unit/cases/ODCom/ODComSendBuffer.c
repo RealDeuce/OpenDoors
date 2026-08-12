@@ -12,6 +12,7 @@ int *utm___error(void) { return(&ut_errno); }
 #endif
 
 #define UT_CUSTOM_MOCK_ODComCP437ToUnicode
+#define UT_CUSTOM_MOCK_ODComCallIdleFunction
 #define UT_CUSTOM_MOCK_free
 BYTE *utm_ODComCP437ToUnicode(BYTE *buffer, int *size)
 {
@@ -27,6 +28,12 @@ void utm_free(void *memory)
 
 static unsigned ut_idle_calls;
 static void ODCALL ut_idle(void) { ++ut_idle_calls; }
+
+void utm_ODComCallIdleFunction(tPortInfo *port)
+{
+   UT_ASSERT_NOT_NULL(port);
+   if(port->pfIdleCallback != NULL) (*port->pfIdleCallback)();
+}
 
 #if defined(__TURBOC__) || (defined(__WATCOMC__) && !defined(ODPLAT_DOS32))
 static void ut_fossil_block_limit(BYTE limit)
