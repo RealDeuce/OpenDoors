@@ -4,7 +4,24 @@ file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" OPENDOORS_VERSION
     LIMIT_COUNT 1)
 project(OpenDoors VERSION "${OPENDOORS_VERSION}" LANGUAGES C)
 
+set(_opendoors_testing_explicit OFF)
+if(DEFINED BUILD_TESTING)
+    set(_opendoors_testing_explicit ON)
+endif()
+
+if(NOT _opendoors_testing_explicit)
+    find_package(Python3 QUIET COMPONENTS Interpreter)
+    if(NOT Python3_Interpreter_FOUND)
+        set(BUILD_TESTING OFF CACHE BOOL "Build the testing tree.")
+    endif()
+endif()
+
 include(CTest)
+
+if(BUILD_TESTING)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+endif()
+
 include(CheckIncludeFile)
 include(CheckSymbolExists)
 include(CMakePackageConfigHelpers)

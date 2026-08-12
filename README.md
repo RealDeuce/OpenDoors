@@ -68,6 +68,11 @@ installed-package and extended socket-driven test commands. Behavioral and
 design problems discovered while characterizing the current implementation are
 tracked separately in [`ISSUES.md`](ISSUES.md).
 
+Tests require a Python 3 interpreter. When `BUILD_TESTING` is not specified,
+CMake disables it automatically if Python 3 is unavailable, so Python is not
+required to build or install the libraries and examples. Explicitly setting
+`BUILD_TESTING=ON` makes Python 3 a required dependency.
+
 MSVC builds may also enable `OPENDOORS_BUILD_MSVC_STATIC_MT` to produce
 `ODoors-static-mt.lib` and the `OpenDoors::StaticMT` target. This additional
 library uses Microsoft's static C runtime; `OpenDoors::Static` continues to

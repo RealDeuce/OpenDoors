@@ -13,6 +13,12 @@ ctest --test-dir build --output-on-failure
 cmake --install build --prefix /path/to/prefix
 ```
 
+The test tree requires a Python 3 interpreter. If `BUILD_TESTING` was not
+specified and Python 3 is unavailable, CMake sets `BUILD_TESTING=OFF` and the
+libraries, examples, and install targets remain available. Pass
+`-DBUILD_TESTING=ON` when tests are required; configuration then fails rather
+than silently omitting them if Python 3 cannot be found.
+
 Both library variants are enabled by default. They can be selected
 independently; at least one must remain enabled:
 
