@@ -33,7 +33,7 @@ DWORD WINAPI utm_GetTickCount(void)
 }
 
 DWORD WINAPI utm_MsgWaitForMultipleObjects(DWORD count,
-   const HANDLE *objects, WINBOOL wait_all, DWORD milliseconds,
+   const HANDLE *objects, BOOL wait_all, DWORD milliseconds,
    DWORD wake_mask)
 {
    UT_ASSERT_EQ_UINT(1, count); UT_ASSERT(objects != NULL);
@@ -44,7 +44,7 @@ DWORD WINAPI utm_MsgWaitForMultipleObjects(DWORD count,
    return ut_wait_results[ut_wait_index++];
 }
 
-WINBOOL WINAPI utm_PeekMessageA(LPMSG message, HWND window, UINT first,
+BOOL WINAPI utm_PeekMessageA(LPMSG message, HWND window, UINT first,
    UINT last, UINT remove)
 {
    BOOL result;
@@ -69,7 +69,7 @@ BOOL utm_ODFrameTranslateAccelerator(HWND frame, MSG *message)
    return ut_accel_results[ut_accel_index++];
 }
 
-WINBOOL WINAPI utm_TranslateMessage(const MSG *message)
+BOOL WINAPI utm_TranslateMessage(const MSG *message)
 {
    ++ut_translate_calls; UT_ASSERT(message != NULL); return TRUE;
 }

@@ -4,7 +4,7 @@
 static tODFrameWindowInfo ut_info;
 UT_WINDOW_LONG_PTR WINAPI UT_GET_WINDOW_LONG_PTR(HWND window, int index)
 { (void)window; UT_ASSERT_EQ_INT(GWLP_USERDATA, index); return((LONG_PTR)&ut_info); }
-WINBOOL WINAPI utm_GetWindowRect(HWND window, LPRECT rectangle)
+BOOL WINAPI utm_GetWindowRect(HWND window, LPRECT rectangle)
 {
    UT_ASSERT_EQ_PTR(ut_info.hwndStatusBar, window);
    rectangle->top = 20; rectangle->bottom = 41; return(TRUE);

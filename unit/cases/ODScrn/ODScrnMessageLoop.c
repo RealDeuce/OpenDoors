@@ -25,7 +25,7 @@ HWND WINAPI utm_GetParent(HWND window)
    return ut_frame;
 }
 
-WINBOOL WINAPI utm_GetMessageA(LPMSG message, HWND window, UINT first,
+BOOL WINAPI utm_GetMessageA(LPMSG message, HWND window, UINT first,
    UINT last)
 {
    BOOL result;
@@ -44,12 +44,12 @@ BOOL utm_ODFrameTranslateAccelerator(HWND frame, MSG *message)
    return ut_accel_results[ut_accel_index++];
 }
 
-WINBOOL WINAPI utm_TranslateMessage(const MSG *message)
+BOOL WINAPI utm_TranslateMessage(const MSG *message)
 {
    ++ut_translate_calls; UT_ASSERT_NOT_NULL(message); return TRUE;
 }
 
-WINBOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
+BOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
    LPARAM lparam)
 {
    ++ut_post_calls; UT_ASSERT(window == ut_screen);

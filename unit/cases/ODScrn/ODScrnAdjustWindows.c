@@ -26,7 +26,7 @@ INT utm_ODFrameGetUsedClientAtBottom(HWND frame)
    UT_ASSERT(frame == ut_frame); return 13;
 }
 
-WINBOOL WINAPI utm_GetClientRect(HWND window, LPRECT rectangle)
+BOOL WINAPI utm_GetClientRect(HWND window, LPRECT rectangle)
 {
    ++ut_client_calls; UT_ASSERT_NOT_NULL(rectangle);
    memset(rectangle, 0, sizeof(*rectangle));
@@ -42,7 +42,7 @@ WINBOOL WINAPI utm_GetClientRect(HWND window, LPRECT rectangle)
    return TRUE;
 }
 
-WINBOOL WINAPI utm_GetWindowRect(HWND window, LPRECT rectangle)
+BOOL WINAPI utm_GetWindowRect(HWND window, LPRECT rectangle)
 {
    ++ut_window_calls; UT_ASSERT_NOT_NULL(rectangle);
    memset(rectangle, 0, sizeof(*rectangle));
@@ -58,7 +58,7 @@ WINBOOL WINAPI utm_GetWindowRect(HWND window, LPRECT rectangle)
    return TRUE;
 }
 
-WINBOOL WINAPI utm_SetWindowPos(HWND window, HWND insert_after, int x,
+BOOL WINAPI utm_SetWindowPos(HWND window, HWND insert_after, int x,
    int y, int width, int height, UINT flags)
 {
    UT_ASSERT(insert_after == NULL); ++ut_position_calls;

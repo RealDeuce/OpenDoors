@@ -25,7 +25,7 @@ int utm_int386(int interrupt_number, const union REGS *input,
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_PostMessageA
 static unsigned ut_post_calls;
-WINBOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
+BOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
    LPARAM lparam)
 {
    ++ut_post_calls; UT_ASSERT(window == hwndScreenWindow);

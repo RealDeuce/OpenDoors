@@ -44,7 +44,7 @@ static jmp_buf ut_exit_target;
 
 DWORD WINAPI utm_GetCurrentThreadId(void) { return 41; }
 
-WINBOOL WINAPI utm_PeekMessageA(LPMSG message, HWND window, UINT first,
+BOOL WINAPI utm_PeekMessageA(LPMSG message, HWND window, UINT first,
    UINT last, UINT remove)
 {
    UT_ASSERT_NOT_NULL(message); UT_ASSERT(window == NULL);
@@ -63,7 +63,7 @@ HWND utm_ODScrnCreateWin(HWND frame, HANDLE instance)
    return ut_create_fails ? NULL : ut_screen;
 }
 
-WINBOOL WINAPI utm_SetEvent(HANDLE event)
+BOOL WINAPI utm_SetEvent(HANDLE event)
 {
    ++ut_event_calls; UT_ASSERT(event == ut_event); return TRUE;
 }
@@ -98,7 +98,7 @@ INT_PTR WINAPI utm_DialogBoxParamA(HINSTANCE instance, LPCSTR template_name,
 void utm_ODSyncControlReadLock(void) { ++ut_lock_calls; }
 void utm_ODSyncControlReadUnlock(void) { ++ut_unlock_calls; }
 
-WINBOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
+BOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
    LPARAM lparam)
 {
    ++ut_post_calls; UT_ASSERT(window == ut_screen);
@@ -106,7 +106,7 @@ WINBOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
    UT_ASSERT_EQ_INT(0, lparam); return TRUE;
 }
 
-WINBOOL WINAPI utm_ShowWindow(HWND window, int command)
+BOOL WINAPI utm_ShowWindow(HWND window, int command)
 {
    UT_ASSERT(ut_show_calls < 2);
    UT_ASSERT(window == (ut_show_calls == 0 ? ut_frame : ut_screen));
@@ -118,12 +118,12 @@ void utm_ODScrnMessageLoop(HANDLE instance, HWND screen)
    ++ut_loop_calls; UT_ASSERT(instance == ut_instance); UT_ASSERT(screen == ut_screen);
 }
 
-WINBOOL WINAPI utm_IsWindow(HWND window)
+BOOL WINAPI utm_IsWindow(HWND window)
 {
    UT_ASSERT(window == ut_screen); return ut_window_exists;
 }
 
-WINBOOL WINAPI utm_DestroyWindow(HWND window)
+BOOL WINAPI utm_DestroyWindow(HWND window)
 {
    ++ut_destroy_calls; UT_ASSERT(window == ut_screen); return TRUE;
 }

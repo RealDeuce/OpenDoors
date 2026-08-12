@@ -11,7 +11,7 @@ static tODThreadHandle ut_thread = (tODThreadHandle)17;
 void utm_ODThreadWaitForExit(tODThreadHandle thread)
 { ++ut_wait_calls; UT_ASSERT(thread == ut_thread); }
 #ifdef ODPLAT_WIN32
-WINBOOL WINAPI utm_CloseHandle(HANDLE handle)
+BOOL WINAPI utm_CloseHandle(HANDLE handle)
 { UT_ASSERT(handle == ut_thread); return TRUE; }
 #endif
 static void ignores_a_thread_that_was_not_started(void)

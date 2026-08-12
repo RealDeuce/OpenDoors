@@ -10,15 +10,15 @@ static HANDLE ut_event;static tODResult ut_create_result;static DWORD ut_wait_re
 static tODResult ut_frame_result;static tODThreadHandle ut_screen_after_create;
 static unsigned ut_wait_calls,ut_close_event_calls,ut_close_thread_calls,ut_shutdown_calls,ut_join_calls,ut_screen_calls;
 DWORD OD_THREAD_FUNC utm_ODFrameThreadProc(void *parameter);
-WINBOOL WINAPI utm_CloseHandle(HANDLE handle);
-HANDLE WINAPI utm_CreateEventA(LPSECURITY_ATTRIBUTES attributes,WINBOOL manual,WINBOOL initial,LPCSTR name)
+BOOL WINAPI utm_CloseHandle(HANDLE handle);
+HANDLE WINAPI utm_CreateEventA(LPSECURITY_ATTRIBUTES attributes,BOOL manual,BOOL initial,LPCSTR name)
 {UT_ASSERT_NULL(attributes);UT_ASSERT(manual);UT_ASSERT(!initial);UT_ASSERT_NULL(name);return(ut_event);}
 tODResult utm_ODThreadCreate(tODThreadHandle *thread,ptODThreadProc *function,void *parameter)
 {UT_ASSERT_EQ_PTR(utm_ODFrameThreadProc,function);UT_ASSERT_EQ_PTR((void *)(UINT_PTR)9,parameter);*thread=(HANDLE)(UINT_PTR)2;
  FrameStartResult=ut_frame_result;hCurrentScreenThread=ut_screen_after_create;return(ut_create_result);}
 DWORD WINAPI utm_WaitForSingleObject(HANDLE handle,DWORD timeout)
 {unsigned call=ut_wait_calls++;UT_ASSERT_EQ_PTR(ut_event,handle);UT_ASSERT_EQ_UINT(call==0?OD_UI_THREAD_TIMEOUT:INFINITE,timeout);return(ut_wait_results[call]);}
-WINBOOL WINAPI utm_CloseHandle(HANDLE handle)
+BOOL WINAPI utm_CloseHandle(HANDLE handle)
 {if(handle==ut_event)++ut_close_event_calls;else{UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)2,handle);++ut_close_thread_calls;}return(TRUE);}
 void utm_ODFrameShutdown(tODThreadHandle *thread){UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)2,*thread);++ut_shutdown_calls;*thread=NULL;}
 void utm_ODThreadWaitForExit(tODThreadHandle thread){UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)2,thread);++ut_join_calls;}

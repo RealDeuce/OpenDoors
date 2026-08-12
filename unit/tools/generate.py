@@ -24,12 +24,60 @@ CTYPE_APIS = {
     "tolower", "toupper",
 }
 HEADER_MACRO_APIS = CTYPE_APIS | {
+    "fprintf",
     "memchr", "memcmp", "memcpy", "memmove", "memset",
     "mktime", "printf",
     "sigaddset", "sigemptyset", "sigismember", "sigpending", "sigprocmask",
-    "snprintf", "sprintf", "strcat", "strcpy", "strncat", "strncpy",
+    "snprintf", "sprintf", "sscanf", "strcat", "strcpy", "strdup", "stricmp",
+    "strlwr", "strncat", "strncpy", "strnicmp", "strupr",
     "time",
-    "vsnprintf", "vsprintf",
+    "vfprintf", "vsnprintf", "vsprintf",
+}
+
+HEADER_MOCK_DECLARATIONS = {
+    "isalnum": "int utm_isalnum(int);",
+    "isalpha": "int utm_isalpha(int);",
+    "isblank": "int utm_isblank(int);",
+    "iscntrl": "int utm_iscntrl(int);",
+    "isdigit": "int utm_isdigit(int);",
+    "isgraph": "int utm_isgraph(int);",
+    "islower": "int utm_islower(int);",
+    "isprint": "int utm_isprint(int);",
+    "ispunct": "int utm_ispunct(int);",
+    "isspace": "int utm_isspace(int);",
+    "isupper": "int utm_isupper(int);",
+    "isxdigit": "int utm_isxdigit(int);",
+    "fprintf": "int utm_fprintf(FILE *, const char *, ...);",
+    "memchr": "void *utm_memchr(const void *, int, size_t);",
+    "memcmp": "int utm_memcmp(const void *, const void *, size_t);",
+    "memcpy": "void *utm_memcpy(void *, const void *, size_t);",
+    "memmove": "void *utm_memmove(void *, const void *, size_t);",
+    "memset": "void *utm_memset(void *, int, size_t);",
+    "mktime": "time_t utm_mktime(struct tm *);",
+    "printf": "int utm_printf(const char *, ...);",
+    "sigaddset": "int utm_sigaddset(sigset_t *, int);",
+    "sigemptyset": "int utm_sigemptyset(sigset_t *);",
+    "sigismember": "int utm_sigismember(const sigset_t *, int);",
+    "sigpending": "int utm_sigpending(sigset_t *);",
+    "sigprocmask": "int utm_sigprocmask(int, const sigset_t *, sigset_t *);",
+    "snprintf": "int utm_snprintf(char *, size_t, const char *, ...);",
+    "sprintf": "int utm_sprintf(char *, const char *, ...);",
+    "sscanf": "int utm_sscanf(const char *, const char *, ...);",
+    "strcat": "char *utm_strcat(char *, const char *);",
+    "strcpy": "char *utm_strcpy(char *, const char *);",
+    "strdup": "char *utm_strdup(const char *);",
+    "stricmp": "int utm_stricmp(const char *, const char *);",
+    "strlwr": "char *utm_strlwr(char *);",
+    "strncat": "char *utm_strncat(char *, const char *, size_t);",
+    "strncpy": "char *utm_strncpy(char *, const char *, size_t);",
+    "strnicmp": "int utm_strnicmp(const char *, const char *, size_t);",
+    "strupr": "char *utm_strupr(char *);",
+    "time": "time_t utm_time(time_t *);",
+    "tolower": "int utm_tolower(int);",
+    "toupper": "int utm_toupper(int);",
+    "vfprintf": "int utm_vfprintf(FILE *, const char *, va_list);",
+    "vsnprintf": "int utm_vsnprintf(char *, size_t, const char *, va_list);",
+    "vsprintf": "int utm_vsprintf(char *, const char *, va_list);",
 }
 
 
@@ -65,11 +113,22 @@ def explicit_mock_names(case_text: str,
     return set(CUSTOM_MOCK.findall(case_text)) & HEADER_MACRO_APIS
 
 
+def late_mock_names(names: set[str], flags: list[str]) -> set[str]:
+    """Return dependencies whose aliases must follow modern CRT headers."""
+    if any(flag.startswith(("-D__WATCOMC__", "-D__TURBOC__"))
+           for flag in flags):
+        return set()
+    return names & HEADER_MACRO_APIS
+
+
+def generated_type_spelling(text: str) -> str:
+    """Use source-visible names for Clang's internal Windows typedefs."""
+    return re.sub(r"\bWINBOOL\b", "BOOL", text)
+
+
 def early_mock_declarations(names: set[str]) -> list[str]:
-    """Declare mock APIs needed before the isolated target body."""
+    """Declare CRT errno accessors before later runtime headers use them."""
     declarations = []
-    declarations.extend(f"int utm_{name}(int);"
-                        for name in sorted(names & CTYPE_APIS))
     if "__error" in names:
         declarations.extend(("int *__error(void);",
                              "int *utm___error(void);"))
@@ -79,17 +138,18 @@ def early_mock_declarations(names: set[str]) -> list[str]:
     if "_errno" in names:
         declarations.extend(("int *_errno(void);",
                              "int *utm__errno(void);"))
-    if "vsnprintf" in names:
-        declarations.extend([
-            "#include <stdarg.h>",
-            "int utm_vsnprintf(char *, size_t, const char *, va_list);",
-        ])
     return declarations
 
 
-def early_alias_macros(macros: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    """Exclude aliases which would rename header-provided inline bodies."""
-    return [macro for macro in macros if macro[0] not in CTYPE_APIS]
+def mock_declarations(names: set[str]) -> list[str]:
+    """Declare deferred CRT mocks after the source's platform headers."""
+    return [HEADER_MOCK_DECLARATIONS[name] for name in sorted(names)]
+
+
+def early_alias_macros(macros: list[tuple[str, str]],
+                       mock_names: set[str]) -> list[tuple[str, str]]:
+    """Keep dependency aliases out of platform-header declarations."""
+    return [macro for macro in macros if macro[0] not in mock_names]
 
 
 def blank_body(text: str) -> str:
@@ -214,9 +274,9 @@ def instrument(text: str, decisions, switches, state_points) -> tuple[str, list[
 
 def variable_definition(item: Variable) -> str:
     if item.calling_macro and "(*)" in item.type:
-        return item.type.replace(
+        return generated_type_spelling(item.type).replace(
             "(*)", f"({item.calling_macro} *{item.name})", 1) + ";"
-    return insert_name(item.type, item.name) + ";"
+    return insert_name(generated_type_spelling(item.type), item.name) + ";"
 
 
 def variable_definitions(variables: list[Variable],
@@ -228,10 +288,12 @@ def variable_definitions(variables: list[Variable],
 
 def default_mock(item: Callable, mock_id: int) -> str:
     name = "utm_" + macro_name(item.name)
-    lines = [declaration(item, name, include_storage=True), "{"]
+    result_type = generated_type_spelling(item.result)
+    lines = [generated_type_spelling(
+        declaration(item, name, include_storage=True)), "{"]
     if item.result != "void":
         lines.extend([
-            f"   {item.result} ut_result;",
+            f"   {result_type} ut_result;",
             "   unsigned char *ut_result_bytes = (unsigned char *)&ut_result;",
             "   size_t ut_result_index;",
         ])
@@ -270,6 +332,7 @@ def generate(source: Path, target_name: str, case: Path, output: Path,
     case_text = embedded_case(case).rstrip("\r\n")
     explicit_mocks = explicit_mock_names(case_text, flags)
     alias_names = set(mocks) | explicit_mocks
+    deferred_alias_names = late_mock_names(alias_names, flags)
     alias_definitions = mock_definitions(target_name, alias_names)
 
     replacements = []
@@ -291,7 +354,9 @@ def generate(source: Path, target_name: str, case: Path, output: Path,
         return insert_late_defines(
             value, target.signature_line,
             (late_defines or []) + alias_definitions,
-            late_undefines or [], late_declarations or [])
+            late_undefines or [],
+            (late_declarations or []) +
+            mock_declarations(deferred_alias_names))
 
     transformed = finalize_body(transformed)
     uninstrumented = finalize_body(uninstrumented)
@@ -306,7 +371,8 @@ def generate(source: Path, target_name: str, case: Path, output: Path,
     lines.extend(early_mock_declarations(alias_names))
     if early_mock_declarations(alias_names):
         lines.append("")
-    for original, replacement in early_alias_macros(macros):
+    for original, replacement in early_alias_macros(
+            macros, deferred_alias_names):
         lines.append(f"#define {original} {replacement}")
     lines.append(f'#line 1 "{source.name}"')
     body_index = len(lines)

@@ -8,10 +8,10 @@
 static DWORD ut_thread;static unsigned ut_screen_calls,ut_post_calls,ut_quit_calls,ut_wait_calls,ut_close_calls;
 DWORD WINAPI utm_GetCurrentThreadId(void){return(ut_thread);}
 void utm_ODScrnStopWindow(tODThreadHandle *thread){UT_ASSERT_EQ_PTR(&hCurrentScreenThread,thread);++ut_screen_calls;hCurrentScreenThread=NULL;}
-WINBOOL WINAPI utm_PostMessageA(HWND frame,UINT message,WPARAM first,LPARAM second){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT_EQ_UINT(WM_OD_SHUTDOWN,message);UT_ASSERT_EQ_UINT(0,first);UT_ASSERT_EQ_INT(0,second);++ut_post_calls;return(TRUE);}
+BOOL WINAPI utm_PostMessageA(HWND frame,UINT message,WPARAM first,LPARAM second){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT_EQ_UINT(WM_OD_SHUTDOWN,message);UT_ASSERT_EQ_UINT(0,first);UT_ASSERT_EQ_INT(0,second);++ut_post_calls;return(TRUE);}
 static void utm_ODFramePostThreadQuit(tODThreadHandle thread,DWORD id){UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)1,thread);UT_ASSERT_EQ_UINT(dwFrameThreadID,id);++ut_quit_calls;}
 void utm_ODThreadWaitForExit(tODThreadHandle thread){UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)1,thread);++ut_wait_calls;}
-WINBOOL WINAPI utm_CloseHandle(HANDLE handle){UT_ASSERT(handle==(HANDLE)(UINT_PTR)1||handle==(HANDLE)(UINT_PTR)4);++ut_close_calls;return(TRUE);}
+BOOL WINAPI utm_CloseHandle(HANDLE handle){UT_ASSERT(handle==(HANDLE)(UINT_PTR)1||handle==(HANDLE)(UINT_PTR)4);++ut_close_calls;return(TRUE);}
 static void reset_shutdown(tODThreadHandle *thread){*thread=(HANDLE)(UINT_PTR)1;hCurrentScreenThread=NULL;hwndCurrentFrame=NULL;dwFrameThreadID=7;hFrameStartedEvent=NULL;ut_thread=8;
  ut_screen_calls=ut_post_calls=ut_quit_calls=ut_wait_calls=ut_close_calls=0;}
 static void ignores_an_absent_frame_thread(void){tODThreadHandle thread=NULL;reset_shutdown(&thread);thread=NULL;utt_ODFrameShutdown(&thread);UT_ASSERT_EQ_UINT(0,ut_close_calls);}

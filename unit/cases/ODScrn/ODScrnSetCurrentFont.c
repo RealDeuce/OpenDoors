@@ -34,7 +34,7 @@ HGDIOBJ WINAPI utm_SelectObject(HDC dc, HGDIOBJ object)
    return NULL;
 }
 
-WINBOOL WINAPI utm_GetTextMetricsA(HDC dc, LPTEXTMETRICA metrics)
+BOOL WINAPI utm_GetTextMetricsA(HDC dc, LPTEXTMETRICA metrics)
 {
    ++ut_metrics_calls; UT_ASSERT(dc == ut_dc); UT_ASSERT_NOT_NULL(metrics);
    memset(metrics, 0, sizeof(*metrics));
@@ -42,7 +42,7 @@ WINBOOL WINAPI utm_GetTextMetricsA(HDC dc, LPTEXTMETRICA metrics)
    return TRUE;
 }
 
-WINBOOL WINAPI utm_RestoreDC(HDC dc, int saved)
+BOOL WINAPI utm_RestoreDC(HDC dc, int saved)
 {
    ++ut_restore_calls; UT_ASSERT(dc == ut_dc); UT_ASSERT_EQ_INT(19, saved);
    return TRUE;

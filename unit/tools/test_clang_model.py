@@ -24,6 +24,19 @@ class ClangModelTests(unittest.TestCase):
         self.assertEqual(run.call_args.kwargs["input"], b"one\ntwo\n")
         self.assertNotIn("text", run.call_args.kwargs)
 
+    def test_targeted_model_never_uses_checkout_newlines_for_offsets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "sample.c"
+            source.write_bytes(
+                b"int sample(int value)\r\n{\r\n return value ? 1 : 0;\r\n}\r\n")
+            with mock.patch.object(clang_model, "run_ast",
+                                   wraps=clang_model.run_ast) as run:
+                model = build_model(source, target_name="sample")
+        self.assertEqual(len(model), 1)
+        self.assertEqual(len(model[0].decisions), 1)
+        self.assertIsNotNone(run.call_args.args[3])
+        self.assertNotIn("\r", run.call_args.args[3])
+
     def test_normalizes_watcom_pack_stack_pragmas_without_moving_offsets(self):
         source = ("#pragma pack( __push, 1 )\n"
                   "typedef struct { char c; long value; } Packed;\n"

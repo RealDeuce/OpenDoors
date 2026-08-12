@@ -14,7 +14,7 @@ static UINT ut_menu_ids[6],ut_menu_flags[6];static WPARAM ut_send_ids[3];static 
 HMENU WINAPI utm_GetMenu(HWND frame){(void)frame;return((HMENU)(UINT_PTR)2);}
 HWND WINAPI utm_GetDlgItem(HWND frame,int id){(void)frame;UT_ASSERT_EQ_INT(ID_TOOLBAR,id);return((HWND)(UINT_PTR)3);}
 DWORD WINAPI utm_GetCurrentThreadId(void){return(ut_thread);}
-WINBOOL WINAPI utm_PostMessageA(HWND frame,UINT message,WPARAM first,LPARAM second)
+BOOL WINAPI utm_PostMessageA(HWND frame,UINT message,WPARAM first,LPARAM second)
 {UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT_EQ_UINT(WM_OD_UPDATE_COMMANDS,message);UT_ASSERT_EQ_UINT(0,first);UT_ASSERT_EQ_INT(0,second);++ut_post_calls;return(TRUE);}
 UT_WINDOW_LONG_PTR WINAPI UT_GET_WINDOW_LONG_PTR(HWND frame,int index){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT_EQ_INT(GWLP_USERDATA,index);return(ut_null_info?0:(UT_WINDOW_LONG_PTR)&ut_info);}
 void utm_ODSyncControlReadLock(void){UT_ASSERT_EQ_UINT(0,ut_lock_depth);ut_lock_depth=1;}

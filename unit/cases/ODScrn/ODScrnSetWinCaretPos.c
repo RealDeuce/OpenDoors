@@ -1,6 +1,6 @@
 #define UT_CUSTOM_MOCK_SetCaretPos
 static unsigned ut_set_calls;
-WINBOOL WINAPI utm_SetCaretPos(int x, int y)
+BOOL WINAPI utm_SetCaretPos(int x, int y)
 {
    ++ut_set_calls; UT_ASSERT_EQ_INT(40, x); UT_ASSERT_EQ_INT(93, y);
    return TRUE;

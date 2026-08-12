@@ -449,7 +449,8 @@ def build_model(source: Path, clang: str = "clang",
     if any(flag.startswith("-D__TURBOC__") for flag in flags):
         analysis_text = mask_turbo_asm_jumps(analysis_text)
     ast = run_ast(source, clang, flags,
-                  analysis_text if analysis_text != text else None)
+                  analysis_text
+                  if target_name is not None or analysis_text != text else None)
     nodes = list(walk(ast))
     declaration_origins = {}
     current_origin = None

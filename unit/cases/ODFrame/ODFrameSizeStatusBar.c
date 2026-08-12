@@ -2,7 +2,7 @@
 #define UT_CUSTOM_MOCK_GetWindowRect
 #define UT_CUSTOM_MOCK_SendMessageA
 static HWND ut_status;
-WINBOOL WINAPI utm_GetWindowRect(HWND window, LPRECT rectangle)
+BOOL WINAPI utm_GetWindowRect(HWND window, LPRECT rectangle)
 {
    UT_ASSERT_EQ_PTR(ut_status, window);
    rectangle->left = 11; rectangle->right = 311;

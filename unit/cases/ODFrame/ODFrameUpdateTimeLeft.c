@@ -11,11 +11,11 @@ void utm_ODSyncControlReadLock(void){UT_ASSERT_EQ_UINT(0,ut_lock_depth);ut_lock_
 void utm_ODSyncControlReadUnlock(void){UT_ASSERT_EQ_UINT(1,ut_lock_depth);ut_lock_depth=0;}
 int utm_sprintf(char *destination,const char *format,...)
 { UT_ASSERT(strcmp(format,"%d min.")==0); strcpy(destination,"42 min."); return(7); }
-WINBOOL WINAPI utm_SetWindowTextA(HWND window,LPCSTR text)
+BOOL WINAPI utm_SetWindowTextA(HWND window,LPCSTR text)
 {UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);UT_ASSERT(strcmp(text,"42 min.")==0);++ut_text_calls;return(TRUE);}
-WINBOOL WINAPI utm_GetWindowRect(HWND window,LPRECT rectangle)
+BOOL WINAPI utm_GetWindowRect(HWND window,LPRECT rectangle)
 {UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);rectangle->left=1;rectangle->right=20;rectangle->top=2;rectangle->bottom=10;return(TRUE);}
-WINBOOL WINAPI utm_InvalidateRect(HWND window,const RECT *rectangle,WINBOOL erase)
+BOOL WINAPI utm_InvalidateRect(HWND window,const RECT *rectangle,BOOL erase)
 {UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);UT_ASSERT_EQ_INT(19,rectangle->right);UT_ASSERT(erase);return(TRUE);}
 LRESULT WINAPI utm_SendMessageA(HWND window,UINT message,WPARAM first,LPARAM second)
 {UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)2,window);UT_ASSERT_EQ_UINT(UDM_SETPOS,message);UT_ASSERT_EQ_UINT(0,first);

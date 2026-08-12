@@ -9,8 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from clang_model import Callable, Variable  # noqa: E402
 from generate import (default_mock, early_alias_macros,
                       early_mock_declarations, embedded_case,
-                      explicit_mock_names, generate, insert_late_defines,
-                      mock_definitions,
+                      explicit_mock_names, generate, HEADER_MACRO_APIS,
+                      HEADER_MOCK_DECLARATIONS, insert_late_defines,
+                      late_mock_names, mock_declarations, mock_definitions,
                       replace_c_includes,
                       variable_definition, variable_definitions)  # noqa: E402
 from inventory import ROOT  # noqa: E402
@@ -102,9 +103,15 @@ class LateDefineTests(unittest.TestCase):
         self.assertIn("int utm_inp(unsigned);\n#line 3\nstatic", result)
 
 
-class EarlyMockDeclarationTests(unittest.TestCase):
+class MockDeclarationTests(unittest.TestCase):
+    def test_every_deferred_header_api_has_a_source_visible_prototype(self):
+        self.assertEqual(HEADER_MACRO_APIS,
+                         set(HEADER_MOCK_DECLARATIONS))
+
     def test_explicit_case_mocks_force_header_macro_interception(self):
         case = ("#define UT_CUSTOM_MOCK_memcpy\n"
+                "#define UT_CUSTOM_MOCK_vfprintf\n"
+                "#define UT_CUSTOM_MOCK_sscanf\n"
                 "#define UT_CUSTOM_MOCK_sigemptyset\n"
                 "#define UT_CUSTOM_MOCK_mktime\n"
                 "#define UT_CUSTOM_MOCK_printf\n"
@@ -115,6 +122,7 @@ class EarlyMockDeclarationTests(unittest.TestCase):
                 "#define UT_CUSTOM_MOCK_time\n")
         self.assertEqual(explicit_mock_names(case),
                          {"memcpy", "mktime", "printf", "sigemptyset",
+                          "sscanf", "vfprintf",
                           "strcat", "strcpy", "strncat", "strncpy",
                           "time"})
 
@@ -137,24 +145,31 @@ class EarlyMockDeclarationTests(unittest.TestCase):
                 "int *utm__errno(void);",
             ])
 
-    def test_declares_vsnprintf_before_mingw_headers_replace_its_macro(self):
-        self.assertEqual(early_mock_declarations({"vsnprintf"}), [
-            "#include <stdarg.h>",
-            "int utm_vsnprintf(char *, size_t, const char *, va_list);"
+    def test_dos_keeps_mock_aliases_before_its_non_inline_headers(self):
+        names = {"exit", "toupper"}
+        self.assertEqual(late_mock_names(names, ["-D__WATCOMC__=1300"]),
+                         set())
+        self.assertEqual(late_mock_names(names, ["-D__TURBOC__=0x0201"]),
+                         set())
+        self.assertEqual(late_mock_names(names, ["-D__unix__"]),
+                         {"toupper"})
+
+    def test_declares_header_macro_mocks_missing_from_the_ast(self):
+        self.assertEqual(mock_declarations(
+            {"sscanf", "strncat", "toupper", "vfprintf"}), [
+            "int utm_sscanf(const char *, const char *, ...);",
+            "char *utm_strncat(char *, const char *, size_t);",
+            "int utm_toupper(int);",
+            "int utm_vfprintf(FILE *, const char *, va_list);",
         ])
 
-    def test_prototypes_ctype_mocks_without_renaming_header_definitions(self):
-        self.assertEqual(early_mock_declarations({"isspace", "toupper"}), [
-            "int utm_isspace(int);",
-            "int utm_toupper(int);",
-        ])
+    def test_does_not_rename_dependencies_while_platform_headers_are_read(self):
         self.assertEqual(early_alias_macros([
             ("target", "utt_target"),
             ("strcpy", "utm_strcpy"),
             ("toupper", "utm_toupper"),
-        ]), [
+        ], {"strcpy", "toupper"}), [
             ("target", "utt_target"),
-            ("strcpy", "utm_strcpy"),
         ])
 
     def test_reasserts_dependency_aliases_after_runtime_headers(self):
@@ -167,6 +182,13 @@ class DefaultMockTests(unittest.TestCase):
         result = default_mock(function, 1)
         self.assertNotIn("memset", result)
         self.assertIn("ut_result_bytes", result)
+
+    def test_uses_the_source_visible_windows_boolean_type(self):
+        function = Callable("id", "dependency", "WINBOOL", [], False)
+        result = default_mock(function, 1)
+        self.assertIn("BOOL utm_dependency(void)", result)
+        self.assertIn("BOOL ut_result;", result)
+        self.assertNotIn("WINBOOL", result)
 
 
 if __name__ == "__main__":

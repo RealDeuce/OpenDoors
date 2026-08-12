@@ -45,7 +45,7 @@ HWND WINAPI utm_GetParent(HWND window)
 {
    ++ut_parent_calls; UT_ASSERT(window == hwndScreenWindow); return (HWND)2;
 }
-WINBOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
+BOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
    LPARAM lparam)
 {
    ++ut_post_calls; UT_ASSERT(window == (HWND)2);

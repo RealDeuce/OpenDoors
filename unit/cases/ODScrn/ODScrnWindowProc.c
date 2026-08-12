@@ -62,7 +62,7 @@ HWND WINAPI utm_GetParent(HWND window)
    UT_ASSERT(window == ut_window); return ut_frame;
 }
 
-WINBOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
+BOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
    LPARAM lparam)
 {
    ++ut_post_calls; UT_ASSERT(window == ut_frame);
@@ -87,7 +87,7 @@ HDC WINAPI utm_BeginPaint(HWND window, LPPAINTSTRUCT paint)
    return ut_begin_fails ? NULL : ut_dc;
 }
 
-WINBOOL WINAPI utm_EndPaint(HWND window, const PAINTSTRUCT *paint)
+BOOL WINAPI utm_EndPaint(HWND window, const PAINTSTRUCT *paint)
 {
    ++ut_end_calls; UT_ASSERT(window == ut_window); UT_ASSERT_NOT_NULL(paint);
    return TRUE;
@@ -107,7 +107,7 @@ HWND WINAPI utm_SetFocus(HWND window)
    ++ut_focus_calls; UT_ASSERT(window == ut_window); return window;
 }
 
-WINBOOL WINAPI utm_CreateCaret(HWND window, HBITMAP bitmap, int width,
+BOOL WINAPI utm_CreateCaret(HWND window, HBITMAP bitmap, int width,
    int height)
 {
    ++ut_create_caret_calls; UT_ASSERT(window == ut_window);
@@ -115,12 +115,12 @@ WINBOOL WINAPI utm_CreateCaret(HWND window, HBITMAP bitmap, int width,
    UT_ASSERT_EQ_INT(CARET_HEIGHT, height); return TRUE;
 }
 
-WINBOOL WINAPI utm_ShowCaret(HWND window)
+BOOL WINAPI utm_ShowCaret(HWND window)
 {
    ++ut_show_caret_calls; UT_ASSERT(window == ut_window); return TRUE;
 }
 
-WINBOOL WINAPI utm_DestroyCaret(void)
+BOOL WINAPI utm_DestroyCaret(void)
 {
    ++ut_destroy_caret_calls; return TRUE;
 }

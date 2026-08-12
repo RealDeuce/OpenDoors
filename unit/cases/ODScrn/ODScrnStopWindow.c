@@ -6,7 +6,7 @@ static unsigned ut_wait_calls;
 static unsigned ut_close_calls;
 static HANDLE ut_thread;
 static HANDLE ut_event;
-WINBOOL WINAPI utm_PostThreadMessageA(DWORD thread_id, UINT message,
+BOOL WINAPI utm_PostThreadMessageA(DWORD thread_id, UINT message,
    WPARAM wparam, LPARAM lparam)
 {
    ++ut_post_calls; UT_ASSERT_EQ_UINT(17, thread_id);
@@ -17,7 +17,7 @@ void utm_ODThreadWaitForExit(tODThreadHandle thread)
 {
    ++ut_wait_calls; UT_ASSERT(thread == ut_thread);
 }
-WINBOOL WINAPI utm_CloseHandle(HANDLE handle)
+BOOL WINAPI utm_CloseHandle(HANDLE handle)
 {
    ++ut_close_calls;
    UT_ASSERT(handle == ut_thread || handle == ut_event);

@@ -55,7 +55,7 @@ void utm_ODSyncControlReadLock(void){UT_ASSERT_EQ_UINT(0,ut_lock_depth);ut_lock_
 void utm_ODSyncControlReadUnlock(void){UT_ASSERT_EQ_UINT(1,ut_lock_depth);ut_lock_depth=0;}
 void utm_ODFrameUpdateCmdUI(void){++ut_update_calls;}
 HMENU WINAPI utm_GetMenu(HWND window){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);return((HMENU)(UINT_PTR)2);}
-WINBOOL WINAPI utm_RemoveMenu(HMENU menu,UINT item,UINT flags){UT_ASSERT_EQ_PTR((HMENU)(UINT_PTR)2,menu);UT_ASSERT(item==ID_HELP_CONTENTS||item==ID_DOOR_CONFIG);UT_ASSERT_EQ_UINT(MF_BYCOMMAND,flags);++ut_remove_calls;return(TRUE);}
+BOOL WINAPI utm_RemoveMenu(HMENU menu,UINT item,UINT flags){UT_ASSERT_EQ_PTR((HMENU)(UINT_PTR)2,menu);UT_ASSERT(item==ID_HELP_CONTENTS||item==ID_DOOR_CONFIG);UT_ASSERT_EQ_UINT(MF_BYCOMMAND,flags);++ut_remove_calls;return(TRUE);}
 static void utm_ODFrameCopyProgramName(char *destination,size_t size){UT_ASSERT(size>4);utm_strcpy(destination,"Door");}
 int WINAPI utm_MessageBoxA(HWND window,LPCSTR text,LPCSTR caption,UINT type){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);UT_ASSERT_NOT_NULL(text);UT_ASSERT(strcmp(caption,"Door")==0);UT_ASSERT_EQ_UINT(MB_ICONQUESTION|MB_YESNO,type);return(ut_message_result);}
 static void utm_ODFrameDestroyWindow(HWND window){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);++ut_destroy_frame_calls;}
@@ -66,12 +66,12 @@ static void utm_ODFrameDestroyStatusBar(HWND status){UT_ASSERT_EQ_PTR((HWND)(UIN
 void utm_ODKrnlForceOpenDoorsShutdown(BYTE reason){ut_shutdown_reason=reason;++ut_shutdown_calls;}
 void utm_free(void *memory){ut_last_freed=(char *)memory;++ut_free_calls;}
 void utm_ODScrnSetFocusToWindow(void){++ut_focus_calls;}
-WINBOOL WINAPI utm_FlashWindow(HWND window,WINBOOL invert){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);UT_ASSERT(invert);++ut_flash_calls;return(TRUE);}
+BOOL WINAPI utm_FlashWindow(HWND window,BOOL invert){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);UT_ASSERT(invert);++ut_flash_calls;return(TRUE);}
 void utm_ODFrameUpdateTimeDisplay(void){++ut_time_calls;}
 void utm_ODFrameUpdateWantChat(void){++ut_chat_update_calls;}
 INT_PTR WINAPI utm_DialogBoxParamA(HINSTANCE instance,LPCSTR resource,HWND parent,DLGPROC procedure,LPARAM parameter)
 {UT_ASSERT_EQ_PTR(ut_info.hInstance,instance);UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,parent);UT_ASSERT_NOT_NULL(procedure);(void)resource;(void)parameter;++ut_dialog_calls;return(1);}
-WINBOOL WINAPI utm_PostMessageA(HWND window,UINT message,WPARAM first,LPARAM second){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);UT_ASSERT_EQ_UINT(WM_CLOSE,message);UT_ASSERT_EQ_UINT(0,first);UT_ASSERT_EQ_INT(0,second);++ut_post_calls;return(TRUE);}
+BOOL WINAPI utm_PostMessageA(HWND window,UINT message,WPARAM first,LPARAM second){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);UT_ASSERT_EQ_UINT(WM_CLOSE,message);UT_ASSERT_EQ_UINT(0,first);UT_ASSERT_EQ_INT(0,second);++ut_post_calls;return(TRUE);}
 void utm_ODKrnlRequestChatToggle(void){++ut_chat_calls;}void utm_ODKrnlRequestKeyboardToggle(void){++ut_keyboard_calls;}void utm_ODKrnlRequestSysopNextToggle(void){++ut_sysop_calls;}void utm_ODKrnlRequestLockout(void){++ut_lockout_calls;}
 static HWND utm_ODFrameCreateToolbar(HWND parent,HANDLE instance,tODFrameWindowInfo *info){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,parent);UT_ASSERT_EQ_PTR(ut_info.hInstance,instance);UT_ASSERT_EQ_PTR(&ut_info,info);++ut_create_toolbar_calls;return((HWND)(UINT_PTR)3);}
 DWORD WINAPI utm_CheckMenuItem(HMENU menu,UINT item,UINT flags){UT_ASSERT_EQ_PTR((HMENU)(UINT_PTR)2,menu);UT_ASSERT(item==ID_VIEW_TOOL_BAR||item==ID_VIEW_STAT_BAR);UT_ASSERT_EQ_UINT(0,flags&MF_BYPOSITION);return(0);}

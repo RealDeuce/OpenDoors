@@ -45,7 +45,7 @@ void utm_free(void *memory)
 }
 
 HANDLE WINAPI utm_CreateEventA(LPSECURITY_ATTRIBUTES attributes,
-   WINBOOL manual_reset, WINBOOL initial_state, LPCSTR name)
+   BOOL manual_reset, BOOL initial_state, LPCSTR name)
 {
    UT_ASSERT(attributes == NULL); UT_ASSERT_EQ_INT(TRUE, manual_reset);
    UT_ASSERT_EQ_INT(FALSE, initial_state); UT_ASSERT(name == NULL);
@@ -78,7 +78,7 @@ BOOL utm_ODScrnWaitWithMessages(HANDLE object, HWND frame, DWORD timeout)
    return ut_wait_results[index];
 }
 
-WINBOOL WINAPI utm_CloseHandle(HANDLE handle)
+BOOL WINAPI utm_CloseHandle(HANDLE handle)
 {
    if(handle == ut_event) ++ut_close_event_calls;
    else
@@ -89,7 +89,7 @@ WINBOOL WINAPI utm_CloseHandle(HANDLE handle)
    return TRUE;
 }
 
-WINBOOL WINAPI utm_PostThreadMessageA(DWORD thread_id, UINT message,
+BOOL WINAPI utm_PostThreadMessageA(DWORD thread_id, UINT message,
    WPARAM wparam, LPARAM lparam)
 {
    ++ut_post_calls; UT_ASSERT_EQ_UINT(37, thread_id);

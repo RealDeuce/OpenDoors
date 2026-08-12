@@ -15,15 +15,15 @@
 static tODFrameWindowInfo ut_info;static DWORD ut_thread;static unsigned ut_post_calls,ut_lock_depth,ut_status_calls;
 static unsigned ut_title_calls,ut_flash_calls,ut_kill_calls,ut_timer_calls;static char ut_title[100];
 DWORD WINAPI utm_GetCurrentThreadId(void){return(ut_thread);}
-WINBOOL WINAPI utm_PostMessageA(HWND frame,UINT message,WPARAM first,LPARAM second){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT_EQ_UINT(WM_OD_UPDATE_CHAT,message);UT_ASSERT_EQ_UINT(0,first);UT_ASSERT_EQ_INT(0,second);++ut_post_calls;return(TRUE);}
+BOOL WINAPI utm_PostMessageA(HWND frame,UINT message,WPARAM first,LPARAM second){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT_EQ_UINT(WM_OD_UPDATE_CHAT,message);UT_ASSERT_EQ_UINT(0,first);UT_ASSERT_EQ_INT(0,second);++ut_post_calls;return(TRUE);}
 UT_WINDOW_LONG_PTR WINAPI UT_GET_WINDOW_LONG_PTR(HWND frame,int index){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT_EQ_INT(GWLP_USERDATA,index);return((UT_WINDOW_LONG_PTR)&ut_info);}
 void utm_ODSyncControlReadLock(void){UT_ASSERT_EQ_UINT(0,ut_lock_depth);ut_lock_depth=1;}
 void utm_ODSyncControlReadUnlock(void){UT_ASSERT_EQ_UINT(1,ut_lock_depth);ut_lock_depth=0;}
 void utm_ODStringCopy(char *destination,const char *source,INT size){size_t n=0;UT_ASSERT_EQ_UINT(1,ut_lock_depth);while(source[n])++n;if(n>=(size_t)size)n=(size_t)size-1;memcpy(destination,source,n);destination[n]='\0';}
 static void utm_ODFrameSetMainStatusText(HWND status){UT_ASSERT_EQ_PTR(ut_info.hwndStatusBar,status);++ut_status_calls;}
-WINBOOL WINAPI utm_SetWindowTextA(HWND frame,LPCSTR text){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);strcpy(ut_title,text);++ut_title_calls;return(TRUE);}
-WINBOOL WINAPI utm_FlashWindow(HWND frame,WINBOOL invert){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT(!invert);++ut_flash_calls;return(TRUE);}
-WINBOOL WINAPI utm_KillTimer(HWND frame,UINT_PTR id){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT_EQ_UINT(1,id);++ut_kill_calls;return(TRUE);}
+BOOL WINAPI utm_SetWindowTextA(HWND frame,LPCSTR text){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);strcpy(ut_title,text);++ut_title_calls;return(TRUE);}
+BOOL WINAPI utm_FlashWindow(HWND frame,BOOL invert){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT(!invert);++ut_flash_calls;return(TRUE);}
+BOOL WINAPI utm_KillTimer(HWND frame,UINT_PTR id){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT_EQ_UINT(1,id);++ut_kill_calls;return(TRUE);}
 UINT_PTR WINAPI utm_SetTimer(HWND frame,UINT_PTR id,UINT interval,TIMERPROC proc){UT_ASSERT_EQ_PTR(hwndCurrentFrame,frame);UT_ASSERT_EQ_UINT(1,id);UT_ASSERT_EQ_UINT(500,interval);UT_ASSERT_NULL(proc);++ut_timer_calls;return(1);}
 UINT WINAPI utm_GetCaretBlinkTime(void){return(500);}
 int utm_sprintf(char *destination,const char *format,...){UT_ASSERT(strcmp(format,"%s - User Wants Chat")==0);strcpy(destination,"Door - User Wants Chat");return(22);}

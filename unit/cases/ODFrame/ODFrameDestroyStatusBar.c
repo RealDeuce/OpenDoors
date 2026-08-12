@@ -1,7 +1,7 @@
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_DestroyWindow
 static HWND ut_destroyed;
-WINBOOL WINAPI utm_DestroyWindow(HWND window)
+BOOL WINAPI utm_DestroyWindow(HWND window)
 { ut_destroyed = window; return(TRUE); }
 static void destroys_the_supplied_window(void)
 {

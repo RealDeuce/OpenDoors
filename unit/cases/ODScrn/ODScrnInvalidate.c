@@ -2,8 +2,8 @@
 
 static unsigned ut_invalidate_calls;
 
-WINBOOL WINAPI utm_InvalidateRect(HWND window, const RECT *rectangle,
-   WINBOOL erase)
+BOOL WINAPI utm_InvalidateRect(HWND window, const RECT *rectangle,
+   BOOL erase)
 {
    ++ut_invalidate_calls; UT_ASSERT(window == hwndScreenWindow);
    UT_ASSERT(rectangle != NULL);

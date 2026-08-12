@@ -4,7 +4,7 @@
 static DWORD ut_wait_result;static unsigned ut_post_calls;
 DWORD WINAPI utm_WaitForSingleObject(HANDLE handle,DWORD timeout)
 {UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)1,handle);UT_ASSERT_EQ_UINT(0,timeout);return(ut_wait_result);}
-WINBOOL WINAPI utm_PostThreadMessageA(DWORD thread,UINT message,WPARAM first,LPARAM second)
+BOOL WINAPI utm_PostThreadMessageA(DWORD thread,UINT message,WPARAM first,LPARAM second)
 {UT_ASSERT_EQ_UINT(7,thread);UT_ASSERT_EQ_UINT(WM_QUIT,message);UT_ASSERT_EQ_UINT(0,first);UT_ASSERT_EQ_INT(0,second);++ut_post_calls;return(TRUE);}
 static void posts_only_to_a_live_thread_with_a_queue(void)
 {ut_post_calls=0;ut_wait_result=WAIT_OBJECT_0;utt_ODFramePostThreadQuit((HANDLE)(UINT_PTR)1,7);UT_ASSERT_EQ_UINT(0,ut_post_calls);

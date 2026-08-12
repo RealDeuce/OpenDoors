@@ -63,7 +63,7 @@ COLORREF WINAPI utm_SetBkColor(HDC dc, COLORREF color)
    ut_background[ut_background_calls++] = color; return 0;
 }
 
-WINBOOL WINAPI utm_TextOutA(HDC dc, int x, int y, LPCSTR text, int length)
+BOOL WINAPI utm_TextOutA(HDC dc, int x, int y, LPCSTR text, int length)
 {
    int index;
    UT_ASSERT(dc == ut_dc); UT_ASSERT(ut_text_calls < 4);
@@ -76,7 +76,7 @@ WINBOOL WINAPI utm_TextOutA(HDC dc, int x, int y, LPCSTR text, int length)
    ++ut_text_calls; return TRUE;
 }
 
-WINBOOL WINAPI utm_RestoreDC(HDC dc, int saved)
+BOOL WINAPI utm_RestoreDC(HDC dc, int saved)
 {
    UT_ASSERT(dc == ut_dc); UT_ASSERT_EQ_INT(31, saved); return TRUE;
 }

@@ -6,13 +6,13 @@
 #define UT_CUSTOM_MOCK_ODFrameMessageLoop
 #define UT_CUSTOM_MOCK_IsWindow
 #define UT_CUSTOM_MOCK_ODFrameDestroyWindow
-static HWND ut_frame;static WINBOOL ut_is_window;static unsigned ut_event_calls,ut_loop_calls,ut_destroy_calls;
+static HWND ut_frame;static BOOL ut_is_window;static unsigned ut_event_calls,ut_loop_calls,ut_destroy_calls;
 DWORD WINAPI utm_GetCurrentThreadId(void){return(77);}
-WINBOOL WINAPI utm_PeekMessageA(LPMSG message,HWND window,UINT first,UINT last,UINT remove){(void)message;UT_ASSERT_NULL(window);UT_ASSERT_EQ_UINT(WM_USER,first);UT_ASSERT_EQ_UINT(WM_USER,last);UT_ASSERT_EQ_UINT(PM_NOREMOVE,remove);return(FALSE);}
+BOOL WINAPI utm_PeekMessageA(LPMSG message,HWND window,UINT first,UINT last,UINT remove){(void)message;UT_ASSERT_NULL(window);UT_ASSERT_EQ_UINT(WM_USER,first);UT_ASSERT_EQ_UINT(WM_USER,last);UT_ASSERT_EQ_UINT(PM_NOREMOVE,remove);return(FALSE);}
 static HWND utm_ODFrameCreateWindow(HANDLE instance){UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)1,instance);return(ut_frame);}
-WINBOOL WINAPI utm_SetEvent(HANDLE event){UT_ASSERT_EQ_PTR(hFrameStartedEvent,event);++ut_event_calls;return(TRUE);}
+BOOL WINAPI utm_SetEvent(HANDLE event){UT_ASSERT_EQ_PTR(hFrameStartedEvent,event);++ut_event_calls;return(TRUE);}
 static void utm_ODFrameMessageLoop(HANDLE instance,HWND frame){UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)1,instance);UT_ASSERT_EQ_PTR(ut_frame,frame);++ut_loop_calls;}
-WINBOOL WINAPI utm_IsWindow(HWND frame){UT_ASSERT_EQ_PTR(ut_frame,frame);return(ut_is_window);}
+BOOL WINAPI utm_IsWindow(HWND frame){UT_ASSERT_EQ_PTR(ut_frame,frame);return(ut_is_window);}
 static void utm_ODFrameDestroyWindow(HWND frame){UT_ASSERT_EQ_PTR(ut_frame,frame);++ut_destroy_calls;}
 static void reset_thread(void){ut_event_calls=ut_loop_calls=ut_destroy_calls=0;hFrameStartedEvent=(HANDLE)(UINT_PTR)2;hwndCurrentFrame=NULL;dwFrameThreadID=0;}
 static void reports_window_creation_failure(void)

@@ -18,9 +18,9 @@ void utm_ODStringCopy(char *destination,const char *source,INT size){size_t n=ut
 int utm_strcmp(const char *a,const char *b){while(*a&&*a==*b){++a;++b;}return((unsigned char)*a-(unsigned char)*b);}
 size_t utm_strlen(const char *text){return(ut_length(text));}
 HWND WINAPI utm_GetDlgItem(HWND dialog,int id){(void)dialog;return((HWND)(UINT_PTR)id);}
-WINBOOL WINAPI utm_SetWindowTextA(HWND window,LPCSTR text){unsigned index=ut_text_calls++;UT_ASSERT(index<3);UT_ASSERT(window!=NULL);strcpy(ut_text[index],text);return(TRUE);}
+BOOL WINAPI utm_SetWindowTextA(HWND window,LPCSTR text){unsigned index=ut_text_calls++;UT_ASSERT(index<3);UT_ASSERT(window!=NULL);strcpy(ut_text[index],text);return(TRUE);}
 void utm_ODFrameCenterWindowInParent(HWND window){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);++ut_center_calls;}
-WINBOOL WINAPI utm_EndDialog(HWND dialog,INT_PTR result){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,dialog);UT_ASSERT_EQ_INT(IDOK,result);++ut_end_calls;return(TRUE);}
+BOOL WINAPI utm_EndDialog(HWND dialog,INT_PTR result){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,dialog);UT_ASSERT_EQ_INT(IDOK,result);++ut_end_calls;return(TRUE);}
 static void reset_about(void){ut_lock_depth=ut_text_calls=ut_center_calls=ut_end_calls=0;}
 static void fills_only_programmer_supplied_fields(void)
 {reset_about();strcpy(od_control.od_prog_name,"Door");strcpy(od_control.od_prog_copyright,"Copyright");strcpy(od_control.od_prog_version,"1.2");
