@@ -8,8 +8,8 @@ import json
 import re
 from pathlib import Path
 
-from clang_model import (Callable, Variable, build_model, declaration,
-                         insert_name, replace_c_includes)
+from clang_model import (Callable, POSIX_API_FLAG, Variable, build_model,
+                         declaration, insert_name, replace_c_includes)
 from inventory import ROOT, scan_c
 
 CASE_ROOT = (ROOT / "unit" / "cases").resolve()
@@ -336,7 +336,8 @@ def main() -> int:
     parser.add_argument("--provided-variable", action="append", default=[])
     parser.add_argument("--uninstrumented-output", type=Path)
     args = parser.parse_args()
-    flags = args.flag or ["-std=c89", "-D__unix__", "-DHAS_INTTYPES_H",
+    flags = args.flag or ["-std=c89", "-D__unix__", POSIX_API_FLAG,
+                          "-DHAS_INTTYPES_H",
                           "-DOPENDOORS_HAVE_VSNPRINTF=1"]
     generate(args.source, args.function, args.case, args.output,
              args.clang, flags, provided_variables=set(args.provided_variable),

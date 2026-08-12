@@ -13,6 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from clang_model import POSIX_API_FLAG
 from inventory import ROOT
 
 
@@ -36,8 +37,9 @@ def default_build_path(platform: str, toolchain: str,
 
 def platform_defines(platform: str) -> list[str]:
     definitions = {
-        "unix": ["-D__unix__"],
-        "pthread": ["-D__unix__", "-DOPENDOORS_ENABLE_PTHREAD_KERNEL=1"],
+        "unix": ["-D__unix__", POSIX_API_FLAG],
+        "pthread": ["-D__unix__", POSIX_API_FLAG,
+                    "-DOPENDOORS_ENABLE_PTHREAD_KERNEL=1"],
         # A renamed CRT declaration must not retain dllimport when its test
         # supplies the corresponding mock definition.
         "windows": ["-D_CRTIMP=", "-DDECLSPEC_IMPORT="],

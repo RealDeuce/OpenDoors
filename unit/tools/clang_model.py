@@ -12,6 +12,9 @@ from typing import Iterator
 
 from inventory import ROOT, scan_c
 
+
+POSIX_API_FLAG = "-D_POSIX_C_SOURCE=200809L"
+
 LANGUAGE_BUILTINS = {"va_start", "va_end", "va_copy", "__va_copy"}
 
 
@@ -430,7 +433,8 @@ def run_ast(source: Path, clang: str, flags: list[str],
 def build_model(source: Path, clang: str = "clang",
                 flags: list[str] | None = None,
                 target_name: str | None = None) -> list[Definition]:
-    flags = flags or ["-std=c89", "-D__unix__", "-DHAS_INTTYPES_H",
+    flags = flags or ["-std=c89", "-D__unix__", POSIX_API_FLAG,
+                      "-DHAS_INTTYPES_H",
                       "-DOPENDOORS_HAVE_VSNPRINTF=1"]
     text = source.read_text(encoding="latin-1")
     scanned = scan_c(text)

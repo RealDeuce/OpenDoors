@@ -20,6 +20,7 @@ from run import (analyzer_platform_flags, coverage_disposition,
                  map_llvm_record_lines,
                  missing_llvm_mcdc_records,
                  original_source_line,
+                 platform_defines,
                  run_step, selected_tests, selection_owners,
                  watcom_ast_compatibility_flags,
                  watcom_environment, watcom_target_flags,
@@ -53,6 +54,16 @@ class DosObjectNamingTests(unittest.TestCase):
             cwd=Path(run_module.__file__).resolve().parents[2],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)
+
+
+class PlatformDefinitionTests(unittest.TestCase):
+    def test_posix_interfaces_are_requested_for_unix_targets(self):
+        feature = "-D_POSIX_C_SOURCE=200809L"
+        self.assertIn(feature, platform_defines("unix"))
+        self.assertIn(feature, platform_defines("pthread"))
+        self.assertNotIn(feature, platform_defines("windows"))
+        self.assertNotIn(feature, platform_defines("dos16"))
+        self.assertNotIn(feature, platform_defines("dos32"))
 
 
 class TestSelectionTests(unittest.TestCase):
