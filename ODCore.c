@@ -1755,8 +1755,7 @@ BOOL ODPagePrompt(BOOL *pbPausing)
          chKeyPressed == 13 ||
          chKeyPressed == ' ')
       {
-         /* Remove the prompt and return. */
-         goto finished_pausing;
+         break;
       }
 
       /* If user requested nonstop display. */
@@ -1766,32 +1765,29 @@ BOOL ODPagePrompt(BOOL *pbPausing)
          /* Disable page pausing. */
          *pbPausing = FALSE;
 
-         /* Remove the prompt and return. */
-         goto finished_pausing;
+         break;
       }
 
       /* If user chooses to stop display. */
       else if(chKeyPressed == tolower(od_control.od_continue_no) ||
               chKeyPressed == toupper(od_control.od_continue_no) ||
               chKeyPressed == 's' || chKeyPressed == 'S' || chKeyPressed == 3
-              || chKeyPressed == 11 || chKeyPressed == 0x18)
+              || chKeyPressed == 11)
       {
-         /* If we are operating in remote mode. */
-         if(od_control.baud)
-         {
-            /* Clear the output buffer. */
-            ODComClearOutbound(hSerialPort);
-         }
-
-         /* Tell the caller to stop displaying more text. */
          bToReturn = TRUE;
-
-         /* Remove the prompt and return. */
-         goto finished_pausing;
+         break;
+      }
+      else if(chKeyPressed == 0x18)
+      {
+         bToReturn = TRUE;
+         break;
       }
    }
 
-finished_pausing:
+   /* Discard pending output when the user stopped the display remotely. */
+   if(bToReturn && od_control.baud)
+      ODComClearOutbound(hSerialPort);
+
    /* Remove the pause prompt. */
    for(btCount = 0; btCount < nPromptLength; ++btCount)
    {

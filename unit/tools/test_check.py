@@ -1,4 +1,6 @@
+import hashlib
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -138,6 +140,11 @@ DEPENDS \"${OPENDOORS_ROOT}/ODSwap.asm\"
 
 class WaiverProposalTests(unittest.TestCase):
     def setUp(self):
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary_directory.cleanup)
+        self.root = Path(self.temporary_directory.name)
+        source = b"sample\n"
+        (self.root / "ODBlock.c").write_bytes(source)
         self.expected = {("ODBlock.c", "od_scroll"): {
             "unix", "pthread", "windows", "dos16", "dos32"
         }}
@@ -147,23 +154,22 @@ class WaiverProposalTests(unittest.TestCase):
             "source": "ODBlock.c",
             "function": "od_scroll",
             "platforms": ["unix"],
-            "start_line": 730,
-            "end_line": 730,
+            "start_line": 1,
+            "end_line": 1,
             "kinds": ["branch"],
             "reason": "reason",
             "evidence": "evidence",
-            "source_sha256":
-                "46d305d60b449c1191ec7524e827e0b9f7d632bbdce9b128c67cdee84837bd5b",
+            "source_sha256": hashlib.sha256(source).hexdigest(),
         }
 
     def test_accepts_well_formed_proposal(self):
         self.assertEqual(validate_proposal(
-            1, self.proposal, self.expected), [])
+            1, self.proposal, self.expected, self.root), [])
 
     def test_rejects_approved_status_in_proposal_file(self):
         self.proposal["status"] = "approved"
         self.assertIn("status must be proposed", "\n".join(
-            validate_proposal(1, self.proposal, self.expected)))
+            validate_proposal(1, self.proposal, self.expected, self.root)))
 
 
 class ReleaseCoveragePolicyTests(unittest.TestCase):

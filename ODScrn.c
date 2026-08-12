@@ -2559,8 +2559,12 @@ BOOL ODScrnCopyText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
       || btRight > btRightBoundary - btLeftBoundary
       || btBottom > btBottomBoundary - btTopBoundary
       || btDestColumn > btRightBoundary - btLeftBoundary
-      || btDestRow > btBottomBoundary - btTopBoundary
-      || btLeft > btRight
+      || btDestRow > btBottomBoundary - btTopBoundary)
+   {
+      return(FALSE);
+   }
+
+   if(btLeft > btRight
       || btTop > btBottom
       || btDestColumn + (btRight - btLeft)
          > btRightBoundary - btLeftBoundary
@@ -3199,8 +3203,9 @@ void ODSessionScreenGetInfo(tODVScreenInfo *pInfo)
 
 void ODSessionScreenSetBoundary(INT nLeft, INT nTop, INT nRight, INT nBottom)
 {
-   if(!bSessionScreenAvailable || nLeft < 1 || nTop < 1
-      || nLeft > nRight || nTop > nBottom
+   if(!bSessionScreenAvailable)
+      return;
+   if(nLeft < 1 || nTop < 1 || nLeft > nRight || nTop > nBottom
       || nRight > SessionScreen.nWidth || nBottom > SessionScreen.nHeight)
       return;
    SessionScreen.nLeft = nLeft - 1;
@@ -3746,11 +3751,14 @@ BOOL ODSessionScreenRestore(const void *pBuffer, DWORD dwBufferSize)
    if(dwTotal != dwExpected || dwBufferSize < dwTotal
       || !ODSessionSnapshotDimensions(&nCurrentWidth, &nCurrentHeight)
       || dwWidth != (DWORD)nCurrentWidth || dwHeight != (DWORD)nCurrentHeight
-      || dwLeft < 1 || dwTop < 1 || dwLeft > dwRight || dwTop > dwBottom
-      || dwRight > dwWidth || dwBottom > dwHeight
-      || dwCursorColumn < 1 || dwCursorColumn > dwRight - dwLeft + 1
-      || dwCursorRow < 1 || dwCursorRow > dwBottom - dwTop + 1
-      || pBytes[45] > 1 || pBytes[46] != 0 || pBytes[47] != 0)
+      || dwLeft < 1)
+      return(FALSE);
+   if(dwTop < 1 || dwLeft > dwRight || dwTop > dwBottom
+      || dwRight > dwWidth || dwBottom > dwHeight || dwCursorColumn < 1)
+      return(FALSE);
+   if(dwCursorColumn > dwRight - dwLeft + 1 || dwCursorRow < 1
+      || dwCursorRow > dwBottom - dwTop + 1 || pBytes[45] > 1
+      || pBytes[46] != 0 || pBytes[47] != 0)
       return(FALSE);
 
    if(bSessionScreenAvailable)

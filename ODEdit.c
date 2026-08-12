@@ -378,10 +378,15 @@ static BOOL ODEditSetupInstance(tEditInstance *pEditInstance,
       || pEditInstance->pUserOptions->nAreaBottom
          <= pEditInstance->pUserOptions->nAreaTop
       || pEditInstance->pUserOptions->nAreaRight > nWindowWidth
-      || pEditInstance->pUserOptions->nAreaBottom > nWindowHeight
-      || (od_control.user_avatar
-         && (pEditInstance->pUserOptions->nAreaRight > 255
-            || pEditInstance->pUserOptions->nAreaBottom > 255)))
+      || pEditInstance->pUserOptions->nAreaBottom > nWindowHeight)
+   {
+      od_control.od_error = ERR_PARAMETER;
+      return(FALSE);
+   }
+
+   if(od_control.user_avatar
+      && (pEditInstance->pUserOptions->nAreaRight > 255
+         || pEditInstance->pUserOptions->nAreaBottom > 255))
    {
       od_control.od_error = ERR_PARAMETER;
       return(FALSE);

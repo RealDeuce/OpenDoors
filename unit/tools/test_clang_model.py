@@ -4,6 +4,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import clang_model  # noqa: E402
@@ -14,6 +15,15 @@ from inventory import ROOT  # noqa: E402
 
 
 class ClangModelTests(unittest.TestCase):
+    def test_ast_input_preserves_source_bytes_across_platforms(self):
+        completed = mock.Mock(returncode=0, stdout=b"{}", stderr=b"")
+        with mock.patch.object(clang_model.subprocess, "run",
+                               return_value=completed) as run:
+            self.assertEqual(clang_model.run_ast(
+                ROOT / "sample.c", "clang", [], "one\ntwo\n"), {})
+        self.assertEqual(run.call_args.kwargs["input"], b"one\ntwo\n")
+        self.assertNotIn("text", run.call_args.kwargs)
+
     def test_normalizes_watcom_pack_stack_pragmas_without_moving_offsets(self):
         source = ("#pragma pack( __push, 1 )\n"
                   "typedef struct { char c; long value; } Packed;\n"

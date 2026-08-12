@@ -1,3 +1,12 @@
+#define UT_CUSTOM_MOCK_toupper
+
+int utm_toupper(int value)
+{
+   if(value >= 'a' && value <= 'z')
+      return value - ('a' - 'A');
+   return value;
+}
+
 static void converts_each_character_and_returns_input(void)
 {
    char text[] = "aB1";

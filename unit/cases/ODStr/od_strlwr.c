@@ -1,3 +1,12 @@
+#define UT_CUSTOM_MOCK_tolower
+
+int utm_tolower(int value)
+{
+   if(value >= 'A' && value <= 'Z')
+      return value - ('A' - 'a');
+   return value;
+}
+
 static void converts_each_character_and_returns_input(void)
 {
    char text[] = "Ab1";

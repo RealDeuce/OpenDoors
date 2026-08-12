@@ -15,12 +15,10 @@ static int ut_upper(int value)
    return value;
 }
 
-#ifndef ODPLAT_NIX
 int utm_toupper(int value)
 {
    return ut_upper(value);
 }
-#endif
 
 int utm_sscanf(const char *text, const char *format, ...)
 {

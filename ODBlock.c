@@ -130,8 +130,14 @@ ODAPIDEF BOOL ODCALL od_puttext(INT nLeft, INT nTop, INT nRight, INT nBottom,
    }
 
    /* Check that parameters seem reasonable. */
-   if(nLeft<1 || nTop<1 || nRight>nMaxRight || nBottom>nMaxBottom
-      || nTop > nBottom || nLeft > nRight || pBlock==NULL)
+   if(nLeft<1 || nTop<1 || nRight>nMaxRight || nBottom>nMaxBottom)
+   {
+      od_control.od_error = ERR_PARAMETER;
+      OD_API_EXIT();
+      return(FALSE);
+   }
+
+   if(nTop > nBottom || nLeft > nRight || pBlock==NULL)
    {
       od_control.od_error = ERR_PARAMETER;
       OD_API_EXIT();
@@ -397,8 +403,14 @@ ODAPIDEF BOOL ODCALL od_gettext(INT nLeft, INT nTop, INT nRight, INT nBottom,
       nMaxBottom = ODTextInfo.winbottom - ODTextInfo.wintop + 1;
    }
 
-   if(nLeft<1 || nTop<1 || nRight>nMaxRight || nBottom>nMaxBottom
-      || nLeft>nRight || nTop>nBottom || !pBlock)
+   if(nLeft<1 || nTop<1 || nRight>nMaxRight || nBottom>nMaxBottom)
+   {
+      od_control.od_error = ERR_PARAMETER;
+      OD_API_EXIT();
+      return(FALSE);
+   }
+
+   if(nLeft>nRight || nTop>nBottom || !pBlock)
    {
       od_control.od_error = ERR_PARAMETER;
       OD_API_EXIT();

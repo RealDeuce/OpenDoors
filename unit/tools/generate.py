@@ -15,6 +15,18 @@ from inventory import ROOT, scan_c
 CASE_ROOT = (ROOT / "unit" / "cases").resolve()
 LOCAL_CASE_INCLUDE = re.compile(
     r'^[ \t]*#[ \t]*include[ \t]*"([^"\r\n]+)"[ \t]*(?:\r?\n)?$')
+CUSTOM_MOCK = re.compile(
+    r'^[ \t]*#[ \t]*define[ \t]+UT_CUSTOM_MOCK_([A-Za-z_][A-Za-z0-9_]*)\b',
+    re.MULTILINE)
+HEADER_MACRO_APIS = {
+    "isalnum", "isalpha", "isblank", "iscntrl", "isdigit", "isgraph",
+    "islower", "isprint", "ispunct", "isspace", "isupper", "isxdigit",
+    "memchr", "memcmp", "memcpy", "memmove", "memset",
+    "mktime", "printf",
+    "sigaddset", "sigemptyset", "sigismember", "sigpending", "sigprocmask",
+    "snprintf", "sprintf", "strcat", "strcpy", "strncpy", "time",
+    "tolower", "toupper", "vsnprintf", "vsprintf",
+}
 
 
 def embedded_case(case: Path, stack: tuple[Path, ...] = ()) -> str:
@@ -37,6 +49,16 @@ def embedded_case(case: Path, stack: tuple[Path, ...] = ()) -> str:
 
 def macro_name(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_]", "_", name)
+
+
+def explicit_mock_names(case_text: str,
+                        flags: list[str] | None = None) -> set[str]:
+    """Return modern-header APIs a case explicitly requires intercepted."""
+    flags = flags or []
+    if any(flag.startswith(("-D__WATCOMC__", "-D__TURBOC__"))
+           for flag in flags):
+        return set()
+    return set(CUSTOM_MOCK.findall(case_text)) & HEADER_MACRO_APIS
 
 
 def early_mock_declarations(names: set[str]) -> list[str]:
@@ -234,7 +256,10 @@ def generate(source: Path, target_name: str, case: Path, output: Path,
     mocks = {}
     for item in target.functions:
         mocks[item.name] = item
-    alias_definitions = mock_definitions(target_name, mocks)
+    case_text = embedded_case(case).rstrip("\r\n")
+    explicit_mocks = explicit_mock_names(case_text, flags)
+    alias_names = set(mocks) | explicit_mocks
+    alias_definitions = mock_definitions(target_name, alias_names)
 
     replacements = []
     for item in scan_c(text):
@@ -267,8 +292,8 @@ def generate(source: Path, target_name: str, case: Path, output: Path,
         '#include "ut.h"',
         "",
     ]
-    lines.extend(early_mock_declarations(set(mocks)))
-    if early_mock_declarations(set(mocks)):
+    lines.extend(early_mock_declarations(alias_names))
+    if early_mock_declarations(alias_names):
         lines.append("")
     for original, replacement in macros:
         lines.append(f"#define {original} {replacement}")
@@ -292,7 +317,7 @@ def generate(source: Path, target_name: str, case: Path, output: Path,
         "}",
         "",
         "/* Embedded unit case and case-local support. */",
-        embedded_case(case).rstrip("\r\n"),
+        case_text,
         "",
         "/* Default mocks fail immediately; a case may provide an override. */",
     ])

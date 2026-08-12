@@ -1,8 +1,6 @@
 #define UT_CUSTOM_MOCK_od_get_input
 #define UT_CUSTOM_MOCK_od_kernel
-#ifndef ODPLAT_NIX
 #define UT_CUSTOM_MOCK_toupper
-#endif
 
 static tODInputEvent ut_events[16];
 static unsigned ut_event_count;
@@ -31,14 +29,12 @@ void ODCALL utm_od_kernel(void)
    ++ut_kernel_calls;
 }
 
-#ifndef ODPLAT_NIX
 int utm_toupper(int value)
 {
    if(value >= 'a' && value <= 'z')
       return value - ('a' - 'A');
    return value;
 }
-#endif
 
 static void reset_input(void)
 {

@@ -1,7 +1,9 @@
 #define UT_CUSTOM_MOCK_GetCommandLineA
 #define UT_CUSTOM_MOCK_calloc
 #define UT_CUSTOM_MOCK_free
+#if defined(ODPLAT_NIX) || defined(ODPLAT_WIN32)
 #define UT_CUSTOM_MOCK_isspace
+#endif
 #define UT_CUSTOM_MOCK_malloc
 #define UT_CUSTOM_MOCK_memcpy
 #define UT_CUSTOM_MOCK_realloc
@@ -65,6 +67,14 @@ char *utm_strdup(const char *text)
    return destination;
 }
 
+#if defined(ODPLAT_NIX) || defined(ODPLAT_WIN32)
+int utm_isspace(int value)
+{
+   return value == ' ' || value == '\t' || value == '\n' ||
+      value == '\r' || value == '\f' || value == '\v';
+}
+#endif
+
 #ifdef ODPLAT_WIN32
 LPSTR WINAPI utm_GetCommandLineA(void)
 {
@@ -96,12 +106,6 @@ char *utm_strstr(const char *haystack, const char *needle)
       ++haystack;
    }
    return length == 0 ? (char *)haystack : NULL;
-}
-
-int utm_isspace(int value)
-{
-   return value == ' ' || value == '\t' || value == '\n' ||
-      value == '\r' || value == '\f' || value == '\v';
 }
 #endif
 

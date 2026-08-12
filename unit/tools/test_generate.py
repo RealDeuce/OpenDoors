@@ -8,7 +8,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from clang_model import Callable, Variable  # noqa: E402
 from generate import (default_mock, early_mock_declarations, embedded_case,
-                      generate, insert_late_defines, mock_definitions,
+                      explicit_mock_names, generate, insert_late_defines,
+                      mock_definitions,
                       replace_c_includes,
                       variable_definition, variable_definitions)  # noqa: E402
 from inventory import ROOT  # noqa: E402
@@ -101,6 +102,27 @@ class LateDefineTests(unittest.TestCase):
 
 
 class EarlyMockDeclarationTests(unittest.TestCase):
+    def test_explicit_case_mocks_force_header_macro_interception(self):
+        case = ("#define UT_CUSTOM_MOCK_memcpy\n"
+                "#define UT_CUSTOM_MOCK_sigemptyset\n"
+                "#define UT_CUSTOM_MOCK_mktime\n"
+                "#define UT_CUSTOM_MOCK_printf\n"
+                "#define UT_CUSTOM_MOCK_strcat\n"
+                "#define UT_CUSTOM_MOCK_strcpy\n"
+                "#define UT_CUSTOM_MOCK_strncpy\n"
+                "#define UT_CUSTOM_MOCK_time\n")
+        self.assertEqual(explicit_mock_names(case),
+                         {"memcpy", "mktime", "printf", "sigemptyset",
+                          "strcat", "strcpy", "strncpy", "time"})
+
+    def test_dos_does_not_force_modern_header_macro_interception(self):
+        case = ("#define UT_CUSTOM_MOCK_isspace\n"
+                "#define UT_CUSTOM_MOCK_strcpy\n")
+        self.assertEqual(explicit_mock_names(
+            case, ["-D__WATCOMC__=1300", "-D__386__"]), set())
+        self.assertEqual(explicit_mock_names(
+            case, ["-D__TURBOC__=0x0201", "-D__LARGE__"]), set())
+
     def test_declares_errno_accessors_before_runtime_headers_use_them(self):
         self.assertEqual(early_mock_declarations(
             {"__error", "__errno_location", "_errno", "fopen"}), [

@@ -8,13 +8,10 @@ time_t utm_time(time_t *result)
 }
 
 #ifdef ODPLAT_NIX
-#ifndef __APPLE__
 #define UT_CUSTOM_MOCK_sigemptyset
 #define UT_CUSTOM_MOCK_sigaddset
-#endif
 #define UT_CUSTOM_MOCK_sigprocmask
 static unsigned ut_signal_calls;
-#ifndef __APPLE__
 int utm_sigemptyset(sigset_t *set)
 {
    ++ut_signal_calls;
@@ -28,15 +25,11 @@ int utm_sigaddset(sigset_t *set, int signal_number)
    UT_ASSERT_EQ_INT(SIGHUP, signal_number);
    return(0);
 }
-#endif
 int utm_sigprocmask(int operation, const sigset_t *set, sigset_t *old_set)
 {
    ++ut_signal_calls;
    UT_ASSERT_EQ_INT(SIG_BLOCK, operation);
    UT_ASSERT_NOT_NULL(set);
-#ifdef __APPLE__
-   UT_ASSERT_EQ_INT(1, sigismember(set, SIGHUP));
-#endif
    UT_ASSERT_NULL(old_set);
    return(0);
 }
@@ -232,11 +225,7 @@ static void initializes_common_kernel_state(void)
    UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODKrnlStart(FALSE));
    UT_ASSERT_EQ_UINT(2, ut_time_calls);
 #ifdef ODPLAT_NIX
-#ifdef __APPLE__
-   UT_ASSERT_EQ_UINT(1, ut_signal_calls);
-#else
    UT_ASSERT_EQ_UINT(3, ut_signal_calls);
-#endif
 #endif
    UT_ASSERT_EQ_INT((time_t)104, nNextStatusUpdateTime);
    UT_ASSERT_EQ_INT((time_t)162, nNextTimeDeductTime);

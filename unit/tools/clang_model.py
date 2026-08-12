@@ -422,12 +422,15 @@ def run_ast(source: Path, clang: str, flags: list[str],
         command.append(str(source))
     else:
         command.extend(["-x", "c", "-"])
+    # A Windows text-mode pipe expands LF to CRLF and invalidates AST offsets.
+    source_bytes = text.encode("latin-1") if text is not None else None
     process = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, text=True, input=text)
+                             stderr=subprocess.PIPE, input=source_bytes)
     if process.returncode:
         raise RuntimeError(
-            f"Clang AST failed for {source.name}:\n{process.stderr}")
-    return json.loads(process.stdout)
+            f"Clang AST failed for {source.name}:\n"
+            f"{process.stderr.decode('utf-8', errors='replace')}")
+    return json.loads(process.stdout.decode("utf-8"))
 
 
 def build_model(source: Path, clang: str = "clang",
