@@ -35,9 +35,8 @@ def registered_tests() -> list[dict[str, object]]:
 
 
 def unix_variants(platforms: dict[str, object]) -> dict[str, list[str]]:
-    """Build the Unix job matrix without adding an unselected variant."""
-    return {"platform": [name for name in ("unix", "pthread")
-                         if name in platforms]}
+    """Build the Unix job matrix only when Unix owners are selected."""
+    return {"platform": ["unix"] if "unix" in platforms else []}
 
 
 def watcom_variants(platforms: dict[str, object]) -> dict[str, list[dict[str, str]]]:
@@ -303,7 +302,7 @@ def main() -> int:
         with args.github_output.open("a", encoding="utf-8") as output:
             output.write(f"selection={rendered}\n")
             output.write(f"run={'true' if result['run'] else 'false'}\n")
-            for platform in ("unix", "pthread", "windows", "dos16", "dos32"):
+            for platform in ("unix", "windows", "dos16", "dos32"):
                 output.write(
                     f"platform_{platform}="
                     f"{'true' if platform in result['platforms'] else 'false'}\n")

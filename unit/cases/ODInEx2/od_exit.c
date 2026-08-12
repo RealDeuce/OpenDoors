@@ -32,7 +32,7 @@
 #define UT_CUSTOM_MOCK_od_strupr
 #define UT_CUSTOM_MOCK_strupr
 #define UT_CUSTOM_MOCK_time
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODSyncAPIRelease
 #define UT_CUSTOM_MOCK_ODSyncAPIReacquire
 #define UT_CUSTOM_MOCK_ODThreadSleep
@@ -123,7 +123,7 @@ void utm_ODScrnSetBoundary(BYTE left, BYTE top, BYTE right, BYTE bottom)
 void utm_ODScrnSetAttribute(BYTE attribute) { (void)attribute; }
 void utm_ODScrnClear(void) {}
 void utm_ODScrnSetCursorPos(BYTE column, BYTE row) { (void)column; (void)row; }
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 unsigned utm_ODSyncAPIRelease(void) { return(3); }
 void utm_ODSyncAPIReacquire(unsigned level) { UT_ASSERT_EQ_UINT(3, level); }
 void utm_ODThreadSleep(tODMilliSec milliseconds) { (void)milliseconds; }

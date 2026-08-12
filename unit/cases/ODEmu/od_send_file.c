@@ -20,9 +20,7 @@
 #define UT_CUSTOM_MOCK_fclose
 #define UT_CUSTOM_MOCK_ODWaitDrain
 #define UT_CUSTOM_MOCK_ODScrnRemoveMessage
-#ifndef OD_MULTITHREADED
 #define UT_CUSTOM_MOCK_od_kernel
-#endif
 
 #define UT_SEND_MAX_EVENTS 20
 typedef struct UTReadEvent {
@@ -58,9 +56,7 @@ static unsigned ut_close_calls;
 static FILE *ut_closed[2];
 static unsigned ut_wait_calls;
 static BOOL ut_uninitialize_on_wait;
-#ifndef OD_MULTITHREADED
 static unsigned ut_kernel_calls;
-#endif
 
 size_t utm_strlen(const char *text);
 void ODCALL utm_od_init(void) { ++ut_init_calls; bODInitialized = TRUE; }
@@ -207,9 +203,7 @@ void utm_ODScrnRemoveMessage(void *window)
    UT_ASSERT_EQ_PTR(&ut_window_token, window);
    ++ut_remove_calls;
 }
-#ifndef OD_MULTITHREADED
 void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
-#endif
 
 static void reset_send(void)
 {
@@ -232,9 +226,7 @@ static void reset_send(void)
    ut_page_result = FALSE;
    ut_close_calls = ut_wait_calls = 0;
    ut_uninitialize_on_wait = FALSE;
-#ifndef OD_MULTITHREADED
    ut_kernel_calls = 0;
-#endif
    pszCurrentHotkeys = NULL;
    chHotkeyPressed = 0;
    chLastControlKey = 0;
@@ -299,9 +291,7 @@ static void sends_an_explicit_local_file_to_eof(void)
    UT_ASSERT_EQ_UINT(1, ut_close_calls);
    UT_ASSERT_EQ_PTR(&ut_remote_token, ut_closed[0]);
    UT_ASSERT_EQ_UINT(1, ut_exit_calls);
-#ifndef OD_MULTITHREADED
    UT_ASSERT(ut_kernel_calls >= 1);
-#endif
 }
 
 static void handles_auto_selected_remote_and_local_files(void)

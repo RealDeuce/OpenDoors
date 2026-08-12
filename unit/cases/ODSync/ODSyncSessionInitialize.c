@@ -1,5 +1,5 @@
 #define UT_CUSTOM_MOCK_ODReleasePublicLock
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODMutexDestroy
 #define UT_CUSTOM_MOCK_ODMutexInitialize
 #ifdef ODPLAT_WIN32
@@ -13,7 +13,7 @@
 
 static unsigned ut_releases;
 static BOOL ut_release_clears;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static tODResult ut_mutex_result;
 static unsigned ut_mutex_initializes;
 static unsigned ut_mutex_destroys;
@@ -36,7 +36,7 @@ void utm_ODReleasePublicLock(void)
    if(ut_release_clears) bPublicLockPhysical = FALSE;
 }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 tODResult utm_ODMutexInitialize(tODMutex *mutex)
 {
    UT_ASSERT_EQ_PTR(&ControlLock.state, mutex);
@@ -96,7 +96,7 @@ static void reset_initialization(void)
    bDispatching = TRUE;
    ut_releases = 0;
    ut_release_clears = TRUE;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ut_mutex_result = kODRCSuccess;
    ut_mutex_initializes = 0;
    ut_mutex_destroys = 0;
@@ -115,7 +115,7 @@ static void reset_initialization(void)
 static void initializes_a_fresh_session_and_unwinds_failures(void)
 {
    reset_initialization();
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ut_mutex_result = kODRCGeneralFailure;
    UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODSyncSessionInitialize());
    UT_ASSERT_EQ_INT(FALSE, bSyncActive);
@@ -136,7 +136,7 @@ static void initializes_a_fresh_session_and_unwinds_failures(void)
    UT_ASSERT_EQ_UINT(0, nAPILevel);
    UT_ASSERT_EQ_INT(FALSE, bDispatching);
    UT_ASSERT_EQ_INT(FALSE, bPublicLockPhysical);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_UINT(1, ut_self_calls);
    UT_ASSERT_EQ_UINT(0, ControlLock.readers);
    UT_ASSERT_EQ_UINT(0, ControlLock.waiting_writers);
@@ -173,7 +173,7 @@ static void releases_a_stale_public_lock_on_reuse(void)
    UT_ASSERT_EQ_UINT(1, ut_releases);
 }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static void rebinds_only_a_completely_idle_uninitialized_session(void)
 {
    use_active_session(FALSE, 0, FALSE, 0, 0, TRUE);
@@ -194,7 +194,7 @@ static void rebinds_only_a_completely_idle_uninitialized_session(void)
 static const UTTestCase ut_cases[] = {
    {"fresh session", initializes_a_fresh_session_and_unwinds_failures},
    {"stale public lock", releases_a_stale_public_lock_on_reuse},
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    {"owner rebind", rebinds_only_a_completely_idle_uninitialized_session},
 #endif
 };

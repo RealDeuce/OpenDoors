@@ -10,17 +10,12 @@
 #include "ODKrnl.h"
 #include "ODSync.h"
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 typedef struct
 {
    tODMutex state;
-#ifdef ODPLAT_WIN32
    HANDLE changed;
    DWORD owner;
-#else
-   pthread_cond_t changed;
-   pthread_t owner;
-#endif
    unsigned readers;
    unsigned waiting_writers;
    BOOL writer;
@@ -40,14 +35,9 @@ static void ODReleasePublicLock(void);
 
 tODResult ODMutexInitialize(tODMutex *pMutex)
 {
-#ifdef OD_MULTITHREADED
-#ifdef ODPLAT_WIN32
+#ifdef OD_THREAD_SUPPORT
    InitializeCriticalSection(&pMutex->cs);
    return(kODRCSuccess);
-#else
-   return(pthread_mutex_init(&pMutex->mutex, NULL) == 0
-      ? kODRCSuccess : kODRCGeneralFailure);
-#endif
 #else
    (void)pMutex;
    return(kODRCSuccess);
@@ -56,12 +46,8 @@ tODResult ODMutexInitialize(tODMutex *pMutex)
 
 void ODMutexDestroy(tODMutex *pMutex)
 {
-#ifdef OD_MULTITHREADED
-#ifdef ODPLAT_WIN32
+#ifdef OD_THREAD_SUPPORT
    DeleteCriticalSection(&pMutex->cs);
-#else
-   pthread_mutex_destroy(&pMutex->mutex);
-#endif
 #else
    (void)pMutex;
 #endif
@@ -69,12 +55,8 @@ void ODMutexDestroy(tODMutex *pMutex)
 
 void ODMutexLock(tODMutex *pMutex)
 {
-#ifdef OD_MULTITHREADED
-#ifdef ODPLAT_WIN32
+#ifdef OD_THREAD_SUPPORT
    EnterCriticalSection(&pMutex->cs);
-#else
-   pthread_mutex_lock(&pMutex->mutex);
-#endif
 #else
    (void)pMutex;
 #endif
@@ -82,25 +64,17 @@ void ODMutexLock(tODMutex *pMutex)
 
 void ODMutexUnlock(tODMutex *pMutex)
 {
-#ifdef OD_MULTITHREADED
-#ifdef ODPLAT_WIN32
+#ifdef OD_THREAD_SUPPORT
    LeaveCriticalSection(&pMutex->cs);
-#else
-   pthread_mutex_unlock(&pMutex->mutex);
-#endif
 #else
    (void)pMutex;
 #endif
 }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static void ODControlWakeWaiters(void)
 {
-#ifdef ODPLAT_WIN32
    SetEvent(ControlLock.changed);
-#else
-   pthread_cond_broadcast(&ControlLock.changed);
-#endif
 }
 
 static void ODControlReadAcquire(void)
@@ -108,14 +82,10 @@ static void ODControlReadAcquire(void)
    ODMutexLock(&ControlLock.state);
    while(ControlLock.writer || ControlLock.waiting_writers != 0)
    {
-#ifdef ODPLAT_WIN32
       ResetEvent(ControlLock.changed);
       ODMutexUnlock(&ControlLock.state);
       WaitForSingleObject(ControlLock.changed, INFINITE);
       ODMutexLock(&ControlLock.state);
-#else
-      pthread_cond_wait(&ControlLock.changed, &ControlLock.state.mutex);
-#endif
    }
    ++ControlLock.readers;
    ODMutexUnlock(&ControlLock.state);
@@ -137,14 +107,10 @@ static void ODControlWriteAcquire(void)
    ++ControlLock.waiting_writers;
    while(ControlLock.writer || ControlLock.readers != 0)
    {
-#ifdef ODPLAT_WIN32
       ResetEvent(ControlLock.changed);
       ODMutexUnlock(&ControlLock.state);
       WaitForSingleObject(ControlLock.changed, INFINITE);
       ODMutexLock(&ControlLock.state);
-#else
-      pthread_cond_wait(&ControlLock.changed, &ControlLock.state.mutex);
-#endif
    }
    --ControlLock.waiting_writers;
    ControlLock.writer = TRUE;
@@ -167,23 +133,16 @@ tODResult ODSyncSessionInitialize(void)
    {
       if(!bODInitialized && bPublicLockPhysical)
          ODReleasePublicLock();
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
       if(!bODInitialized && nAPILevel == 0 && !bPublicLockPhysical
          && nPublicReadDepth == 0 && nPublicWriteDepth == 0)
-      {
-#ifdef ODPLAT_WIN32
          ControlLock.owner = GetCurrentThreadId();
-#else
-         ControlLock.owner = pthread_self();
-#endif
-      }
 #endif
       return(kODRCSuccess);
    }
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    if(ODMutexInitialize(&ControlLock.state) != kODRCSuccess)
       return(kODRCGeneralFailure);
-#ifdef ODPLAT_WIN32
    ControlLock.changed = CreateEvent(NULL, TRUE, FALSE, NULL);
    if(ControlLock.changed == NULL)
    {
@@ -191,14 +150,6 @@ tODResult ODSyncSessionInitialize(void)
       return(kODRCGeneralFailure);
    }
    ControlLock.owner = GetCurrentThreadId();
-#else
-   if(pthread_cond_init(&ControlLock.changed, NULL) != 0)
-   {
-      ODMutexDestroy(&ControlLock.state);
-      return(kODRCGeneralFailure);
-   }
-   ControlLock.owner = pthread_self();
-#endif
    ControlLock.readers = 0;
    ControlLock.waiting_writers = 0;
    ControlLock.writer = FALSE;
@@ -229,12 +180,8 @@ void ODSyncSessionShutdown(void)
 {
    if(!bSyncActive)
       return;
-#ifdef OD_MULTITHREADED
-#ifdef ODPLAT_WIN32
+#ifdef OD_THREAD_SUPPORT
    CloseHandle(ControlLock.changed);
-#else
-   pthread_cond_destroy(&ControlLock.changed);
-#endif
    ODMutexDestroy(&ControlLock.state);
 #endif
    bSyncActive = FALSE;
@@ -248,12 +195,8 @@ BOOL ODSyncIsOwnerThread(void)
 {
    if(!bSyncActive)
       return(TRUE);
-#ifdef OD_MULTITHREADED
-#ifdef ODPLAT_WIN32
+#ifdef OD_THREAD_SUPPORT
    return(ControlLock.owner == GetCurrentThreadId());
-#else
-   return(pthread_equal(ControlLock.owner, pthread_self()) != 0);
-#endif
 #else
    return(TRUE);
 #endif
@@ -263,7 +206,7 @@ BOOL ODSyncSessionActive(void) { return(bSyncActive); }
 
 BOOL ODSyncAPIWriterHeldByCurrentThread(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    return(bSyncActive && ODSyncIsOwnerThread() && nAPILevel != 0);
 #else
    return(FALSE);
@@ -272,7 +215,7 @@ BOOL ODSyncAPIWriterHeldByCurrentThread(void)
 
 void ODSyncControlReadLock(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    if(bSyncActive && (nAPILevel == 0 || !ODSyncIsOwnerThread()))
       ODControlReadAcquire();
 #endif
@@ -280,7 +223,7 @@ void ODSyncControlReadLock(void)
 
 void ODSyncControlReadUnlock(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    if(bSyncActive && (nAPILevel == 0 || !ODSyncIsOwnerThread()))
       ODControlReadRelease();
 #endif
@@ -288,7 +231,7 @@ void ODSyncControlReadUnlock(void)
 
 void ODSyncControlWriteLock(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    if(bSyncActive && (nAPILevel == 0 || !ODSyncIsOwnerThread()))
       ODControlWriteAcquire();
 #endif
@@ -296,7 +239,7 @@ void ODSyncControlWriteLock(void)
 
 void ODSyncControlWriteUnlock(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    if(bSyncActive && (nAPILevel == 0 || !ODSyncIsOwnerThread()))
       ODControlWriteRelease();
 #endif
@@ -334,13 +277,17 @@ static void ODDispatch(BOOL bAllowApplicationCallbacks)
 
 void ODSyncAPIEntry(void)
 {
+   BOOL bOutermost = nAPILevel == 0;
+
    ASSERT(ODSyncIsOwnerThread());
-   if(nAPILevel == 0)
+   if(bOutermost)
    {
       ODReleasePublicLock();
       ODSyncControlWriteLock();
    }
    ++nAPILevel;
+   if(bOutermost)
+      ODKrnlDispatchPending(TRUE);
 }
 
 void ODSyncAPIExit(void)
@@ -362,8 +309,10 @@ BOOL ODSyncAPICheckpoint(void)
    if(nAPILevel == 0 || !ODSyncIsOwnerThread())
       return(bODInitialized);
    nSavedAPILevel = ODSyncAPIRelease();
-   ODDispatch(FALSE);
    ODSyncAPIReacquire(nSavedAPILevel);
+   ODKrnlDispatchPending(TRUE);
+   if(bODInitialized)
+      od_kernel();
    return(bODInitialized);
 }
 

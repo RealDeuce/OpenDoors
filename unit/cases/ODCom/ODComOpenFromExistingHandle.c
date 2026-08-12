@@ -43,26 +43,6 @@ int utm_setsockopt(int socket_handle, int level, int option,
 }
 #endif
 
-#define UT_CUSTOM_MOCK_ODSemaphoreAlloc
-#ifndef OD_MULTITHREADED
-/* The Windows model includes this dependency, while host-side LLVM replay
- * compiles the generated unit through the non-threaded UNIX headers. */
-typedef void *tODSemaphoreHandle;
-#endif
-
-static tODResult ut_semaphore_result;
-static unsigned ut_semaphore_calls;
-
-tODResult utm_ODSemaphoreAlloc(tODSemaphoreHandle *semaphore,
-   INT initial_count, INT maximum_count)
-{
-   ++ut_semaphore_calls;
-   UT_ASSERT_NOT_NULL(semaphore);
-   UT_ASSERT_EQ_INT(0, initial_count);
-   UT_ASSERT_EQ_INT(1, maximum_count);
-   return(ut_semaphore_result);
-}
-
 static tPortInfo ut_port;
 
 static void reset_existing_handle(void)
@@ -71,10 +51,6 @@ static void reset_existing_handle(void)
 #ifdef INCLUDE_SOCKET_COM
    ut_get_option_calls = 0;
    ut_set_option_calls = 0;
-#endif
-#ifdef OD_MULTITHREADED
-   ut_semaphore_result = kODRCSuccess;
-   ut_semaphore_calls = 0;
 #endif
 }
 
@@ -90,24 +66,6 @@ static void adopts_a_socket_and_disables_nagle(void)
    UT_ASSERT_EQ_INT(TRUE, ut_port.bIsOpen);
    UT_ASSERT_EQ_UINT(1, ut_get_option_calls);
    UT_ASSERT_EQ_UINT(1, ut_set_option_calls);
-#ifdef OD_MULTITHREADED
-   UT_ASSERT_EQ_UINT(1, ut_semaphore_calls);
-#endif
-}
-#endif
-
-#ifdef OD_MULTITHREADED
-static void reports_socket_semaphore_failure_without_adopting_the_handle(void)
-{
-   reset_existing_handle();
-   ut_port.Method = kComMethodSocket;
-   ut_semaphore_result = kODRCNoMemory;
-   UT_ASSERT_EQ_INT(kODRCNoMemory, utt_ODComOpenFromExistingHandle(
-      ODPTR2HANDLE(&ut_port, tPortInfo), (DWORD_PTR)42));
-   UT_ASSERT_EQ_INT(FALSE, ut_port.bIsOpen);
-   UT_ASSERT_EQ_UINT(1, ut_semaphore_calls);
-   UT_ASSERT_EQ_UINT(0, ut_get_option_calls);
-   UT_ASSERT_EQ_UINT(0, ut_set_option_calls);
 }
 #endif
 
@@ -133,10 +91,6 @@ static void handles_a_non_socket_native_handle(void)
 static const UTTestCase ut_cases[] = {
 #ifdef INCLUDE_SOCKET_COM
    {"socket", adopts_a_socket_and_disables_nagle},
-#endif
-#ifdef OD_MULTITHREADED
-   {"semaphore failure",
-      reports_socket_semaphore_failure_without_adopting_the_handle},
 #endif
    {"native handle", handles_a_non_socket_native_handle}
 };

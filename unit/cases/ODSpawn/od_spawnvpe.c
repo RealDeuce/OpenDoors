@@ -13,11 +13,9 @@
 #else
 #define UT_CUSTOM_MOCK__spawnvpe
 #endif
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODSyncAPIRelease
 #define UT_CUSTOM_MOCK_ODSyncAPIReacquire
-#define UT_CUSTOM_MOCK_ODKrnlShutdown
-#define UT_CUSTOM_MOCK_ODKrnlRestart
 #endif
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_ODScrnShowMessage
@@ -49,14 +47,13 @@ static const char *ut_arguments[] = {"program", "argument", NULL};
 static const char *ut_environment[] = {"NAME=value", NULL};
 static INT16 ut_spawn_result;
 static BOOL ut_wait_aborts;
-static tODResult ut_restart_result;
 static time_t ut_times[2];
 static unsigned ut_time_index;
 static unsigned ut_api_entry_calls, ut_api_exit_calls;
 static unsigned ut_spawn_calls, ut_close_calls, ut_open_calls;
 static unsigned ut_wait_calls, ut_reset_activity_calls, ut_clear_calls;
-#ifdef OD_MULTITHREADED
-static unsigned ut_release_calls, ut_reacquire_calls, ut_shutdown_calls;
+#ifdef OD_THREAD_SUPPORT
+static unsigned ut_release_calls, ut_reacquire_calls;
 #endif
 
 void utm_ODSyncAPIEntry(void) { ++ut_api_entry_calls; }
@@ -102,12 +99,10 @@ int utm__spawnvpe(int mode, const char *path, const char *const arguments[],
 #endif
 #endif
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 unsigned utm_ODSyncAPIRelease(void) { ++ut_release_calls; return(4); }
 void utm_ODSyncAPIReacquire(unsigned level)
 { UT_ASSERT_EQ_UINT(4, level); ++ut_reacquire_calls; }
-void utm_ODKrnlShutdown(void) { ++ut_shutdown_calls; }
-tODResult utm_ODKrnlRestart(void) { return(ut_restart_result); }
 #endif
 
 #ifdef ODPLAT_WIN32
@@ -177,13 +172,13 @@ static void reset_spawnvpe(void)
 {
    memset(&od_control, 0, sizeof(od_control)); bODInitialized = TRUE;
    bIsShell = FALSE; nNextTimeDeductTime = 0; od_control.user_timelimit = 20;
-   ut_spawn_result = 7; ut_wait_aborts = FALSE; ut_restart_result = kODRCSuccess;
+   ut_spawn_result = 7; ut_wait_aborts = FALSE;
    ut_times[0] = 100; ut_times[1] = 220; ut_time_index = 0;
    ut_api_entry_calls = ut_api_exit_calls = ut_spawn_calls = 0;
    ut_close_calls = ut_open_calls = ut_wait_calls = 0;
    ut_reset_activity_calls = ut_clear_calls = 0;
-#ifdef OD_MULTITHREADED
-   ut_release_calls = ut_reacquire_calls = ut_shutdown_calls = 0;
+#ifdef OD_THREAD_SUPPORT
+   ut_release_calls = ut_reacquire_calls = 0;
 #endif
 #ifdef ODPLAT_WIN32
    ut_show_calls = ut_remove_calls = ut_disable_dtr_calls = 0;
@@ -219,11 +214,6 @@ static void covers_waiting_and_nonwaiting_modes(void)
    UT_ASSERT_EQ_UINT(1, ut_close_calls); UT_ASSERT_EQ_UINT(1, ut_open_calls);
 #ifdef ODPLAT_WIN32
    UT_ASSERT_EQ_UINT(1, ut_disable_dtr_calls); UT_ASSERT_EQ_UINT(1, ut_remove_calls);
-#endif
-#ifdef OD_MULTITHREADED
-   reset_spawnvpe(); ut_restart_result = kODRCGeneralFailure;
-   UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
-   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
 #endif
 }
 #endif

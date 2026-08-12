@@ -1,4 +1,4 @@
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODControlReadRelease
 #define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
 static BOOL ut_owner;
@@ -10,7 +10,7 @@ BOOL utm_ODSyncIsOwnerThread(void) { return ut_owner; }
 
 static void releases_unless_an_active_api_owner_retains_exclusion(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ut_releases = 0;
    bSyncActive = FALSE;
    nAPILevel = 0;

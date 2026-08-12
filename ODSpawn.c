@@ -303,7 +303,7 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    INT16 nToReturn;
    time_t nStartUnixTime;
    DWORD dwQuotient;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel = 0;
 #endif
 #ifdef ODPLAT_WIN32
@@ -409,18 +409,14 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
       }
 
 #ifdef ODPLAT_WIN32
-      /* Send any configured modem command while the input worker is still
-       * available to place its response in the common input queue. */
+      /* Send any configured modem command before closing communications. */
       if(od_control.baud != 0)
          ODInExDisableDTR();
 #endif /* ODPLAT_WIN32 */
 
-#ifdef OD_MULTITHREADED
-      /* Mutlithreaded versions of OpenDoors must shutdown the kernel */
-      /* before closing the serial port.                              */
+#ifdef OD_THREAD_SUPPORT
       nSavedAPILevel = ODSyncAPIRelease();
-      ODKrnlShutdown();
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
       /* Close serial port. */
       if(od_control.baud != 0)
@@ -432,10 +428,10 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 after_wait_shutdown:
 #endif
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    if(nModeFlag != P_WAIT)
       nSavedAPILevel = ODSyncAPIRelease();
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
    /* Execute specified program with the specified arguments. */
 #ifdef ODPLAT_DOS32
@@ -444,10 +440,10 @@ after_wait_shutdown:
    nToReturn = _spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
 #endif
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    if(nModeFlag != P_WAIT)
       ODSyncAPIReacquire(nSavedAPILevel);
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
 #if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
    if(nModeFlag != P_WAIT) goto after_wait_restart;
@@ -459,17 +455,9 @@ after_wait_shutdown:
          ODComOpen(hSerialPort);
       }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
       ODSyncAPIReacquire(nSavedAPILevel);
-
-      /* Mutlithreaded versions of OpenDoors must shutdown the kernel    */
-      /* before closing the serial port, so reinitialize the kernel now. */
-      if(ODKrnlRestart() != kODRCSuccess)
-      {
-         od_control.od_error = ERR_GENERALFAILURE;
-         nToReturn = -1;
-      }
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
       if(!(bIsShell || od_control.od_spawn_freeze_time))
       {

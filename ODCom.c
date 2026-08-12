@@ -207,9 +207,6 @@ typedef struct
 #ifdef INCLUDE_SOCKET_COM
 	SOCKET	socket;
 	int	old_delay;
-#ifdef OD_MULTITHREADED
-   tODSemaphoreHandle hCarrierLostSemaphore;
-#endif
 #endif
 #ifdef ODPLAT_DOS32
    tOD32FossilBuffer FossilBuffer;
@@ -403,7 +400,6 @@ static void ODComSetVect(BYTE btVector, void (INTERRUPT far *pfISR)(void))
    ASM   pop ds
 #endif
 }
-
 
 /* ----------------------------------------------------------------------------
  * ODComGetVect()                                      *** PRIVATE FUNCTION ***
@@ -1884,13 +1880,6 @@ tODResult ODComOpenFromExistingHandle(tPortHandle hPort,
 #ifdef INCLUDE_SOCKET_COM
    if(pPortInfo->Method == kComMethodSocket) {
       socklen_t delay=FALSE;
-#ifdef OD_MULTITHREADED
-      tODResult res = kODRCSuccess;
-
-      res = ODSemaphoreAlloc(&pPortInfo->hCarrierLostSemaphore, 0, 1);
-      if (res != kODRCSuccess)
-         return res;
-#endif
       pPortInfo->socket = dwExistingHandle;
 
       delay = sizeof(pPortInfo->old_delay);
@@ -2913,9 +2902,6 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 
          select_ret = select(pPortInfo->socket+1, &socket_set, NULL, NULL, bWait ? NULL : &tv);
          if (select_ret == SOCKET_ERROR) {
-#ifdef OD_MULTITHREADED
-            ODSemaphoreUp(pPortInfo->hCarrierLostSemaphore, 1);
-#endif
             return (kODRCGeneralFailure);
          }
          if (select_ret == 0)
@@ -2932,10 +2918,6 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
          if (i == 0)
             return (kODRCNothingWaiting);
          else if (i == -1 || !(pfd.revents & POLLIN)) {
-#ifdef OD_MULTITHREADED
-            if (i == -1 || pfd.revents & (POLLERR | POLLHUP | POLLNVAL))
-               ODSemaphoreUp(pPortInfo->hCarrierLostSemaphore, 1);
-#endif
             return (kODRCGeneralFailure);
          }
 #endif
@@ -2945,14 +2927,11 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
             if(recv_ret != SOCKET_ERROR)
                break;
             if (WSAGetLastError() != WSAEWOULDBLOCK) {
-#ifdef OD_MULTITHREADED
-               ODSemaphoreUp(pPortInfo->hCarrierLostSemaphore, 1);
-#endif
                return (kODRCGeneralFailure);
             }
             if(!bWait)
                return(kODRCNothingWaiting);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
             ODThreadSleep(50);
 #else
             od_sleep(50);
@@ -3262,7 +3241,7 @@ keep_going:
 			do {
 				send_ret = send(pPortInfo->socket, (char*)&btToSend, 1, 0);
 				if (send_ret != 1)
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 					ODThreadSleep(50);
 #else
 					od_sleep(50);
@@ -3834,7 +3813,7 @@ try_again:
 				send_ret = send(pPortInfo->socket, (char*)buf, nSize, 0);
 				if (send_ret != SOCKET_ERROR)
 					break;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 				ODThreadSleep(25);
 #else
 				od_sleep(25);
@@ -3882,7 +3861,7 @@ try_again:
 
 				retval=fwrite(buf+pos,1,nSize-pos,stdout);
 				if(retval!=nSize-pos) {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 					ODThreadSleep(1);
 #else
 					od_sleep(1);
@@ -3903,169 +3882,5 @@ try_again:
 
    /* Return with success. */
    if (od_control.od_cp437_to_utf8_out) free(buf);
-   return(kODRCSuccess);
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODComWaitEvent()
- *
- * Blocks until the specified serial I/O event occurs, or an error condition
- * is encountered.
- *
- * Parameters: hPort - Handle to an open port.
- *
- *             Event - Event type to wait for.
- *
- *     Return: kODRCSuccess on success, or an error code on failure.
- */
-tODResult ODComWaitEvent(tPortHandle hPort, tComEvent Event)
-{
-   tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
-
-   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
-   VERIFY_CALL(pPortInfo != NULL);
-
-   VERIFY_CALL(pPortInfo->bIsOpen);
-
-   switch(pPortInfo->Method)
-   {
-#if defined(INCLUDE_UART_COM) || defined(INCLUDE_FOSSIL_COM) || defined(INCLUDE_STDIO_COM)
-      case kComMethodFOSSIL:
-      case kComMethodUART:
-	  case kComMethodStdIO:
-         switch(Event)
-         {
-            case kNoCarrier:
-            {
-               BOOL bCarrier;
-               for(;;)
-               {
-                  ODComCarrier(hPort, &bCarrier);
-                  if(!bCarrier) break;
-
-                  ODComCallIdleFunction(pPortInfo);
-               }
-               break;
-            }
-            default:
-               VERIFY_CALL(FALSE);
-         }
-         break;
-#endif /* INCLUDE_UART_COM || INCLUDE_FOSSIL_COM */
-
-#ifdef INCLUDE_WIN32_COM
-      case kComMethodWin32:
-      {
-         DWORD dwEvtMask;
-
-         /* Obtain current event mask. */
-         if(!GetCommMask(pPortInfo->hCommDev, &dwEvtMask))
-         {
-            return(kODRCGeneralFailure);
-         }
-
-         /* Turn on event to be waited for. */
-         switch(Event)
-         {
-            case kNoCarrier:
-               dwEvtMask |= EV_RLSD;
-               break;
-            default:
-               VERIFY_CALL(FALSE);
-         }
-
-         /* Write new event mask. */
-         if(!SetCommMask(pPortInfo->hCommDev, dwEvtMask))
-         {
-            return(kODRCGeneralFailure);
-         }
-
-         /* Wait until event occurs. */
-         for(;;)
-         {
-            /* Block until some event occurs. */
-            if(!WaitCommEvent(pPortInfo->hCommDev, &dwEvtMask, NULL))
-            {
-               return(kODRCGeneralFailure);
-            }
-
-            /* Determine whether this is what we are waiting for. */
-            switch(Event)
-            {
-               case kNoCarrier:
-                  if(dwEvtMask & EV_RLSD)
-                  {
-                     BOOL bCarrier;
-                     ODComCarrier(hPort, &bCarrier);
-                     if(!bCarrier)
-                     {
-                        return(kODRCSuccess);
-                     }
-                  }
-                  break;
-            }
-
-            /* If we get here, the event we are waiting for hasn't occurred */
-            /* yet, so loop and block waiting for next event.               */
-         }
-
-         break;
-      }
-#endif /* INCLUDE_WIN32_COM */
-
-#ifdef INCLUDE_DOOR32_COM
-      case kComMethodDoor32:
-         switch(Event)
-         {
-            case kNoCarrier:
-               ASSERT(pPortInfo->pfDoorGetOfflineEventHandle != NULL);
-               WaitForSingleObject(
-                  (*pPortInfo->pfDoorGetOfflineEventHandle)(), INFINITE);
-               break;
-            default:
-               VERIFY_CALL(FALSE);
-         }
-         break;
-#endif /* INCLUDE_DOOR32_COM */
-
-#ifdef INCLUDE_SOCKET_COM
-      case kComMethodSocket:
-		{
-			if(Event == kNoCarrier)
-			{
-#ifdef OD_MULTITHREADED
-            while (ODSemaphoreDown(pPortInfo->hCarrierLostSemaphore, OD_NO_TIMEOUT) != kODRCSuccess)
-               ;
-            // Re-post the semaphore in case someone else waits...
-            ODSemaphoreUp(pPortInfo->hCarrierLostSemaphore, 1);
-#else
-            for(;;)
-            {
-               char ch;
-               int recv_ret = recv(pPortInfo->socket, &ch, 1, MSG_PEEK);
-               if(recv_ret == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK)
-                  continue;
-               if (recv_ret != 1)
-                  break;
-            }
-#endif
-			}
-			else
-			{
-				VERIFY_CALL(FALSE);
-			}
-			break;
-		}
-#endif /* INCLUDE_SOCKET_COM */
-
-
-      default:
-         /* If we get here, then the current serial I/O method is not */
-         /* handled by this function.                                 */
-         ASSERT(FALSE);
-   }
-
-   /* Return with success. */
    return(kODRCSuccess);
 }

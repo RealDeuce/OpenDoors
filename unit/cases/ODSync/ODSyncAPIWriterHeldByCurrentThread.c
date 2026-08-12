@@ -1,4 +1,4 @@
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
 static BOOL ut_owner;
 static unsigned ut_owner_calls;
@@ -12,7 +12,7 @@ BOOL utm_ODSyncIsOwnerThread(void)
 
 static void reports_only_an_active_owner_inside_the_api(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    bSyncActive = FALSE;
    nAPILevel = 1;
    ut_owner = TRUE;

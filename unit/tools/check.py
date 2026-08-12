@@ -25,7 +25,7 @@ PROPOSED_WAIVER_FLAG = "--allow-proposed-coverage-waivers"
 CONFIGURATION_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
 MACRO_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 DEFINE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(?:=.*)?$")
-UNIT_PLATFORMS = {"unix", "pthread", "windows", "dos16", "dos32"}
+UNIT_PLATFORMS = {"unix", "windows", "dos16", "dos32"}
 
 
 def cmake_first_party_sources(modern: str, dos: str) -> set[str]:

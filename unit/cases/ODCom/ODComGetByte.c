@@ -146,7 +146,7 @@ DWORD WINAPI utm_WaitForSingleObject(HANDLE object, DWORD timeout)
 #else
 #define UT_CUSTOM_MOCK_poll
 #endif
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODSemaphoreUp
 #define UT_CUSTOM_MOCK_ODThreadSleep
 #else
@@ -189,7 +189,7 @@ ssize_t utm_recv(int socket_handle, void *buffer, size_t size, int flags)
    if(result == 1) *(BYTE *)buffer = 0x5c;
    return(result);
 }
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 void utm_ODSemaphoreUp(tODSemaphoreHandle semaphore, INT count)
 {
    UT_ASSERT_EQ_PTR((tODSemaphoreHandle)(DWORD_PTR)47, semaphore);
@@ -252,9 +252,6 @@ static void reset_get(void)
    ut_port.socket = 45; ut_ready_result = 1; ut_ready_events = POLLIN;
    ut_recv_calls = 0; ut_socket_error = 0; ut_semaphore_calls = 0;
    ut_sleep_calls = 0;
-#ifdef OD_MULTITHREADED
-   ut_port.hCarrierLostSemaphore = (tODSemaphoreHandle)(DWORD_PTR)47;
-#endif
    errno = 0;
    for(index = 0; index < 3; ++index) ut_recv_results[index] = 1;
 #endif

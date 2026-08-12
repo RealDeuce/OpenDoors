@@ -146,7 +146,7 @@ class WaiverProposalTests(unittest.TestCase):
         source = b"sample\n"
         (self.root / "ODBlock.c").write_bytes(source)
         self.expected = {("ODBlock.c", "od_scroll"): {
-            "unix", "pthread", "windows", "dos16", "dos32"
+            "unix", "windows", "dos16", "dos32"
         }}
         self.proposal = {
             "id": "sample",
@@ -216,7 +216,7 @@ class ReleaseCoveragePolicyTests(unittest.TestCase):
             validate_unit_workflow_policy(
                 unit.replace(
                     "matrix: ${{ fromJSON(needs.select.outputs.unix_matrix) }}",
-                    "matrix:\n  platform: [unix, pthread]"),
+                    "matrix:\n  platform: [unix, windows]"),
                 release)))
 
     def test_requires_an_exact_dynamic_watcom_variant_matrix(self):

@@ -65,12 +65,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 unit/tools/run.py --coverage \
 PYTHONDONTWRITEBYTECODE=1 python3 unit/tools/run.py --coverage
 ```
 
-Use `--platform pthread` for the Unix-only standard-pthread validation
-configuration. It is a variant of the Unix platform, not an additional
-cross-platform target. Native compiler execution and the independent LLVM
-coverage execution use the same case vectors on the ordinary Unix and
-pthread-enabled Unix configurations.
-CI executes both applicable variants on Ubuntu and macOS. The macOS jobs use
+CI executes the Unix suite on Ubuntu and macOS. The macOS jobs use
 the current Homebrew LLVM toolchain so native execution and LLVM MC/DC
 reporting are both available.
 
@@ -219,15 +214,15 @@ function must never reach the real dependency directly.
 
 Every applicable configuration requires function execution, both outcomes of
 every branch, and MC/DC for every compound decision. LLVM 19's coverage JSON
-is the independent C coverage oracle on host-compatible Unix and pthread
-builds. That LLVM copy retains the framework's function-local static-state
+is the independent C coverage oracle on host-compatible Unix builds. That
+LLVM copy retains the framework's function-local static-state
 registration but leaves production Boolean expressions unmodified. If LLVM
 declines to emit an MC/DC record for a supported source decision, the missing
 record is itself a gated coverage result. Recompiling a Windows- or
 DOS-modeled translation unit as host Unix would select different preprocessor
 branches, so cross-target runs use
 portable instrumentation executed by the actual target compiler instead.
-Modern Unix, pthread, and Windows production code is compiled under the
+Modern Unix and Windows production code is compiled under the
 repository's C99 contract; DOS analysis and every Turbo-compiled case remain
 C89-compatible. MC/DC is gated on every target. Complete multiple-condition
 coverage is also reported; short-circuited conditions remain marked as
@@ -274,8 +269,8 @@ its source and function sets into a cross-product. Shared support beneath one
 source, while changing an individual case `.c` selects only its named owner.
 A changed Windows DLL or DOS TSR fixture selects every configuration which
 names that fixture. The resulting registered owner/platform pairs construct
-the Unix and Watcom matrices, so a pthread-only, DOS16-only, or DOS32-only
-owner does not launch empty jobs for other platform variants.
+the Unix and Watcom matrices, so a DOS16-only or DOS32-only owner does not
+launch empty jobs for other platform variants.
 
 `.github/workflows/unit-tests.yml` runs the selected owners on pushes and pull
 requests. Manual dispatch defaults to the complete suite and may explicitly
@@ -283,6 +278,5 @@ enable proposed-waiver development mode to expose failures beyond known gaps.
 The same workflow is reusable; the release workflow calls it with full
 selection and without proposed-waiver mode. Inventory validation is strict in
 both workflows. A release therefore requires every applicable case and every
-branch/MC/DC gate on Ubuntu and macOS ordinary Unix, their applicable
-pthread-enabled Unix variants, Windows, Watcom DOS16, both Watcom DOS32
-calling conventions, and exact Turbo C 2.01.
+branch/MC/DC gate on Ubuntu and macOS Unix, Windows, Watcom DOS16, both Watcom
+DOS32 calling conventions, and exact Turbo C 2.01.

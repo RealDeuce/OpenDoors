@@ -139,7 +139,7 @@ static BOOL WINAPI ut_door_write(const BYTE *buffer, DWORD size)
 #else
 #define UT_CUSTOM_MOCK_poll
 #endif
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODThreadSleep
 #else
 #define UT_CUSTOM_MOCK_od_sleep
@@ -176,7 +176,7 @@ ssize_t utm_send(int socket_handle, const void *buffer, size_t size, int flags)
    UT_ASSERT(size == 2 || size == 3); UT_ASSERT_EQ_INT(0, flags);
    UT_ASSERT(ut_send_calls < 3); return(ut_send_results[ut_send_calls++]);
 }
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 void utm_ODThreadSleep(tODMilliSec delay)
 #else
 void ODCALL utm_od_sleep(tODMilliSec delay)

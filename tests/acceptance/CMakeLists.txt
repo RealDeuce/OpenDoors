@@ -115,4 +115,25 @@ if(OPENDOORS_ACCEPTANCE_EXTENDED)
     set_tests_properties(acceptance.socket PROPERTIES
         TIMEOUT 30 LABELS "acceptance-extended")
     opendoors_acceptance_library_path(acceptance.socket)
+
+    add_executable(opendoors_acceptance_input_progress
+        input_progress_door.c)
+    target_link_libraries(opendoors_acceptance_input_progress
+        PRIVATE "${OPENDOORS_ACCEPTANCE_LIBRARY}")
+    if(WIN32)
+        target_link_libraries(opendoors_acceptance_input_progress PRIVATE ws2_32)
+    endif()
+    target_include_directories(opendoors_acceptance_input_progress
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    set_target_properties(opendoors_acceptance_input_progress PROPERTIES
+        C_STANDARD 90
+        C_STANDARD_REQUIRED TRUE
+        C_EXTENSIONS TRUE)
+    add_test(NAME acceptance.input_progress
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/input_progress_controller.py"
+            "$<TARGET_FILE:opendoors_acceptance_input_progress>")
+    set_tests_properties(acceptance.input_progress PROPERTIES
+        TIMEOUT 25 LABELS "acceptance-extended")
+    opendoors_acceptance_library_path(acceptance.input_progress)
 endif()

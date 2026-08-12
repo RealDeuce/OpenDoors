@@ -3,18 +3,14 @@
 #define UT_CUSTOM_MOCK_ODSyncAPIEntry
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
 #define UT_CUSTOM_MOCK_od_init
-#ifndef OD_MULTITHREADED
 #define UT_CUSTOM_MOCK_od_kernel
-#endif
 
 static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
 static unsigned ut_empty_calls;
 static unsigned ut_clear_calls;
-#ifndef OD_MULTITHREADED
 static unsigned ut_kernel_calls;
-#endif
 
 void ODCALL utm_od_init(void)
 {
@@ -38,9 +34,7 @@ tODResult utm_ODComClearInbound(tPortHandle port)
    return kODRCSuccess;
 }
 
-#ifndef OD_MULTITHREADED
 void utm_od_kernel(void) { ++ut_kernel_calls; }
-#endif
 
 static void reset_clear(void)
 {
@@ -53,9 +47,7 @@ static void reset_clear(void)
    ut_exits = 0;
    ut_empty_calls = 0;
    ut_clear_calls = 0;
-#ifndef OD_MULTITHREADED
    ut_kernel_calls = 0;
-#endif
 }
 
 static void local_mode_empties_only_the_common_input_queue(void)
@@ -68,9 +60,7 @@ static void local_mode_empties_only_the_common_input_queue(void)
    UT_ASSERT_EQ_UINT(1, ut_exits);
    UT_ASSERT_EQ_UINT(1, ut_empty_calls);
    UT_ASSERT_EQ_UINT(0, ut_clear_calls);
-#ifndef OD_MULTITHREADED
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
-#endif
 }
 
 static void remote_mode_also_purges_the_communications_input(void)

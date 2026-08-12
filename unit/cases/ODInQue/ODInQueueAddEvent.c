@@ -1,6 +1,6 @@
 #define UT_CUSTOM_MOCK_memcpy
 #define UT_CUSTOM_MOCK_time
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
 #define UT_CUSTOM_MOCK_ODSemaphoreUp
@@ -9,7 +9,7 @@
 #include "common.h"
 
 static unsigned ut_copy_calls;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static unsigned ut_locks;
 static unsigned ut_unlocks;
 static unsigned ut_semaphore_ups;
@@ -51,7 +51,7 @@ void *utm_memcpy(void *output, const void *input, size_t size)
 static void reset_counts(void)
 {
    ut_copy_calls = 0;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ut_locks = ut_unlocks = ut_semaphore_ups = 0;
 #endif
 }
@@ -76,7 +76,7 @@ static void reports_full_queue_after_recording_activity(void)
    UT_ASSERT_EQ_INT(kODRCNoMemory, utt_ODInQueueAddEvent(handle, &event));
    UT_ASSERT_EQ_INT(99, ut_queue.nLastActivityTime);
    UT_ASSERT_EQ_INT(0, ut_copy_calls);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_INT(1, ut_locks);
    UT_ASSERT_EQ_INT(1, ut_unlocks);
    UT_ASSERT_EQ_INT(0, ut_semaphore_ups);
@@ -101,7 +101,7 @@ static void appends_and_wraps_events(void)
    UT_ASSERT_EQ_INT(0, ut_queue.nInIndex);
    UT_ASSERT_EQ_INT('y', ut_events[2].chKeyPress);
    UT_ASSERT_EQ_INT(2, ut_copy_calls);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_INT(2, ut_locks);
    UT_ASSERT_EQ_INT(2, ut_unlocks);
    UT_ASSERT_EQ_INT(2, ut_semaphore_ups);

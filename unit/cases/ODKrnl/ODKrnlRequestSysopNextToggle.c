@@ -1,4 +1,4 @@
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
 void utm_ODMutexLock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
@@ -6,7 +6,7 @@ void utm_ODMutexUnlock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mut
 #endif
 static void toggles_sysop_next(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    bSysopNextTogglePending = FALSE; utt_ODKrnlRequestSysopNextToggle();
    UT_ASSERT(bSysopNextTogglePending); utt_ODKrnlRequestSysopNextToggle();
    UT_ASSERT(!bSysopNextTogglePending);

@@ -3,12 +3,10 @@
 #define UT_CUSTOM_MOCK_od_disp_str
 #define UT_CUSTOM_MOCK_od_putch
 #define UT_CUSTOM_MOCK_ODKrnlChatCleanup
-#ifndef OD_MULTITHREADED
 #define UT_CUSTOM_MOCK_ODTimerStart
 #define UT_CUSTOM_MOCK_ODTimerElapsed
 #define UT_CUSTOM_MOCK_od_sleep
 #define UT_CUSTOM_MOCK_od_kernel
-#endif
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_ODFrameUpdateWantChat
 #endif
@@ -21,8 +19,6 @@ static BOOL ut_sources[UT_MAX_KEYS];
 static unsigned ut_key_count;
 static unsigned ut_key_index;
 static unsigned ut_stop_after;
-static unsigned ut_uninitialize_after;
-static unsigned ut_waiting_calls;
 static unsigned ut_nonwaiting_calls;
 static INT ut_attributes[UT_CHAT_MAX_CALLS];
 static unsigned ut_attribute_calls;
@@ -38,13 +34,11 @@ static unsigned ut_cleanup_calls;
 static unsigned ut_before_callback_calls;
 static unsigned ut_log_calls;
 static BOOL ut_disable_in_before_callback;
-#ifndef OD_MULTITHREADED
 static unsigned ut_timer_starts;
 static unsigned ut_timer_checks;
 static unsigned ut_sleep_calls;
 static unsigned ut_kernel_calls;
 static BOOL ut_timer_elapsed;
-#endif
 #ifdef ODPLAT_WIN32
 static unsigned ut_frame_calls;
 #endif
@@ -61,21 +55,12 @@ char ODCALL utm_od_get_key(BOOL wait)
 {
    unsigned position = ut_key_index;
    UT_ASSERT(position < ut_key_count);
-#ifdef OD_MULTITHREADED
-   UT_ASSERT(wait);
-   ++ut_waiting_calls;
-#else
    UT_ASSERT(!wait);
    ++ut_nonwaiting_calls;
-#endif
    od_control.od_last_input = ut_sources[position];
    ++ut_key_index;
    if(ut_key_index == ut_stop_after)
       od_control.od_chat_active = FALSE;
-#ifdef OD_MULTITHREADED
-   if(ut_key_index == ut_uninitialize_after)
-      bODInitialized = FALSE;
-#endif
    return((char)ut_keys[position]);
 }
 
@@ -135,7 +120,6 @@ static BOOL ODCALL ut_log(INT event)
    return(TRUE);
 }
 
-#ifndef OD_MULTITHREADED
 void utm_ODTimerStart(tODTimer *timer, tODMilliSec duration)
 {
    UT_ASSERT(timer != NULL);
@@ -157,7 +141,6 @@ void ODCALL utm_od_sleep(tODMilliSec duration)
 }
 
 void utm_od_kernel(void) { ++ut_kernel_calls; }
-#endif
 
 #ifdef ODPLAT_WIN32
 void utm_ODFrameUpdateWantChat(void) { ++ut_frame_calls; }
@@ -168,8 +151,7 @@ static void reset_chat(void)
    unsigned index;
    ut_key_count = ut_key_index = 0;
    ut_stop_after = UT_MAX_KEYS;
-   ut_uninitialize_after = UT_MAX_KEYS;
-   ut_waiting_calls = ut_nonwaiting_calls = 0;
+   ut_nonwaiting_calls = 0;
    ut_attribute_calls = ut_output_calls = ut_display_calls = 0;
    ut_before_calls = ut_newline_calls = ut_backspace_calls = 0;
    ut_erase_calls = ut_word_calls = ut_cleanup_calls = 0;
@@ -177,15 +159,10 @@ static void reset_chat(void)
    ut_disable_in_before_callback = FALSE;
    for(index = 0; index < UT_CHAT_MAX_CALLS; ++index)
       ut_attributes[index] = 0;
-#ifndef OD_MULTITHREADED
    ut_timer_starts = ut_timer_checks = ut_sleep_calls = ut_kernel_calls = 0;
    ut_timer_elapsed = FALSE;
-#endif
 #ifdef ODPLAT_WIN32
    ut_frame_calls = 0;
-#endif
-#ifdef OD_MULTITHREADED
-   bODInitialized = TRUE;
 #endif
    bChatted = FALSE;
    bSysopColor = FALSE;
@@ -214,10 +191,8 @@ static void initializes_chat_and_handles_optional_entry_actions(void)
    UT_ASSERT_EQ_UINT(1, ut_cleanup_calls);
    UT_ASSERT_EQ_UINT(1, ut_attribute_calls);
    UT_ASSERT_EQ_INT(4, ut_attributes[0]);
-#ifndef OD_MULTITHREADED
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
    UT_ASSERT_EQ_UINT(1, ut_timer_starts);
-#endif
 #ifdef ODPLAT_WIN32
    UT_ASSERT_EQ_UINT(1, ut_frame_calls);
 #endif
@@ -331,17 +306,6 @@ static void starts_a_new_line_without_wrapping_an_empty_or_long_word(void)
    UT_ASSERT_EQ_UINT(0, ut_erase_calls);
 }
 
-#ifdef OD_MULTITHREADED
-static void returns_without_cleanup_after_worker_shutdown(void)
-{
-   reset_chat();
-   add_key(0, TRUE);
-   ut_uninitialize_after = 1;
-   utt_ODKrnlChatMode();
-   UT_ASSERT_EQ_UINT(1, ut_waiting_calls);
-   UT_ASSERT_EQ_UINT(0, ut_cleanup_calls);
-}
-#else
 static void yields_only_after_the_chat_timer_elapses(void)
 {
    reset_chat();
@@ -361,7 +325,6 @@ static void yields_only_after_the_chat_timer_elapses(void)
    UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
    UT_ASSERT_EQ_UINT(2, ut_timer_starts);
 }
-#endif
 
 static const UTTestCase ut_cases[] = {
    {"entry", initializes_chat_and_handles_optional_entry_actions},
@@ -371,9 +334,5 @@ static const UTTestCase ut_cases[] = {
    {"external end", observes_chat_deactivation_at_the_loop_boundary},
    {"word wrap", wraps_a_short_word_at_the_chat_boundary},
    {"hard wrap", starts_a_new_line_without_wrapping_an_empty_or_long_word},
-#ifdef OD_MULTITHREADED
-   {"shutdown", returns_without_cleanup_after_worker_shutdown}
-#else
    {"yield", yields_only_after_the_chat_timer_elapses}
-#endif
 };

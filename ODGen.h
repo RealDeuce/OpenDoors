@@ -52,14 +52,10 @@
 #define OD_DLL_NAME "ODOORS63"
 #endif /* ODPLAT_WIN32 */
 
-/* Mutlithreading specific definitions. */
+/* Internal thread/synchronization support is required by the Windows UI. */
 #ifdef ODPLAT_WIN32
-#define OD_MULTITHREADED
+#define OD_THREAD_SUPPORT 1
 #endif /* ODPLAT_WIN32 */
-
-#if defined(ODPLAT_NIX) && defined(OPENDOORS_ENABLE_PTHREAD_KERNEL)
-#define OD_MULTITHREADED
-#endif
 
 /* Text mode specific definitions. */
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)

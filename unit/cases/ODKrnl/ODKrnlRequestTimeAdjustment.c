@@ -1,4 +1,4 @@
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
 void utm_ODMutexLock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
@@ -6,7 +6,7 @@ void utm_ODMutexUnlock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mut
 #endif
 static void accumulates_and_clamps_the_appropriate_time_request(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    bTimeValuePending = FALSE; nPendingTimeAdjustment = 10;
    utt_ODKrnlRequestTimeAdjustment(20); UT_ASSERT_EQ_INT(30, nPendingTimeAdjustment);
    utt_ODKrnlRequestTimeAdjustment(2000);

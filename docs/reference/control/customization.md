@@ -209,11 +209,8 @@ or an internal work buffer and must not be modified or retained.
 
 The callback changes only how the message is delivered. OpenDoors still
 performs the warning bookkeeping and timeout shutdown. The pointer is initially
-`NULL` and is read only by OpenDoors. In a multithreaded build, a timer worker
-only schedules the update; OpenDoors invokes this callback later on the
-session-owner thread. If the update is serviced while a blocking OpenDoors
-call is active, the callback is held until that outer call reaches its API
-exit boundary. The callback may call other OpenDoors functions.
+`NULL` and is read only by OpenDoors. Timer processing invokes this callback on
+the session-owner thread. The callback may call other OpenDoors functions.
 
 ## Program, component, and lifecycle settings
 

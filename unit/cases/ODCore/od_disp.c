@@ -19,17 +19,13 @@ static void sends_remote_output_and_runs_an_elapsed_kernel_checkpoint(void)
 {
    ut_reset_display();
    od_control.baud = 9600;
-#ifndef OD_MULTITHREADED
    ut_timer_elapsed = TRUE;
-#endif
    utt_od_disp(ut_text, 3, FALSE);
    UT_ASSERT_EQ_UINT(1, ut_remote_calls);
    UT_ASSERT_EQ_PTR(ut_text, ut_remote_buffer);
    UT_ASSERT_EQ_INT(3, ut_remote_size);
-#ifndef OD_MULTITHREADED
    UT_ASSERT_EQ_UINT(1, ut_timer_calls);
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
-#endif
 }
 
 static void echoes_to_the_authoritative_session_screen(void)

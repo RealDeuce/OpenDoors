@@ -298,7 +298,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    void *pWindow = NULL;
    DWORD dwActiveMinutes;
    static BOOL bExiting = FALSE;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel;
 #endif
 
@@ -851,7 +851,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
       ODWaitDrain(10000);
 
       /* Wait up to five seconds for no carrier */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
       nSavedAPILevel = ODSyncAPIRelease();
 #endif
       ODComSetDTR(hSerialPort, FALSE);
@@ -860,14 +860,14 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
       do
       {
          ODComCarrier(hSerialPort, &bCarrier);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
          if(bCarrier) ODThreadSleep(10);
 #endif
       } while(bCarrier && time(NULL) <= nMaxTime);
 
       /* Raise DTR signal again. */
       ODComSetDTR(hSerialPort, TRUE);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
       ODSyncAPIReacquire(nSavedAPILevel);
 #endif
    }
@@ -905,16 +905,16 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    }
 #endif /* !ODPLAT_WIN32 */
 
-   /* Kernel workers and Windows UI threads may be waiting to read session
-    * state. Release the API writer while stopping and joining them. */
-#ifdef OD_MULTITHREADED
+   /* Windows UI threads may be waiting to read session state. Release the API
+    * writer while stopping and joining them. */
+#ifdef OD_THREAD_SUPPORT
    nSavedAPILevel = ODSyncAPIRelease();
 #endif
 
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
    {
-      ODDiagnosticMessage("Terminating kernel threads",
+      ODDiagnosticMessage("Terminating user-interface threads",
          "OpenDoors Diagnostics");
    }
 #endif
@@ -973,7 +973,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    }
 #endif
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODSyncAPIReacquire(nSavedAPILevel);
 #endif
 
@@ -1547,7 +1547,8 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
    char szReceived[MAX_RESPONSE_LEN + 1] = "\0";
    tODInputEvent InputEvent;
    tODResult Result;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
+   tODMilliSec Slice;
    unsigned nSavedAPILevel;
 #endif
 
@@ -1567,13 +1568,16 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
    ODTimerStart(&Timer, ResponseTimeout);
    while(!ODTimerElapsed(&Timer))
    {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
+      Slice = ODTimerLeft(&Timer);
+      if(Slice > 50) Slice = 50;
       nSavedAPILevel = ODSyncAPIRelease();
-#endif
+      Result = ODInQueueGetNextEvent(hODInputQueue, &InputEvent,
+         Slice);
+      ODSyncAPIReacquire(nSavedAPILevel);
+#else
       Result = ODInQueueGetNextEvent(hODInputQueue, &InputEvent,
          ODTimerLeft(&Timer));
-#ifdef OD_MULTITHREADED
-      ODSyncAPIReacquire(nSavedAPILevel);
 #endif
       if(Result == kODRCSuccess)
       {
@@ -1608,8 +1612,12 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
       }
       else
       {
-         /* When no characters are waiting, allow other processes to run. */
+         /* Poll communications and timers between bounded waits. */
+#ifdef OD_THREAD_SUPPORT
+         if(!ODSyncAPICheckpoint()) return(FALSE);
+#else
          ODOwnerThreadSleep(0);
+#endif
       }
    }
 
@@ -1625,15 +1633,16 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
 /* ----------------------------------------------------------------------------
  * ODOwnerThreadSleep()                               *** PRIVATE FUNCTION ***
  *
- * Sleeps from inside an owner-thread API operation without dispatching
- * pending owner work in the middle of that operation.
+ * Sleeps from inside an owner-thread API operation while allowing
+ * cooperative kernel work to progress.
  */
 static void ODOwnerThreadSleep(tODMilliSec Milliseconds)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel = ODSyncAPIRelease();
    ODThreadSleep(Milliseconds);
    ODSyncAPIReacquire(nSavedAPILevel);
+   ODSyncAPICheckpoint();
 #else
    od_sleep(Milliseconds);
 #endif
@@ -1643,7 +1652,7 @@ static void ODOwnerThreadSleep(tODMilliSec Milliseconds)
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
 static void ODDiagnosticMessage(const char *pszText, const char *pszTitle)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel = 0;
 
    if(ODSyncAPIWriterHeldByCurrentThread())
@@ -1652,7 +1661,7 @@ static void ODDiagnosticMessage(const char *pszText, const char *pszTitle)
 
    MessageBox(NULL, pszText, pszTitle, MB_OK);
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    if(nSavedAPILevel != 0)
       ODSyncAPIReacquire(nSavedAPILevel);
 #endif

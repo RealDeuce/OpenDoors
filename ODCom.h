@@ -96,11 +96,6 @@ typedef enum
 } tComMethod;
 
 /* Serial I/O event types. */
-typedef enum
-{
-   kNoCarrier
-} tComEvent;
-
 /* Serial I/O function prototypes. */
 tODResult ODComAlloc(tPortHandle *phPort);
 tODResult ODComFree(tPortHandle hPort);
@@ -132,8 +127,6 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait);
 tODResult ODComSendBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize);
 tODResult ODComGetBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize,
    int *pnBytesRead);
-tODResult ODComWaitEvent(tPortHandle hPort, tComEvent Event);
-
 #ifdef ODPLAT_DOS32
 /* Test hook for the byte-at-a-time fallback; this is not public API. */
 tODResult ODComDOS32DisableFossilBlockIO(tPortHandle hPort);

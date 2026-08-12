@@ -166,20 +166,20 @@ static void ODAddANSIParameter(char *szControlSequence, int nParameterValue);
  * ODCoreSendRemoteByte() / ODCoreSendRemoteBuffer()
  *
  * Perform potentially blocking communications output without preventing
- * kernel workers or the Windows screen presenter from reading stable session
- * state. These helpers are called only from the session-owner API boundary.
- * Pending owner work remains deferred until an established checkpoint.
+ * the Windows screen presenter from reading stable session state. These
+ * helpers are called only from the session-owner API boundary. Pending owner
+ * work remains deferred until an established checkpoint.
  */
 tODResult ODCoreSendRemoteByte(BYTE btToSend)
 {
    tODResult Result;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel = ODSyncAPIRelease();
 #endif
 
    Result = ODComSendByte(hSerialPort, btToSend);
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODSyncAPIReacquire(nSavedAPILevel);
 #endif
    return(Result);
@@ -188,13 +188,13 @@ tODResult ODCoreSendRemoteByte(BYTE btToSend)
 tODResult ODCoreSendRemoteBuffer(const void *pBuffer, INT nSize)
 {
    tODResult Result;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel = ODSyncAPIRelease();
 #endif
 
    Result = ODComSendBuffer(hSerialPort, (BYTE *)pBuffer, nSize);
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODSyncAPIReacquire(nSavedAPILevel);
 #endif
    return(Result);
@@ -506,7 +506,7 @@ ODAPIDEF char ODCALL od_get_key(BOOL bWait)
 {
    tODInputEvent InputEvent;
    tODResult Result;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel;
 #endif
 
@@ -543,11 +543,11 @@ ODAPIDEF char ODCALL od_get_key(BOOL bWait)
 		{
 		   do
 		   {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 		      nSavedAPILevel = ODSyncAPIRelease();
 #endif
 		      Result = ODInQueueGetNextEvent(hODInputQueue, &InputEvent, 50);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 		      ODSyncAPIReacquire(nSavedAPILevel);
 #endif
 		      if(Result != kODRCSuccess && !ODSyncAPICheckpoint())
@@ -892,7 +892,7 @@ ODAPIDEF void ODCALL od_page(void)
          /* chat key.                                                 */
          while(!ODTimerElapsed(&Timer))
          {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
             od_sleep(0);
             if(!bODInitialized)
             {
@@ -948,12 +948,10 @@ ODAPIDEF void ODCALL od_disp(const char *pachBuffer, INT nSize, BOOL bLocalEcho)
    OD_API_ENTRY();
 
    /* Call the OpenDoors kernel, if needed. */
-#ifndef OD_MULTITHREADED
    if(ODTimerElapsed(&RunKernelTimer))
    {
       CALL_KERNEL_IF_NEEDED();
    }
-#endif /* !OD_MULTITHREADED */
 
    /* If we are operating in remote mode, then send the buffer to the */
    /* remote system.                                                  */
@@ -1001,12 +999,10 @@ ODAPIDEF void ODCALL od_disp_str(const char *pszToDisplay)
    OD_API_ENTRY();
 
    /* Call the OpenDoors kernel, if needed. */
-#ifndef OD_MULTITHREADED
    if(ODTimerElapsed(&RunKernelTimer))
    {
       CALL_KERNEL_IF_NEEDED();
    }
-#endif /* !OD_MULTITHREADED */
 
    /* Send the string to the remote system, if we are running in remote mode. */
    if(od_control.baud != 0)

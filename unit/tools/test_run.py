@@ -39,19 +39,18 @@ class DosObjectNamingTests(unittest.TestCase):
     def test_default_build_paths_separate_cross_target_configurations(self):
         paths = {
             default_build_path("unix", "native", None),
-            default_build_path("pthread", "native", None),
             default_build_path("windows", "native", "x86"),
             default_build_path("windows", "native", "x64"),
             default_build_path("dos16", "watcom16", None),
             default_build_path("dos32", "watcom32r", None),
             default_build_path("dos32", "watcom32s", None),
         }
-        self.assertEqual(len(paths), 7)
+        self.assertEqual(len(paths), 6)
 
     def test_runner_accepts_the_documented_omitted_build_argument(self):
         completed = subprocess.run(
             [sys.executable, str(Path(run_module.__file__)),
-             "--platform", "pthread", "--function", "ODThreadSleep"],
+             "--platform", "unix", "--function", "ODThreadSleep"],
             cwd=Path(run_module.__file__).resolve().parents[2],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)
@@ -61,7 +60,6 @@ class PlatformDefinitionTests(unittest.TestCase):
     def test_posix_interfaces_are_requested_for_unix_targets(self):
         feature = "-D_POSIX_C_SOURCE=200809L"
         self.assertIn(feature, platform_defines("unix"))
-        self.assertIn(feature, platform_defines("pthread"))
         self.assertNotIn(feature, platform_defines("windows"))
         self.assertNotIn(feature, platform_defines("dos16"))
         self.assertNotIn(feature, platform_defines("dos32"))
@@ -69,7 +67,6 @@ class PlatformDefinitionTests(unittest.TestCase):
     def test_libc_fortification_does_not_bypass_unix_mocks(self):
         flag = "-U_FORTIFY_SOURCE"
         self.assertIn(flag, platform_defines("unix"))
-        self.assertIn(flag, platform_defines("pthread"))
         self.assertNotIn(flag, platform_defines("windows"))
 
     def test_windows_runtime_deprecation_aliases_do_not_fail_the_harness(self):
@@ -341,21 +338,19 @@ class LanguageStandardTests(unittest.TestCase):
     def test_modern_targets_use_the_cmake_c99_contract(self):
         self.assertEqual(run_module.language_standard_flag("unix"),
                          "-std=c99")
-        self.assertEqual(run_module.language_standard_flag("pthread"),
-                         "-std=c99")
         self.assertEqual(run_module.language_standard_flag("windows"),
                          "-std=c99")
-        for platform in ("unix", "pthread", "windows"):
+        for platform in ("unix", "windows"):
             self.assertNotIn("-pedantic",
                              run_module.native_compile_flags(platform))
 
     def test_permits_intentionally_partial_aggregate_initializers(self):
-        for platform in ("unix", "pthread", "windows"):
+        for platform in ("unix", "windows"):
             self.assertIn("-Wno-missing-field-initializers",
                           run_module.native_compile_flags(platform))
 
     def test_ignores_parameters_unused_by_the_isolated_body(self):
-        for platform in ("unix", "pthread", "windows"):
+        for platform in ("unix", "windows"):
             self.assertIn("-Wno-unused-parameter",
                           run_module.native_compile_flags(platform))
 
@@ -388,7 +383,6 @@ class WindowsASTCompatibilityTests(unittest.TestCase):
 
     def test_llvm_execution_is_limited_to_host_compatible_platforms(self):
         self.assertTrue(llvm_coverage_supported("unix"))
-        self.assertTrue(llvm_coverage_supported("pthread"))
         self.assertFalse(llvm_coverage_supported("windows"))
         self.assertFalse(llvm_coverage_supported("dos16"))
         self.assertFalse(llvm_coverage_supported("dos32"))

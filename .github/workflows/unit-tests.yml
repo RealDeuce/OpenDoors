@@ -39,7 +39,6 @@ jobs:
       selection: ${{ steps.select.outputs.selection }}
       run: ${{ steps.select.outputs.run }}
       platform_unix: ${{ steps.select.outputs.platform_unix }}
-      platform_pthread: ${{ steps.select.outputs.platform_pthread }}
       platform_windows: ${{ steps.select.outputs.platform_windows }}
       platform_dos16: ${{ steps.select.outputs.platform_dos16 }}
       platform_dos32: ${{ steps.select.outputs.platform_dos32 }}
@@ -90,7 +89,7 @@ jobs:
   unix:
     name: ${{ matrix.platform }} native and LLVM
     needs: [select, validate]
-    if: needs.select.outputs.platform_unix == 'true' || needs.select.outputs.platform_pthread == 'true'
+    if: needs.select.outputs.platform_unix == 'true'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -130,7 +129,7 @@ jobs:
   macos:
     name: macOS ${{ matrix.platform }} native and LLVM
     needs: [select, validate]
-    if: needs.select.outputs.platform_unix == 'true' || needs.select.outputs.platform_pthread == 'true'
+    if: needs.select.outputs.platform_unix == 'true'
     runs-on: macos-15
     strategy:
       fail-fast: false

@@ -3,7 +3,7 @@
 #define UT_CUSTOM_MOCK_ODTimerElapsed
 #define UT_CUSTOM_MOCK_ODTimerLeft
 #define UT_CUSTOM_MOCK_ODTimerStart
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODSyncAPIReacquire
 #define UT_CUSTOM_MOCK_ODSyncAPIRelease
 #endif
@@ -25,7 +25,7 @@ static unsigned ut_elapsed_index;
 static unsigned ut_timer_starts;
 static tODMilliSec ut_started_duration;
 static tODMilliSec ut_seen_slices[UT_SEQUENCE_CAPACITY];
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static unsigned ut_releases;
 static unsigned ut_reacquires;
 #endif
@@ -44,7 +44,7 @@ static void reset_fixture(void)
    ut_timer_starts = 0;
    ut_started_duration = 0;
    hODInputQueue = (tODInQueueHandle)0;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ut_releases = 0;
    ut_reacquires = 0;
 #endif
@@ -87,7 +87,7 @@ BOOL utm_ODTimerElapsed(tODTimer *timer)
    return ut_elapsed_results[ut_elapsed_index++];
 }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 unsigned utm_ODSyncAPIRelease(void)
 {
    ++ut_releases;
@@ -112,7 +112,7 @@ static void zero_timeout_returns_first_queue_result(void)
    UT_ASSERT_EQ_UINT(0, ut_started_duration);
    UT_ASSERT_EQ_UINT(0, ut_seen_slices[0]);
    UT_ASSERT_EQ_UINT(0, ut_checkpoint_index);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_UINT(0, ut_releases);
    UT_ASSERT_EQ_UINT(0, ut_reacquires);
 #endif
@@ -130,7 +130,7 @@ static void successful_finite_wait_caps_the_slice(void)
    UT_ASSERT_EQ_UINT(1, ut_timer_starts);
    UT_ASSERT_EQ_UINT(120, ut_started_duration);
    UT_ASSERT_EQ_UINT(50, ut_seen_slices[0]);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_UINT(1, ut_releases);
    UT_ASSERT_EQ_UINT(1, ut_reacquires);
 #endif

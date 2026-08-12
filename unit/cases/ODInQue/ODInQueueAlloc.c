@@ -3,7 +3,7 @@
 #define UT_CUSTOM_MOCK_calloc
 #define UT_CUSTOM_MOCK_free
 #define UT_CUSTOM_MOCK_malloc
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODMutexDestroy
 #define UT_CUSTOM_MOCK_ODMutexInitialize
 #define UT_CUSTOM_MOCK_ODSemaphoreAlloc
@@ -20,7 +20,7 @@ static BOOL ut_event_allocation_fails;
 static unsigned ut_info_frees;
 static unsigned ut_event_frees;
 static unsigned ut_activity_resets;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static tODResult ut_semaphore_result;
 static tODResult ut_mutex_result;
 static unsigned ut_semaphore_frees;
@@ -37,7 +37,7 @@ static void reset_alloc_fixture(void)
    ut_info_frees = 0;
    ut_event_frees = 0;
    ut_activity_resets = 0;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ut_semaphore_result = kODRCSuccess;
    ut_mutex_result = kODRCSuccess;
    ut_semaphore_frees = 0;
@@ -87,7 +87,7 @@ void utm_ODInQueueResetLastActivity(tODInQueueHandle handle)
    ++ut_activity_resets;
 }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 tODResult utm_ODSemaphoreAlloc(tODSemaphoreHandle *semaphore,
    INT initial_count, INT maximum_count)
 {
@@ -153,7 +153,7 @@ static void reports_allocation_failures_and_cleans_up(void)
    UT_ASSERT_EQ_UINT(0, ut_event_frees);
 }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static void reports_synchronization_failures_and_cleans_up(void)
 {
    tODInQueueHandle handle;
@@ -190,7 +190,7 @@ static void initializes_a_queue(void)
    UT_ASSERT_EQ_UINT(1, ut_activity_resets);
    UT_ASSERT_EQ_UINT(0, ut_info_frees);
    UT_ASSERT_EQ_UINT(0, ut_event_frees);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    UT_ASSERT(info->hItemCountSemaphore ==
       (tODSemaphoreHandle)(void *)&ut_semaphore_token);
 #endif
@@ -199,7 +199,7 @@ static void initializes_a_queue(void)
 static const UTTestCase ut_cases[] = {
    {"invalid arguments", rejects_invalid_arguments},
    {"allocation failures", reports_allocation_failures_and_cleans_up},
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    {"synchronization failures", reports_synchronization_failures_and_cleans_up},
 #endif
    {"success", initializes_a_queue}

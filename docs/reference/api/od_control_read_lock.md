@@ -22,9 +22,9 @@ The function does not initialize OpenDoors and does not change
 
 This function obtains shared access to [`od_control`](../control/index.md).
 It is intended for application code which must inspect several fields as one
-consistent set while the Windows kernel workers or the optional pthread kernel
-are active. Internal readers may continue to run while the read lock is held;
-an internal writer waits until the application releases it.
+consistent set while the Windows screen presenter copies terminal state.
+Internal readers may continue to run while the read lock is held; an internal
+writer waits until the application releases it.
 
 The thread which calls [`od_init()`](od_init.md) owns the OpenDoors session.
 All OpenDoors API calls and all access to the public API and ABI, including

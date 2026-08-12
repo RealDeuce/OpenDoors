@@ -21,7 +21,7 @@ class InventoryTests(unittest.TestCase):
         inventory = build_inventory()
         expected = {
             ("ODPlat.c", "ODPlatYield"): ["dos16"],
-            ("ODSpawn.c", "ODUnixExecProgram"): ["unix", "pthread"],
+            ("ODSpawn.c", "ODUnixExecProgram"): ["unix"],
         }
         actual = {}
         for source in inventory["sources"]:
@@ -57,7 +57,7 @@ class InventoryTests(unittest.TestCase):
         actual = {item["name"]: item["platforms"]
                   for item in source["functions"] if item["name"] in expected}
         self.assertEqual(set(actual), expected)
-        self.assertTrue(all(platforms == ["unix", "pthread", "dos16", "dos32"]
+        self.assertTrue(all(platforms == ["unix", "dos16", "dos32"]
                             for platforms in actual.values()))
 
     def test_text_mode_local_input_is_dos_only(self):
@@ -68,20 +68,13 @@ class InventoryTests(unittest.TestCase):
                         if item["name"] == "ODScrnLocalInput")
         self.assertEqual(function["platforms"], ["dos16", "dos32"])
 
-    def test_kernel_private_workers_match_their_compiled_platforms(self):
+    def test_kernel_ui_queue_helper_is_windows_only(self):
         inventory = build_inventory()
         source = next(item for item in inventory["sources"]
                       if item["path"] == "ODKrnl.c")
         platforms = {item["name"]: item["platforms"]
                      for item in source["functions"]}
-        threaded = {
-            "ODKrnlQueueTimeMessage", "ODKrnlDiscardTimeMessages",
-            "ODKrnlDispatchTimeMessages", "ODKrnlRemoteInputThread",
-            "ODKrnlNoCarrierThread", "ODKrnlTimeUpdateThread",
-            "ODKrnlWorkerWait", "ODKrnlJoinThread", "ODKrnlQueueShutdown",
-        }
-        self.assertTrue(all(platforms[name] == ["pthread", "windows"]
-                            for name in threaded))
+        self.assertEqual(platforms["ODKrnlQueueShutdown"], ["windows"])
         signals = {"sig_run_kernel", "sig_get_char", "sig_no_carrier"}
         self.assertTrue(signals.isdisjoint(platforms))
 

@@ -40,14 +40,10 @@ an issue is not treated as a contract change until it is resolved deliberately.
 
 ## Kernel dispatch and shutdown
 
-- [ ] Dispatch multithreaded pending work at outermost API entry as well as
-  exit. `ODSyncAPIEntry()` currently acquires the session writer without
-  dispatching. A worker or Windows UI request queued after one API exit is
-  therefore applied only after the next API operation has completed, reversing
-  the observable order of the asynchronous event and that operation. Entry
-  dispatch must run only for the outermost call, retain the API writer across
-  the requested operation, and preserve recursive callback behavior; exit
-  dispatch remains necessary for work queued while the operation runs.
+- [x] Dispatch Windows UI pending work at outermost API entry as well as exit.
+  `ODSyncAPIEntry()` now dispatches only for the outermost call after acquiring
+  the session writer. Exit dispatch remains in place for work queued while the
+  operation runs.
 
 - [ ] Do not resume a single-threaded kernel or its containing API after a
   returning forced shutdown. Carrier, timeout, inactivity, and local sysop

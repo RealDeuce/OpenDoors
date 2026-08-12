@@ -2,9 +2,7 @@
 #define UT_CUSTOM_MOCK_ODTimerElapsed
 #define UT_CUSTOM_MOCK_ODTimerStart
 #define UT_CUSTOM_MOCK_od_sleep
-#ifndef OD_MULTITHREADED
 #define UT_CUSTOM_MOCK_od_kernel
-#endif
 
 static int ut_outbound_values[3];
 static unsigned ut_outbound_count;
@@ -15,9 +13,7 @@ static unsigned ut_elapsed_calls;
 static BOOL ut_elapsed;
 static unsigned ut_sleep_calls;
 static BOOL ut_shutdown_on_sleep;
-#ifndef OD_MULTITHREADED
 static unsigned ut_kernel_calls;
-#endif
 
 tODResult utm_ODComOutbound(tPortHandle port, int *waiting)
 {
@@ -49,9 +45,7 @@ void ODCALL utm_od_sleep(tODMilliSec milliseconds)
    if(ut_shutdown_on_sleep) bODInitialized = FALSE;
 }
 
-#ifndef OD_MULTITHREADED
 void utm_od_kernel(void) { ++ut_kernel_calls; }
-#endif
 
 static void reset_drain(void)
 {
@@ -66,9 +60,7 @@ static void reset_drain(void)
    ut_elapsed = FALSE;
    ut_sleep_calls = 0;
    ut_shutdown_on_sleep = FALSE;
-#ifndef OD_MULTITHREADED
    ut_kernel_calls = 0;
-#endif
 }
 
 static void local_mode_returns_without_starting_a_timer(void)
@@ -115,9 +107,7 @@ static void an_unbounded_wait_yields_until_the_queue_drains(void)
    UT_ASSERT_EQ_UINT(0, ut_elapsed_calls);
    UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
    UT_ASSERT_EQ_UINT(2, ut_outbound_index);
-#ifndef OD_MULTITHREADED
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
-#endif
 }
 
 static void a_running_timer_yields_before_the_queue_drains(void)
@@ -129,9 +119,7 @@ static void a_running_timer_yields_before_the_queue_drains(void)
    utt_ODWaitDrain(123);
    UT_ASSERT_EQ_UINT(1, ut_elapsed_calls);
    UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
-#ifndef OD_MULTITHREADED
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
-#endif
 }
 
 static void shutdown_after_yield_stops_without_entering_the_kernel(void)
@@ -143,9 +131,7 @@ static void shutdown_after_yield_stops_without_entering_the_kernel(void)
    utt_ODWaitDrain(OD_NO_TIMEOUT);
    UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
    UT_ASSERT_EQ_UINT(1, ut_outbound_index);
-#ifndef OD_MULTITHREADED
    UT_ASSERT_EQ_UINT(0, ut_kernel_calls);
-#endif
 }
 
 static const UTTestCase ut_cases[] = {

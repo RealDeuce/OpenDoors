@@ -57,10 +57,10 @@ typedef struct
    INT nInIndex;
    INT nOutIndex;
    time_t nLastActivityTime;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    tODSemaphoreHandle hItemCountSemaphore;
    tODMutex QueueMutex;
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 } tInputQueueInfo;
 
 
@@ -103,16 +103,16 @@ tODResult ODInQueueAlloc(tODInQueueHandle *phInQueue, INT nInitialQueueSize)
    if(pInputQueueInfo == NULL) goto CleanUp;
 
    /* Initialize semaphore handles to NULL. */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    pInputQueueInfo->hItemCountSemaphore = NULL;
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
    
    /* Attempt to allocate space for the queue itself. */
    pInputQueue = calloc(1, nQueueBytes);
    if(pInputQueue == NULL) goto CleanUp;
 
    /* Create semaphores if this is a multithreaded platform. */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    if(ODSemaphoreAlloc(&pInputQueueInfo->hItemCountSemaphore, 0,
       nInitialQueueSize) != kODRCSuccess)
    {
@@ -123,7 +123,7 @@ tODResult ODInQueueAlloc(tODInQueueHandle *phInQueue, INT nInitialQueueSize)
    {
       goto CleanUp;
    }
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
    /* Initialize input queue information structure. */
    pInputQueueInfo->paEvents = pInputQueue;
@@ -142,15 +142,15 @@ tODResult ODInQueueAlloc(tODInQueueHandle *phInQueue, INT nInitialQueueSize)
 CleanUp:
    if(Result != kODRCSuccess)
    {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
       if(pInputQueueInfo != NULL
          && pInputQueueInfo->hItemCountSemaphore != NULL)
       {
          ODSemaphoreFree(pInputQueueInfo->hItemCountSemaphore);
       }
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
       if(pInputQueue != NULL) free(pInputQueue);
 #endif
       if(pInputQueueInfo != NULL) free(pInputQueueInfo);
@@ -178,11 +178,11 @@ void ODInQueueFree(tODInQueueHandle hInQueue)
    ASSERT(pInputQueueInfo != NULL);
 
    /* Deallocate semaphores, if appropriate. */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ASSERT(pInputQueueInfo->hItemCountSemaphore != NULL);
    ODSemaphoreFree(pInputQueueInfo->hItemCountSemaphore);
    ODMutexDestroy(&pInputQueueInfo->QueueMutex);
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
    /* Deallocate the input queue itself. */
    ASSERT(pInputQueueInfo->paEvents != NULL);
@@ -212,11 +212,11 @@ BOOL ODInQueueWaiting(tODInQueueHandle hInQueue)
 
    /* There is data waiting in the queue if the in index is not equal to */
    /* the out index.                                                     */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODMutexLock(&pInputQueueInfo->QueueMutex);
 #endif
    bEventWaiting = (pInputQueueInfo->nInIndex != pInputQueueInfo->nOutIndex);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODMutexUnlock(&pInputQueueInfo->QueueMutex);
 #endif
 
@@ -247,9 +247,9 @@ tODResult ODInQueueAddEvent(tODInQueueHandle hInQueue,
    if(pInputQueueInfo == NULL || pEvent == NULL) return(kODRCInvalidCall);
 
    /* Serialize access to add event function. */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODMutexLock(&pInputQueueInfo->QueueMutex);
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
    /* Reset the time of the last activity. */
    pInputQueueInfo->nLastActivityTime = time(NULL);
@@ -263,9 +263,9 @@ tODResult ODInQueueAddEvent(tODInQueueHandle hInQueue,
    if(nNextInPos == pInputQueueInfo->nOutIndex)
    {
       /* Allow further access to input queue. */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
       ODMutexUnlock(&pInputQueueInfo->QueueMutex);
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
       return(kODRCNoMemory);
    }
@@ -278,14 +278,14 @@ tODResult ODInQueueAddEvent(tODInQueueHandle hInQueue,
    pInputQueueInfo->nInIndex = nNextInPos;
 
    /* Increment queue items count semaphore. */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODSemaphoreUp(pInputQueueInfo->hItemCountSemaphore, 1);
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
    /* Allow further access to add event function. */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODMutexUnlock(&pInputQueueInfo->QueueMutex);
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
    return(kODRCSuccess);
 }
@@ -320,7 +320,7 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
    ASSERT(pInputQueueInfo != NULL);
    ASSERT(pEvent != NULL);
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 
    ASSERT(Timeout == 0 || !ODSyncAPIWriterHeldByCurrentThread());
 
@@ -332,7 +332,7 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
    if(ODSemaphoreDown(pInputQueueInfo->hItemCountSemaphore, Timeout)==kODRCTimeout)
       return(kODRCTimeout);
 
-#else /* !OD_MULTITHREADED */
+#else /* !OD_THREAD_SUPPORT */
 
    /* In non-multithreaded implementations, we check queue in and out     */
    /* indicies to determine whether there are any events waiting in the   */
@@ -386,9 +386,9 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
       }
    }
 
-#endif /* !OD_MULTITHREADED */
+#endif /* !OD_THREAD_SUPPORT */
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODMutexLock(&pInputQueueInfo->QueueMutex);
 #endif
    /* Copy next input event from the queue into the caller's structure. */
@@ -399,7 +399,7 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
    /* of the queue if needed.                                             */
    pInputQueueInfo->nOutIndex
       = (pInputQueueInfo->nOutIndex + 1) % pInputQueueInfo->nQueueEntries;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODMutexUnlock(&pInputQueueInfo->QueueMutex);
 #endif
 
@@ -451,11 +451,11 @@ time_t ODInQueueGetLastActivity(tODInQueueHandle hInQueue)
    ASSERT(pInputQueueInfo != NULL);
 
    /* Returns the last activity time. */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODMutexLock(&pInputQueueInfo->QueueMutex);
 #endif
    LastActivity = pInputQueueInfo->nLastActivityTime;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODMutexUnlock(&pInputQueueInfo->QueueMutex);
 #endif
    return(LastActivity);
@@ -478,11 +478,11 @@ void ODInQueueResetLastActivity(tODInQueueHandle hInQueue)
    ASSERT(pInputQueueInfo != NULL);
 
    /* Resets the last activity time to the current time. */
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODMutexLock(&pInputQueueInfo->QueueMutex);
 #endif
    pInputQueueInfo->nLastActivityTime = time(NULL);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ODMutexUnlock(&pInputQueueInfo->QueueMutex);
 #endif
 }

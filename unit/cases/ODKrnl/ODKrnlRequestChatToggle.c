@@ -1,4 +1,4 @@
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
 static unsigned ut_locks, ut_unlocks;
@@ -7,7 +7,7 @@ void utm_ODMutexUnlock(tODMutex *mutex) { ++ut_unlocks; UT_ASSERT_EQ_PTR(&Kernel
 #endif
 static void toggles_the_pending_chat_request(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ut_locks = ut_unlocks = 0; bChatTogglePending = FALSE;
    utt_ODKrnlRequestChatToggle(); UT_ASSERT(bChatTogglePending);
    utt_ODKrnlRequestChatToggle(); UT_ASSERT(!bChatTogglePending);

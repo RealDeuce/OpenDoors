@@ -13,11 +13,10 @@
 #define UT_CUSTOM_MOCK_od_set_attrib
 #define UT_CUSTOM_MOCK_strlen
 #define UT_CUSTOM_MOCK_time
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_od_sleep
-#else
-#define UT_CUSTOM_MOCK_od_kernel
 #endif
+#define UT_CUSTOM_MOCK_od_kernel
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_ODFrameUpdateWantChat
 #endif
@@ -53,12 +52,11 @@ static BOOL ut_elapsed_values[4];
 static unsigned ut_elapsed_count;
 static unsigned ut_elapsed_index;
 static unsigned ut_log_calls;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static unsigned ut_sleep_calls;
 static BOOL ut_shutdown_on_sleep;
-#else
-static unsigned ut_kernel_calls;
 #endif
+static unsigned ut_kernel_calls;
 #ifdef ODPLAT_WIN32
 static unsigned ut_frame_calls;
 #endif
@@ -161,16 +159,15 @@ BOOL utm_ODTimerElapsed(tODTimer *timer)
    return ut_elapsed_values[ut_elapsed_index++];
 }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 void ODCALL utm_od_sleep(tODMilliSec duration)
 {
    UT_ASSERT_EQ_UINT(0, duration);
    ++ut_sleep_calls;
    if(ut_shutdown_on_sleep) bODInitialized = FALSE;
 }
-#else
-void utm_od_kernel(void) { ++ut_kernel_calls; }
 #endif
+void utm_od_kernel(void) { ++ut_kernel_calls; }
 
 #ifdef ODPLAT_WIN32
 void utm_ODFrameUpdateWantChat(void) { ++ut_frame_calls; }
@@ -229,12 +226,11 @@ static void reset_page(void)
    ut_timer_starts = 0;
    ut_elapsed_count = ut_elapsed_index = 0;
    ut_log_calls = 0;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ut_sleep_calls = 0;
    ut_shutdown_on_sleep = FALSE;
-#else
-   ut_kernel_calls = 0;
 #endif
+   ut_kernel_calls = 0;
 #ifdef ODPLAT_WIN32
    ut_frame_calls = 0;
 #endif
@@ -348,9 +344,7 @@ static void successful_paging_updates_hooks_status_and_timeout_message(void)
    UT_ASSERT_EQ_UINT(1, od_control.user_numpages);
    UT_ASSERT_EQ_UINT(1, ut_no_response_calls);
    UT_ASSERT_EQ_UINT(1, ut_answer_calls);
-#ifndef OD_MULTITHREADED
    UT_ASSERT(ut_kernel_calls > 0);
-#endif
 #ifdef ODPLAT_WIN32
    UT_ASSERT_EQ_UINT(1, ut_frame_calls);
 #endif
@@ -406,14 +400,14 @@ static void unanswered_page_waits_for_the_timer_and_times_out(void)
    UT_ASSERT_EQ_UINT(1, ut_timer_starts);
    UT_ASSERT_EQ_UINT(2, ut_elapsed_index);
    UT_ASSERT_EQ_UINT(1, ut_no_response_calls);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
 #else
    UT_ASSERT(ut_kernel_calls >= 2);
 #endif
 }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static void shutdown_during_the_timer_wait_exits_without_cleanup(void)
 {
    reset_page();
@@ -442,7 +436,7 @@ static const UTTestCase ut_cases[] = {
 #endif
    {"answered page", chat_response_after_period_or_beep_stops_immediately},
    {"page timeout", unanswered_page_waits_for_the_timer_and_times_out},
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    {"shutdown during page", shutdown_during_the_timer_wait_exits_without_cleanup},
 #endif
 };

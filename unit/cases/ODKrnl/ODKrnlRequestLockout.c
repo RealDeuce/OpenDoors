@@ -1,4 +1,4 @@
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
 void utm_ODMutexLock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
@@ -11,7 +11,7 @@ void utm_ODKrnlForceOpenDoorsShutdown(BYTE reason)
 #endif
 static void records_lockout_and_preserves_an_existing_shutdown_reason(void)
 {
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    bLockoutPending = FALSE; btPendingShutdown = 0; utt_ODKrnlRequestLockout();
    UT_ASSERT(bLockoutPending); UT_ASSERT_EQ_UINT(ERRORLEVEL_HANGUP, btPendingShutdown);
    bLockoutPending = FALSE; btPendingShutdown = ERRORLEVEL_NOCARRIER;

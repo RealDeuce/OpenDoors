@@ -104,7 +104,7 @@ void utm_ODTimerWaitForElapse(tODTimer *timer)
 }
 #endif
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODTimerStart
 #define UT_CUSTOM_MOCK_ODTimerLeft
 #define UT_CUSTOM_MOCK_ODTimerElapsed
@@ -201,7 +201,7 @@ int utm_nanosleep(CONST struct timespec *requested,
    }
    return(ut_nanosleep_results[index]);
 }
-#ifndef OD_MULTITHREADED
+#ifndef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_clock_gettime
 static unsigned ut_clock_calls;
 
@@ -233,7 +233,7 @@ static void reset_common(void)
    ut_timer_start_calls = 0;
    ut_timer_wait_calls = 0;
 #endif
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ut_timer_start_calls = 0;
    ut_left_count = 0;
    ut_left_index = 0;
@@ -251,7 +251,7 @@ static void reset_common(void)
 #ifdef ODPLAT_NIX
    ut_nanosleep_count = 0;
    ut_nanosleep_index = 0;
-#ifndef OD_MULTITHREADED
+#ifndef OD_THREAD_SUPPORT
    ut_clock_calls = 0;
 #endif
 #endif
@@ -336,7 +336,7 @@ static void yields_and_sleeps_under_windows(void)
    UT_ASSERT_EQ_UINT(4, ut_reacquire_calls);
    UT_ASSERT_EQ_UINT(4, ut_sleep_index);
 }
-#elif defined(OD_MULTITHREADED)
+#elif defined(OD_THREAD_SUPPORT)
 static void yields_and_sleeps_under_pthreads(void)
 {
    reset_common();
@@ -426,7 +426,7 @@ static const UTTestCase ut_cases[] = {
    {"DOS32 sleep", sleeps_and_yields_under_dos32}
 #elif defined(ODPLAT_WIN32)
    {"Windows sleep", yields_and_sleeps_under_windows}
-#elif defined(OD_MULTITHREADED)
+#elif defined(OD_THREAD_SUPPORT)
    {"pthread sleep", yields_and_sleeps_under_pthreads}
 #else
    {"UNIX sleep", sleeps_under_single_threaded_unix}

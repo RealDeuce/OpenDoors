@@ -9,7 +9,7 @@
 #else
 #define UT_CUSTOM_MOCK_strnicmp
 #endif
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_od_sleep
 #endif
 
@@ -24,7 +24,7 @@ static unsigned short ut_key_index;
 static BOOL ut_elapsed[16];
 static unsigned short ut_elapsed_count;
 static unsigned short ut_elapsed_index;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static BOOL ut_disconnect_on_sleep;
 #endif
 
@@ -36,7 +36,7 @@ static void reset_fixture(void)
    ut_key_index = 0;
    ut_elapsed_count = 0;
    ut_elapsed_index = 0;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    bODInitialized = TRUE;
    ut_disconnect_on_sleep = FALSE;
 #endif
@@ -129,7 +129,7 @@ int utm_strnicmp(const char *left, const char *right, size_t size)
 }
 #endif
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 void ODCALL utm_od_sleep(tODMilliSec duration)
 {
    UT_ASSERT_EQ_UINT(0, duration);
@@ -180,12 +180,12 @@ static void timeout_without_input_returns_false(void)
 
    UT_ASSERT_EQ_INT(FALSE, utt_ODWaitNoCase("xyz", 660));
    UT_ASSERT_EQ_UINT(2, ut_mock_count(MOCK_TIMER_ELAPSED));
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_UINT(2, ut_mock_count(MOCK_SLEEP));
 #endif
 }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static void disconnect_while_yielding_returns_false(void)
 {
    reset_fixture();
@@ -203,7 +203,7 @@ static const UTTestCase ut_cases[] = {
    {"one-character match", one_character_match_returns_immediately},
    {"sliding case-insensitive window", sliding_window_matches_without_case},
    {"timeout without input", timeout_without_input_returns_false},
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    {"disconnect while yielding", disconnect_while_yielding_returns_false},
 #endif
 };

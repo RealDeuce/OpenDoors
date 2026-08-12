@@ -5,14 +5,9 @@
 
 #include "ODTypes.h"
 
-#ifdef OD_MULTITHREADED
-#ifdef ODPLAT_WIN32
+#ifdef OD_THREAD_SUPPORT
 #include <windows.h>
 typedef struct { CRITICAL_SECTION cs; } tODMutex;
-#else
-#include <pthread.h>
-typedef struct { pthread_mutex_t mutex; } tODMutex;
-#endif
 #else
 typedef struct { int unused; } tODMutex;
 #endif

@@ -16,9 +16,7 @@ static void sends_remote_text_and_updates_the_session_screen(void)
    bODInitialized = FALSE;
    od_control.baud = 9600;
    ut_session_available = TRUE;
-#ifndef OD_MULTITHREADED
    ut_timer_elapsed = TRUE;
-#endif
    utt_od_disp_str(ut_text);
    UT_ASSERT_EQ_UINT(1, ut_init_calls);
    UT_ASSERT_EQ_UINT(1, ut_entries);
@@ -29,9 +27,8 @@ static void sends_remote_text_and_updates_the_session_screen(void)
    UT_ASSERT_EQ_UINT(1, ut_session_string_calls);
    UT_ASSERT_EQ_UINT(1, ut_present_calls);
    UT_ASSERT_EQ_UINT(0, ut_local_string_calls);
-#ifndef OD_MULTITHREADED
+   UT_ASSERT_EQ_UINT(1, ut_timer_calls);
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
-#endif
 }
 
 static void local_mode_uses_the_platform_screen_fallback(void)
@@ -43,9 +40,8 @@ static void local_mode_uses_the_platform_screen_fallback(void)
    UT_ASSERT_EQ_UINT(0, ut_session_string_calls);
    UT_ASSERT_EQ_UINT(0, ut_present_calls);
    UT_ASSERT_EQ_UINT(1, ut_local_string_calls);
-#ifndef OD_MULTITHREADED
+   UT_ASSERT_EQ_UINT(1, ut_timer_calls);
    UT_ASSERT_EQ_UINT(0, ut_kernel_calls);
-#endif
 }
 
 static const UTTestCase ut_cases[] = {

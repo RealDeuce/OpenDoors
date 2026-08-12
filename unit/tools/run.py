@@ -38,8 +38,6 @@ def default_build_path(platform: str, toolchain: str,
 def platform_defines(platform: str) -> list[str]:
     definitions = {
         "unix": ["-D__unix__", POSIX_API_FLAG, "-U_FORTIFY_SOURCE"],
-        "pthread": ["-D__unix__", POSIX_API_FLAG, "-U_FORTIFY_SOURCE",
-                    "-DOPENDOORS_ENABLE_PTHREAD_KERNEL=1"],
         # A renamed CRT declaration must not retain dllimport when its test
         # supplies the corresponding mock definition.
         "windows": ["-D_CRTIMP=", "-DDECLSPEC_IMPORT=",
@@ -77,14 +75,14 @@ def analyzer_platform_flags(platform: str,
 
 def language_standard_flag(platform: str) -> str:
     """Return the production language contract for a modeled platform."""
-    if platform in {"unix", "pthread", "windows"}:
+    if platform in {"unix", "windows"}:
         return "-std=c99"
     return "-std=c89"
 
 
 def native_compile_flags(platform: str) -> list[str]:
     """Return warnings and language mode for a native modern target."""
-    if platform not in {"unix", "pthread", "windows"}:
+    if platform not in {"unix", "windows"}:
         return []
     return [language_standard_flag(platform), "-Wall", "-Wextra", "-Werror",
             "-Wno-unused-function", "-Wno-unused-variable",
@@ -103,7 +101,7 @@ def executable_suffix(platform: str) -> str:
 
 def llvm_coverage_supported(platform: str) -> bool:
     """Return whether this platform receives the host LLVM coverage run."""
-    return platform in {"unix", "pthread"}
+    return platform == "unix"
 
 
 def native_test_arguments(executable: Path, report: Path,
@@ -758,7 +756,7 @@ def main() -> int:
         args.build = default_build_path(
             args.platform, args.toolchain, args.windows_architecture)
     args.build.mkdir(parents=True, exist_ok=True)
-    supported_platforms = {"unix", "pthread", "windows", "dos16", "dos32"}
+    supported_platforms = {"unix", "windows", "dos16", "dos32"}
     if args.platform not in supported_platforms:
         parser.error(f"native runner does not yet support {args.platform}")
     if args.toolchain == "watcom16" and args.platform != "dos16":
@@ -780,7 +778,7 @@ def main() -> int:
     ast_platform_flags = analyzer_platform_flags(
         args.platform, native_platform_flags, args.cc,
         args.windows_architecture, args.windows_abi)
-    if args.platform in {"unix", "pthread", "windows"}:
+    if args.platform in {"unix", "windows"}:
         common_flags = [*native_compile_flags(args.platform),
                         "-I", str(ROOT), "-I", str(ROOT / "unit" / "framework"),
                         *native_platform_flags, *windows_architecture_flags,

@@ -66,7 +66,6 @@ int main(void)
    od_control.user_timelimit = 2;
    nNextTimeDeductTime = time(NULL);
    od_control.od_ker_exec = NULL;
-   ODKrnlRequestTimeUpdate();
    od_kernel();
    CHECK(bTimerCallbackOnOwner);
    CHECK(od_control.user_timelimit == 1);

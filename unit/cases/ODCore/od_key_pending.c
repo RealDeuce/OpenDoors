@@ -2,18 +2,14 @@
 #define UT_CUSTOM_MOCK_ODSyncAPIEntry
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
 #define UT_CUSTOM_MOCK_od_init
-#ifndef OD_MULTITHREADED
 #define UT_CUSTOM_MOCK_od_kernel
-#endif
 
 static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
 static unsigned ut_waiting_calls;
 static BOOL ut_waiting;
-#ifndef OD_MULTITHREADED
 static unsigned ut_kernel_calls;
-#endif
 
 void ODCALL utm_od_init(void)
 {
@@ -31,9 +27,7 @@ BOOL utm_ODInQueueWaiting(tODInQueueHandle queue)
    return ut_waiting;
 }
 
-#ifndef OD_MULTITHREADED
 void utm_od_kernel(void) { ++ut_kernel_calls; }
-#endif
 
 static void reset_pending(void)
 {
@@ -44,9 +38,7 @@ static void reset_pending(void)
    ut_exits = 0;
    ut_waiting_calls = 0;
    ut_waiting = FALSE;
-#ifndef OD_MULTITHREADED
    ut_kernel_calls = 0;
-#endif
 }
 
 static void reports_an_empty_queue_after_initialization(void)
@@ -58,9 +50,7 @@ static void reports_an_empty_queue_after_initialization(void)
    UT_ASSERT_EQ_UINT(1, ut_entries);
    UT_ASSERT_EQ_UINT(1, ut_exits);
    UT_ASSERT_EQ_UINT(1, ut_waiting_calls);
-#ifndef OD_MULTITHREADED
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
-#endif
 }
 
 static void reports_a_waiting_event(void)

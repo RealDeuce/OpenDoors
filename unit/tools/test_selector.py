@@ -75,11 +75,10 @@ static int second(void)
             {("ODCom.c", "ODComGetByte")})
 
     def test_unix_matrix_contains_only_selected_variants(self):
-        self.assertEqual(unix_variants({"pthread": ["ODPlat.c"]}),
-                         {"platform": ["pthread"]})
-        self.assertEqual(
-            unix_variants({"unix": ["ODLog.c"], "pthread": ["ODPlat.c"]}),
-            {"platform": ["unix", "pthread"]})
+        self.assertEqual(unix_variants({"windows": ["ODPlat.c"]}),
+                         {"platform": []})
+        self.assertEqual(unix_variants({"unix": ["ODLog.c"]}),
+                         {"platform": ["unix"]})
 
     def test_watcom_matrix_contains_only_selected_memory_models(self):
         self.assertEqual(watcom_variants({"dos16": ["ODSwap.asm"]}), {
@@ -97,20 +96,20 @@ static int second(void)
 
     def test_selects_only_the_function_owning_a_safe_source_hunk(self):
         inventory = {"sources": [{
-            "path": "sample.c", "platforms": ["unix", "pthread", "windows"],
+            "path": "sample.c", "platforms": ["unix", "windows"],
             "functions": [{"name": "one"}, {"name": "two"}]
         }]}
         tests = [{"source": "sample.c", "function": "one",
                   "platforms": ["unix", "windows"]},
                  {"source": "sample.c", "function": "two",
-                  "platforms": ["pthread"]}]
+                  "platforms": ["unix"]}]
         with patch("selector.build_inventory", return_value=inventory), \
                 patch("selector.registered_tests", return_value=tests), \
                 patch("selector.changed_files", return_value=["sample.c"]), \
                 patch("selector.source_functions", return_value={"two"}):
             result = select("base", "head", False)
         self.assertEqual(result["sources"], {"sample.c": ["two"]})
-        self.assertEqual(result["platforms"], {"pthread": ["sample.c"]})
+        self.assertEqual(result["platforms"], {"unix": ["sample.c"]})
 
     def test_header_change_selects_each_transitive_source_owner(self):
         inventory = {"sources": [{

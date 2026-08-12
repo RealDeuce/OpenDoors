@@ -7,9 +7,7 @@
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
 #define UT_CUSTOM_MOCK_ODTimerElapsed
 #define UT_CUSTOM_MOCK_od_init
-#ifndef OD_MULTITHREADED
 #define UT_CUSTOM_MOCK_od_kernel
-#endif
 
 static unsigned ut_init_calls;
 static unsigned ut_entries;
@@ -22,9 +20,7 @@ static unsigned ut_remote_calls;
 static unsigned char ut_seen_character;
 static BOOL ut_timer_elapsed;
 static unsigned ut_timer_calls;
-#ifndef OD_MULTITHREADED
 static unsigned ut_kernel_calls;
-#endif
 
 void ODCALL utm_od_init(void)
 {
@@ -64,9 +60,7 @@ BOOL utm_ODTimerElapsed(tODTimer *timer)
    return ut_timer_elapsed;
 }
 
-#ifndef OD_MULTITHREADED
 void utm_od_kernel(void) { ++ut_kernel_calls; }
-#endif
 
 static void reset_character(void)
 {
@@ -83,9 +77,7 @@ static void reset_character(void)
    ut_seen_character = 0;
    ut_timer_elapsed = FALSE;
    ut_timer_calls = 0;
-#ifndef OD_MULTITHREADED
    ut_kernel_calls = 0;
-#endif
 }
 
 static void local_mode_uses_the_platform_screen(void)
@@ -117,9 +109,7 @@ static void remote_mode_updates_the_session_and_remote_connection(void)
    UT_ASSERT_EQ_UINT(1, ut_present_calls);
    UT_ASSERT_EQ_UINT(1, ut_remote_calls);
    UT_ASSERT_EQ_UINT(0xe1, ut_seen_character);
-#ifndef OD_MULTITHREADED
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
-#endif
 }
 
 static const UTTestCase ut_cases[] = {

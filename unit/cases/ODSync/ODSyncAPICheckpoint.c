@@ -1,13 +1,15 @@
-#define UT_CUSTOM_MOCK_ODDispatch
+#define UT_CUSTOM_MOCK_ODKrnlDispatchPending
 #define UT_CUSTOM_MOCK_ODSyncAPIReacquire
 #define UT_CUSTOM_MOCK_ODSyncAPIRelease
 #define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
+#define UT_CUSTOM_MOCK_od_kernel
 
 static BOOL ut_owner;
 static unsigned ut_owner_calls;
 static unsigned ut_release_calls;
 static unsigned ut_dispatch_calls;
 static unsigned ut_reacquire_calls;
+static unsigned ut_kernel_calls;
 static BOOL ut_allow_callbacks;
 static unsigned ut_reacquire_level;
 
@@ -23,11 +25,13 @@ unsigned utm_ODSyncAPIRelease(void)
    return 3;
 }
 
-void utm_ODDispatch(BOOL allow_callbacks)
+void utm_ODKrnlDispatchPending(BOOL allow_callbacks)
 {
    ++ut_dispatch_calls;
    ut_allow_callbacks = allow_callbacks;
 }
+
+void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
 void utm_ODSyncAPIReacquire(unsigned level)
 {
@@ -42,6 +46,7 @@ static void reset_checkpoint(void)
    ut_release_calls = 0;
    ut_dispatch_calls = 0;
    ut_reacquire_calls = 0;
+   ut_kernel_calls = 0;
    ut_allow_callbacks = TRUE;
    ut_reacquire_level = 0;
    bODInitialized = TRUE;
@@ -70,9 +75,17 @@ static void releases_dispatches_and_reacquires_for_the_owner(void)
    UT_ASSERT_EQ_INT(TRUE, utt_ODSyncAPICheckpoint());
    UT_ASSERT_EQ_UINT(1, ut_release_calls);
    UT_ASSERT_EQ_UINT(1, ut_dispatch_calls);
-   UT_ASSERT_EQ_INT(FALSE, ut_allow_callbacks);
+   UT_ASSERT_EQ_INT(TRUE, ut_allow_callbacks);
    UT_ASSERT_EQ_UINT(1, ut_reacquire_calls);
    UT_ASSERT_EQ_UINT(3, ut_reacquire_level);
+   UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
+
+   reset_checkpoint();
+   nAPILevel = 1;
+   bODInitialized = FALSE;
+   UT_ASSERT_EQ_INT(FALSE, utt_ODSyncAPICheckpoint());
+   UT_ASSERT_EQ_UINT(1, ut_dispatch_calls);
+   UT_ASSERT_EQ_UINT(0, ut_kernel_calls);
 }
 
 static const UTTestCase ut_cases[] = {

@@ -51,9 +51,6 @@
 
 #ifdef ODPLAT_NIX
 #include <sys/time.h>
-#ifdef OD_MULTITHREADED
-#include <pthread.h>
-#endif
 #endif
 
 #ifdef ODPLAT_WIN32
@@ -94,53 +91,24 @@ tODMilliSec ODTimerLeft(tODTimer *pTimer);
 /* Multithreading and synchronization support.                               */
 /* ========================================================================= */
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 
 /* Thread handle data type. */
-#ifdef ODPLAT_WIN32
 typedef HANDLE tODThreadHandle;
-#endif /* ODPLAT_WIN32 */
-#ifdef ODPLAT_NIX
-typedef pthread_t tODThreadHandle;
-#endif
-
-/* Thread priority enumeration. */
-typedef enum
-{
-   OD_PRIORITY_LOWEST,
-   OD_PRIORITY_BELOW_NORMAL,
-   OD_PRIORITY_NORMAL,
-   OD_PRIORITY_ABOVE_NORMAL,
-   OD_PRIORITY_HIGHEST
-} tODThreadPriority;
 
 /* Thread start proceedure type. */
-#ifdef ODPLAT_WIN32
 #define OD_THREAD_FUNC WINAPI
-#else
-#define OD_THREAD_FUNC
-#endif
-/* The common wrapper gives both supported threaded backends one internal
- * start-procedure type. */
 typedef DWORD (OD_THREAD_FUNC ptODThreadProc)(void *);
 
 /* Cooperative thread creation and joining. */
 tODResult ODThreadCreate(tODThreadHandle *phThread,
    ptODThreadProc *pfThreadProc, void *pThreadParam);
-tODResult ODThreadSetPriority(tODThreadHandle hThread,
-   tODThreadPriority ThreadPriority);
 void ODThreadWaitForExit(tODThreadHandle hThread);
 void ODThreadSleep(tODMilliSec Milliseconds);
 
 
 /* Semaphore handle data type. */
-#ifdef ODPLAT_WIN32
 typedef HANDLE tODSemaphoreHandle;
-#endif /* ODPLAT_WIN32 */
-
-#ifdef ODPLAT_NIX
-typedef struct tODSemaphoreInfo *tODSemaphoreHandle;
-#endif /* ODPLAT_WIN32 */
 
 /* Semaphore manipulation functions. */
 tODResult ODSemaphoreAlloc(tODSemaphoreHandle *phSemaphore, INT nInitialCount,
@@ -149,7 +117,7 @@ void ODSemaphoreFree(tODSemaphoreHandle hSemaphore);
 void ODSemaphoreUp(tODSemaphoreHandle hSemaphore, INT nIncrementBy);
 tODResult ODSemaphoreDown(tODSemaphoreHandle hSemaphore, tODMilliSec Timeout);
 
-#endif /* OD_MULTITHREADED */
+#endif /* OD_THREAD_SUPPORT */
 
 void ODProcessExit(INT nExitCode);
 

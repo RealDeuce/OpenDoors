@@ -52,7 +52,6 @@ extern BOOL bChatted;
 
 /* Kernel function prototypes. */
 tODResult ODKrnlInitialize(void);
-tODResult ODKrnlRestart(void);
 void ODKrnlShutdown(void);
 void ODKrnlHandleLocalKey(WORD wKeyCode);
 void ODKrnlEndChatMode(void);
@@ -61,7 +60,6 @@ void ODStatStartArrowUse(void);
 void ODStatEndArrowUse(void);
 void ODKrnlDispatchPending(BOOL bAllowApplicationCallbacks);
 void ODKrnlRequestChatToggle(void);
-void ODKrnlRequestTimeUpdate(void);
 void ODKrnlRequestKeyboardToggle(void);
 void ODKrnlRequestSysopNextToggle(void);
 void ODKrnlRequestInactivityToggle(void);
@@ -69,13 +67,8 @@ void ODKrnlRequestTimeAdjustment(INT nMinutes);
 void ODKrnlRequestTimeValue(INT nMinutes);
 void ODKrnlRequestLockout(void);
 
-/* Macro used to generate the appropriate code (if any) to call */
-/* the OpenDoors kernel from within OpenDoors code.             */
-#ifdef OD_MULTITHREADED
-#define CALL_KERNEL_IF_NEEDED()
-#else /* !OD_MULTITHREADED */
+/* Run the cooperative kernel from OpenDoors progress points. */
 #define CALL_KERNEL_IF_NEEDED()     od_kernel()
-#endif /* !OD_MULTITHREADED */
 
 #include "ODSync.h"
 

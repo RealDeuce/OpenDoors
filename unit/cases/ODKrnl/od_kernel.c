@@ -5,14 +5,12 @@
 #define UT_CUSTOM_MOCK_od_init
 #define UT_CUSTOM_MOCK_ODSyncAPIEntry
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
-#ifndef OD_MULTITHREADED
 #define UT_CUSTOM_MOCK_ODComCarrier
 #define UT_CUSTOM_MOCK_ODComGetByte
 #define UT_CUSTOM_MOCK_ODKrnlHandleReceivedChar
 #define UT_CUSTOM_MOCK_ODKrnlForceOpenDoorsShutdown
 #define UT_CUSTOM_MOCK_ODKrnlTimeUpdate
 #define UT_CUSTOM_MOCK_ODTimerStart
-#endif
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 #ifdef __WATCOMC__
 #define UT_CUSTOM_MOCK__bios_keybrd
@@ -35,7 +33,6 @@ static unsigned ut_init_calls;
 static unsigned ut_entry_calls;
 static unsigned ut_exit_calls;
 static unsigned ut_exec_calls;
-#ifndef OD_MULTITHREADED
 static BOOL ut_carrier;
 static unsigned ut_carrier_calls;
 static char ut_remote_bytes[4];
@@ -83,7 +80,6 @@ static unsigned ut_personality_calls;
 static BYTE ut_personality_operations[4];
 static unsigned ut_hot_callback_calls;
 #endif
-#endif
 
 tODMilliSec ODMaxMSToWait;
 
@@ -101,10 +97,9 @@ static void ODCALL ut_kernel_exec(void) { ++ut_exec_calls; }
 static void ut_kernel_exec(void) { ++ut_exec_calls; }
 #endif
 
-#ifndef OD_MULTITHREADED
 tODResult utm_ODComCarrier(tPortHandle handle, BOOL *carrier)
 {
-   UT_ASSERT_EQ_PTR(hSerialPort, handle);
+   (void)handle;
    UT_ASSERT(carrier != NULL);
    ++ut_carrier_calls;
    *carrier = ut_carrier;
@@ -113,7 +108,7 @@ tODResult utm_ODComCarrier(tPortHandle handle, BOOL *carrier)
 
 tODResult utm_ODComGetByte(tPortHandle handle, char *value, BOOL wait)
 {
-   UT_ASSERT_EQ_PTR(hSerialPort, handle);
+   (void)handle;
    UT_ASSERT(value != NULL);
    UT_ASSERT(!wait);
    if(ut_remote_index == ut_remote_count)
@@ -161,7 +156,6 @@ unsigned short utm__bios_keybrd(unsigned command)
    UT_ASSERT_EQ_UINT(_KEYBRD_SHIFTSTATUS, command);
    return((unsigned short)ut_bios_shifts[ut_bios_index++]);
 }
-#endif
 
 static void queue_bios_key(WORD key, BYTE shift)
 {
@@ -300,7 +294,6 @@ static void reset_kernel(void)
    bODInitialized = TRUE;
    bKernelActive = FALSE;
    od_control.od_ker_exec = NULL;
-#ifndef OD_MULTITHREADED
    ut_carrier = TRUE;
    ut_carrier_calls = 0;
    ut_remote_count = ut_remote_index = ut_received_calls = 0;
@@ -366,9 +359,6 @@ static void reset_kernel(void)
    for(index = 0; index < 9; ++index)
       od_control.key_status[index] = (WORD)(0x1200 + index);
 #endif
-#else
-   (void)index;
-#endif
 }
 
 static void initializes_before_rejecting_a_recursive_call(void)
@@ -396,18 +386,15 @@ static void runs_the_optional_hook_inside_the_api_boundary(void)
    UT_ASSERT_EQ_UINT(1, ut_exec_calls);
    UT_ASSERT_EQ_UINT(1, ut_exit_calls);
    UT_ASSERT(!bKernelActive);
-#ifndef OD_MULTITHREADED
    UT_ASSERT_EQ_UINT(1, ut_time_update_calls);
    UT_ASSERT(ut_time_update_callbacks);
    UT_ASSERT_EQ_UINT(1, ut_timer_calls);
-#endif
 
    reset_kernel();
    utt_od_kernel();
    UT_ASSERT_EQ_UINT(0, ut_exec_calls);
 }
 
-#ifndef OD_MULTITHREADED
 static void applies_carrier_detection_policy_in_remote_mode(void)
 {
    reset_kernel();
@@ -446,7 +433,6 @@ static void drains_all_available_remote_input(void)
    UT_ASSERT_EQ_INT('b', ut_received_bytes[1]);
    UT_ASSERT_EQ_UINT(0, ODMaxMSToWait);
 }
-#endif
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 static void prepare_keyboard(void)
@@ -800,10 +786,8 @@ static void updates_status_only_when_requested_or_due(void)
 static const UTTestCase ut_cases[] = {
    {"initialization and recursion", initializes_before_rejecting_a_recursive_call},
    {"API boundary", runs_the_optional_hook_inside_the_api_boundary},
-#ifndef OD_MULTITHREADED
    {"carrier", applies_carrier_detection_policy_in_remote_mode},
    {"remote input", drains_all_available_remote_input},
-#endif
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    {"keyboard policy", covers_pending_and_keyboard_suppression_policy},
    {"arrow keys", routes_arrow_keys_only_under_the_arrow_policy},

@@ -187,7 +187,7 @@ static tODResult ODGetInputWait(tODInputEvent *pEvent,
    tODTimer Timer;
    tODMilliSec Slice;
    tODResult Result;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel;
 #endif
 
@@ -206,11 +206,11 @@ static tODResult ODGetInputWait(tODInputEvent *pEvent,
          if(Slice > 50) Slice = 50;
       }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
       if(Slice != 0) nSavedAPILevel = ODSyncAPIRelease();
 #endif
       Result = ODInQueueGetNextEvent(hODInputQueue, pEvent, Slice);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
       if(Slice != 0) ODSyncAPIReacquire(nSavedAPILevel);
 #endif
       if(Result == kODRCSuccess || TimeToWait == 0)

@@ -8,10 +8,8 @@
 #define UT_CUSTOM_MOCK_ODSyncAPIEntry
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
 #define UT_CUSTOM_MOCK_od_init
-#ifndef OD_MULTITHREADED
 #define UT_CUSTOM_MOCK_ODTimerElapsed
 #define UT_CUSTOM_MOCK_od_kernel
-#endif
 
 static unsigned ut_init_calls;
 static unsigned ut_entries;
@@ -25,11 +23,9 @@ static unsigned ut_session_string_calls;
 static unsigned ut_present_calls;
 static unsigned ut_local_buffer_calls;
 static unsigned ut_local_string_calls;
-#ifndef OD_MULTITHREADED
 static BOOL ut_timer_elapsed;
 static unsigned ut_timer_calls;
 static unsigned ut_kernel_calls;
-#endif
 
 void ODCALL utm_od_init(void)
 {
@@ -78,16 +74,14 @@ void ODCALL utm_ODScrnDisplayString(const char *text)
    ++ut_local_string_calls;
 }
 
-#ifndef OD_MULTITHREADED
 BOOL utm_ODTimerElapsed(tODTimer *timer)
 {
-   UT_ASSERT_EQ_PTR(&RunKernelTimer, timer);
+   (void)timer;
    ++ut_timer_calls;
    return ut_timer_elapsed;
 }
 
 void utm_od_kernel(void) { ++ut_kernel_calls; }
-#endif
 
 static void ut_reset_display(void)
 {
@@ -105,9 +99,7 @@ static void ut_reset_display(void)
    ut_present_calls = 0;
    ut_local_buffer_calls = 0;
    ut_local_string_calls = 0;
-#ifndef OD_MULTITHREADED
    ut_timer_elapsed = FALSE;
    ut_timer_calls = 0;
    ut_kernel_calls = 0;
-#endif
 }

@@ -4,9 +4,8 @@
 #define UT_CUSTOM_MOCK_ODSyncAPIEntry
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
 #define UT_CUSTOM_MOCK_od_init
-#ifndef OD_MULTITHREADED
 #define UT_CUSTOM_MOCK_od_kernel
-#else
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODSyncAPIRelease
 #define UT_CUSTOM_MOCK_ODSyncAPIReacquire
 #endif
@@ -24,9 +23,8 @@ static unsigned ut_checkpoint_index;
 static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
-#ifndef OD_MULTITHREADED
 static unsigned ut_kernel_calls;
-#else
+#ifdef OD_THREAD_SUPPORT
 static unsigned ut_release_calls;
 static unsigned ut_reacquire_calls;
 #endif
@@ -67,9 +65,8 @@ BOOL utm_ODSyncAPICheckpoint(void)
    return ut_checkpoint_values[ut_checkpoint_index++];
 }
 
-#ifndef OD_MULTITHREADED
 void utm_od_kernel(void) { ++ut_kernel_calls; }
-#else
+#ifdef OD_THREAD_SUPPORT
 unsigned utm_ODSyncAPIRelease(void)
 {
    ++ut_release_calls;
@@ -105,12 +102,12 @@ static void reset_key(void)
    ut_init_calls = 0;
    ut_entries = 0;
    ut_exits = 0;
-#ifndef OD_MULTITHREADED
    ut_kernel_calls = 0;
-#else
+#ifdef OD_THREAD_SUPPORT
    ut_release_calls = 0;
    ut_reacquire_calls = 0;
 #endif
+   ut_kernel_calls = 0;
 }
 
 static void a_nonwaiting_read_returns_zero_for_an_empty_queue(void)
@@ -124,9 +121,7 @@ static void a_nonwaiting_read_returns_zero_for_an_empty_queue(void)
    UT_ASSERT_EQ_UINT(1, ut_entries);
    UT_ASSERT_EQ_UINT(1, ut_exits);
    UT_ASSERT_EQ_UINT(0, ut_result_index);
-#ifndef OD_MULTITHREADED
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
-#endif
 }
 
 static void a_nonwaiting_queue_failure_returns_zero(void)
@@ -173,7 +168,7 @@ static void a_waiting_read_retries_timeouts_and_line_feed(void)
    UT_ASSERT_EQ_UINT(3, ut_result_index);
    UT_ASSERT_EQ_UINT(1, ut_checkpoint_index);
    UT_ASSERT_EQ_INT(1, od_control.od_last_input);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_UINT(3, ut_release_calls);
    UT_ASSERT_EQ_UINT(3, ut_reacquire_calls);
 #endif

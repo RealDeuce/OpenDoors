@@ -133,14 +133,12 @@ BOOL od_control.od_chat_active;
 
 `od_chat_active` is true while OpenDoors' line-oriented sysop chat is active.
 It begins as [`FALSE`](../constants/general.md#false); [`od_chat()`](../api/od_chat.md) and the local chat command
-set it to true, and chat cleanup restores false. In a multithreaded build, a
-failure to start the chat thread also restores [`FALSE`](../constants/general.md#false) before
-[`od_chat()`](../api/od_chat.md) returns.
+set it to true, and chat cleanup restores false.
 
 The chat loop tests this member on every iteration. Application code may set it
 to [`FALSE`](../constants/general.md#false) from an appropriate callback or cooperating execution context to
 request that chat end. Setting it to [`TRUE`](../constants/general.md#true) does not by itself create the chat
-thread, install callbacks, or enter chat mode; use [`od_chat()`](../api/od_chat.md) to begin a
+loop, install callbacks, or enter chat mode; use [`od_chat()`](../api/od_chat.md) to begin a
 complete chat session.
 
 ### `od_silent_mode`

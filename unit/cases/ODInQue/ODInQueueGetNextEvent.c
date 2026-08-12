@@ -1,5 +1,5 @@
 #define UT_CUSTOM_MOCK_memcpy
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
 #define UT_CUSTOM_MOCK_ODSemaphoreDown
@@ -26,7 +26,7 @@ void *utm_memcpy(void *output, const void *input, size_t size)
    return output;
 }
 
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 static tODResult ut_semaphore_result;
 static tODMilliSec ut_seen_timeout;
 static unsigned ut_locks;

@@ -1,4 +1,4 @@
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODMutexDestroy
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_CloseHandle
@@ -36,7 +36,7 @@ static void destroys_platform_state_and_clears_session_depths(void)
    nPublicReadDepth = 3;
    nPublicWriteDepth = 2;
    bPublicLockPhysical = TRUE;
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    ut_mutex = NULL;
 #ifdef ODPLAT_WIN32
    ControlLock.changed = (HANDLE)1;
@@ -51,7 +51,7 @@ static void destroys_platform_state_and_clears_session_depths(void)
    UT_ASSERT_EQ_UINT(0, nPublicReadDepth);
    UT_ASSERT_EQ_UINT(0, nPublicWriteDepth);
    UT_ASSERT_EQ_INT(FALSE, bPublicLockPhysical);
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_PTR(&ControlLock.state, ut_mutex);
 #ifdef ODPLAT_WIN32
    UT_ASSERT_EQ_PTR(ControlLock.changed, ut_closed);

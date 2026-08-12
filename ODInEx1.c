@@ -2501,8 +2501,8 @@ malloc_error:
       od_clr_scr();
    }
 
-#ifndef OD_MULTITHREADED
-   /* Non-threaded kernels retain their established initialization point. */
+   /* Initialize the cooperative kernel before application callbacks can
+    * enter other OpenDoors APIs. */
    Result = ODKrnlInitialize();
    if(Result != kODRCSuccess)
    {
@@ -2511,7 +2511,6 @@ malloc_error:
       ODInitError("Unable to start the OpenDoors kernel.");
       return;
    }
-#endif /* !OD_MULTITHREADED */
 
 #ifndef ODPLAT_WIN32
 #ifdef ODPLAT_NIX
@@ -2633,18 +2632,6 @@ no_default:
        (*(OD_COMPONENT_CALLBACK *)od_control.od_logfile)();
    }
 
-#ifdef OD_MULTITHREADED
-   /* Publish the completed session to workers only after initialization and
-    * its application callbacks can no longer modify shared state. */
-   Result = ODKrnlInitialize();
-   if(Result != kODRCSuccess)
-   {
-      od_control.od_error = ERR_GENERALFAILURE;
-      bODInitialized = FALSE;
-      ODInitError("Unable to start the OpenDoors kernel.");
-      return;
-   }
-
 #ifdef ODPLAT_WIN32
    /* Start the Windows command UI after the owner dispatcher is ready. */
    if(!od_control.od_silent_mode)
@@ -2663,7 +2650,6 @@ no_default:
       }
    }
 #endif /* ODPLAT_WIN32 */
-#endif /* OD_MULTITHREADED */
 
    ODSyncInitializationComplete();
 }

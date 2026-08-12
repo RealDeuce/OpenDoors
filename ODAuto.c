@@ -209,7 +209,7 @@ static char ODWaitNoCase(char *pszWaitFor, tODMilliSec WaitTime)
             return(TRUE);
          }
       }
-#ifdef OD_MULTITHREADED
+#ifdef OD_THREAD_SUPPORT
       else
       {
          od_sleep(0);
