@@ -97,8 +97,10 @@ jobs:
       matrix: ${{ fromJSON(needs.select.outputs.unix_matrix) }}
     steps:
       - uses: actions/checkout@v7
-      - name: Show LLVM tools
+      - name: Install and show LLVM tools
         run: |
+          sudo apt-get update
+          sudo apt-get install --yes llvm
           clang --version
           llvm-profdata --version
           llvm-cov --version
