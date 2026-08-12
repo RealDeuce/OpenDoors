@@ -95,8 +95,30 @@ static void recognizes_non_windows_results(void)
    UT_ASSERT_EQ_INT(kMultitaskerNone, ODMultitasker);
 }
 #elif defined(ODPLAT_DOS) && defined(__TURBOC__)
-static void detects_the_dosbox_environment(void)
+static void set_fixture_mode(BYTE mode)
 {
+   ASM mov al, mode
+   ASM int 0x60
+}
+
+static void detects_each_multitasker(void)
+{
+   set_fixture_mode(1);
+   ODMultitasker = (tODMultitasker)99;
+   utt_ODPlatInit();
+   UT_ASSERT_EQ_INT(kMultitaskerOS2, ODMultitasker);
+
+   set_fixture_mode(2);
+   ODMultitasker = (tODMultitasker)99;
+   utt_ODPlatInit();
+   UT_ASSERT_EQ_INT(kMultitaskerDV, ODMultitasker);
+
+   set_fixture_mode(3);
+   ODMultitasker = (tODMultitasker)99;
+   utt_ODPlatInit();
+   UT_ASSERT_EQ_INT(kMultitaskerWin, ODMultitasker);
+
+   set_fixture_mode(0);
    ODMultitasker = (tODMultitasker)99;
    utt_ODPlatInit();
    UT_ASSERT_EQ_INT(kMultitaskerNone, ODMultitasker);
@@ -115,7 +137,7 @@ static const UTTestCase ut_cases[] = {
    {"Windows", detects_windows},
    {"no Windows", recognizes_non_windows_results}
 #elif defined(ODPLAT_DOS) && defined(__TURBOC__)
-   {"DOSBox environment", detects_the_dosbox_environment}
+   {"multitasker detection", detects_each_multitasker}
 #else
    {"no operation", is_a_no_op_on_this_platform}
 #endif

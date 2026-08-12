@@ -24,6 +24,9 @@ time_t utm_mktime(struct tm *time_value)
    UT_ASSERT_EQ_INT(15, time_value->tm_mday);
    UT_ASSERT_EQ_INT(5, time_value->tm_mon);
    UT_ASSERT_EQ_INT(124, time_value->tm_year);
+   UT_ASSERT_EQ_INT(0, time_value->tm_wday);
+   UT_ASSERT_EQ_INT(0, time_value->tm_yday);
+   UT_ASSERT_EQ_INT(-1, time_value->tm_isdst);
    return((time_t)12345);
 }
 #endif

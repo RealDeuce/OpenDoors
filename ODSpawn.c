@@ -399,8 +399,13 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
       ODWaitDrain(10000);
       if(!bODInitialized)
       {
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+         nToReturn = -1;
+         goto RestoreDOSState;
+#else
          OD_API_EXIT();
          return(-1);
+#endif
       }
 
 #ifdef ODPLAT_WIN32
@@ -494,14 +499,18 @@ after_wait_restart:
 #endif
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+RestoreDOSState:
    /* Redisplay the door screen. */
-   ODScrnPutText(1, 1, 80, 25, (char *)abtScreenBuffer);
+   if(bODInitialized || !od_control.od_silent_mode)
+   {
+      ODScrnPutText(1, 1, 80, 25, (char *)abtScreenBuffer);
 
-   /* Restore cursor to old position. */
-   ODScrnSetBoundary(TextInfo.winleft, TextInfo.wintop,
-      TextInfo.winright, TextInfo.winbottom);
-   ODScrnSetAttribute(TextInfo.attribute);
-   ODScrnSetCursorPos(TextInfo.curx, TextInfo.cury);
+      /* Restore cursor to old position. */
+      ODScrnSetBoundary(TextInfo.winleft, TextInfo.wintop,
+         TextInfo.winright, TextInfo.winbottom);
+      ODScrnSetAttribute(TextInfo.attribute);
+      ODScrnSetCursorPos(TextInfo.curx, TextInfo.cury);
+   }
 
 #ifdef ODPLAT_DOS
    _setdrvcd(nDrive, pszDir);

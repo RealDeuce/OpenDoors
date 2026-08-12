@@ -33,8 +33,8 @@
       "source": "ODCom.c",
       "function": "ODComGetByte",
       "platforms": ["dos16", "dos32"],
-      "start_line": 2783,
-      "end_line": 2783,
+      "start_line": 2784,
+      "end_line": 2784,
       "kinds": ["branch", "mcdc"],
       "reason": "A single-threaded isolated test cannot both enter the empty UART wait with a null idle callback and later make the queue nonempty so the function returns.",
       "evidence": "The callback-present path is exercised with the callback supplying the byte, and the callback-null configuration is exercised when a byte is already queued. Entering the loop with both an empty queue and no callback has no operation capable of changing nRXChars and therefore cannot terminate without an external interrupt producer.",
@@ -46,8 +46,8 @@
       "source": "ODCom.c",
       "function": "ODComSendBuffer",
       "platforms": ["dos16", "dos32"],
-      "start_line": 3752,
-      "end_line": 3752,
+      "start_line": 3758,
+      "end_line": 3758,
       "kinds": ["branch", "mcdc"],
       "reason": "A single-threaded isolated test cannot fill the UART queue, enter the remaining-data path with a null idle callback, and subsequently free queue space so the function terminates.",
       "evidence": "The callback-present path is exercised with a callback that drains the queue, and callback-null operation is exercised when the complete buffer fits in the queue. With remaining data, a full queue, and no callback or external UART interrupt producer, the loop has no operation that can create space.",
@@ -65,19 +65,6 @@
       "reason": "No failure operation follows successful creation of the up-down control.",
       "evidence": "Every failure before line 381 leaves hwndTimeUpDown null. Once CreateWindowEx returns a non-null up-down handle, the remaining operations are unchecked setters, bSuccess is set true, and cleanup is skipped. All reachable creation-failure stages and the successful path are exercised.",
       "source_sha256": "78ab626e03dce2c8f9cad1dab01ae208d90bc429853cd19c4e15a11f2c1dd794"
-    },
-    {
-      "id": "odcom-wait-event-win32-event-mask-union",
-      "status": "proposed",
-      "source": "ODCom.c",
-      "function": "ODComWaitEvent",
-      "platforms": ["windows"],
-      "start_line": 3987,
-      "end_line": 3987,
-      "kinds": ["branch", "mcdc"],
-      "reason": "Bitwise OR with the nonzero EV_RLSD constant makes this condition invariantly true.",
-      "evidence": "The tests exercise unrelated and carrier-loss event masks and both carrier states. No DWORD event mask can make dwEvtMask | EV_RLSD equal zero; TODO.md tracks replacing the union with the intended mask test.",
-      "source_sha256": "69f3affffa9d39b534202ce1badccee430a1b1e558e0ad53c0865db1ece9f94a"
     }
   ]
 }

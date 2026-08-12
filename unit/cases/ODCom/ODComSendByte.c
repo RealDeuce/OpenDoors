@@ -196,6 +196,7 @@ void ODCALL utm_od_sleep(tODMilliSec delay) { UT_ASSERT(delay == 50); }
 #define UT_CUSTOM_MOCK_fwrite
 static int ut_stdio_select_results[12];
 static unsigned ut_stdio_select_calls;
+static unsigned ut_fwrite_calls;
 static size_t ut_fwrite_result;
 int utm_select(int count, fd_set *read_set, fd_set *write_set,
    fd_set *error_set, struct timeval *timeout)
@@ -210,6 +211,7 @@ size_t utm_fwrite(const void *buffer, size_t size, size_t count, FILE *stream)
    UT_ASSERT_EQ_INT(0xa5, *(const BYTE *)buffer);
    UT_ASSERT_EQ_UINT(1, size); UT_ASSERT_EQ_UINT(1, count);
    UT_ASSERT_EQ_PTR(stdout, stream);
+   ++ut_fwrite_calls;
    return(ut_fwrite_result);
 }
 #endif
@@ -243,7 +245,7 @@ static void reset_send(void)
    for(index = 0; index < 3; ++index) ut_send_results[index] = 1;
 #endif
 #ifdef INCLUDE_STDIO_COM
-   ut_stdio_select_calls = 0; ut_fwrite_result = 1;
+   ut_stdio_select_calls = 0; ut_fwrite_calls = 0; ut_fwrite_result = 1;
    for(index = 0; index < 12; ++index) ut_stdio_select_results[index] = 1;
 #endif
 }
@@ -367,8 +369,10 @@ static void reports_stdio_select_and_write_outcomes(void)
    for(ut_stdio_select_calls = 0; ut_stdio_select_calls < 11;
       ++ut_stdio_select_calls) ut_stdio_select_results[ut_stdio_select_calls] = 0;
    ut_stdio_select_calls = 0;
-   UT_ASSERT_EQ_INT(kODRCSuccess,
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure,
       utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
+   UT_ASSERT_EQ_UINT(10, ut_stdio_select_calls);
+   UT_ASSERT_EQ_UINT(0, ut_fwrite_calls);
    reset_send(); ut_port.Method = kComMethodStdIO;
    ut_stdio_select_results[0] = 2;
    UT_ASSERT_EQ_INT(kODRCGeneralFailure,

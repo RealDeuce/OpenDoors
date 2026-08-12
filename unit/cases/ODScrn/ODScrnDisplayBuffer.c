@@ -105,21 +105,23 @@ static void handles_line_feed_with_advance_disabled_scroll_and_enabled_scroll(vo
 #endif
 }
 
-static void rings_when_audible_and_repeats_a_silent_bell(void)
+static void rings_when_audible_and_advances_past_a_silent_bell(void)
 {
    reset_display();
    utt_ODScrnDisplayBuffer("\a", 1);
    UT_ASSERT_EQ_UINT(1, ut_bell_calls);
    reset_display(); od_control.od_silent_mode = TRUE;
    utt_ODScrnDisplayBuffer("\aX", 2);
-   UT_ASSERT_EQ_UINT(0, ut_bell_calls); UT_ASSERT_EQ_UINT(0x55, ut_screen[162]);
+   UT_ASSERT_EQ_UINT(0, ut_bell_calls); UT_ASSERT_EQ_UINT('X', ut_screen[162]);
+   UT_ASSERT_EQ_UINT(1, btCursorColumn);
 }
 
 static void handles_tab_without_wrap_with_wrap_and_at_the_bottom(void)
 {
    reset_display();
-   utt_ODScrnDisplayBuffer("\t", 1);
-   UT_ASSERT_EQ_UINT(8, btCursorColumn); UT_ASSERT_EQ_UINT(0, btCursorRow);
+   utt_ODScrnDisplayBuffer("\tX", 2);
+   UT_ASSERT_EQ_UINT(9, btCursorColumn); UT_ASSERT_EQ_UINT(0, btCursorRow);
+   UT_ASSERT_EQ_UINT('X', ut_screen[178]);
    btCursorColumn = 8;
    utt_ODScrnDisplayBuffer("\t", 1);
    UT_ASSERT_EQ_UINT(0, btCursorColumn); UT_ASSERT_EQ_UINT(1, btCursorRow);
@@ -172,7 +174,7 @@ static const UTTestCase ut_cases[] = {
    {"empty and clamp", accepts_an_empty_buffer_and_clamps_each_cursor_edge},
    {"return and backspace", handles_carriage_return_and_both_backspace_edges},
    {"line feed", handles_line_feed_with_advance_disabled_scroll_and_enabled_scroll},
-   {"bell", rings_when_audible_and_repeats_a_silent_bell},
+   {"bell", rings_when_audible_and_advances_past_a_silent_bell},
    {"tab", handles_tab_without_wrap_with_wrap_and_at_the_bottom},
    {"invalidation bounds", expands_the_changed_rectangle_left_right_and_down},
    {"printable wrap", wraps_printable_text_with_and_without_bottom_scroll}

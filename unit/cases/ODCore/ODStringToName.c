@@ -3,9 +3,12 @@
 #define UT_CUSTOM_MOCK_strlwr
 #define UT_CUSTOM_MOCK_toupper
 
+static unsigned ut_strlen_calls;
+
 size_t utm_strlen(const char *text)
 {
    size_t length = 0;
+   ++ut_strlen_calls;
    while(text[length] != '\0') ++length;
    return length;
 }
@@ -31,8 +34,10 @@ int utm_toupper(int value)
 static void accepts_an_empty_name(void)
 {
    char name[1] = {'\0'};
+   ut_strlen_calls = 0;
    utt_ODStringToName(name);
    UT_ASSERT(name[0] == '\0');
+   UT_ASSERT_EQ_UINT(0, ut_strlen_calls);
 }
 
 static void normalizes_case_word_boundaries_and_line_endings(void)

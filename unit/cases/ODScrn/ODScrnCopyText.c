@@ -92,6 +92,16 @@ static void rejects_each_out_of_window_coordinate(void)
    UT_ASSERT_EQ_UINT(0, ut_malloc_calls);
 }
 
+static void rejects_reversed_and_overflowing_rectangles(void)
+{
+   reset_copy();
+   UT_ASSERT_EQ_INT(FALSE, utt_ODScrnCopyText(3, 1, 2, 2, 1, 1));
+   UT_ASSERT_EQ_INT(FALSE, utt_ODScrnCopyText(1, 3, 2, 2, 1, 1));
+   UT_ASSERT_EQ_INT(FALSE, utt_ODScrnCopyText(1, 1, 3, 2, 3, 1));
+   UT_ASSERT_EQ_INT(FALSE, utt_ODScrnCopyText(1, 1, 2, 3, 1, 3));
+   UT_ASSERT_EQ_UINT(0, ut_malloc_calls);
+}
+
 static void reports_allocation_failure(void)
 {
    reset_copy(); ut_malloc_fails = TRUE;
@@ -111,6 +121,7 @@ static void copies_through_a_temporary_buffer(void)
 static const UTTestCase ut_cases[] = {
    {"session screen", forwards_to_the_session_screen},
    {"invalid coordinates", rejects_each_out_of_window_coordinate},
+   {"invalid rectangles", rejects_reversed_and_overflowing_rectangles},
    {"allocation failure", reports_allocation_failure},
    {"copy through buffer", copies_through_a_temporary_buffer}
 };

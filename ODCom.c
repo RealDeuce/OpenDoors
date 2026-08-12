@@ -426,7 +426,7 @@ static void (INTERRUPT far *ODComGetVect(BYTE btVector))(void)
    ASM   mov al, btVector
    ASM   int 0x21
    ASM   mov word ptr pfISR, bx
-   ASM   mov word ptr [pfISR+2], bx
+   ASM   mov word ptr [pfISR+2], es
    ASM   pop es
 
    return(pfISR);
@@ -525,6 +525,7 @@ static void INTERRUPT ODComInternalISR()
 {
    char btIIR = 0;
    BYTE btTemp;
+   BYTE btReceived;
 
    /* Loop until there are no more pending operations to perform with the */
    /* UART. */
@@ -621,7 +622,7 @@ static void INTERRUPT ODComInternalISR()
             /* Operation: Receive Data. */
 
             /* Get character from receive buffer ASAP. */
-            btTemp = OD_COM_PORT_READ(nDataRegAddr);
+            btReceived = OD_COM_PORT_READ(nDataRegAddr);
 
             /* If receive buffer is above high water mark. */
             if(nRXChars >= nRXHighWaterMark)
@@ -640,7 +641,7 @@ static void INTERRUPT ODComInternalISR()
             if(nRXChars < nRXQueueSize)
             {
                /* Store the new character in the receive buffer. */
-               pbtRXQueue[nRXInIndex++] = btTemp;
+               pbtRXQueue[nRXInIndex++] = btReceived;
 
                /* Wrap-around buffer index, if needed. */
                if (nRXInIndex == nRXQueueSize)
@@ -2914,7 +2915,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
          }
 #endif
 
-         do {
+         for(;;) {
             recv_ret = recv(pPortInfo->socket, pbtNext, 1, 0);
             if(recv_ret != SOCKET_ERROR)
                break;
@@ -2924,12 +2925,14 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 #endif
                return (kODRCGeneralFailure);
             }
+            if(!bWait)
+               return(kODRCNothingWaiting);
 #ifdef OD_MULTITHREADED
             ODThreadSleep(50);
 #else
             od_sleep(50);
 #endif
-         } while (bWait);
+         }
 
          if (recv_ret == 0)
              return (kODRCNothingWaiting);
@@ -3285,6 +3288,9 @@ keep_going:
 				return(kODRCGeneralFailure);
 			}
 		}
+
+	    if(retval != 1)
+		   return(kODRCGeneralFailure);
 
 	    if(fwrite(&btToSend,1,1,stdout)!=1)
 		   return(kODRCGeneralFailure);
@@ -3984,7 +3990,7 @@ tODResult ODComWaitEvent(tPortHandle hPort, tComEvent Event)
             switch(Event)
             {
                case kNoCarrier:
-                  if(dwEvtMask | EV_RLSD)
+                  if(dwEvtMask & EV_RLSD)
                   {
                      BOOL bCarrier;
                      ODComCarrier(hPort, &bCarrier);

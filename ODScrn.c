@@ -2085,7 +2085,7 @@ static void ODScrnScrollUpOneLine(void)
    ASSERT(btSkip >= 0 && btSkip <= OD_SCREEN_WIDTH);
 
    /* Move text in area of window up one line. */
-   do
+   while(btCurLine-- != 0)
    {
       btCurColumn = btColumnStart;
       do
@@ -2098,7 +2098,7 @@ static void ODScrnScrollUpOneLine(void)
       } while((--btCurColumn) != 0);
       pwDest += btSkip;
       pwSource += btSkip;
-   } while ((--btCurLine) != 0);
+   }
 
    /* Clear newly created line at bottom of window. */
    btCurColumn = btColumnStart;
@@ -2384,8 +2384,8 @@ void ODCALL ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay)
             if(!od_control.od_silent_mode)
             {
                ODScrnRingBell();
-               pchCurrentChar++;
             }
+            pchCurrentChar++;
             break;
 
          case '\t':
@@ -2421,7 +2421,8 @@ void ODCALL ODScrnDisplayBuffer(const char *pBuffer, INT nCharsToDisplay)
             /* Determine new buffer destination address. */
             pDest = (BYTE ODFAR *) pScrnBuffer
                + (((btTopBoundary + btCursorRow) * BUFFER_LINE_BYTES)
-               + (btLeftBoundary + btCursorColumn) * BYTES_PER_CHAR);
+               + (btLeftBoundary + btCurrentColumn) * BYTES_PER_CHAR);
+            pchCurrentChar++;
             break;
 
          case '\b':
@@ -2558,7 +2559,13 @@ BOOL ODScrnCopyText(BYTE btLeft, BYTE btTop, BYTE btRight, BYTE btBottom,
       || btRight > btRightBoundary - btLeftBoundary
       || btBottom > btBottomBoundary - btTopBoundary
       || btDestColumn > btRightBoundary - btLeftBoundary
-      || btDestRow > btBottomBoundary - btTopBoundary)
+      || btDestRow > btBottomBoundary - btTopBoundary
+      || btLeft > btRight
+      || btTop > btBottom
+      || btDestColumn + (btRight - btLeft)
+         > btRightBoundary - btLeftBoundary
+      || btDestRow + (btBottom - btTop)
+         > btBottomBoundary - btTopBoundary)
    {
       return(FALSE);
    }

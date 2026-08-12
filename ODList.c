@@ -263,6 +263,12 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
          chLastControlKey = 0;
       }
 
+      /* The first fragment of an overlong line is incomplete too. */
+      if(!bLineComplete)
+      {
+         continue;
+      }
+
       /* Determine whether or not this is a comment line. */
       if(szLine[0] == ' ' || nLineLength == 0)
 
@@ -575,7 +581,7 @@ static INT ODListFilenameSplit(const char *pszEntirePath, char *pszDrive,
       {
          pszExtension[0] = '\0';
          nCopyLength = strlen(pchStart);
-         if(nCopyLength > 8) nCopyLength = 0;
+         if(nCopyLength > 8) nCopyLength = 8;
          if(nCopyLength >= nNameSize) return(-1);
          memcpy(pszName, pchStart, nCopyLength);
          pszName[nCopyLength] = '\0';

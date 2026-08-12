@@ -411,7 +411,8 @@ static void skips_all_fragments_until_a_complete_line(void)
    add_line("end", TRUE, 0);
    add_line(" comment", TRUE, 0);
    UT_ASSERT(utt_od_list_files("index.bbs"));
-   UT_ASSERT_EQ_UINT(3, ut_display_calls);
+   UT_ASSERT_EQ_UINT(2, ut_display_calls);
+   UT_ASSERT_EQ_UINT(0, ut_split_calls);
 }
 
 static void handles_stop_and_pause_control_keys(void)
@@ -497,6 +498,11 @@ static void reports_entry_parsing_and_resolution_failures(void)
 
 static void displays_online_and_offline_entries(void)
 {
+   reset_list();
+   make_initial_directory(FALSE);
+   add_line("FILE.ZIP offline", TRUE, 0);
+   UT_ASSERT(utt_od_list_files("index.bbs"));
+
    reset_list();
    make_initial_directory(TRUE);
    add_line("FILE.ZIP short", TRUE, 0);

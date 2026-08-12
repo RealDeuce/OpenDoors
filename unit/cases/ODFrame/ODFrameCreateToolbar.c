@@ -31,7 +31,7 @@ static HWND call_toolbar(tODFrameWindowInfo *info){memset(info,0,sizeof(*info));
 static void unwinds_each_creation_failure_at_the_current_contract(void)
 {tODFrameWindowInfo info;reset_toolbar();ut_toolbar=NULL;UT_ASSERT_NULL(call_toolbar(&info));UT_ASSERT_EQ_UINT(0,ut_destroy_calls);
  reset_toolbar();ut_edit=NULL;UT_ASSERT_NULL(call_toolbar(&info));UT_ASSERT_EQ_UINT(1,ut_destroy_calls);UT_ASSERT_EQ_PTR(ut_toolbar,ut_destroyed[0]);
- reset_toolbar();ut_updown=NULL;UT_ASSERT_NULL(call_toolbar(&info));UT_ASSERT_EQ_UINT(2,ut_destroy_calls);UT_ASSERT_NULL(ut_destroyed[0]);UT_ASSERT_EQ_PTR(ut_toolbar,ut_destroyed[1]);}
+ reset_toolbar();ut_updown=NULL;UT_ASSERT_NULL(call_toolbar(&info));UT_ASSERT_EQ_UINT(2,ut_destroy_calls);UT_ASSERT_EQ_PTR(ut_edit,ut_destroyed[0]);UT_ASSERT_EQ_PTR(ut_toolbar,ut_destroyed[1]);}
 static void creates_and_subclasses_all_toolbar_controls(void)
 {tODFrameWindowInfo info;reset_toolbar();ut_tooltip=NULL;UT_ASSERT_EQ_PTR(ut_toolbar,call_toolbar(&info));UT_ASSERT_EQ_PTR(ut_edit,info.hwndTimeEdit);UT_ASSERT_EQ_PTR(ut_updown,info.hwndTimeUpDown);UT_ASSERT_EQ_UINT(1,ut_update_calls);UT_ASSERT_EQ_UINT(0,ut_destroy_calls);
  reset_toolbar();UT_ASSERT_EQ_PTR(ut_toolbar,call_toolbar(&info));UT_ASSERT_EQ_UINT(1,ut_update_calls);}

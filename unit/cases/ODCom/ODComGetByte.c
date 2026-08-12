@@ -151,7 +151,7 @@ static short ut_ready_events;
 static int ut_recv_results[3];
 static unsigned ut_recv_calls;
 static int ut_socket_error;
-static unsigned ut_semaphore_calls;
+static unsigned ut_semaphore_calls, ut_sleep_calls;
 #ifdef ODPLAT_WIN32
 int PASCAL utm_select(int count, fd_set FAR *read_set,
    fd_set FAR *write_set, fd_set FAR *error_set,
@@ -189,9 +189,11 @@ void utm_ODSemaphoreUp(tODSemaphoreHandle semaphore, INT count)
    UT_ASSERT_EQ_PTR((tODSemaphoreHandle)(DWORD_PTR)47, semaphore);
    UT_ASSERT_EQ_UINT(1, count); ++ut_semaphore_calls;
 }
-void utm_ODThreadSleep(tODMilliSec delay) { UT_ASSERT(delay == 50); }
+void utm_ODThreadSleep(tODMilliSec delay)
+{ UT_ASSERT(delay == 50); ++ut_sleep_calls; }
 #else
-void ODCALL utm_od_sleep(tODMilliSec delay) { UT_ASSERT(delay == 50); }
+void ODCALL utm_od_sleep(tODMilliSec delay)
+{ UT_ASSERT(delay == 50); ++ut_sleep_calls; }
 #endif
 #endif
 
@@ -243,6 +245,7 @@ static void reset_get(void)
 #ifdef INCLUDE_SOCKET_COM
    ut_port.socket = 45; ut_ready_result = 1; ut_ready_events = POLLIN;
    ut_recv_calls = 0; ut_socket_error = 0; ut_semaphore_calls = 0;
+   ut_sleep_calls = 0;
 #ifdef OD_MULTITHREADED
    ut_port.hCarrierLostSemaphore = (tODSemaphoreHandle)(DWORD_PTR)47;
 #endif
@@ -378,11 +381,13 @@ static void reports_socket_readiness_receive_and_retry_outcomes(void)
    ut_socket_error = WSAEWOULDBLOCK; errno = WSAEWOULDBLOCK;
    UT_ASSERT_EQ_INT(kODRCSuccess,
       utt_ODComGetByte(ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
    reset_get(); ut_port.Method = kComMethodSocket;
    ut_recv_results[0] = SOCKET_ERROR;
    ut_socket_error = WSAEWOULDBLOCK; errno = WSAEWOULDBLOCK;
-   UT_ASSERT_EQ_INT(kODRCSuccess,
+   UT_ASSERT_EQ_INT(kODRCNothingWaiting,
       utt_ODComGetByte(ODPTR2HANDLE(&ut_port, tPortInfo), &value, FALSE));
+   UT_ASSERT_EQ_UINT(0, ut_sleep_calls);
    reset_get(); ut_port.Method = kComMethodSocket; ut_recv_results[0] = 0;
    UT_ASSERT_EQ_INT(kODRCNothingWaiting,
       utt_ODComGetByte(ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));

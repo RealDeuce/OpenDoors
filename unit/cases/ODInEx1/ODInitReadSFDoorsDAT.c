@@ -85,7 +85,7 @@ static void rejects_each_truncated_mandatory_record(void)
       ut_text_line_count = available;
       UT_ASSERT_EQ_INT(FALSE, utt_ODInitReadSFDoorsDAT());
       UT_ASSERT_EQ_UINT(available + 1, ut_text_read_count);
-      UT_ASSERT_EQ_UINT(0, ut_text_close_count);
+      UT_ASSERT_EQ_UINT(1, ut_text_close_count);
    }
 }
 

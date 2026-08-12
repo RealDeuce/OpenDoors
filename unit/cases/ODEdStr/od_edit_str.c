@@ -487,6 +487,15 @@ static void control_y_and_auto_delete_clear_existing_text(void)
          EDIT_FLAG_EDIT_STRING | EDIT_FLAG_NO_REDRAW));
    UT_ASSERT(strcmp(input, "") == 0);
 
+   utm_strcpy(input, "a");
+   reset_editor();
+   queue_character(25);
+   queue_character(13);
+   UT_ASSERT_EQ_INT(EDIT_RETURN_ACCEPT,
+      utt_od_edit_str(input, "?", 1, 1, 1, 2, '.',
+         EDIT_FLAG_EDIT_STRING | EDIT_FLAG_NO_REDRAW));
+   UT_ASSERT(strcmp(input, "") == 0);
+
    reset_editor();
    ut_invalid_character = 25;
    ut_invalid_position = 0;

@@ -99,7 +99,7 @@ static void applies_dos_component_length_limits(void)
    result = split("123456789", drive, sizeof(drive), dir, sizeof(dir), name,
       sizeof(name), extension, sizeof(extension));
    UT_ASSERT_EQ_INT(FILENAME, result);
-   UT_ASSERT(strcmp(name, "") == 0);
+   UT_ASSERT(strcmp(name, "12345678") == 0);
 }
 
 static void rejects_each_undersized_output_component(void)

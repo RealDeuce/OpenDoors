@@ -32,6 +32,7 @@ static char ut_press_key[] = "Press";
 static char ut_paging[] = "Paging";
 static char ut_no_response[] = "No response";
 static struct tm ut_time_block;
+static BOOL ut_localtime_fails;
 static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
@@ -143,7 +144,7 @@ time_t utm_time(time_t *storage)
 struct tm *utm_localtime(const time_t *value)
 {
    UT_ASSERT(value != NULL && *value == (time_t)123);
-   return &ut_time_block;
+   return ut_localtime_fails ? NULL : &ut_time_block;
 }
 
 void utm_ODTimerStart(tODTimer *timer, tODMilliSec duration)
@@ -216,6 +217,7 @@ static void reset_page(void)
    bChatted = FALSE;
    pfLogWrite = NULL;
    ut_reason[0] = '\0';
+   ut_localtime_fails = FALSE;
    ut_time_block.tm_hour = 2;
    ut_time_block.tm_min = 30;
    ut_init_calls = ut_entries = ut_exits = 0;
@@ -309,6 +311,24 @@ static void explicit_page_policy_overrides_or_disables_hours(void)
    UT_ASSERT_EQ_INT(FALSE, run_window(100, 200, 50, PAGE_ENABLE));
    UT_ASSERT_EQ_INT(TRUE, run_window(100, 100, 100, PAGE_DISABLE));
    UT_ASSERT_EQ_INT(FALSE, run_window(100, 100, 100, PAGE_USE_HOURS));
+}
+
+static void handles_a_failed_local_time_conversion(void)
+{
+   reset_page();
+   set_reason("why");
+   ut_localtime_fails = TRUE;
+   utt_od_page();
+   UT_ASSERT_EQ_UINT(1, ut_denied_calls);
+   UT_ASSERT_EQ_UINT(0, ut_paging_calls);
+
+   reset_page();
+   set_reason("why");
+   ut_localtime_fails = TRUE;
+   od_control.od_okaytopage = PAGE_ENABLE;
+   utt_od_page();
+   UT_ASSERT_EQ_UINT(0, ut_denied_calls);
+   UT_ASSERT_EQ_UINT(1, ut_paging_calls);
 }
 
 static void successful_paging_updates_hooks_status_and_timeout_message(void)
@@ -415,6 +435,7 @@ static const UTTestCase ut_cases[] = {
    {"daytime hours", daytime_windows_cover_before_inside_and_after},
    {"overnight hours", overnight_windows_cover_both_allowed_sides_and_the_gap},
    {"page policy", explicit_page_policy_overrides_or_disables_hours},
+   {"local time failure", handles_a_failed_local_time_conversion},
    {"successful page", successful_paging_updates_hooks_status_and_timeout_message},
 #ifdef OD_TEXTMODE
    {"page status condition", text_status_line_conditions_are_independent},

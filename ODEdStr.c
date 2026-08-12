@@ -637,6 +637,12 @@ try_this_character:
 
                /* Blank out the current string contents. */
                pszCurrentInput[0] = '\0';
+
+               /* Control-Y only clears the field; it is not field data. */
+               if(chTemp == 25)
+               {
+                  continue;
+               }
             }
 
    add_another_key:

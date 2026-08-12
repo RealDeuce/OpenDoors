@@ -423,7 +423,7 @@ CleanUp:
       }
       if(hwndTimeEdit != NULL)
       {
-         DestroyWindow(hwndTimeUpDown);
+         DestroyWindow(hwndTimeEdit);
       }
       if(hwndToolbar != NULL)
       {

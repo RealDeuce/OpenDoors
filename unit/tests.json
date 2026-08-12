@@ -125,7 +125,11 @@
     {
       "source": "ODPlat.c", "function": "ODPlatInit",
       "case": "unit/cases/ODPlat/ODPlatInit.c",
-      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"]
+      "platforms": ["unix", "pthread", "windows", "dos16", "dos32"],
+      "configurations": [{
+        "name": "default",
+        "turbo_tsr_fixture": "unit/fixtures/dos/multitasker_tsr.asm"
+      }]
     },
     {
       "source": "ODPlat.c", "function": "ODDirRead",

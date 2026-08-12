@@ -70,6 +70,7 @@ static BOOL ut_set_mask_result;
 static BOOL ut_wait_result;
 static DWORD ut_expected_set_mask;
 static int ut_wait_fail_after;
+static BOOL ut_unrelated_first;
 
 BOOL WINAPI utm_GetCommMask(HANDLE device, LPDWORD mask)
 {
@@ -93,7 +94,7 @@ BOOL WINAPI utm_WaitCommEvent(HANDLE device, LPDWORD mask,
    UT_ASSERT_NOT_NULL(mask);
    UT_ASSERT_NULL(overlapped);
    ++ut_wait_calls;
-   *mask = EV_RLSD;
+   *mask = ut_unrelated_first && ut_wait_calls == 1 ? EV_RXCHAR : EV_RLSD;
    if(ut_wait_fail_after != 0 && ut_wait_calls >= ut_wait_fail_after)
       return(FALSE);
    return(ut_wait_result);
@@ -110,6 +111,7 @@ static void reset_windows_port(tPortInfo *port)
    ut_wait_result = TRUE;
    ut_expected_set_mask = EV_RXCHAR | EV_RLSD;
    ut_wait_fail_after = 0;
+   ut_unrelated_first = FALSE;
    ut_wait_calls = 0;
    ut_carrier_calls = 0;
    ut_carrier_before_loss = 0;
@@ -135,6 +137,16 @@ static void reports_each_windows_api_failure(void)
 static void waits_for_windows_carrier_loss(void)
 {
    tPortInfo port;
+
+   /* Ignore an unrelated event without querying carrier state. */
+   reset_windows_port(&port);
+   ut_unrelated_first = TRUE;
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODComWaitEvent(ODPTR2HANDLE(&port, tPortInfo), kNoCarrier));
+   UT_ASSERT_EQ_INT(2, ut_wait_calls);
+   UT_ASSERT_EQ_INT(1, ut_carrier_calls);
+
+   /* Keep waiting when the requested event reports carrier still present. */
    reset_windows_port(&port);
    ut_carrier_before_loss = 1;
    UT_ASSERT_EQ_INT(kODRCSuccess,

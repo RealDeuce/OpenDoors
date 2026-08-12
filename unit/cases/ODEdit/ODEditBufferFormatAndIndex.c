@@ -188,7 +188,7 @@ static void wraps_with_each_word_wrap_boundary_condition(void)
    reset_format(&instance, &options, no_space, lines, 8, 4);
    instance.unCurrentLine = 1;
    UT_ASSERT_EQ_INT(TRUE, utt_ODEditBufferFormatAndIndex(&instance));
-   UT_ASSERT_EQ_PTR(no_space + 3, lines[1]);
+   UT_ASSERT_EQ_PTR(no_space + 2, lines[1]);
 
    reset_format(&instance, &options, no_space, lines, 8, 4);
    instance.bWordWrapLongLines = TRUE;

@@ -2427,9 +2427,9 @@ static BOOL ODEditBufferFormatAndIndex(tEditInstance *pEditInstance)
          bAtEndOfBuffer = TRUE;
       }
 
-      /* If the line was not terminated by a '\0', then find the first */
-      /* character of the next line.                                   */
-      else
+      /* Consume an explicit line ending or a space selected for word */
+      /* wrapping. A hard-wrap boundary character starts the next line. */
+      else if(bLineEndedByBreak || *pch == ' ')
       {
          char chFirstEOLChar = *pch;
          char chSecondEOLChar = '\0';

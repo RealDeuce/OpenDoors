@@ -1569,64 +1569,64 @@ static BOOL ODInitReadSFDoorsDAT(void)
    if((pfDropFile=fopen(szDropFilePath,"r"))==NULL) return(FALSE);
 
    /* Line 1: User number. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.user_num=atoi(szIFTemp);
 
    /* Line 2: User name. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    szIFTemp[35]='\0';
    ODStringToName(szIFTemp);
    strcpy(od_control.user_name,szIFTemp);
 
    /* Line 3: User password. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    szIFTemp[15]='\0';
    ODStringToName(szIFTemp);
    strcpy(od_control.user_password,szIFTemp);
 
    /* Line 4: Unused. */
-   if(fgets((char *)apszDropFileInfo[0],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[0],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 5: Modem <-> Serial port bps rate. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.baud=atol(szIFTemp);
 
    /* Line 6: Serial port number. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.port=atoi(szIFTemp)-1;
 
    /* Line 7: User's time remaining. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.user_timelimit=atoi(szIFTemp);
 
    /* Line 8: Unused. */
-   if(fgets((char *)apszDropFileInfo[13],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[13],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 9: Unused. */
-   if(fgets((char *)apszDropFileInfo[14],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[14],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 10: User's ANSI mode setting. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    strupr(szIFTemp);
    od_control.user_ansi=(szIFTemp[0]=='T');
 
    /* Line 11: User's security level. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.user_security=atoi(szIFTemp);
 
    /* Line 12: User's upload count. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.user_uploads=atoi(szIFTemp);
 
    /* Line 13: User's download count. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.user_downloads=atoi(szIFTemp);
 
    /* Line 14: Unused. */
-   if(fgets((char *)apszDropFileInfo[1],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[1],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 15: User's login time. */
-   if(fgets((char *)apszDropFileInfo[2],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[2],80,pfDropFile)==NULL) goto ReadFailure;
    nLoginMinutes = atol((char *)apszDropFileInfo[2]);
    if(nLoginMinutes < 0)
       nLoginMinutes = 0;
@@ -1638,68 +1638,68 @@ static BOOL ODInitReadSFDoorsDAT(void)
       nLoginHourPart, nLoginMinutePart);
 
    /* Line 16: Unused. */
-   if(fgets((char *)apszDropFileInfo[3],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[3],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 17: Sysop next flag. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    strupr(szIFTemp);
    od_control.sysop_next=(szIFTemp[0]=='T');
 
    /* Line 18: Unused. */
-   if(fgets((char *)apszDropFileInfo[4],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[4],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 19: Unused. */
-   if(fgets((char *)apszDropFileInfo[5],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[5],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 20: Unused. */
-   if(fgets((char *)apszDropFileInfo[6],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[6],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 21: Error free connection flag. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    strupr(szIFTemp);
    od_control.user_error_free=(szIFTemp[0]=='T');
 
    /* Line 22: Current message area. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.user_msg_area=atoi(szIFTemp);
 
    /* Line 23: Current file area. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.user_file_area=atoi(szIFTemp);
 
    /* Line 24: Current node number. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.od_node=atoi(szIFTemp);
 
    /* Line 25: Unused. */
-   if(fgets((char *)apszDropFileInfo[10],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[10],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 26: Unused. */
-   if(fgets((char *)apszDropFileInfo[11],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[11],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 27: Unused. */
-   if(fgets((char *)apszDropFileInfo[12],80,pfDropFile)==NULL) return(FALSE);
+   if(fgets((char *)apszDropFileInfo[12],80,pfDropFile)==NULL) goto ReadFailure;
 
    /* Line 28: Kilobytes downloaded today. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.user_todayk=atoi(szIFTemp);
 
    /* Line 29: Kilobytes uploaded in total. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.user_upk=atoi(szIFTemp);
 
    /* Line 30: Kilobytes downloaded in total. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    od_control.user_downk=atoi(szIFTemp);
 
    /* Line 31: User's home phone number. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    szIFTemp[15]='\0';
    ODStringToName(szIFTemp);
    strcpy(od_control.user_homephone,szIFTemp);
 
    /* Line 32: User's home location. */
-   if(fgets(szIFTemp,255,pfDropFile)==NULL) return(FALSE);
+   if(fgets(szIFTemp,255,pfDropFile)==NULL) goto ReadFailure;
    szIFTemp[25]='\0';
    ODStringToName(szIFTemp);
    strcpy(od_control.user_location,szIFTemp);
@@ -1751,6 +1751,10 @@ static BOOL ODInitReadSFDoorsDAT(void)
    fclose(pfDropFile);
 
    return(TRUE);
+
+ReadFailure:
+   fclose(pfDropFile);
+   return(FALSE);
 }
 
 

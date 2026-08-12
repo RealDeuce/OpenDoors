@@ -123,7 +123,11 @@ void utm_ODInExDisableDTR(void) { ++ut_disable_dtr_calls; }
 static BYTE ut_screen[4000];
 static char ut_directory[256];
 static unsigned ut_malloc_calls, ut_malloc_fail_at, ut_free_calls;
-static unsigned ut_screen_clear_calls, ut_cursor_calls;
+static unsigned ut_screen_clear_calls, ut_screen_put_calls;
+static unsigned ut_boundary_calls, ut_attribute_calls, ut_cursor_calls;
+static BYTE ut_boundary_left, ut_boundary_top;
+static BYTE ut_boundary_right, ut_boundary_bottom;
+static BYTE ut_attribute, ut_cursor_column, ut_cursor_row;
 void *utm_malloc(size_t size)
 {
    unsigned call = ++ut_malloc_calls;
@@ -137,17 +141,22 @@ void utm_ODScrnGetTextInfo(tODScrnTextInfo *info)
 { info->winleft = 2; info->wintop = 3; info->winright = 70; info->winbottom = 20;
   info->attribute = 6; info->curx = 7; info->cury = 8; }
 void utm_ODScrnSetBoundary(BYTE left, BYTE top, BYTE right, BYTE bottom)
-{ (void)left; (void)top; (void)right; (void)bottom; }
+{
+   ++ut_boundary_calls; ut_boundary_left = left; ut_boundary_top = top;
+   ut_boundary_right = right; ut_boundary_bottom = bottom;
+}
 BOOL ODCALL utm_ODScrnGetText(BYTE left, BYTE top, BYTE right, BYTE bottom, void *buffer)
 { UT_ASSERT_EQ_INT(1, left); UT_ASSERT_EQ_INT(1, top); UT_ASSERT_EQ_INT(80, right);
   UT_ASSERT_EQ_INT(25, bottom); UT_ASSERT_EQ_PTR(ut_screen, buffer); return(TRUE); }
 BOOL ODCALL utm_ODScrnPutText(BYTE left, BYTE top, BYTE right, BYTE bottom, void *buffer)
 { UT_ASSERT_EQ_INT(1, left); UT_ASSERT_EQ_INT(1, top); UT_ASSERT_EQ_INT(80, right);
-  UT_ASSERT_EQ_INT(25, bottom); UT_ASSERT_EQ_PTR(ut_screen, buffer); return(TRUE); }
-void ODCALL utm_ODScrnSetAttribute(BYTE attribute) { (void)attribute; }
+  UT_ASSERT_EQ_INT(25, bottom); UT_ASSERT_EQ_PTR(ut_screen, buffer);
+  ++ut_screen_put_calls; return(TRUE); }
+void ODCALL utm_ODScrnSetAttribute(BYTE attribute)
+{ ++ut_attribute_calls; ut_attribute = attribute; }
 void utm_ODScrnClear(void) { ++ut_screen_clear_calls; }
 void ODCALL utm_ODScrnSetCursorPos(BYTE column, BYTE row)
-{ (void)column; (void)row; ++ut_cursor_calls; }
+{ ++ut_cursor_calls; ut_cursor_column = column; ut_cursor_row = row; }
 #ifdef ODPLAT_DOS
 char *utm_strcpy(char *destination, const char *source)
 { char *out = destination; while((*out++ = *source++) != '\0') {} return(destination); }
@@ -181,7 +190,11 @@ static void reset_spawnvpe(void)
 #endif
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    ut_malloc_calls = ut_malloc_fail_at = ut_free_calls = 0;
-   ut_screen_clear_calls = ut_cursor_calls = 0;
+   ut_screen_clear_calls = ut_screen_put_calls = 0;
+   ut_boundary_calls = ut_attribute_calls = ut_cursor_calls = 0;
+   ut_boundary_left = ut_boundary_top = 0;
+   ut_boundary_right = ut_boundary_bottom = 0;
+   ut_attribute = ut_cursor_column = ut_cursor_row = 0;
 #endif
 }
 
@@ -237,7 +250,20 @@ static void covers_dos_screen_wait_and_serial_paths(void)
    UT_ASSERT_EQ_UINT(2, ut_free_calls);
    reset_spawnvpe(); ut_wait_aborts = TRUE;
    UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
-   UT_ASSERT_EQ_UINT(0, ut_spawn_calls);
+   UT_ASSERT_EQ_UINT(0, ut_spawn_calls); UT_ASSERT_EQ_UINT(2, ut_free_calls);
+   UT_ASSERT_EQ_UINT(1, ut_screen_put_calls);
+   UT_ASSERT_EQ_UINT(2, ut_boundary_calls);
+   UT_ASSERT_EQ_INT(2, ut_boundary_left); UT_ASSERT_EQ_INT(3, ut_boundary_top);
+   UT_ASSERT_EQ_INT(70, ut_boundary_right); UT_ASSERT_EQ_INT(20, ut_boundary_bottom);
+   UT_ASSERT_EQ_UINT(2, ut_attribute_calls); UT_ASSERT_EQ_INT(6, ut_attribute);
+   UT_ASSERT_EQ_UINT(2, ut_cursor_calls);
+   UT_ASSERT_EQ_INT(7, ut_cursor_column); UT_ASSERT_EQ_INT(8, ut_cursor_row);
+   reset_spawnvpe(); od_control.od_silent_mode = TRUE; ut_wait_aborts = TRUE;
+   UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_UINT(0, ut_spawn_calls); UT_ASSERT_EQ_UINT(2, ut_free_calls);
+   UT_ASSERT_EQ_UINT(0, ut_screen_put_calls);
+   UT_ASSERT_EQ_UINT(1, ut_boundary_calls);
+   UT_ASSERT_EQ_UINT(1, ut_attribute_calls); UT_ASSERT_EQ_UINT(1, ut_cursor_calls);
    reset_spawnvpe(); od_control.baud = 9600;
    UT_ASSERT_EQ_INT(7, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_UINT(1, ut_close_calls); UT_ASSERT_EQ_UINT(1, ut_open_calls);

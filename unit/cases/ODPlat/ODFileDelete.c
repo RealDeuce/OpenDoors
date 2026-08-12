@@ -57,7 +57,7 @@ static void reports_delete_success_and_failure(void)
    UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODFileDelete("DELETE.TMP"));
 # elif defined(ODPLAT_NIX)
    ut_delete_result = -1;
-   UT_ASSERT_EQ_INT(-1, utt_ODFileDelete("DELETE.TMP"));
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODFileDelete("DELETE.TMP"));
 # else
    ut_delete_result = -1;
    UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODFileDelete("DELETE.TMP"));

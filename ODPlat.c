@@ -163,6 +163,7 @@ NoOS2:
 
    /* If we get to this point, then DesqView has been detected. */
    ODMultitasker = kMultitaskerDV;
+   return;
 
 NoDesqView:
    /* Check whether we are running under Windows. */
@@ -179,6 +180,7 @@ NoDesqView:
 
     /* If we get to this point, then Windows has been detected. */
    ODMultitasker = kMultitaskerWin;
+   return;
 
 NoWindows:
    ODMultitasker = kMultitaskerNone;
@@ -1415,8 +1417,9 @@ static time_t DOSToCTime(WORD wDate, WORD wTime)
 
    return((time_t)dostounix(&DateStruct, &TimeStruct));
 #else
-   struct tm TimeStruct;
+   struct tm TimeStruct = {0};
 
+   TimeStruct.tm_isdst = -1;
    TimeStruct.tm_sec = (wTime & 0x001f) * 2;
    TimeStruct.tm_min = (wTime & 0x07e0) >> 5;
    TimeStruct.tm_hour = (wTime & 0xf800) >> 11;
@@ -1747,7 +1750,7 @@ Done:
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-   return(unlink(pszPath));
+   return(unlink(pszPath) == 0 ? kODRCSuccess : kODRCGeneralFailure);
 #endif
 }
 

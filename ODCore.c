@@ -788,26 +788,33 @@ ODAPIDEF void ODCALL od_page(void)
       /* the current time.                                            */
       nUnixTime = time(NULL);
       TimeBlock = localtime(&nUnixTime);
-      nMinute = (60 * TimeBlock->tm_hour) + TimeBlock->tm_min;
-      if(od_control.od_pagestartmin < od_control.od_pageendmin)
+      if(TimeBlock == NULL)
       {
-         if(nMinute < od_control.od_pagestartmin
-            || nMinute >= od_control.od_pageendmin)
-         {
-            bFailed = TRUE;
-         }
-      }
-      else if(od_control.od_pagestartmin > od_control.od_pageendmin)
-      {
-         if(nMinute < od_control.od_pagestartmin
-            && nMinute >= od_control.od_pageendmin)
-         {
-            bFailed = TRUE;
-         }
+         bFailed = TRUE;
       }
       else
       {
-         bFailed = FALSE;
+         nMinute = (60 * TimeBlock->tm_hour) + TimeBlock->tm_min;
+         if(od_control.od_pagestartmin < od_control.od_pageendmin)
+         {
+            if(nMinute < od_control.od_pagestartmin
+               || nMinute >= od_control.od_pageendmin)
+            {
+               bFailed = TRUE;
+            }
+         }
+         else if(od_control.od_pagestartmin > od_control.od_pageendmin)
+         {
+            if(nMinute < od_control.od_pagestartmin
+               && nMinute >= od_control.od_pageendmin)
+            {
+               bFailed = TRUE;
+            }
+         }
+         else
+         {
+            bFailed = FALSE;
+         }
       }
 
       /* If paging is set to PAGE_ENABLE, meaning that sysop paging should */
@@ -1194,6 +1201,11 @@ void ODRestoreTextInfo(void)
  */
 void ODStringToName(char *pszToConvert)
 {
+   if(*pszToConvert == '\0')
+   {
+      return;
+   }
+
    /* Begin by changing the entire string to lower case. */
    strlwr(pszToConvert);
 
