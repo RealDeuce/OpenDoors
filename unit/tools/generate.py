@@ -18,14 +18,18 @@ LOCAL_CASE_INCLUDE = re.compile(
 CUSTOM_MOCK = re.compile(
     r'^[ \t]*#[ \t]*define[ \t]+UT_CUSTOM_MOCK_([A-Za-z_][A-Za-z0-9_]*)\b',
     re.MULTILINE)
-HEADER_MACRO_APIS = {
+CTYPE_APIS = {
     "isalnum", "isalpha", "isblank", "iscntrl", "isdigit", "isgraph",
     "islower", "isprint", "ispunct", "isspace", "isupper", "isxdigit",
+    "tolower", "toupper",
+}
+HEADER_MACRO_APIS = CTYPE_APIS | {
     "memchr", "memcmp", "memcpy", "memmove", "memset",
     "mktime", "printf",
     "sigaddset", "sigemptyset", "sigismember", "sigpending", "sigprocmask",
-    "snprintf", "sprintf", "strcat", "strcpy", "strncpy", "time",
-    "tolower", "toupper", "vsnprintf", "vsprintf",
+    "snprintf", "sprintf", "strcat", "strcpy", "strncat", "strncpy",
+    "time",
+    "vsnprintf", "vsprintf",
 }
 
 
@@ -62,8 +66,10 @@ def explicit_mock_names(case_text: str,
 
 
 def early_mock_declarations(names: set[str]) -> list[str]:
-    """Declare CRT errno accessors before later runtime headers use them."""
+    """Declare mock APIs needed before the isolated target body."""
     declarations = []
+    declarations.extend(f"int utm_{name}(int);"
+                        for name in sorted(names & CTYPE_APIS))
     if "__error" in names:
         declarations.extend(("int *__error(void);",
                              "int *utm___error(void);"))
@@ -79,6 +85,11 @@ def early_mock_declarations(names: set[str]) -> list[str]:
             "int utm_vsnprintf(char *, size_t, const char *, va_list);",
         ])
     return declarations
+
+
+def early_alias_macros(macros: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Exclude aliases which would rename header-provided inline bodies."""
+    return [macro for macro in macros if macro[0] not in CTYPE_APIS]
 
 
 def blank_body(text: str) -> str:
@@ -295,7 +306,7 @@ def generate(source: Path, target_name: str, case: Path, output: Path,
     lines.extend(early_mock_declarations(alias_names))
     if early_mock_declarations(alias_names):
         lines.append("")
-    for original, replacement in macros:
+    for original, replacement in early_alias_macros(macros):
         lines.append(f"#define {original} {replacement}")
     lines.append(f'#line 1 "{source.name}"')
     body_index = len(lines)

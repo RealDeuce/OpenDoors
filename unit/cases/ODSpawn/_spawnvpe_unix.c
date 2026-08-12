@@ -1,3 +1,5 @@
+#define UT_CUSTOM_MOCK_strcpy
+
 #ifdef ODPLAT_NIX
 #include <setjmp.h>
 static int ut_errno_value;
@@ -40,12 +42,18 @@ char *utm_strchr(const char *text, int character)
   return(character == 0 ? (char *)text : NULL); }
 char *utm_getenv(const char *name)
 { UT_ASSERT(strcmp(name, "PATH") == 0); return((char *)ut_path_value); }
+char *utm_strcpy(char *destination, const char *source)
+{
+   char *result = destination;
+   while((*destination++ = *source++) != '\0') { }
+   return(result);
+}
 size_t utm_confstr(int name, char *buffer, size_t size)
 {
    ++ut_confstr_calls; UT_ASSERT_EQ_INT(_CS_PATH, name);
    if(buffer == NULL) { UT_ASSERT_EQ_UINT(0, size); return(ut_confstr_size); }
    UT_ASSERT_EQ_PTR(ut_default_path, buffer); UT_ASSERT_EQ_UINT(ut_confstr_size, size);
-   if(ut_confstr_fill_result != 0) strcpy(buffer, "/bin");
+   if(ut_confstr_fill_result != 0) utm_strcpy(buffer, "/bin");
    return(ut_confstr_fill_result);
 }
 void *utm_malloc(size_t size)
@@ -185,7 +193,6 @@ static const UTTestCase ut_cases[] = {
 #define UT_CUSTOM_MOCK_getenv
 #define UT_CUSTOM_MOCK_strlen
 #define UT_CUSTOM_MOCK_strchr
-#define UT_CUSTOM_MOCK_strcpy
 #define UT_CUSTOM_MOCK__spawnve
 
 static int ut_errno_value;

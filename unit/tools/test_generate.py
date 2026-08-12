@@ -7,7 +7,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from clang_model import Callable, Variable  # noqa: E402
-from generate import (default_mock, early_mock_declarations, embedded_case,
+from generate import (default_mock, early_alias_macros,
+                      early_mock_declarations, embedded_case,
                       explicit_mock_names, generate, insert_late_defines,
                       mock_definitions,
                       replace_c_includes,
@@ -109,11 +110,13 @@ class EarlyMockDeclarationTests(unittest.TestCase):
                 "#define UT_CUSTOM_MOCK_printf\n"
                 "#define UT_CUSTOM_MOCK_strcat\n"
                 "#define UT_CUSTOM_MOCK_strcpy\n"
+                "#define UT_CUSTOM_MOCK_strncat\n"
                 "#define UT_CUSTOM_MOCK_strncpy\n"
                 "#define UT_CUSTOM_MOCK_time\n")
         self.assertEqual(explicit_mock_names(case),
                          {"memcpy", "mktime", "printf", "sigemptyset",
-                          "strcat", "strcpy", "strncpy", "time"})
+                          "strcat", "strcpy", "strncat", "strncpy",
+                          "time"})
 
     def test_dos_does_not_force_modern_header_macro_interception(self):
         case = ("#define UT_CUSTOM_MOCK_isspace\n"
@@ -138,6 +141,20 @@ class EarlyMockDeclarationTests(unittest.TestCase):
         self.assertEqual(early_mock_declarations({"vsnprintf"}), [
             "#include <stdarg.h>",
             "int utm_vsnprintf(char *, size_t, const char *, va_list);"
+        ])
+
+    def test_prototypes_ctype_mocks_without_renaming_header_definitions(self):
+        self.assertEqual(early_mock_declarations({"isspace", "toupper"}), [
+            "int utm_isspace(int);",
+            "int utm_toupper(int);",
+        ])
+        self.assertEqual(early_alias_macros([
+            ("target", "utt_target"),
+            ("strcpy", "utm_strcpy"),
+            ("toupper", "utm_toupper"),
+        ]), [
+            ("target", "utt_target"),
+            ("strcpy", "utm_strcpy"),
         ])
 
     def test_reasserts_dependency_aliases_after_runtime_headers(self):
