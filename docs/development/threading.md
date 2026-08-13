@@ -30,11 +30,13 @@ needed by the Windows UI. It does not select a separate kernel implementation.
 
 ## Synchronization domains
 
-The owner is the sole accessor of `od_control`. The Windows UI reads a cache
+The owner is the sole accessor of
+[`od_control`](../reference/control/index.md). The Windows UI reads a cache
 containing only its required fields. At an outer API entry, exit, or blocking
-checkpoint, the owner drains the pending UI FIFO into `od_control` in order and
-then refreshes that cache. The cache and FIFO head and tail are protected by
-the kernel-state mutex.
+checkpoint, the owner drains the pending UI FIFO into
+[`od_control`](../reference/control/index.md) in order and then refreshes that
+cache. The cache and FIFO head and tail are protected by the kernel-state
+mutex.
 
 Windows screen state has two complete buffers. The owner mutates the
 application buffer and records one dirty bit. At outer API exit, or before a
