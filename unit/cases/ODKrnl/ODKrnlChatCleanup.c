@@ -1,14 +1,8 @@
 #define UT_CUSTOM_MOCK_od_set_attrib
 #define UT_CUSTOM_MOCK_od_disp_str
-#ifdef ODPLAT_WIN32
-#define UT_CUSTOM_MOCK_ODFrameUpdateCmdUI
-#endif
 static unsigned ut_attrib_calls, ut_display_calls, ut_callback_calls;
 static unsigned ut_log_calls;
 static INT ut_attribs[2];
-#ifdef ODPLAT_WIN32
-static unsigned ut_ui_calls;
-#endif
 void ODCALL utm_od_set_attrib(INT attrib)
 {
    UT_ASSERT(ut_attrib_calls < 2);
@@ -34,15 +28,9 @@ static BOOL ODCALL ut_log(INT event)
    UT_ASSERT_EQ_UINT(10, event);
    return(TRUE);
 }
-#ifdef ODPLAT_WIN32
-void utm_ODFrameUpdateCmdUI(void) { ++ut_ui_calls; }
-#endif
 static void reset_cleanup(void)
 {
    ut_attrib_calls = ut_display_calls = ut_callback_calls = ut_log_calls = 0;
-#ifdef ODPLAT_WIN32
-   ut_ui_calls = 0;
-#endif
    od_control.od_chat_color1 = 7;
    od_control.od_after_chat = NULL;
    od_control.od_cafter_chat = NULL;
@@ -59,9 +47,6 @@ static void restores_state_with_no_optional_notifications(void)
    UT_ASSERT_EQ_INT(7, ut_attribs[0]); UT_ASSERT_EQ_INT(3, ut_attribs[1]);
    UT_ASSERT_EQ_UINT(0, ut_display_calls); UT_ASSERT_EQ_UINT(0, ut_callback_calls);
    UT_ASSERT_EQ_UINT(0, ut_log_calls); UT_ASSERT(!od_control.od_chat_active);
-#ifdef ODPLAT_WIN32
-   UT_ASSERT_EQ_UINT(1, ut_ui_calls);
-#endif
 }
 static void invokes_each_optional_notification(void)
 {

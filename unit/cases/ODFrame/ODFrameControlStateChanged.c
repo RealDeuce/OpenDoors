@@ -1,10 +1,18 @@
+#ifdef _MSC_VER
+#define UT_CUSTOM_MOCK__InterlockedExchange
+#else
 #define UT_CUSTOM_MOCK_InterlockedExchange
+#endif
 #define UT_CUSTOM_MOCK_PostMessageA
 
 static unsigned ut_post_calls;
 static BOOL ut_post_result;
 
+#ifdef _MSC_VER
+LONG utm__InterlockedExchange(LONG volatile *pValue, LONG value)
+#else
 LONG WINAPI utm_InterlockedExchange(LONG volatile *pValue, LONG value)
+#endif
 {
    LONG old = *pValue;
    *pValue = value;

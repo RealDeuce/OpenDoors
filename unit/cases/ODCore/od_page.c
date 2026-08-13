@@ -17,9 +17,6 @@
 #define UT_CUSTOM_MOCK_od_sleep
 #endif
 #define UT_CUSTOM_MOCK_od_kernel
-#ifdef ODPLAT_WIN32
-#define UT_CUSTOM_MOCK_ODFrameUpdateWantChat
-#endif
 #ifdef OD_TEXTMODE
 #define UT_CUSTOM_MOCK_od_set_statusline
 #endif
@@ -57,9 +54,6 @@ static unsigned ut_sleep_calls;
 static BOOL ut_shutdown_on_sleep;
 #endif
 static unsigned ut_kernel_calls;
-#ifdef ODPLAT_WIN32
-static unsigned ut_frame_calls;
-#endif
 #ifdef OD_TEXTMODE
 static unsigned ut_status_calls;
 static INT ut_status_setting;
@@ -169,9 +163,6 @@ void ODCALL utm_od_sleep(tODMilliSec duration)
 #endif
 void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
-#ifdef ODPLAT_WIN32
-void utm_ODFrameUpdateWantChat(void) { ++ut_frame_calls; }
-#endif
 
 #ifdef OD_TEXTMODE
 void ODCALL utm_od_set_statusline(INT setting)
@@ -231,9 +222,6 @@ static void reset_page(void)
    ut_shutdown_on_sleep = FALSE;
 #endif
    ut_kernel_calls = 0;
-#ifdef ODPLAT_WIN32
-   ut_frame_calls = 0;
-#endif
 #ifdef OD_TEXTMODE
    ut_status_calls = 0;
    ut_status_setting = -1;
@@ -345,9 +333,6 @@ static void successful_paging_updates_hooks_status_and_timeout_message(void)
    UT_ASSERT_EQ_UINT(1, ut_no_response_calls);
    UT_ASSERT_EQ_UINT(1, ut_answer_calls);
    UT_ASSERT(ut_kernel_calls > 0);
-#ifdef ODPLAT_WIN32
-   UT_ASSERT_EQ_UINT(1, ut_frame_calls);
-#endif
 #ifdef OD_TEXTMODE
    UT_ASSERT_EQ_UINT(1, ut_status_calls);
    UT_ASSERT_EQ_INT(3, ut_status_setting);

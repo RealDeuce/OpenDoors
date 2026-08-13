@@ -5,9 +5,6 @@
 #define UT_CUSTOM_MOCK_ODInQueueResetLastActivity
 #define UT_CUSTOM_MOCK_ODKrnlDeliverTimeMessage
 #define UT_CUSTOM_MOCK_sprintf
-#ifdef ODPLAT_WIN32
-#define UT_CUSTOM_MOCK_ODFrameUpdateTimeDisplay
-#endif
 
 static time_t ut_times[8];
 static unsigned ut_time_index;
@@ -19,9 +16,6 @@ static BOOL ut_delivery_result;
 static BYTE ut_delivery_reason;
 static BOOL ut_delivery_allows_callbacks;
 static char ut_delivery_text[80];
-#ifdef ODPLAT_WIN32
-static unsigned ut_frame_calls;
-#endif
 
 time_t utm_time(time_t *result)
 {
@@ -64,9 +58,6 @@ int utm_sprintf(char *buffer, const char *format, ...)
    strcpy(buffer, "3 minutes");
    return(9);
 }
-#ifdef ODPLAT_WIN32
-void utm_ODFrameUpdateTimeDisplay(void) { ++ut_frame_calls; }
-#endif
 
 static void reset_time_update(void)
 {
@@ -82,9 +73,6 @@ static void reset_time_update(void)
    ut_delivery_reason = 0;
    ut_delivery_allows_callbacks = FALSE;
    ut_delivery_text[0] = '\0';
-#ifdef ODPLAT_WIN32
-   ut_frame_calls = 0;
-#endif
    nLastInactivitySetting = 0;
    bWarnedAboutInactivity = FALSE;
    nNextTimeDeductTime = 200;
@@ -268,9 +256,6 @@ static void applies_final_time_limit_policy(void)
    UT_ASSERT_EQ_UINT(1, ut_delivery_calls);
    UT_ASSERT_EQ_UINT(ERRORLEVEL_TIMEOUT, ut_delivery_reason);
    UT_ASSERT(strcmp("no time", ut_delivery_text) == 0);
-#ifdef ODPLAT_WIN32
-   UT_ASSERT_EQ_UINT(1, ut_frame_calls);
-#endif
 }
 
 static const UTTestCase ut_cases[] = {

@@ -7,9 +7,6 @@
 #define UT_CUSTOM_MOCK_ODTimerElapsed
 #define UT_CUSTOM_MOCK_od_sleep
 #define UT_CUSTOM_MOCK_od_kernel
-#ifdef ODPLAT_WIN32
-#define UT_CUSTOM_MOCK_ODFrameUpdateWantChat
-#endif
 
 #define UT_MAX_KEYS 160
 #define UT_CHAT_MAX_CALLS 200
@@ -39,9 +36,6 @@ static unsigned ut_timer_checks;
 static unsigned ut_sleep_calls;
 static unsigned ut_kernel_calls;
 static BOOL ut_timer_elapsed;
-#ifdef ODPLAT_WIN32
-static unsigned ut_frame_calls;
-#endif
 
 static void add_key(BYTE key, BOOL local)
 {
@@ -142,9 +136,6 @@ void ODCALL utm_od_sleep(tODMilliSec duration)
 
 void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
-#ifdef ODPLAT_WIN32
-void utm_ODFrameUpdateWantChat(void) { ++ut_frame_calls; }
-#endif
 
 static void reset_chat(void)
 {
@@ -161,9 +152,6 @@ static void reset_chat(void)
       ut_attributes[index] = 0;
    ut_timer_starts = ut_timer_checks = ut_sleep_calls = ut_kernel_calls = 0;
    ut_timer_elapsed = FALSE;
-#ifdef ODPLAT_WIN32
-   ut_frame_calls = 0;
-#endif
    bChatted = FALSE;
    bSysopColor = FALSE;
    bShellChatActive = FALSE;
@@ -193,9 +181,6 @@ static void initializes_chat_and_handles_optional_entry_actions(void)
    UT_ASSERT_EQ_INT(4, ut_attributes[0]);
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
    UT_ASSERT_EQ_UINT(1, ut_timer_starts);
-#ifdef ODPLAT_WIN32
-   UT_ASSERT_EQ_UINT(1, ut_frame_calls);
-#endif
 
    reset_chat();
    od_control.od_before_chat = (char *)"before";

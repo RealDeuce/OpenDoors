@@ -22,6 +22,7 @@
 #define UT_CUSTOM_MOCK_ODInitError
 #define UT_CUSTOM_MOCK_ODInitSelectTerminalBaud
 #define UT_CUSTOM_MOCK_ODKrnlInitialize
+#define UT_CUSTOM_MOCK_ODKrnlRefreshUIState
 #define UT_CUSTOM_MOCK_ODKrnlShutdown
 #define UT_CUSTOM_MOCK_ODScrnCreateWindow
 #define UT_CUSTOM_MOCK_ODScrnDestroyWindow
@@ -65,6 +66,7 @@ static unsigned ut_existing_calls;
 static unsigned ut_dtr_calls;
 static unsigned ut_kernel_calls;
 static unsigned ut_kernel_shutdown_calls;
+static unsigned ut_refresh_calls;
 static unsigned ut_sync_calls;
 static unsigned ut_clear_calls;
 static unsigned ut_atexit_calls;
@@ -88,6 +90,7 @@ static INT ut_session_height;
 static const char *ut_error_text;
 static jmp_buf ut_exit_target;
 static BOOL ut_exit_expected;
+static BOOL ut_refresh_result;
 
 #ifdef ODPLAT_NIX
 static int ut_isatty_result;
@@ -100,6 +103,7 @@ static struct passwd ut_passwd;
 static int ut_module_token;
 static HMODULE ut_module = (HMODULE)&ut_module_token;
 static BOOL ut_first_module_missing;
+static BOOL ut_cancel_during_frame_start;
 #endif
 
 #ifdef OD_TEXTMODE
@@ -294,6 +298,12 @@ tODResult utm_ODKrnlInitialize(void)
    return ut_kernel_result;
 }
 
+BOOL utm_ODKrnlRefreshUIState(void)
+{
+   ++ut_refresh_calls;
+   return ut_refresh_result;
+}
+
 void utm_ODKrnlShutdown(void)
 {
    ++ut_kernel_shutdown_calls;
@@ -407,6 +417,8 @@ tODResult utm_ODFrameStart(HANDLE instance, tODThreadHandle *thread)
    UT_ASSERT_EQ_PTR(ut_module, instance);
    (void)thread;
    ++ut_frame_calls;
+   if(ut_cancel_during_frame_start)
+      bWindowsStartupCancelled = TRUE;
    return ut_frame_result;
 }
 
@@ -522,6 +534,7 @@ static void reset_part_two_fixture(void)
    ut_dtr_calls = 0;
    ut_kernel_calls = 0;
    ut_kernel_shutdown_calls = 0;
+   ut_refresh_calls = 0;
    ut_sync_calls = 0;
    ut_clear_calls = 0;
    ut_atexit_calls = 0;
@@ -544,6 +557,7 @@ static void reset_part_two_fixture(void)
    ut_session_height = 0;
    ut_error_text = NULL;
    ut_exit_expected = FALSE;
+   ut_refresh_result = TRUE;
    hSerialPort = NULL;
    nForcedPort = -1;
    dwForcedBPS = 1;
@@ -564,6 +578,7 @@ static void reset_part_two_fixture(void)
 #endif
 #ifdef ODPLAT_WIN32
    ut_first_module_missing = FALSE;
+   ut_cancel_during_frame_start = FALSE;
    od_control.od_silent_mode = TRUE;
 #endif
 #ifdef OD_TEXTMODE
@@ -907,8 +922,19 @@ static void exercises_unix_local_account_and_terminal_paths(void)
 static void exercises_windows_frame_startup(void)
 {
    reset_part_two_fixture();
+   ut_refresh_result = FALSE;
+   bODInitialized = TRUE;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(1, ut_refresh_calls);
+   UT_ASSERT_EQ_UINT(1, ut_kernel_shutdown_calls);
+   UT_ASSERT_EQ_INT(FALSE, bODInitialized);
+   UT_ASSERT_EQ_UINT(1, ut_error_calls);
+   UT_ASSERT_EQ_UINT(0, ut_sync_calls);
+
+   reset_part_two_fixture();
    od_control.od_silent_mode = FALSE;
    utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(1, ut_refresh_calls);
    UT_ASSERT_EQ_UINT(1, ut_frame_calls);
    UT_ASSERT_EQ_UINT(1, ut_publish_calls);
    UT_ASSERT_EQ_UINT(1, ut_sync_calls);
@@ -922,6 +948,13 @@ static void exercises_windows_frame_startup(void)
 
    reset_part_two_fixture();
    od_control.od_silent_mode = FALSE;
+   bPromptForUserName = TRUE;
+   utm_strcpy(szWindowsStartupUserName, "Prompted User");
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(2, ut_refresh_calls);
+
+   reset_part_two_fixture();
+   od_control.od_silent_mode = FALSE;
    ut_frame_result = kODRCGeneralFailure;
    bODInitialized = TRUE;
    utt_ODInitPartTwo();
@@ -930,6 +963,21 @@ static void exercises_windows_frame_startup(void)
    UT_ASSERT_EQ_INT(FALSE, bODInitialized);
    UT_ASSERT_EQ_UINT(1, ut_error_calls);
    UT_ASSERT_EQ_UINT(0, ut_sync_calls);
+
+   reset_part_two_fixture();
+   od_control.od_silent_mode = FALSE;
+   ut_frame_result = kODRCGeneralFailure;
+   ut_cancel_during_frame_start = TRUE;
+   ut_exit_expected = TRUE;
+   if(setjmp(ut_exit_target) == 0)
+   {
+      utt_ODInitPartTwo();
+      UT_ASSERT(FALSE);
+   }
+   ut_exit_expected = FALSE;
+   UT_ASSERT_EQ_UINT(1, ut_kernel_shutdown_calls);
+   UT_ASSERT_EQ_UINT(1, ut_exit_calls);
+   UT_ASSERT_EQ_UINT(0, ut_error_calls);
 }
 #endif
 

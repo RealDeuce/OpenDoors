@@ -139,6 +139,16 @@ static void reports_state_lock_initialization_failure_and_reuses_the_lock(void)
    UT_ASSERT_EQ_UINT(0, ut_initialize_calls);
    UT_ASSERT_EQ_UINT(0, ut_lock_calls);
    UT_ASSERT_EQ_UINT(0, ut_unlock_calls);
+
+   reset_initialization();
+   pPendingUIHead = (tODUIChange *)1;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODKrnlInitialize());
+   pPendingUIHead = NULL;
+
+   reset_initialization();
+   pPendingUITail = (tODUIChange *)1;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODKrnlInitialize());
+   pPendingUITail = NULL;
 }
 #endif
 
