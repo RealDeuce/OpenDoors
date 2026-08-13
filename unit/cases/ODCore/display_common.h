@@ -26,11 +26,12 @@ static unsigned ut_local_string_calls;
 static BOOL ut_timer_elapsed;
 static unsigned ut_timer_calls;
 static unsigned ut_kernel_calls;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -102,4 +103,5 @@ static void ut_reset_display(void)
    ut_timer_elapsed = FALSE;
    ut_timer_calls = 0;
    ut_kernel_calls = 0;
+   ut_init_succeeds = TRUE;
 }

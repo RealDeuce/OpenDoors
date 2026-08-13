@@ -11,11 +11,12 @@ static unsigned ut_shutdown_key;
 static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -45,6 +46,15 @@ static void reset_answer(void)
    ut_init_calls = 0;
    ut_entries = 0;
    ut_exits = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_answer(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(0, utt_od_get_answer("nY"));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void ignores_invalid_keys_and_returns_the_option_spelling(void)
@@ -74,5 +84,6 @@ static void returns_nul_if_the_session_ends_while_waiting(void)
 
 static const UTTestCase ut_cases[] = {
    {"matching answer", ignores_invalid_keys_and_returns_the_option_spelling},
-   {"session shutdown", returns_nul_if_the_session_ends_while_waiting}
+   {"session shutdown", returns_nul_if_the_session_ends_while_waiting},
+   {"terminal session", terminal_session_is_rejected}
 };

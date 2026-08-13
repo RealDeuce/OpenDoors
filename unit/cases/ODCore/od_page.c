@@ -54,6 +54,7 @@ static unsigned ut_sleep_calls;
 static BOOL ut_shutdown_on_sleep;
 #endif
 static unsigned ut_kernel_calls;
+static BOOL ut_init_succeeds;
 #ifdef OD_TEXTMODE
 static unsigned ut_status_calls;
 static INT ut_status_setting;
@@ -74,7 +75,7 @@ size_t utm_strlen(const char *text)
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -226,6 +227,15 @@ static void reset_page(void)
    ut_status_calls = 0;
    ut_status_setting = -1;
 #endif
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_page(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_page();
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void set_reason(const char *reason)
@@ -424,4 +434,5 @@ static const UTTestCase ut_cases[] = {
 #ifdef OD_THREAD_SUPPORT
    {"shutdown during page", shutdown_during_the_timer_wait_exits_without_cleanup},
 #endif
+   {"terminal session", terminal_session_is_rejected},
 };

@@ -37,6 +37,7 @@ static BOOL ut_display_local;
 static char ut_display_text[80];
 static BOOL ut_scrolling_values[4];
 static unsigned ut_scrolling_calls;
+static BOOL ut_init_succeeds;
 
 static void reset_graph_fixture(void)
 {
@@ -72,12 +73,13 @@ static void reset_graph_fixture(void)
    ut_display_length = 0;
    ut_display_local = FALSE;
    ut_scrolling_calls = 0;
+   ut_init_succeeds = TRUE;
 }
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }

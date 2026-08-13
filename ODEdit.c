@@ -216,6 +216,7 @@ ODAPIDEF INT ODCALL od_multiline_edit(char *pszBufferToEdit, UINT unBufferSize,
 
    /* Initialize OpenDoors if not already done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(0);
 
    OD_API_ENTRY();
 

@@ -7,6 +7,8 @@
 #define UT_CUSTOM_MOCK_ODDropFileOpen
 #define UT_CUSTOM_MOCK_ODDropFileRecordWriteFailure
 #define UT_CUSTOM_MOCK_ODDropFileWrite
+#define UT_CUSTOM_MOCK_ODExitInfoExtendedEndian
+#define UT_CUSTOM_MOCK_ODExitInfoRA2Endian
 #define UT_CUSTOM_MOCK_ODGetElapsedMinutes
 #define UT_CUSTOM_MOCK_ODInQueueFree
 #define UT_CUSTOM_MOCK_ODKrnlShutdown
@@ -23,6 +25,7 @@
 #define UT_CUSTOM_MOCK_ODStringCToPascal
 #define UT_CUSTOM_MOCK_ODSyncAPIEntry
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
+#define UT_CUSTOM_MOCK_ODSyncAPIIsNested
 #define UT_CUSTOM_MOCK_ODTextDropFileWrite
 #define UT_CUSTOM_MOCK_ODWaitDrain
 #define UT_CUSTOM_MOCK_ODWriteExitInfoPrimitive
@@ -39,6 +42,7 @@
 #endif
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_ODFrameShutdown
+#define UT_CUSTOM_MOCK_ODFrameRequestShutdown
 #define UT_CUSTOM_MOCK_ODInExDisableDTR
 #ifdef OD_DIAGNOSTICS
 #define UT_CUSTOM_MOCK_ODDiagnosticMessage
@@ -57,10 +61,31 @@ static unsigned ut_api_entry_calls;
 static unsigned ut_api_exit_calls;
 static unsigned ut_before_exit_calls;
 static unsigned ut_log_close_calls;
+static BOOL ut_nested_api;
+static BOOL ut_init_succeeds;
+static BOOL ut_init_ends_session;
 static char ut_drop_info[25][2];
 static tRA2ExitInfoRecord ut_ra2_record;
 static tExitInfoRecord ut_exitinfo_record;
 static tExtendedExitInfo ut_extended_record;
+static unsigned ut_ra2_endian_calls;
+static unsigned ut_extended_endian_calls;
+
+void utm_ODExitInfoRA2Endian(tRA2ExitInfoRecord *record,
+   BOOL from_little_endian)
+{
+   UT_ASSERT_EQ_PTR(&ut_ra2_record, record);
+   UT_ASSERT_EQ_INT(FALSE, from_little_endian);
+   ++ut_ra2_endian_calls;
+}
+
+void utm_ODExitInfoExtendedEndian(tExtendedExitInfo *record,
+   BOOL from_little_endian)
+{
+   UT_ASSERT_EQ_PTR(&ut_extended_record, record);
+   UT_ASSERT_EQ_INT(FALSE, from_little_endian);
+   ++ut_extended_endian_calls;
+}
 
 void *utm_memcpy(void *destination, const void *source, size_t size)
 {
@@ -82,9 +107,16 @@ char *utm_ODStringCToPascal(char *destination, BYTE maximum, char *source)
    destination[0] = (char)length; utm_memcpy(destination + 1, source, length);
    return(destination);
 }
-void ODCALL utm_od_init(void) { bODInitialized = TRUE; }
+void ODCALL utm_od_init(void)
+{
+   if(ut_init_succeeds)
+      bODInitialized = TRUE;
+   if(ut_init_ends_session)
+      eODLifecycleState = kODLifecycleTerminal;
+}
 void utm_ODSyncAPIEntry(void) { ++ut_api_entry_calls; }
 void utm_ODSyncAPIExit(void) { ++ut_api_exit_calls; }
+BOOL utm_ODSyncAPIIsNested(void) { return(ut_nested_api); }
 BOOL ODCALL utm_ODGetElapsedMinutes(DWORD *minutes, time_t start, time_t end)
 {
    (void)start; (void)end; if(ut_elapsed_valid) *minutes = ut_elapsed_minutes;
@@ -130,6 +162,7 @@ void utm_ODThreadSleep(tODMilliSec milliseconds) { (void)milliseconds; }
 #endif
 #ifdef ODPLAT_WIN32
 void utm_ODFrameShutdown(tODThreadHandle *thread) { (void)thread; }
+void utm_ODFrameRequestShutdown(tODThreadHandle thread) { (void)thread; }
 void utm_ODInExDisableDTR(void) {}
 #ifdef OD_DIAGNOSTICS
 void utm_ODDiagnosticMessage(const char *message, const char *title) { (void)message; (void)title; }
@@ -155,6 +188,10 @@ static void reset_exit(void)
 {
    unsigned index;
    memset(&od_control, 0, sizeof(od_control)); bODInitialized = TRUE;
+   eODLifecycleState = kODLifecycleActive;
+   bODExitPrologueComplete = FALSE;
+   bODExitRequestedDuringInitialization = FALSE;
+   bODPendingExitNoExit = FALSE;
    bPreOrExit = FALSE; szOriginalDir = NULL; dwFileBPS = 0;
    nInitialRemaining = 30; nStartupUnixTime = 0;
    memset(&ut_ra2_record, 0, sizeof(ut_ra2_record));
@@ -170,6 +207,74 @@ static void reset_exit(void)
    ut_time_step = 1;
    ut_process_exit_calls = ut_api_entry_calls = ut_api_exit_calls = 0;
    ut_before_exit_calls = ut_log_close_calls = 0;
+   ut_ra2_endian_calls = ut_extended_endian_calls = 0;
+   ut_nested_api = FALSE;
+   ut_init_succeeds = TRUE;
+   ut_init_ends_session = FALSE;
+}
+
+static void defers_nested_noexit_teardown(void)
+{
+   reset_exit();
+   ut_nested_api = TRUE;
+   utt_od_exit(23, FALSE);
+   UT_ASSERT_EQ_INT(kODLifecycleExitPending, eODLifecycleState);
+   UT_ASSERT_EQ_INT(TRUE, bODInitialized);
+   UT_ASSERT_EQ_INT(23, nODPendingExitErrorLevel);
+   UT_ASSERT_EQ_INT(FALSE, bODPendingExitTermCall);
+   UT_ASSERT_EQ_UINT(1, ut_api_entry_calls);
+   UT_ASSERT_EQ_UINT(1, ut_api_exit_calls);
+}
+
+static void saves_an_initialization_exit_request_once(void)
+{
+   reset_exit();
+   eODLifecycleState = kODLifecycleInitializing;
+   utt_od_exit(23, FALSE);
+   utt_od_exit(99, TRUE);
+   UT_ASSERT(bODExitRequestedDuringInitialization);
+   UT_ASSERT_EQ_INT(23, nODPendingExitErrorLevel);
+   UT_ASSERT_EQ_INT(FALSE, bODPendingExitTermCall);
+   UT_ASSERT_EQ_UINT(0, ut_api_entry_calls);
+}
+
+static void rejects_completed_and_failed_initialization_sessions(void)
+{
+   reset_exit();
+   eODLifecycleState = kODLifecycleExitPending;
+   utt_od_exit(23, FALSE);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_api_entry_calls);
+
+   reset_exit();
+   eODLifecycleState = kODLifecycleTerminal;
+   utt_od_exit(23, FALSE);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_api_entry_calls);
+
+   reset_exit();
+   bODInitialized = FALSE;
+   ut_init_succeeds = FALSE;
+   utt_od_exit(23, FALSE);
+   UT_ASSERT_EQ_UINT(0, ut_api_entry_calls);
+
+   reset_exit();
+   bODInitialized = FALSE;
+   ut_init_ends_session = TRUE;
+   utt_od_exit(23, FALSE);
+   UT_ASSERT_EQ_UINT(0, ut_api_entry_calls);
+}
+
+static void resumes_teardown_after_a_completed_prologue(void)
+{
+   reset_exit();
+   bODExitPrologueComplete = TRUE;
+   bODPendingExitNoExit = TRUE;
+   utt_od_exit(23, FALSE);
+   UT_ASSERT_EQ_UINT(0, ut_before_exit_calls);
+   UT_ASSERT_EQ_INT(kODLifecycleTerminal, eODLifecycleState);
+   UT_ASSERT_EQ_UINT(1, ut_api_entry_calls);
+   UT_ASSERT_EQ_UINT(1, ut_api_exit_calls);
 }
 
 static void resets_exit_state_without_terminating_process(void)
@@ -216,6 +321,10 @@ static void run_extended(BYTE type, BOOL term)
    utt_od_exit(7, term);
    UT_ASSERT_NULL(pRA2ExitInfoRecord); UT_ASSERT_NULL(pExitInfoRecord);
    UT_ASSERT_NULL(pExtendedExitInfo);
+   if(type == RA2EXITINFO)
+      UT_ASSERT_EQ_UINT(1, ut_ra2_endian_calls);
+   else if(type == RA1EXITINFO)
+      UT_ASSERT_EQ_UINT(1, ut_extended_endian_calls);
 }
 
 static void covers_binary_drop_file_formats(void)
@@ -310,6 +419,10 @@ static void covers_disconnect_and_screen_cleanup(void)
 }
 
 static const UTTestCase ut_cases[] = {
+   {"nested noexit", defers_nested_noexit_teardown},
+   {"initialization exit", saves_an_initialization_exit_request_once},
+   {"terminal guards", rejects_completed_and_failed_initialization_sessions},
+   {"completed prologue", resumes_teardown_after_a_completed_prologue},
    {"shutdown without process exit", resets_exit_state_without_terminating_process},
    {"entry hooks time and process exit", covers_entry_hooks_time_and_process_exit},
    {"binary drop files", covers_binary_drop_file_formats},

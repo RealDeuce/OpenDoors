@@ -4,11 +4,11 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import select
 import socket
 import subprocess
-import sys
 import time
 from pathlib import Path
 
@@ -95,22 +95,40 @@ def validate_transcript(transcript: bytearray) -> None:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        raise SystemExit("usage: socket_controller.py SOCKET_DOOR")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--launcher", action="append", default=[])
+    parser.add_argument("--tcp", action="store_true")
+    parser.add_argument("door")
+    args = parser.parse_args()
     fixture_directory = Path.cwd()
     create_fixtures(fixture_directory)
 
-    peer, child_socket = socket.socketpair()
-    child_socket.set_inheritable(True)
     kwargs: dict[str, object] = {"close_fds": True}
-    if os.name == "posix":
-        kwargs["pass_fds"] = (child_socket.fileno(),)
+    listener = None
+    child_socket = None
+    if args.tcp:
+        listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        listener.settimeout(10)
+        child_argument = str(listener.getsockname()[1])
     else:
-        kwargs["close_fds"] = False
+        peer, child_socket = socket.socketpair()
+        child_socket.set_inheritable(True)
+        child_argument = str(child_socket.fileno())
+        if os.name == "posix":
+            kwargs["pass_fds"] = (child_socket.fileno(),)
+        else:
+            kwargs["close_fds"] = False
     process = subprocess.Popen(
-        [sys.argv[1], str(child_socket.fileno())], **kwargs
+        [*args.launcher, args.door, child_argument], **kwargs
     )
-    child_socket.close()
+    if child_socket is not None:
+        child_socket.close()
+    if listener is not None:
+        peer, _ = listener.accept()
+        listener.close()
+        listener = None
     try:
         transcript = drive_session(peer)
         return_code = process.wait(timeout=10)
@@ -118,6 +136,8 @@ def main() -> int:
             raise RuntimeError(f"socket door exited with {return_code}")
         validate_transcript(transcript)
     finally:
+        if listener is not None:
+            listener.close()
         peer.close()
         if process.poll() is None:
             process.kill()

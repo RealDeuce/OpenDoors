@@ -20,11 +20,12 @@ static unsigned ut_present_calls;
 static unsigned ut_local_clears;
 static unsigned ut_attrib_calls;
 static INT ut_seen_attrib;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -75,6 +76,15 @@ static void reset_clear_screen(void)
    ut_local_clears = 0;
    ut_attrib_calls = 0;
    ut_seen_attrib = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_clear_screen(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_clr_scr();
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void assert_skipped(void)
@@ -174,5 +184,6 @@ static const UTTestCase ut_cases[] = {
    {"graphics override", graphics_capability_overrides_the_suppression_rule},
    {"ordinary clear", ordinary_sessions_clear_even_without_overrides},
    {"RIP ANSI clear", rip_and_ansi_clear_the_virtual_session_screen},
-   {"default RIP window", default_rip_window_omits_the_window_reset}
+   {"default RIP window", default_rip_window_omits_the_window_reset},
+   {"terminal session", terminal_session_is_rejected}
 };

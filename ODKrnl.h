@@ -91,6 +91,7 @@ void ODKrnlRequestSysopNextToggle(void);
 void ODKrnlRequestInactivityToggle(void);
 void ODKrnlRequestTimeAdjustment(INT nMinutes);
 void ODKrnlRequestLockout(void);
+void ODKrnlRequestExit(INT nErrorLevel, BOOL bTermCall);
 #ifdef ODPLAT_WIN32
 BOOL ODKrnlRefreshUIState(void);
 void ODKrnlGetUIState(tODUIState *pState);
@@ -103,5 +104,21 @@ void ODKrnlGetUIState(tODUIState *pState);
 
 #define OD_API_ENTRY()              ODSyncAPIEntry();
 #define OD_API_EXIT()               ODSyncAPIExit();
+#define OD_RETURN_IF_SESSION_ENDED(value) do { \
+   /* Both operands are Boolean; evaluate both as one guard decision. */ \
+   if((eODLifecycleState >= kODLifecycleExitPending) \
+      | (!bODInitialized)) { \
+      od_control.od_error = ERR_GENERALFAILURE; \
+      return(value); \
+   } \
+} while(0)
+#define OD_RETURN_VOID_IF_SESSION_ENDED() do { \
+   /* Both operands are Boolean; evaluate both as one guard decision. */ \
+   if((eODLifecycleState >= kODLifecycleExitPending) \
+      | (!bODInitialized)) { \
+      od_control.od_error = ERR_GENERALFAILURE; \
+      return; \
+   } \
+} while(0)
 
 #endif /* _INC_ODKRNL */

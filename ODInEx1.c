@@ -369,6 +369,8 @@ ODAPIDEF BOOL ODCALL od_set_port(INT nPort)
 {
    TRACE(TRACE_API, "od_set_port()");
 
+   if(!ODSyncPublicCallAllowed()) return(FALSE);
+
    if(bODInitialized || nPort < 0 || nPort > 255)
    {
       od_control.od_error = ERR_PARAMETER;
@@ -410,6 +412,12 @@ ODAPIDEF void ODCALL od_init(void)
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_init()");
 
+   if(eODLifecycleState >= kODLifecycleExitPending)
+   {
+      od_control.od_error = ERR_GENERALFAILURE;
+      return;
+   }
+
    /* If a callback function is active, then don't do anything. */
    if(bIsCallbackActive) return;
 
@@ -431,6 +439,7 @@ ODAPIDEF void ODCALL od_init(void)
       /* Otherwise, set the initialized flag so that od_init() won't be */
       /* run again.                                                     */
       bODInitialized = TRUE;
+      eODLifecycleState = kODLifecycleInitializing;
 
       /* Initialize program name string. */
       if(od_control.od_prog_name[0] == '\0')
@@ -496,6 +505,14 @@ ODAPIDEF void ODCALL od_init(void)
       if(od_control.config_file != NULL)
       {
          (*(OD_COMPONENT_CALLBACK *)od_control.config_file)();
+         eODLifecycleState = kODLifecycleActive;
+         if(bODExitRequestedDuringInitialization)
+         {
+            INT nSavedErrorLevel = nODPendingExitErrorLevel;
+            BOOL bSavedTermCall = bODPendingExitTermCall;
+            bODExitRequestedDuringInitialization = FALSE;
+            od_exit(nSavedErrorLevel, bSavedTermCall);
+         }
          return;
       }
    }
@@ -1551,6 +1568,17 @@ DropFileFail:
    }
 
    ODInitPartTwo();
+   if(!bCalledFromConfig)
+   {
+      eODLifecycleState = kODLifecycleActive;
+      if(bODExitRequestedDuringInitialization)
+      {
+         INT nSavedErrorLevel = nODPendingExitErrorLevel;
+         BOOL bSavedTermCall = bODPendingExitTermCall;
+         bODExitRequestedDuringInitialization = FALSE;
+         od_exit(nSavedErrorLevel, bSavedTermCall);
+      }
+   }
 }
 
 
@@ -1793,6 +1821,7 @@ static void ODInitReadExitInfo(void)
          {
             if(fread(pRA2ExitInfoRecord,1,2363,pfDropFile)==2363)
             {
+               ODExitInfoRA2Endian(pRA2ExitInfoRecord, TRUE);
                od_control.od_ra_info=TRUE;
                od_control.od_extended_info=TRUE;
                od_control.od_info_type=RA2EXITINFO;
@@ -1890,6 +1919,7 @@ static void ODInitReadExitInfo(void)
             {
                if(fread(pExtendedExitInfo,1,sizeof(tExtendedExitInfo), pfDropFile)==sizeof(tExtendedExitInfo))
                {                 /* transfer info into od_control struct */
+                  ODExitInfoExtendedEndian(pExtendedExitInfo, TRUE);
                   ODStringPascalToC(od_control.user_timeofcreation,pExitInfoRecord->bbs.ra.timeofcreation,5);
                   ODStringPascalToC(od_control.user_logonpassword,pExitInfoRecord->bbs.ra.logonpassword,15);
                   od_control.user_wantchat=pExitInfoRecord->bbs.ra.wantchat;

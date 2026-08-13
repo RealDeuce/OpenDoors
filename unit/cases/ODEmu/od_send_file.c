@@ -59,9 +59,14 @@ static unsigned ut_wait_calls;
 static BOOL ut_uninitialize_on_wait;
 static unsigned ut_kernel_calls;
 static char ut_last_control_key;
+static BOOL ut_init_succeeds;
 
 size_t utm_strlen(const char *text);
-void ODCALL utm_od_init(void) { ++ut_init_calls; bODInitialized = TRUE; }
+void ODCALL utm_od_init(void)
+{
+   ++ut_init_calls;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
 void utm_ODSyncAPIEntry(void) { ++ut_entry_calls; }
 void utm_ODSyncAPIExit(void) { ++ut_exit_calls; }
 
@@ -248,6 +253,7 @@ static void reset_send(void)
    od_control.baud = 0;
    od_control.user_screen_length = 24;
    od_control.od_no_ra_codes = FALSE;
+   ut_init_succeeds = TRUE;
    for(index = 0; index < 2; ++index) {
       ut_find_results[index] = NULL;
       ut_find_levels[index] = LEVEL_NONE;
@@ -256,6 +262,14 @@ static void reset_send(void)
 }
 
 #ifndef UT_SEND_FILE_SUPPORT_ONLY
+static void terminal_session_is_rejected(void)
+{
+   reset_send(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT(!utt_od_send_file(NULL));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entry_calls);
+}
+
 static void rejects_invalid_names_and_failed_opens(void)
 {
    reset_send();
@@ -521,6 +535,7 @@ static const UTTestCase ut_cases[] = {
    {"hotkeys", handles_hotkeys_during_transmission},
    {"control keys", honors_stop_pause_and_other_control_keys},
    {"page pause", applies_page_pause_conditions_and_result},
-   {"RA codes", selects_remote_access_translation_policy}
+   {"RA codes", selects_remote_access_translation_policy},
+   {"terminal session", terminal_session_is_rejected}
 };
 #endif

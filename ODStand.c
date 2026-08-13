@@ -41,6 +41,7 @@
 
 #include "OpenDoor.h"
 #include "ODStat.h"
+#include "ODSync.h"
 
 
 /* ----------------------------------------------------------------------------
@@ -57,6 +58,8 @@ ODAPIDEF void ODCALL pdef_opendoors(BYTE btOperation)
 {
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    static char abtGreyBlock[2] = {' ', 0x70};
+
+   if(!ODSyncPublicCallAllowed()) return;
 
    switch(btOperation)
    {
@@ -217,6 +220,7 @@ ODAPIDEF void ODCALL pdef_opendoors(BYTE btOperation)
          break;
    }
 #else /* !ODPLAT_DOS && !ODPLAT_DOS32 */
+   if(!ODSyncPublicCallAllowed()) return;
    (void)btOperation;
 #endif /* !ODPLAT_DOS && !ODPLAT_DOS32 */
 }

@@ -32,10 +32,11 @@ static unsigned ut_validate_calls;
 static unsigned ut_fprintf_calls;
 static unsigned ut_format_calls;
 static unsigned ut_write_calls;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
    ++ut_init_calls;
 }
 
@@ -158,6 +159,15 @@ static void reset_open(void)
    ut_format_calls = 0;
    ut_write_calls = 0;
    errno = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_open(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT(!utt_od_log_open());
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_fopen_calls);
 }
 
 static void initializes_but_reuses_or_honors_disabled_state(void)
@@ -246,5 +256,6 @@ static const UTTestCase ut_cases[] = {
    {"open failure", reports_file_open_failure},
    {"timestamp failure", closes_and_preserves_errno_for_both_timestamp_failures},
    {"initial output failure", cleans_up_each_initial_output_failure},
-   {"success", opens_writes_and_installs_hooks}
+   {"success", opens_writes_and_installs_hooks},
+   {"terminal session", terminal_session_is_rejected}
 };

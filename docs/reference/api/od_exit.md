@@ -68,12 +68,21 @@ initialization prevents both reading and later rewriting a door-information
 file. Setting
 [`od_control.od_noexit`](../control/customization.md#od_noexit) causes
 [`od_exit()`](od_exit.md) to perform the complete OpenDoors shutdown and then return instead
-of terminating the process. In that case OpenDoors is no longer initialized,
-and the application may continue or begin another session deliberately. A
-later initialization rereads the selected configuration file without retaining
-private pending values or an open custom drop-file handle from the preceding
-session; exposed [`od_control`](../control/index.md) fields retain whatever
-values the application leaves in them.
+of terminating the process. The application may continue doing work which does
+not use OpenDoors. The library is permanently terminal: it cannot initialize a
+second session, and a later OpenDoors function call is rejected with its normal
+neutral or failure value and
+[`ERR_GENERALFAILURE`](../constants/errors.md#err_generalfailure). The exported
+[`od_control`](../control/index.md) object remains available for direct reads
+by the host after shutdown.
+
+The before-exit callback runs before OpenDoors decides whether `od_noexit`
+applies, so it may set or clear that field based on application state. If a
+callback or nested kernel operation requests a returning shutdown, OpenDoors
+records the first request, causes cooperative waits to stop, and defers resource
+destruction until the outermost public API call unwinds. A request made during
+initialization is likewise retained; initialization completes before the one
+shutdown sequence begins.
 
 On non-Windows text-mode targets, the local output window is reset to the full
 80-by-25 display and the attribute is reset to grey on black. If
@@ -84,8 +93,9 @@ upper-left corner. Platform display resources are then closed in either case.
 If [`od_exit()`](od_exit.md) is called before any other OpenDoors function, it first calls
 [`od_init()`](od_init.md) so that the resources and session information needed
 for an orderly shutdown exist. The function normally does not return. It can
-return when [`od_noexit`](../control/customization.md#od_noexit) is set, when a recursive exit is suppressed, or when it
-is running as part of an already active process-exit handler.
+return when [`od_noexit`](../control/customization.md#od_noexit) is set, when a recursive exit is suppressed, when shutdown
+is deferred to an outer API boundary, or when it is running as part of an
+already active process-exit handler.
 
 ## Examples
 

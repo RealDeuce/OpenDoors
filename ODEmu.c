@@ -200,6 +200,7 @@ ODAPIDEF char ODCALL od_hotkey_menu(char *pszFileName, char *pszHotKeys,
 
    /* Ensure that OpenDoors has been initialized. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(0);
 
    OD_API_ENTRY();
 
@@ -301,6 +302,7 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 
@@ -646,6 +648,7 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 
@@ -1215,6 +1218,7 @@ ODAPIDEF void ODCALL od_disp_emu(const char *pszToDisplay, BOOL bRemoteEcho)
 
    /* Ensure that OpenDoors has been initialized. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -1266,6 +1270,7 @@ ODAPIDEF void ODCALL od_emulate(char chToEmulate)
 
    /* Ensure that OpenDoors has been initialized. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 

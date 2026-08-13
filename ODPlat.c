@@ -687,7 +687,13 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
    TRACE(TRACE_API, "od_sleep()");
 
    /* Ensure that OpenDoors is initialized before proceeding. */
+   if(eODLifecycleState != kODLifecycleFinalizing
+      || !ODSyncAPIIsNested())
+   {
+      if(!ODSyncPublicCallAllowed()) return;
+   }
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 

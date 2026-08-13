@@ -49,6 +49,7 @@
 #include "ODCore.h"
 #include "ODGen.h"
 #include "ODInEx.h"
+#include "ODSync.h"
 #include "ODUtil.h"
 
 
@@ -118,6 +119,8 @@ ODAPIDEF void ODCALL ODConfigInit(void)
    static BOOL bPageLengthSet = FALSE;
    static BYTE btPageLength;
    static char *apszFileNames[1];
+
+   if(!ODSyncPublicCallAllowed()) return;
 
    bIsCallbackActive = TRUE;
    pfCustomDropFile = NULL;

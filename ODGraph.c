@@ -79,6 +79,7 @@ ODAPIDEF void ODCALL od_clr_line(void)
 
    /* Ensure that OpenDoors has been initialized. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -176,6 +177,7 @@ ODAPIDEF void ODCALL od_set_cursor(INT nRow, INT nColumn)
 
    /* Ensure that OpenDoors has been initialized. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -287,6 +289,7 @@ ODAPIDEF void ODCALL od_get_cursor(INT *pnRow, INT *pnColumn)
 
    /* Ensure that OpenDoors has been initialized. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 

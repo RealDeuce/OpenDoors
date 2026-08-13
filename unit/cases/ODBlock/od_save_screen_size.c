@@ -12,6 +12,7 @@
 
 static DWORD ut_snapshot_size;
 static INT ut_screen_error;
+static BOOL ut_init_succeeds;
 
 static void reset_fixture(void)
 {
@@ -19,6 +20,7 @@ static void reset_fixture(void)
    bODInitialized = TRUE;
    ut_snapshot_size = 1;
    ut_screen_error = ERR_NONE;
+   ut_init_succeeds = TRUE;
 }
 
 INT utm_ODSessionScreenError(void)
@@ -38,7 +40,15 @@ void utm_ODSyncAPIExit(void) { ut_mock_called(MOCK_EXIT); }
 void ODCALL utm_od_init(void)
 {
    ut_mock_called(MOCK_INIT);
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_UINT(0, utt_od_save_screen_size());
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_mock_count(MOCK_ENTRY));
 }
 
 static void available_snapshot_returns_size(void)
@@ -76,5 +86,6 @@ static void unavailable_snapshot_substitutes_limit_for_no_error(void)
 static const UTTestCase ut_cases[] = {
    {"available snapshot", available_snapshot_returns_size},
    {"specific snapshot error", unavailable_snapshot_preserves_specific_error},
-   {"missing snapshot error", unavailable_snapshot_substitutes_limit_for_no_error}
+   {"missing snapshot error", unavailable_snapshot_substitutes_limit_for_no_error},
+   {"terminal session", terminal_session_is_rejected}
 };

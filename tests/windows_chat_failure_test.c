@@ -39,6 +39,7 @@ int main(void)
    CHECK(ODInQueueAlloc(&hODInputQueue, 4) == kODRCSuccess);
    CHECK(ODKrnlInitialize() == kODRCSuccess);
    bODInitialized = TRUE;
+   eODLifecycleState = kODLifecycleActive;
    od_control.user_timelimit = 10;
    od_control.od_chat_active = TRUE;
    CHECK(ODKrnlRefreshUIState());

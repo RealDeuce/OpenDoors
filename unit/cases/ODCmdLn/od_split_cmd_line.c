@@ -9,6 +9,7 @@
 #define UT_CUSTOM_MOCK_realloc
 #define UT_CUSTOM_MOCK_strdup
 #define UT_CUSTOM_MOCK_strstr
+#define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
 
 static char *ut_arguments[4097];
 static char ut_program[128];
@@ -20,6 +21,14 @@ static int ut_strdup_fail_call;
 static BOOL ut_calloc_fails;
 static BOOL ut_malloc_fails;
 static BOOL ut_realloc_fails;
+static BOOL ut_public_call_allowed;
+
+BOOL utm_ODSyncPublicCallAllowed(void)
+{
+   if(!ut_public_call_allowed)
+      od_control.od_error = ERR_GENERALFAILURE;
+   return ut_public_call_allowed;
+}
 #ifdef ODPLAT_WIN32
 static LPSTR ut_full_command;
 static BOOL ut_program_was_allocated;
@@ -120,6 +129,7 @@ static void reset_fixture(void)
    ut_calloc_fails = FALSE;
    ut_malloc_fails = FALSE;
    ut_realloc_fails = FALSE;
+   ut_public_call_allowed = TRUE;
 #ifdef ODPLAT_WIN32
    ut_full_command = "door.exe";
    ut_program_was_allocated = FALSE;
@@ -172,6 +182,16 @@ static void rejects_invalid_parameters_and_allocation_failures(void)
    UT_ASSERT_EQ_INT(ERR_MEMORY, od_control.od_error);
    UT_ASSERT_EQ_UINT(1, ut_free_calls);
 #endif
+}
+
+static void rejects_a_terminal_session(void)
+{
+   INT count = 99;
+   reset_fixture();
+   ut_public_call_allowed = FALSE;
+   UT_ASSERT_NULL(utt_od_split_cmd_line("value", &count));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_INT(99, count);
 }
 
 static void splits_whitespace_and_handles_realloc_failure(void)
@@ -249,6 +269,7 @@ static void reports_program_name_allocation_failure(void)
 #endif
 
 static const UTTestCase ut_cases[] = {
+   {"terminal session", rejects_a_terminal_session},
    {"invalid parameters and allocations", rejects_invalid_parameters_and_allocation_failures},
    {"split whitespace", splits_whitespace_and_handles_realloc_failure},
    {"argument limit", stops_at_the_documented_argument_limit},

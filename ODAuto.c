@@ -93,6 +93,7 @@ ODAPIDEF void ODCALL od_autodetect(INT nFlags)
 
    /* Initialize OpenDoors if it hasn't aready been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 

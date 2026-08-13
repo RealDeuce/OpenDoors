@@ -12,6 +12,7 @@ static unsigned ut_reacquire_calls;
 static unsigned ut_kernel_calls;
 static BOOL ut_allow_callbacks;
 static unsigned ut_reacquire_level;
+static BOOL ut_shutdown_on_dispatch;
 
 BOOL utm_ODSyncIsOwnerThread(void)
 {
@@ -29,6 +30,8 @@ void utm_ODKrnlDispatchPending(BOOL allow_callbacks)
 {
    ++ut_dispatch_calls;
    ut_allow_callbacks = allow_callbacks;
+   if(ut_shutdown_on_dispatch)
+      eODLifecycleState = kODLifecycleExitPending;
 }
 
 void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
@@ -49,7 +52,8 @@ static void reset_checkpoint(void)
    ut_kernel_calls = 0;
    ut_allow_callbacks = TRUE;
    ut_reacquire_level = 0;
-   bODInitialized = TRUE;
+   eODLifecycleState = kODLifecycleActive;
+   ut_shutdown_on_dispatch = FALSE;
 }
 
 static void returns_state_without_releasing_outside_an_owned_api_call(void)
@@ -62,7 +66,7 @@ static void returns_state_without_releasing_outside_an_owned_api_call(void)
 
    nAPILevel = 1;
    ut_owner = FALSE;
-   bODInitialized = FALSE;
+   eODLifecycleState = kODLifecycleExitPending;
    UT_ASSERT_EQ_INT(FALSE, utt_ODSyncAPICheckpoint());
    UT_ASSERT_EQ_UINT(1, ut_owner_calls);
    UT_ASSERT_EQ_UINT(0, ut_release_calls);
@@ -82,7 +86,14 @@ static void releases_dispatches_and_reacquires_for_the_owner(void)
 
    reset_checkpoint();
    nAPILevel = 1;
-   bODInitialized = FALSE;
+   eODLifecycleState = kODLifecycleExitPending;
+   UT_ASSERT_EQ_INT(FALSE, utt_ODSyncAPICheckpoint());
+   UT_ASSERT_EQ_UINT(0, ut_dispatch_calls);
+   UT_ASSERT_EQ_UINT(0, ut_kernel_calls);
+
+   reset_checkpoint();
+   nAPILevel = 1;
+   ut_shutdown_on_dispatch = TRUE;
    UT_ASSERT_EQ_INT(FALSE, utt_ODSyncAPICheckpoint());
    UT_ASSERT_EQ_UINT(1, ut_dispatch_calls);
    UT_ASSERT_EQ_UINT(0, ut_kernel_calls);

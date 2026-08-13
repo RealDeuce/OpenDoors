@@ -60,6 +60,7 @@
 #include "ODPlat.h"
 #include "ODCore.h"
 #include "ODInEx.h"
+#include "ODSync.h"
 
 
 /* Maximum number of command-line arguments. Any additional arguments will */
@@ -136,7 +137,7 @@ ODAPIDEF char ** ODCALL od_split_cmd_line(const char* pszCmdLine, INT *nArgCount
    char *pszCmdLineCopy;
    char *pchCurrent;
    /* Shrink this initial allocation before returning it. */
-   char **papszArguments = calloc(4097, sizeof(char*));
+   char **papszArguments;
    char **papszArgumentsRe;
 #ifdef ODPLAT_WIN32
    LPSTR pszFullCmdLine = GetCommandLine();
@@ -144,6 +145,10 @@ ODAPIDEF char ** ODCALL od_split_cmd_line(const char* pszCmdLine, INT *nArgCount
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_split_cmd_line()");
+
+   if(!ODSyncPublicCallAllowed()) return(NULL);
+
+   papszArguments = calloc(4097, sizeof(char*));
 
    if (pszCmdLine == NULL || nArgCount == NULL) {
       od_control.od_error = ERR_PARAMETER;
@@ -252,6 +257,7 @@ ODAPIDEF char ** ODCALL od_split_cmd_line(const char* pszCmdLine, INT *nArgCount
  */
 ODAPIDEF void ODCALL od_free_split_cmd_line(char **papszArguments)
 {
+   if(!ODSyncPublicCallAllowed()) return;
    if (papszArguments == NULL) {
       od_control.od_error = ERR_PARAMETER;
       return;
@@ -305,6 +311,8 @@ ODAPIDEF void ODCALL od_parse_cmd_line(INT nArgCount, char *papszArguments[])
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_parse_cmd_line()");
+
+   if(!ODSyncPublicCallAllowed()) return;
 
 #ifdef ODPLAT_WIN32
    papszArguments = od_split_cmd_line(pszCmdLine, &nArgCount);

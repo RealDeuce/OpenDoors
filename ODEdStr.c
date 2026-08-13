@@ -130,6 +130,7 @@ ODAPIDEF WORD ODCALL od_edit_str(char *pszInput, char *pszFormat, INT nRow,
 
    /* Verify that OpenDoors has been initialized. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(0);
 
    OD_API_ENTRY();
 

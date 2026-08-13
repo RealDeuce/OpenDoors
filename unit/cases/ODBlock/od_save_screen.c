@@ -13,6 +13,7 @@
 static tODScrnTextInfo ut_text_info;
 static BOOL ut_get_text_result;
 static char ut_screen_buffer[4004];
+static BOOL ut_init_succeeds;
 
 static void reset_fixture(void)
 {
@@ -27,6 +28,7 @@ static void reset_fixture(void)
    ut_text_info.attribute = 31;
    ut_get_text_result = TRUE;
    bODInitialized = TRUE;
+   ut_init_succeeds = TRUE;
 }
 
 BOOL ODCALL utm_ODScrnGetText(BYTE left, BYTE top, BYTE right, BYTE bottom,
@@ -53,7 +55,15 @@ void utm_ODSyncAPIExit(void) { ut_mock_called(MOCK_EXIT); }
 void ODCALL utm_od_init(void)
 {
    ut_mock_called(MOCK_INIT);
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(FALSE, utt_od_save_screen(ut_screen_buffer));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_mock_count(MOCK_ENTRY));
 }
 
 static void valid_window_stores_header_and_screen(void)
@@ -109,5 +119,6 @@ static const UTTestCase ut_cases[] = {
    {"screen failure", screen_read_failure_is_returned},
    {"invalid left edge", invalid_left_edge_is_rejected},
    {"invalid right edge", invalid_right_edge_is_rejected},
-   {"null buffer", null_buffer_is_rejected}
+   {"null buffer", null_buffer_is_rejected},
+   {"terminal session", terminal_session_is_rejected}
 };

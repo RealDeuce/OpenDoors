@@ -1785,6 +1785,24 @@ static void ODFramePostThreadQuit(tODThreadHandle hThread, DWORD dwThreadID)
 
 
 /* ----------------------------------------------------------------------------
+ * ODFrameRequestShutdown()
+ *
+ * Asks the Win32 UI thread to destroy its windows and stop its message loop,
+ * without waiting for the thread to finish.
+ */
+void ODFrameRequestShutdown(tODThreadHandle hFrameThread)
+{
+   if(hFrameThread == NULL)
+      return;
+
+   if(hwndCurrentFrame != NULL)
+      PostMessage(hwndCurrentFrame, WM_OD_SHUTDOWN, 0, 0);
+   else
+      ODFramePostThreadQuit(hFrameThread, dwFrameThreadID);
+}
+
+
+/* ----------------------------------------------------------------------------
  * ODFrameShutdown()
  *
  * Stops and joins the Win32 UI thread which owns both windows. This is separate
@@ -1803,10 +1821,7 @@ void ODFrameShutdown(tODThreadHandle *phFrameThread)
       return;
    }
 
-   if(hwndCurrentFrame != NULL)
-      PostMessage(hwndCurrentFrame, WM_OD_SHUTDOWN, 0, 0);
-   else
-      ODFramePostThreadQuit(hFrame, dwFrameThreadID);
+   ODFrameRequestShutdown(hFrame);
 
    if(dwFrameThreadID != dwCurrentThreadID)
    {

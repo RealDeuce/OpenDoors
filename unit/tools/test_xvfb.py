@@ -10,6 +10,46 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class UnitXvfbTests(unittest.TestCase):
+    def test_explicit_watcom_root_is_exported_to_runner(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            marker = directory / "xvfb-started"
+            watcom = directory / "watcom"
+            binl = watcom / "binl"
+            binl.mkdir(parents=True)
+            xvfb = directory / "Xvfb"
+            xdpyinfo = directory / "xdpyinfo"
+            python = directory / "python3"
+            xvfb.write_text(
+                "#!/bin/sh\n"
+                ": >\"$UNIT_XVFB_TEST_MARKER\"\n"
+                "while :; do sleep 1; done\n",
+                encoding="ascii")
+            xdpyinfo.write_text(
+                "#!/bin/sh\n"
+                "test -f \"$UNIT_XVFB_TEST_MARKER\"\n",
+                encoding="ascii")
+            python.write_text(
+                "#!/bin/sh\n"
+                "test \"$WATCOM\" = \"$UNIT_XVFB_TEST_WATCOM\"\n"
+                "test \"${PATH%%:*}\" = \"$WATCOM/binl\"\n",
+                encoding="ascii")
+            for executable in (xvfb, xdpyinfo, python):
+                executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
+            environment = os.environ.copy()
+            environment.pop("WATCOM", None)
+            environment["PATH"] = str(directory) + os.pathsep + os.environ["PATH"]
+            environment["UNIT_XVFB_TEST_MARKER"] = str(marker)
+            environment["UNIT_XVFB_TEST_WATCOM"] = str(watcom)
+
+            result = subprocess.run(
+                [str(ROOT / "tools" / "unit-xvfb"), "--display", ":199",
+                 "--watcom", str(watcom), "run", "--help"], cwd=ROOT,
+                env=environment, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, timeout=5)
+
+            self.assertEqual(result.returncode, 0, result.stderr.decode())
+
     def test_starts_x_server_before_dispatching_runner(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)

@@ -16,6 +16,7 @@ static BOOL ut_restore_result;
 static DWORD ut_snapshot_size;
 static INT ut_screen_error;
 static const void *ut_expected_buffer;
+static BOOL ut_init_succeeds;
 
 static void reset_fixture(void)
 {
@@ -24,6 +25,7 @@ static void reset_fixture(void)
    ut_restore_result = TRUE;
    ut_snapshot_size = 64;
    ut_screen_error = ERR_NONE;
+   ut_init_succeeds = TRUE;
 }
 
 INT utm_ODSessionScreenError(void)
@@ -51,7 +53,16 @@ void utm_ODSyncAPIExit(void) { ut_mock_called(MOCK_EXIT); }
 void ODCALL utm_od_init(void)
 {
    ut_mock_called(MOCK_INIT);
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   char buffer[64];
+   reset_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(FALSE, utt_od_restore_screen_ex(buffer, sizeof(buffer)));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_mock_count(MOCK_ENTRY));
 }
 
 static void successful_restore_forwards_buffer_and_size(void)
@@ -108,5 +119,6 @@ static const UTTestCase ut_cases[] = {
    {"successful restore", successful_restore_forwards_buffer_and_size},
    {"parameter failure", ordinary_restore_failure_reports_parameter_error},
    {"specific snapshot error", unavailable_snapshot_preserves_specific_error},
-   {"missing snapshot error", unavailable_snapshot_substitutes_limit_for_no_error}
+   {"missing snapshot error", unavailable_snapshot_substitutes_limit_for_no_error},
+   {"terminal session", terminal_session_is_rejected}
 };

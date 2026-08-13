@@ -47,6 +47,7 @@ static const char *ut_arguments[] = {"program", "argument", NULL};
 static const char *ut_environment[] = {"NAME=value", NULL};
 static INT16 ut_spawn_result;
 static BOOL ut_wait_aborts;
+static BOOL ut_init_succeeds;
 static time_t ut_times[2];
 static unsigned ut_time_index;
 static unsigned ut_api_entry_calls, ut_api_exit_calls;
@@ -58,7 +59,10 @@ static unsigned ut_release_calls, ut_reacquire_calls;
 
 void utm_ODSyncAPIEntry(void) { ++ut_api_entry_calls; }
 void utm_ODSyncAPIExit(void) { ++ut_api_exit_calls; }
-void ODCALL utm_od_init(void) { bODInitialized = TRUE; }
+void ODCALL utm_od_init(void)
+{
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
 time_t utm_time(time_t *storage)
 { UT_ASSERT_NULL(storage); UT_ASSERT(ut_time_index < 2); return(ut_times[ut_time_index++]); }
 void utm_ODWaitDrain(tODMilliSec maximum)
@@ -171,6 +175,7 @@ void utm_ODDirChangeCurrent(char *directory)
 static void reset_spawnvpe(void)
 {
    memset(&od_control, 0, sizeof(od_control)); bODInitialized = TRUE;
+   ut_init_succeeds = TRUE;
    bIsShell = FALSE; nNextTimeDeductTime = 0; od_control.user_timelimit = 20;
    ut_spawn_result = 7; ut_wait_aborts = FALSE;
    ut_times[0] = 100; ut_times[1] = 220; ut_time_index = 0;
@@ -198,6 +203,18 @@ static void initializes_and_propagates_primitive_result(void)
    reset_spawnvpe(); bODInitialized = FALSE; ut_spawn_result = -1;
    UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_UINT(1, ut_api_entry_calls); UT_ASSERT_EQ_UINT(1, ut_api_exit_calls);
+}
+
+static void rejects_a_terminal_session_after_initialization(void)
+{
+   reset_spawnvpe();
+   bODInitialized = FALSE;
+   ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(-1,
+      utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_api_entry_calls);
+   UT_ASSERT_EQ_UINT(0, ut_spawn_calls);
 }
 
 #if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
@@ -274,6 +291,7 @@ static void covers_time_accounting_modes(void)
 }
 static const UTTestCase ut_cases[] = {
    {"initialize/result", initializes_and_propagates_primitive_result},
+   {"terminal session", rejects_a_terminal_session_after_initialization},
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    {"mode and allocation failures", rejects_invalid_mode_and_allocation_failures},
    {"DOS screen wait and serial", covers_dos_screen_wait_and_serial_paths},

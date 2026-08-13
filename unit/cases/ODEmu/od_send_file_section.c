@@ -24,6 +24,14 @@ int utm_strncmp(const char *left, const char *right, size_t count)
    return(0);
 }
 
+static void terminal_session_is_rejected(void)
+{
+   reset_send(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT(!utt_od_send_file_section(NULL, "SEC"));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entry_calls);
+}
+
 static void rejects_invalid_section_requests(void)
 {
    static char long_name[255];
@@ -340,5 +348,6 @@ static const UTTestCase ut_cases[] = {
    {"keys", handles_hotkeys_and_control_keys},
    {"page pause", applies_page_pausing_inside_the_selected_section},
    {"split streams", handles_split_streams_and_remote_access_translation},
-   {"RIP cleanup", handles_rip_drain_shutdown_and_a_missing_window}
+   {"RIP cleanup", handles_rip_drain_shutdown_and_a_missing_window},
+   {"terminal session", terminal_session_is_rejected}
 };

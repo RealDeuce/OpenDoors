@@ -28,6 +28,7 @@ static unsigned ut_cursor_calls;
 static unsigned ut_attrib_calls;
 static unsigned ut_putch_calls;
 static unsigned ut_repeat_calls;
+static BOOL ut_init_succeeds;
 
 static void reset_fixture(void)
 {
@@ -51,12 +52,21 @@ static void reset_fixture(void)
    ut_cursor_calls = ut_attrib_calls = 0;
    ut_putch_calls = ut_repeat_calls = 0;
    ut_display_size = -1;
+   ut_init_succeeds = TRUE;
 }
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_NULL(utt_od_window_create(2, 2, 9, 6, "A", 7, 7, 7, 0));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -235,5 +245,6 @@ static const UTTestCase ut_cases[] = {
    {"coordinate validation", rejects_each_invalid_coordinate_independently},
    {"allocation failures", reports_allocation_and_screen_capture_failures},
    {"ANSI drawing", draws_ansi_windows_with_each_title_form},
-   {"AVATAR drawing", draws_avatar_window_and_preserves_explicit_box_sides}
+   {"AVATAR drawing", draws_avatar_window_and_preserves_explicit_box_sides},
+   {"terminal session", terminal_session_is_rejected}
 };

@@ -17,11 +17,12 @@
 static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -31,6 +32,7 @@ void utm_ODSyncAPIExit(void) { ++ut_exits; }
 
 static void reports_status_lines_as_unsupported(void)
 {
+   ut_init_succeeds = TRUE;
    bODInitialized = FALSE;
    od_control.od_error = 0;
    ut_init_calls = 0;
@@ -51,8 +53,18 @@ static void reports_status_lines_as_unsupported(void)
    UT_ASSERT_EQ_INT(ERR_UNSUPPORTED, od_control.od_error);
 }
 
+static void terminal_session_is_rejected(void)
+{
+   bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   od_control.od_error = 0; ut_entries = 0;
+   utt_od_set_statusline(1);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
+}
+
 static const UTTestCase ut_cases[] = {
-   {"unsupported status line", reports_status_lines_as_unsupported}
+   {"unsupported status line", reports_status_lines_as_unsupported},
+   {"terminal session", terminal_session_is_rejected}
 };
 
 #else
@@ -161,6 +173,15 @@ static void reset_status(void)
    ut_put_calls = ut_caret_calls = ut_scrolling_calls = 0;
    ut_personality_calls = 0;
    ut_personality_setting = 255;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_status(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_set_statusline(1);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void disabled_and_unchanged_status_lines_return_early(void)
@@ -248,7 +269,8 @@ static const UTTestCase ut_cases[] = {
    {"invalid status", invalid_settings_are_normalized_to_zero},
    {"forced status", forced_updates_redraw_an_unchanged_status_line},
    {"cursor repair", enabling_from_none_repairs_each_cursor_position},
-   {"clear status", setting_eight_clears_every_area_outside_the_output_window}
+   {"clear status", setting_eight_clears_every_area_outside_the_output_window},
+   {"terminal session", terminal_session_is_rejected}
 };
 
 #endif

@@ -1,6 +1,8 @@
 #define UT_CUSTOM_MOCK_ODFileSize
 #define UT_CUSTOM_MOCK_ODMakeFilename
 #define UT_CUSTOM_MOCK_ODReadExitInfoPrimitive
+#define UT_CUSTOM_MOCK_ODExitInfoExtendedEndian
+#define UT_CUSTOM_MOCK_ODExitInfoRA2Endian
 #define UT_CUSTOM_MOCK_ODStringPascalToC
 #define UT_CUSTOM_MOCK_fclose
 #define UT_CUSTOM_MOCK_fopen
@@ -23,6 +25,24 @@ static unsigned ut_close_count;
 static unsigned ut_free_count;
 static unsigned ut_pascal_count;
 static INT ut_primitive_count;
+static unsigned ut_ra2_endian_count;
+static unsigned ut_extended_endian_count;
+
+void utm_ODExitInfoRA2Endian(tRA2ExitInfoRecord *record,
+   BOOL from_little_endian)
+{
+   UT_ASSERT_EQ_PTR(&ut_ra2_record, record);
+   UT_ASSERT_EQ_INT(TRUE, from_little_endian);
+   ++ut_ra2_endian_count;
+}
+
+void utm_ODExitInfoExtendedEndian(tExtendedExitInfo *record,
+   BOOL from_little_endian)
+{
+   UT_ASSERT_EQ_PTR(&ut_extended_record, record);
+   UT_ASSERT_EQ_INT(TRUE, from_little_endian);
+   ++ut_extended_endian_count;
+}
 
 static void ut_pascal(char *destination, const char *text)
 {
@@ -147,6 +167,8 @@ static void reset_exitinfo_fixture(void)
    ut_free_count = 0;
    ut_pascal_count = 0;
    ut_primitive_count = -1;
+   ut_ra2_endian_count = 0;
+   ut_extended_endian_count = 0;
    pRA2ExitInfoRecord = NULL;
    pExtendedExitInfo = NULL;
    pExitInfoRecord = NULL;
@@ -247,6 +269,7 @@ static void imports_an_ra2_record_and_both_sex_values(void)
    UT_ASSERT_EQ_INT(4, od_control.user_rip_ver);
    UT_ASSERT_EQ_INT(4, od_control.od_page_pausing);
    UT_ASSERT_EQ_UINT(1, ut_close_count);
+   UT_ASSERT_EQ_UINT(1, ut_ra2_endian_count);
 
    reset_exitinfo_fixture();
    ut_file_size = 2363;
@@ -311,6 +334,7 @@ static void imports_an_ra1_extended_record(void)
    UT_ASSERT_EQ_INT(7, od_control.user_msg_area);
    UT_ASSERT_EQ_INT(8, od_control.user_file_area);
    UT_ASSERT(od_control.user_error_free != 0);
+   UT_ASSERT_EQ_UINT(1, ut_extended_endian_count);
 }
 
 static void handles_qbbs_primitive_failure_and_size_cap(void)

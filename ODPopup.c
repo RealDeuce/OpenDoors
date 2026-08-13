@@ -179,6 +179,7 @@ ODAPIDEF INT ODCALL od_popup_menu(char *pszTitle, char *pszText, INT nLeft,
 
    /* Initialize OpenDoors, if not already done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(0);
 
    OD_API_ENTRY();
 

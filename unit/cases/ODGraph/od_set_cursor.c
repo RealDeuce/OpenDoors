@@ -94,11 +94,20 @@ static void reports_lack_of_graphics(void)
    UT_ASSERT_EQ_UINT(0, ut_display_calls);
 }
 
+static void terminal_session_is_rejected(void)
+{
+   reset_graph_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_set_cursor(1, 1);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
+}
+
 static const UTTestCase ut_cases[] = {
    {"nonpositive coordinates", rejects_each_nonpositive_coordinate},
    {"outside window", rejects_each_out_of_window_coordinate},
    {"AVATAR byte limit", avatar_rejects_each_unrepresentable_coordinate},
    {"AVATAR cursor", sends_avatar_cursor_to_virtual_and_local_screens},
    {"ANSI cursor", sends_ansi_cursor_to_virtual_and_local_screens},
-   {"graphics required", reports_lack_of_graphics}
+   {"graphics required", reports_lack_of_graphics},
+   {"terminal session", terminal_session_is_rejected}
 };

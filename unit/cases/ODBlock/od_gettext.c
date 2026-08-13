@@ -20,6 +20,7 @@ static BOOL ut_session_available;
 static BOOL ut_get_result;
 static INT ut_width;
 static INT ut_height;
+static BOOL ut_init_succeeds;
 
 static void reset_fixture(void)
 {
@@ -31,6 +32,7 @@ static void reset_fixture(void)
    ut_get_result = TRUE;
    ut_width = 100;
    ut_height = 40;
+   ut_init_succeeds = TRUE;
 }
 
 BOOL ODCALL utm_ODScrnGetText(BYTE left, BYTE top, BYTE right, BYTE bottom,
@@ -88,7 +90,16 @@ void utm_ODSyncAPIExit(void) { ut_mock_called(MOCK_EXIT); }
 void ODCALL utm_od_init(void)
 {
    ut_mock_called(MOCK_INIT);
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   char buffer[24];
+   reset_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(FALSE, utt_od_gettext(1, 2, 3, 4, buffer));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_mock_count(MOCK_ENTRY));
 }
 
 static void assert_invalid(INT left, INT top, INT right, INT bottom,
@@ -164,5 +175,6 @@ static const UTTestCase ut_cases[] = {
    {"local screen result", local_screen_is_used_and_result_is_returned},
    {"parameter validation", each_parameter_error_is_rejected},
    {"no graphics", no_graphics_mode_is_rejected},
-   {"avatar graphics", avatar_alone_allows_graphics}
+   {"avatar graphics", avatar_alone_allows_graphics},
+   {"terminal session", terminal_session_is_rejected}
 };

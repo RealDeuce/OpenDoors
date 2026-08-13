@@ -787,7 +787,15 @@ was displayed.
 BOOL od_control.od_noexit;
 ```
 
-This variable contains a Boolean value, which allows you to prevent OpenDoors from exiting when shutting down. This may be useful when you want to have your program to do more processing after you have called the [`od_exit()`](../api/od_exit.md) function, or if you do not wish to have your program exit automatically when the user drops carrier. Normally, this variable will default to a value of FALSE, indicating that OpenDoors will exit normally when the [`od_exit()`](../api/od_exit.md) function is called. However, you may optionally set this variable to TRUE after [`od_init()`](../api/od_init.md) or some OpenDoors function has been called. In this case, when the [`od_exit()`](../api/od_exit.md) function is called, either by your program manually, or automatically by OpenDoors in response to the user dropping carrier, etc., OpenDoors will not exit. However, the normal operations of closing the serial port and re-writing the door information file will be carried out. If you set the od_noexit variable to TRUE, you will probably have to provide some mechanism to allow your program to detect when OpenDoors shutdowns due to the loss of carrier, etc. The best way of doing this is to provide a function which is to be called at the beginning of the [`od_exit()`](../api/od_exit.md) function, by setting the od_control.od_before_exit pointer, described above.
+This Boolean prevents OpenDoors from terminating the host process when it
+shuts down. It defaults to [`FALSE`](../constants/general.md#false). When it is
+[`TRUE`](../constants/general.md#true), [`od_exit()`](../api/od_exit.md) still
+performs the normal serial-port, door-information, screen, and kernel cleanup,
+then returns so the host can continue with non-OpenDoors work. The completed
+session cannot be restarted, and every later OpenDoors function call is an
+error. The `od_before_exit` callback runs before this value is latched, so the
+callback may decide whether the host should continue. Applications which need
+to detect automatic shutdown should install that callback.
 
 ### `od_page_len`
 

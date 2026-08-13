@@ -8,6 +8,11 @@ must run before initialization say so explicitly. Unless a page states
 otherwise, failures place an [`ERR_*`](../constants/errors.md) value in
 [`od_control.od_error`](../control/runtime.md).
 
+After [`od_exit()`](od_exit.md) completes, the library is permanently terminal
+and rejects every later function call with `ERR_GENERALFAILURE`. A host using
+`od_noexit` may continue without OpenDoors and may directly inspect the
+exported `od_control` object, but it cannot start a second session.
+
 ## Function groups
 
 - **Text display** sends ordinary, formatted, repeated, raw, or emulated text.

@@ -1,7 +1,16 @@
 #define UT_CUSTOM_MOCK_free
+#define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
 
 static void *ut_freed[3];
 static unsigned ut_free_count;
+static BOOL ut_public_call_allowed = TRUE;
+
+BOOL utm_ODSyncPublicCallAllowed(void)
+{
+   if(!ut_public_call_allowed)
+      od_control.od_error = ERR_GENERALFAILURE;
+   return ut_public_call_allowed;
+}
 
 void utm_free(void *memory)
 {
@@ -33,7 +42,19 @@ static void rejects_null_vector(void)
    UT_ASSERT_EQ_UINT(0, ut_free_count);
 }
 
+static void rejects_a_terminal_session(void)
+{
+   char *arguments[3];
+   ut_public_call_allowed = FALSE;
+   ut_free_count = 0;
+   utt_od_free_split_cmd_line(arguments);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_free_count);
+   ut_public_call_allowed = TRUE;
+}
+
 static const UTTestCase ut_cases[] = {
+   {"terminal session", rejects_a_terminal_session},
    {"free split command line", frees_both_allocations_and_vector},
    {"null vector", rejects_null_vector}
 };

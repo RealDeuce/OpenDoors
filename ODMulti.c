@@ -96,6 +96,7 @@ static INT nCurrentPersonality = 255;
  */
 ODAPIDEF void ODCALL ODMPSEnable(void)
 {
+   if(!ODSyncPublicCallAllowed()) return;
    pfSetPersonality = od_set_personality;
 }
 
@@ -122,6 +123,7 @@ ODAPIDEF BOOL ODCALL od_set_personality(const char *pszName)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
    
@@ -216,6 +218,7 @@ ODAPIDEF BOOL ODCALL od_set_personality(const char *pszName)
 ODAPIDEF BOOL ODCALL od_add_personality(const char *pszName, BYTE btOutputTop,
    BYTE btOutputBottom, OD_PERSONALITY_PROC *pfPerFunc)
 {
+   if(!ODSyncPublicCallAllowed()) return(FALSE);
    /* Log function entry if running in trace mode */
    TRACE(TRACE_API, "od_add_personality()");
 

@@ -21,6 +21,7 @@
 #define UT_CUSTOM_MOCK_strnicmp
 #define UT_CUSTOM_MOCK_strncpy
 #define UT_CUSTOM_MOCK_strtol
+#define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
 
 #ifdef ODPLAT_DOS32
 #define UT_CALLBACK ODCALL
@@ -44,6 +45,14 @@ static unsigned ut_handler_count;
 static BOOL ut_flag_result;
 static char ut_handler_keyword[32];
 static char ut_handler_options[80];
+static BOOL ut_public_call_allowed;
+
+BOOL utm_ODSyncPublicCallAllowed(void)
+{
+   if(!ut_public_call_allowed)
+      od_control.od_error = ERR_GENERALFAILURE;
+   return ut_public_call_allowed;
+}
 
 static int ut_casecmp(const char *left, const char *right, size_t maximum)
 {
@@ -290,6 +299,7 @@ static void reset_fixture(void)
    ut_flag_result = FALSE;
    ut_handler_keyword[0] = '\0';
    ut_handler_options[0] = '\0';
+   ut_public_call_allowed = TRUE;
 }
 
 static void invoke_parser(INT count, char **arguments)
@@ -444,7 +454,18 @@ static void rejects_missing_argument_vector_or_failed_split(void)
 #endif
 }
 
+static void rejects_a_terminal_session(void)
+{
+   char *arguments[] = {"door"};
+   reset_fixture();
+   ut_public_call_allowed = FALSE;
+   invoke_parser(1, arguments);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_INT(FALSE, bParsedCmdLine);
+}
+
 static const UTTestCase ut_cases[] = {
+   {"terminal session", rejects_a_terminal_session},
    {"standard options", parses_standard_value_and_flag_options},
    {"option alternatives", covers_port_graphics_handle_and_socket_alternatives},
    {"unknown callbacks", dispatches_unknown_options_to_callbacks},

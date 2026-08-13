@@ -112,7 +112,8 @@ typedef enum
    kODUIChangeInactivity,
    kODUIChangeTime,
    kODUIChangeLockout,
-   kODUIChangeShutdown
+   kODUIChangeShutdown,
+   kODUIChangeExit
 } tODUIChangeType;
 
 typedef struct tODUIChange
@@ -319,6 +320,7 @@ ODAPIDEF void ODCALL od_kernel(void)
 
    /* Initialize OpenDoors if not already done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    /* If this is an attempt at a re-entrant call to od_kernel() from another */
    /* function called by a currently active od_kernel(), then return without */
@@ -334,6 +336,8 @@ ODAPIDEF void ODCALL od_kernel(void)
    if(od_control.od_ker_exec != NULL)
    {
       (*od_control.od_ker_exec)();
+      if(eODLifecycleState != kODLifecycleActive)
+         goto kernel_finished;
    }
 
    /* If not operating in local mode, then perform remote-mode specific */
@@ -675,6 +679,7 @@ statup:
 
    ODTimerStart(&RunKernelTimer, 250);
 
+kernel_finished:
    OD_API_EXIT();
 
    bKernelActive = FALSE;
@@ -897,7 +902,11 @@ static BOOL ODKrnlDeliverTimeMessage(char *pszMessage,
 static BOOL ODKrnlQueueUIChange(tODUIChangeType Type, INT nValue,
    BYTE btReason)
 {
-   tODUIChange *pChange = malloc(sizeof(*pChange));
+   tODUIChange *pChange;
+
+   if(eODLifecycleState != kODLifecycleActive)
+      return(FALSE);
+   pChange = malloc(sizeof(*pChange));
 
    if(pChange == NULL)
    {
@@ -1132,6 +1141,16 @@ void ODKrnlRequestLockout(void)
 #endif
 }
 
+void ODKrnlRequestExit(INT nErrorLevel, BOOL bTermCall)
+{
+#ifdef ODPLAT_WIN32
+   (void)ODKrnlQueueUIChange(kODUIChangeExit, nErrorLevel,
+      (BYTE)bTermCall);
+#else
+   od_exit(nErrorLevel, bTermCall);
+#endif
+}
+
 void ODKrnlDispatchPending(BOOL bAllowApplicationCallbacks)
 {
 #ifdef ODPLAT_WIN32
@@ -1190,6 +1209,9 @@ void ODKrnlDispatchPending(BOOL bAllowApplicationCallbacks)
             case kODUIChangeShutdown:
                ODKrnlForceOpenDoorsShutdown(pChange->btReason);
                break;
+            case kODUIChangeExit:
+               od_exit(pChange->nValue, pChange->btReason != 0);
+               break;
             default:
                /* Ignore a corrupt or future queue node safely. */
                break;
@@ -1197,7 +1219,8 @@ void ODKrnlDispatchPending(BOOL bAllowApplicationCallbacks)
          free(pChange);
          pChange = pNext;
 
-         if(!bODInitialized)
+         if(!bODInitialized
+            || eODLifecycleState != kODLifecycleActive)
          {
             while(pChange != NULL)
             {
@@ -1256,6 +1279,7 @@ ODAPIDEF void ODCALL od_chat(void)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 

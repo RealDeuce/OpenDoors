@@ -33,6 +33,7 @@ static unsigned ut_exits;
 static unsigned ut_kernel_calls;
 static unsigned ut_shift_calls;
 static int ut_last_shift;
+static BOOL ut_init_succeeds;
 
 static void reset_input_fixture(void)
 {
@@ -53,12 +54,22 @@ static void reset_input_fixture(void)
    ut_init_calls = ut_entries = ut_exits = 0;
    ut_kernel_calls = ut_shift_calls = 0;
    ut_last_shift = -1;
+   ut_init_succeeds = TRUE;
 }
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   tODInputEvent output;
+   reset_input_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT(!utt_od_get_input(&output, 0, 0));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -344,5 +355,6 @@ static const UTTestCase ut_cases[] = {
    {"unmatched accumulated input", unmatched_accumulated_input_falls_back_after_timeout},
    {"deferred doorway input", remote_null_defers_doorway_mode_until_buffer_drains},
    {"settled complete sequence", timeout_can_settle_for_a_complete_sequence},
-   {"pending promotion conditions", pending_state_exercises_each_promotion_condition}
+   {"pending promotion conditions", pending_state_exercises_each_promotion_condition},
+   {"terminal session", terminal_session_is_rejected}
 };

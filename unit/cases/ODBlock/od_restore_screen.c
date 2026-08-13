@@ -34,6 +34,7 @@ static INT ut_cursor_column;
 static INT ut_attribute;
 static char ut_output[1024];
 static unsigned short ut_output_length;
+static BOOL ut_init_succeeds;
 
 static void reset_fixture(void)
 {
@@ -58,6 +59,7 @@ static void reset_fixture(void)
    ut_attribute = 0;
    ut_output_length = 0;
    bODInitialized = TRUE;
+   ut_init_succeeds = TRUE;
 }
 
 static void set_character(INT row, INT column, char value)
@@ -106,7 +108,15 @@ void ODCALL utm_od_disp_str(const char *text)
 void ODCALL utm_od_init(void)
 {
    ut_mock_called(MOCK_INIT);
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(FALSE, utt_od_restore_screen(ut_buffer));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_mock_count(MOCK_ENTRY));
 }
 
 void ODCALL utm_od_putch(char value)
@@ -311,5 +321,6 @@ static const UTTestCase ut_cases[] = {
    {"zero-width cursor line", settled_last_column_handles_zero_cursor_width},
    {"local short line", local_short_line_uses_explicit_newline},
    {"zero saved height", zero_saved_height_skips_ascii_row_loop},
-   {"local last column", local_last_column_remote_advance_is_conditional}
+   {"local last column", local_last_column_remote_advance_is_conditional},
+   {"terminal session", terminal_session_is_rejected}
 };

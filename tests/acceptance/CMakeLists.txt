@@ -51,6 +51,7 @@ endfunction()
 
 opendoors_acceptance_test(public_surface public_surface_test.c)
 opendoors_acceptance_test(lifecycle lifecycle_test.c)
+opendoors_acceptance_test(lifecycle_init_exit lifecycle_init_exit_test.c)
 opendoors_acceptance_test(command_line command_line_test.c)
 opendoors_acceptance_test(screen screen_test.c)
 if(WIN32)
@@ -104,15 +105,27 @@ if(OPENDOORS_ACCEPTANCE_EXTENDED)
     add_executable(opendoors_acceptance_socket_door socket_door.c)
     target_link_libraries(opendoors_acceptance_socket_door
         PRIVATE "${OPENDOORS_ACCEPTANCE_LIBRARY}")
+    if(WIN32)
+        target_link_libraries(opendoors_acceptance_socket_door PRIVATE ws2_32)
+    endif()
     target_include_directories(opendoors_acceptance_socket_door
         PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     set_target_properties(opendoors_acceptance_socket_door PROPERTIES
         C_STANDARD 90
         C_STANDARD_REQUIRED TRUE
         C_EXTENSIONS TRUE)
+    set(_opendoors_socket_launcher)
+    foreach(_opendoors_launcher_arg IN LISTS CMAKE_CROSSCOMPILING_EMULATOR)
+        list(APPEND _opendoors_socket_launcher
+            --launcher "${_opendoors_launcher_arg}")
+    endforeach()
+    if(WIN32)
+        list(APPEND _opendoors_socket_launcher --tcp)
+    endif()
     add_test(NAME acceptance.socket
         COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/socket_controller.py"
+            ${_opendoors_socket_launcher}
             "$<TARGET_FILE:opendoors_acceptance_socket_door>")
     set_tests_properties(acceptance.socket PROPERTIES
         TIMEOUT 30 LABELS "acceptance-extended")

@@ -13,11 +13,12 @@ static unsigned ut_emulate_calls;
 static BOOL ut_translate;
 static BOOL ut_session_echo;
 static const char *ut_text;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -56,6 +57,15 @@ static void reset_display(void)
    ut_disp_calls = ut_emulate_calls = 0;
    ut_translate = ut_session_echo = FALSE;
    ut_text = "abc";
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_display(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_disp_emu(ut_text, FALSE);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void local_only_output_needs_no_remote_translation(void)
@@ -97,5 +107,6 @@ static void translated_remote_output_is_emulated_once(void)
 static const UTTestCase ut_cases[] = {
    {"local only", local_only_output_needs_no_remote_translation},
    {"raw remote", raw_remote_output_is_sent_before_local_emulation},
-   {"translated remote", translated_remote_output_is_emulated_once}
+   {"translated remote", translated_remote_output_is_emulated_once},
+   {"terminal session", terminal_session_is_rejected}
 };

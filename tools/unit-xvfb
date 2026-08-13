@@ -6,12 +6,27 @@
 
 set -eu
 
+usage='usage: tools/unit-xvfb --display :N [--watcom ROOT] run|turbo|debug [arguments ...]'
+
 if [ "${1-}" != "--display" ] || [ "$#" -lt 3 ]; then
-   echo "usage: tools/unit-xvfb --display :N run|turbo|debug [arguments ...]" >&2
+   echo "$usage" >&2
    exit 2
 fi
 test_display=$2
 shift 2
+
+if [ "${1-}" = "--watcom" ]; then
+   if [ "$#" -lt 3 ]; then
+      echo "$usage" >&2
+      exit 2
+   fi
+   WATCOM=$2
+   shift 2
+   if [ ! -d "$WATCOM/binl" ]; then
+      echo "tools/unit-xvfb: Watcom binl directory is missing: $WATCOM/binl" >&2
+      exit 2
+   fi
+fi
 
 case "$test_display" in
    :0|:0.0)
@@ -86,7 +101,7 @@ case "$command_name" in
       "$@"
       ;;
    *)
-      echo "usage: tools/unit-xvfb --display :N run|turbo|debug [arguments ...]" >&2
+      echo "$usage" >&2
       exit 2
       ;;
 esac

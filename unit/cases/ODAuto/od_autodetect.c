@@ -19,6 +19,7 @@ static char ut_wait_results[2];
 static unsigned short ut_wait_index;
 static BOOL ut_disconnect_on_discard;
 static const char *ut_last_display;
+static BOOL ut_init_succeeds;
 
 static void reset_fixture(void)
 {
@@ -29,6 +30,7 @@ static void reset_fixture(void)
    ut_wait_index = 0;
    ut_disconnect_on_discard = FALSE;
    ut_last_display = NULL;
+   ut_init_succeeds = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void)
@@ -76,7 +78,15 @@ void ODCALL utm_od_disp(const char *buffer, INT size, BOOL local_echo)
 void ODCALL utm_od_init(void)
 {
    ut_mock_called(MOCK_INIT);
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_autodetect(0);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_mock_count(MOCK_API_ENTRY));
 }
 
 size_t utm_strlen(const char *text)
@@ -179,5 +189,6 @@ static const UTTestCase ut_cases[] = {
    {"failed detection leaves modes disabled",
       failed_detection_leaves_modes_disabled},
    {"disconnect during RIP discard exits early",
-      disconnect_during_rip_discard_exits_without_final_clear}
+      disconnect_during_rip_discard_exits_without_final_clear},
+   {"terminal session", terminal_session_is_rejected}
 };

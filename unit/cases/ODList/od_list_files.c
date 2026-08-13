@@ -74,6 +74,7 @@ static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
 static char ut_last_control_key;
+static BOOL ut_init_succeeds;
 
 size_t utm_strlen(const char *text)
 {
@@ -273,7 +274,11 @@ void ODVCALL utm_od_printf(const char *format, ...)
    (void)format;
    ++ut_printf_calls;
 }
-void ODCALL utm_od_init(void) { bODInitialized = TRUE; ++ut_init_calls; }
+void ODCALL utm_od_init(void)
+{
+   if(ut_init_succeeds) bODInitialized = TRUE;
+   ++ut_init_calls;
+}
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
 void utm_ODSyncAPIExit(void) { ++ut_exits; }
 
@@ -325,6 +330,15 @@ static void reset_list(void)
    ut_entries = 0;
    ut_exits = 0;
    ut_last_control_key = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_list(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT(!utt_od_list_files("index.bbs"));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void add_line(const char *text, BOOL complete, char control)
@@ -611,5 +625,6 @@ static const UTTestCase ut_cases[] = {
    {"entry failures", reports_entry_parsing_and_resolution_failures},
    {"online and offline", displays_online_and_offline_entries},
    {"explicit entry path", resolves_explicit_entry_paths_without_a_base_directory},
-   {"page prompt", performs_and_can_abort_page_pausing}
+   {"page prompt", performs_and_can_abort_page_pausing},
+   {"terminal session", terminal_session_is_rejected}
 };

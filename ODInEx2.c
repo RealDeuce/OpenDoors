@@ -298,6 +298,8 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    void *pWindow = NULL;
    DWORD dwActiveMinutes;
    static BOOL bExiting = FALSE;
+   BOOL bNestedAPI;
+   BOOL bReturnToCaller;
 #ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel;
 #endif
@@ -305,12 +307,39 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    /* Log function entry if running in trace mode */
    TRACE(TRACE_API, "od_exit()");
 
+#ifdef ODPLAT_WIN32
+   if(eODLifecycleState == kODLifecycleActive
+      && !ODSyncIsOwnerThread())
+   {
+      ODKrnlRequestExit(nErrorLevel, bTermCall);
+      return;
+   }
+#endif
+
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
    {
       ODDiagnosticMessage("Starting up od_exit()", "OpenDoors Diagnostics");
    }
 #endif
+
+   /* The first exit request wins. */
+   if(eODLifecycleState == kODLifecycleInitializing)
+   {
+      if(!bODExitRequestedDuringInitialization)
+      {
+         nODPendingExitErrorLevel = nErrorLevel;
+         bODPendingExitTermCall = bTermCall;
+         bODExitRequestedDuringInitialization = TRUE;
+      }
+      return;
+   }
+   if(eODLifecycleState == kODLifecycleExitPending
+      || eODLifecycleState == kODLifecycleTerminal)
+   {
+      od_control.od_error = ERR_GENERALFAILURE;
+      return;
+   }
 
    /* If this is a recursive od_exit() call, then ignore it. */
    if(bExiting)
@@ -321,11 +350,25 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 
    /* If user called od_exit() before doing anything else, then we first */
    /* initialize OpenDoors in order to shutdown and exit.                */
-   if(!bODInitialized) od_init();
+   if(!bODInitialized)
+   {
+      nODPendingExitErrorLevel = nErrorLevel;
+      bODPendingExitTermCall = bTermCall;
+      bODExitRequestedDuringInitialization = TRUE;
+      od_init();
+   }
+   if(!bODInitialized || eODLifecycleState == kODLifecycleTerminal)
+   {
+      bExiting = FALSE;
+      return;
+   }
+   bNestedAPI = ODSyncAPIIsNested();
    OD_API_ENTRY();
 
-   /* Update remaining time. */
-   od_control.user_timelimit += od_control.od_maxtime_deduction;
+   if(!bODExitPrologueComplete)
+   {
+      /* Update remaining time. */
+      od_control.user_timelimit += od_control.od_maxtime_deduction;
 
    /* Calculate deducted time */
    nDoorEndTime = time(NULL);
@@ -336,14 +379,36 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    }
 
    /* Reset to original bps rate that was stored in drop file */
-   od_control.baud = dwFileBPS;
+      od_control.baud = dwFileBPS;
 
    /* If function hook is defined. */
-   if(od_control.od_before_exit != NULL)
-   {
-      /* Then call it. */
-      (*od_control.od_before_exit)();
+      if(od_control.od_before_exit != NULL)
+      {
+         /* Then call it. */
+         (*od_control.od_before_exit)();
+      }
+
+      nODPendingExitErrorLevel = nErrorLevel;
+      bODPendingExitTermCall = bTermCall;
+      bODPendingExitNoExit = od_control.od_noexit;
+      bODExitPrologueComplete = TRUE;
+
+      /* In no-exit mode an exit raised inside another public call is
+       * finalized by that call's outermost API-exit boundary. */
+      if(od_control.od_noexit && bNestedAPI)
+      {
+         eODLifecycleState = kODLifecycleExitPending;
+#ifdef ODPLAT_WIN32
+         ODFrameRequestShutdown(hFrameThread);
+#endif
+         bExiting = FALSE;
+         OD_API_EXIT();
+         return;
+      }
    }
+
+   bReturnToCaller = bODPendingExitNoExit;
+   eODLifecycleState = kODLifecycleFinalizing;
 
    if(bTermCall && od_control.od_hanging_up != NULL)
    {
@@ -446,6 +511,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
                pRA2ExitInfoRecord->has_rip=od_control.user_rip;
                pRA2ExitInfoRecord->btRIPVersion=od_control.user_rip_ver;
 
+               ODExitInfoRA2Endian(pRA2ExitInfoRecord, FALSE);
                (void)ODDropFileWrite(&BinaryDropFile, pRA2ExitInfoRecord,
                   sizeof(tRA2ExitInfoRecord));
                break;
@@ -499,6 +565,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
                {
                   ODDropFileRecordWriteFailure(&BinaryDropFile);
                }
+               ODExitInfoExtendedEndian(pExtendedExitInfo, FALSE);
                (void)ODDropFileWrite(&BinaryDropFile, pExtendedExitInfo, 1017);
                break;
 
@@ -978,13 +1045,17 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 
    /* OpenDoors is no longer active. */
    bODInitialized = FALSE;
+   hSerialPort = NULL;
+   hODInputQueue = NULL;
+   eODLifecycleState = kODLifecycleTerminal;
+   bODExitPrologueComplete = FALSE;
 
    /* od_exit() is no longer active. */
    bExiting = FALSE;
 
    /* If the client does not want a call to od_exit() to shutdown the */
    /* application, but just to shutdown OpenDoors, then return now.   */
-   if(od_control.od_noexit)
+   if(bReturnToCaller)
    {
       OD_API_EXIT();
       return;
@@ -1177,6 +1248,218 @@ static INT ODSearchInDir(char **papszFileNames, INT nNumFileNames,
 }
 
 
+#define OD_EXITINFO_FROM_LE16(field) do { \
+   const BYTE *pODBytes = (const BYTE *)&(field); \
+   (field) = (WORD)((WORD)pODBytes[0] | ((WORD)pODBytes[1] << 8)); \
+} while(0)
+
+#define OD_EXITINFO_FROM_LE32(field) do { \
+   const BYTE *pODBytes = (const BYTE *)&(field); \
+   (field) = (DWORD)((DWORD)pODBytes[0] | ((DWORD)pODBytes[1] << 8) \
+      | ((DWORD)pODBytes[2] << 16) | ((DWORD)pODBytes[3] << 24)); \
+} while(0)
+
+#define OD_EXITINFO_TO_LE16(field) do { \
+   WORD wODValue = (WORD)(field); \
+   BYTE *pODBytes = (BYTE *)&(field); \
+   pODBytes[0] = (BYTE)wODValue; \
+   pODBytes[1] = (BYTE)(wODValue >> 8); \
+} while(0)
+
+#define OD_EXITINFO_TO_LE32(field) do { \
+   DWORD dwODValue = (DWORD)(field); \
+   BYTE *pODBytes = (BYTE *)&(field); \
+   pODBytes[0] = (BYTE)dwODValue; \
+   pODBytes[1] = (BYTE)(dwODValue >> 8); \
+   pODBytes[2] = (BYTE)(dwODValue >> 16); \
+   pODBytes[3] = (BYTE)(dwODValue >> 24); \
+} while(0)
+
+
+/* ----------------------------------------------------------------------------
+ * ODExitInfoPrimitiveEndian()
+ *
+ * Converts every multi-byte field in a byte-packed pre-RA2 EXITINFO.BBS
+ * record between its little-endian disk representation and host values.
+ */
+void ODExitInfoPrimitiveEndian(tExitInfoRecord *pRecord,
+   BOOL bFromLittleEndian)
+{
+   unsigned nIndex;
+
+   if(bFromLittleEndian)
+   {
+      OD_EXITINFO_FROM_LE16(pRecord->baud);
+      OD_EXITINFO_FROM_LE32(pRecord->num_calls);
+      for(nIndex = 0; nIndex < 24; ++nIndex)
+         OD_EXITINFO_FROM_LE16(pRecord->busyperhour[nIndex]);
+      for(nIndex = 0; nIndex < 7; ++nIndex)
+         OD_EXITINFO_FROM_LE16(pRecord->busyperday[nIndex]);
+      OD_EXITINFO_FROM_LE16(pRecord->credit);
+      OD_EXITINFO_FROM_LE16(pRecord->pending);
+      OD_EXITINFO_FROM_LE16(pRecord->posted);
+      OD_EXITINFO_FROM_LE16(pRecord->lastread);
+      OD_EXITINFO_FROM_LE16(pRecord->sec);
+      OD_EXITINFO_FROM_LE16(pRecord->nocalls);
+      OD_EXITINFO_FROM_LE16(pRecord->ups);
+      OD_EXITINFO_FROM_LE16(pRecord->downs);
+      OD_EXITINFO_FROM_LE16(pRecord->upk);
+      OD_EXITINFO_FROM_LE16(pRecord->downk);
+      OD_EXITINFO_FROM_LE16(pRecord->todayk);
+      OD_EXITINFO_FROM_LE16(pRecord->elapsed);
+      OD_EXITINFO_FROM_LE16(pRecord->screenlen);
+      OD_EXITINFO_FROM_LE16(pRecord->xirecord);
+      OD_EXITINFO_FROM_LE16(pRecord->timelimit);
+      OD_EXITINFO_FROM_LE32(pRecord->loginsec);
+      OD_EXITINFO_FROM_LE32(pRecord->net_credit);
+      OD_EXITINFO_FROM_LE16(pRecord->userrecord);
+      OD_EXITINFO_FROM_LE16(pRecord->readthru);
+      OD_EXITINFO_FROM_LE16(pRecord->numberpages);
+      OD_EXITINFO_FROM_LE16(pRecord->downloadlimint);
+      OD_EXITINFO_FROM_LE16(pRecord->bbs.qbbs.screenlength);
+   }
+   else
+   {
+      OD_EXITINFO_TO_LE16(pRecord->baud);
+      OD_EXITINFO_TO_LE32(pRecord->num_calls);
+      for(nIndex = 0; nIndex < 24; ++nIndex)
+         OD_EXITINFO_TO_LE16(pRecord->busyperhour[nIndex]);
+      for(nIndex = 0; nIndex < 7; ++nIndex)
+         OD_EXITINFO_TO_LE16(pRecord->busyperday[nIndex]);
+      OD_EXITINFO_TO_LE16(pRecord->credit);
+      OD_EXITINFO_TO_LE16(pRecord->pending);
+      OD_EXITINFO_TO_LE16(pRecord->posted);
+      OD_EXITINFO_TO_LE16(pRecord->lastread);
+      OD_EXITINFO_TO_LE16(pRecord->sec);
+      OD_EXITINFO_TO_LE16(pRecord->nocalls);
+      OD_EXITINFO_TO_LE16(pRecord->ups);
+      OD_EXITINFO_TO_LE16(pRecord->downs);
+      OD_EXITINFO_TO_LE16(pRecord->upk);
+      OD_EXITINFO_TO_LE16(pRecord->downk);
+      OD_EXITINFO_TO_LE16(pRecord->todayk);
+      OD_EXITINFO_TO_LE16(pRecord->elapsed);
+      OD_EXITINFO_TO_LE16(pRecord->screenlen);
+      OD_EXITINFO_TO_LE16(pRecord->xirecord);
+      OD_EXITINFO_TO_LE16(pRecord->timelimit);
+      OD_EXITINFO_TO_LE32(pRecord->loginsec);
+      OD_EXITINFO_TO_LE32(pRecord->net_credit);
+      OD_EXITINFO_TO_LE16(pRecord->userrecord);
+      OD_EXITINFO_TO_LE16(pRecord->readthru);
+      OD_EXITINFO_TO_LE16(pRecord->numberpages);
+      OD_EXITINFO_TO_LE16(pRecord->downloadlimint);
+      OD_EXITINFO_TO_LE16(pRecord->bbs.qbbs.screenlength);
+   }
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODExitInfoExtendedEndian()
+ *
+ * Converts the multi-byte field in a byte-packed RemoteAccess 1.x extension.
+ */
+void ODExitInfoExtendedEndian(tExtendedExitInfo *pRecord,
+   BOOL bFromLittleEndian)
+{
+   if(bFromLittleEndian)
+      OD_EXITINFO_FROM_LE16(pRecord->deducted_time);
+   else
+      OD_EXITINFO_TO_LE16(pRecord->deducted_time);
+}
+
+
+/* ----------------------------------------------------------------------------
+ * ODExitInfoRA2Endian()
+ *
+ * Converts every multi-byte field in a byte-packed RemoteAccess 2.x record.
+ */
+void ODExitInfoRA2Endian(tRA2ExitInfoRecord *pRecord,
+   BOOL bFromLittleEndian)
+{
+   unsigned nIndex;
+
+   if(bFromLittleEndian)
+   {
+      OD_EXITINFO_FROM_LE16(pRecord->baud);
+      OD_EXITINFO_FROM_LE32(pRecord->num_calls);
+      for(nIndex = 0; nIndex < 24; ++nIndex)
+         OD_EXITINFO_FROM_LE16(pRecord->busyperhour[nIndex]);
+      for(nIndex = 0; nIndex < 7; ++nIndex)
+         OD_EXITINFO_FROM_LE16(pRecord->busyperday[nIndex]);
+      OD_EXITINFO_FROM_LE32(pRecord->password_crc);
+      OD_EXITINFO_FROM_LE32(pRecord->credit);
+      OD_EXITINFO_FROM_LE32(pRecord->pending);
+      OD_EXITINFO_FROM_LE16(pRecord->posted);
+      OD_EXITINFO_FROM_LE16(pRecord->sec);
+      OD_EXITINFO_FROM_LE32(pRecord->lastread);
+      OD_EXITINFO_FROM_LE32(pRecord->nocalls);
+      OD_EXITINFO_FROM_LE32(pRecord->ups);
+      OD_EXITINFO_FROM_LE32(pRecord->downs);
+      OD_EXITINFO_FROM_LE32(pRecord->upk);
+      OD_EXITINFO_FROM_LE32(pRecord->downk);
+      OD_EXITINFO_FROM_LE32(pRecord->todayk);
+      OD_EXITINFO_FROM_LE16(pRecord->elapsed);
+      OD_EXITINFO_FROM_LE16(pRecord->screenlen);
+      OD_EXITINFO_FROM_LE16(pRecord->group);
+      for(nIndex = 0; nIndex < 200; ++nIndex)
+         OD_EXITINFO_FROM_LE16(pRecord->combinedrecord[nIndex]);
+      OD_EXITINFO_FROM_LE16(pRecord->msgarea);
+      OD_EXITINFO_FROM_LE16(pRecord->filearea);
+      OD_EXITINFO_FROM_LE16(pRecord->file_group);
+      OD_EXITINFO_FROM_LE32(pRecord->xirecord);
+      OD_EXITINFO_FROM_LE16(pRecord->msg_group);
+      OD_EXITINFO_FROM_LE16(pRecord->timelimit);
+      OD_EXITINFO_FROM_LE32(pRecord->loginsec);
+      OD_EXITINFO_FROM_LE16(pRecord->userrecord);
+      OD_EXITINFO_FROM_LE16(pRecord->readthru);
+      OD_EXITINFO_FROM_LE16(pRecord->numberpages);
+      OD_EXITINFO_FROM_LE16(pRecord->downloadlimit);
+      OD_EXITINFO_FROM_LE32(pRecord->logonpasswordcrc);
+      OD_EXITINFO_FROM_LE16(pRecord->deducted_time);
+      OD_EXITINFO_FROM_LE16(pRecord->menu_cost_per_min);
+   }
+   else
+   {
+      OD_EXITINFO_TO_LE16(pRecord->baud);
+      OD_EXITINFO_TO_LE32(pRecord->num_calls);
+      for(nIndex = 0; nIndex < 24; ++nIndex)
+         OD_EXITINFO_TO_LE16(pRecord->busyperhour[nIndex]);
+      for(nIndex = 0; nIndex < 7; ++nIndex)
+         OD_EXITINFO_TO_LE16(pRecord->busyperday[nIndex]);
+      OD_EXITINFO_TO_LE32(pRecord->password_crc);
+      OD_EXITINFO_TO_LE32(pRecord->credit);
+      OD_EXITINFO_TO_LE32(pRecord->pending);
+      OD_EXITINFO_TO_LE16(pRecord->posted);
+      OD_EXITINFO_TO_LE16(pRecord->sec);
+      OD_EXITINFO_TO_LE32(pRecord->lastread);
+      OD_EXITINFO_TO_LE32(pRecord->nocalls);
+      OD_EXITINFO_TO_LE32(pRecord->ups);
+      OD_EXITINFO_TO_LE32(pRecord->downs);
+      OD_EXITINFO_TO_LE32(pRecord->upk);
+      OD_EXITINFO_TO_LE32(pRecord->downk);
+      OD_EXITINFO_TO_LE32(pRecord->todayk);
+      OD_EXITINFO_TO_LE16(pRecord->elapsed);
+      OD_EXITINFO_TO_LE16(pRecord->screenlen);
+      OD_EXITINFO_TO_LE16(pRecord->group);
+      for(nIndex = 0; nIndex < 200; ++nIndex)
+         OD_EXITINFO_TO_LE16(pRecord->combinedrecord[nIndex]);
+      OD_EXITINFO_TO_LE16(pRecord->msgarea);
+      OD_EXITINFO_TO_LE16(pRecord->filearea);
+      OD_EXITINFO_TO_LE16(pRecord->file_group);
+      OD_EXITINFO_TO_LE32(pRecord->xirecord);
+      OD_EXITINFO_TO_LE16(pRecord->msg_group);
+      OD_EXITINFO_TO_LE16(pRecord->timelimit);
+      OD_EXITINFO_TO_LE32(pRecord->loginsec);
+      OD_EXITINFO_TO_LE16(pRecord->userrecord);
+      OD_EXITINFO_TO_LE16(pRecord->readthru);
+      OD_EXITINFO_TO_LE16(pRecord->numberpages);
+      OD_EXITINFO_TO_LE16(pRecord->downloadlimit);
+      OD_EXITINFO_TO_LE32(pRecord->logonpasswordcrc);
+      OD_EXITINFO_TO_LE16(pRecord->deducted_time);
+      OD_EXITINFO_TO_LE16(pRecord->menu_cost_per_min);
+   }
+}
+
+
 /* ----------------------------------------------------------------------------
  * ODReadExitInfoPrimitive()
  *
@@ -1190,7 +1473,7 @@ static INT ODSearchInDir(char **papszFileNames, INT nNumFileNames,
  */
 BOOL ODReadExitInfoPrimitive(FILE *pfDropFile, INT nCount)
 {
-   if((pExitInfoRecord=malloc(sizeof(tExitInfoRecord)))==NULL) return(FALSE);
+   if((pExitInfoRecord=calloc(1, sizeof(tExitInfoRecord)))==NULL) return(FALSE);
 
    if(fread(pExitInfoRecord,1,nCount,pfDropFile)!=(size_t)nCount)
    {
@@ -1198,6 +1481,8 @@ BOOL ODReadExitInfoPrimitive(FILE *pfDropFile, INT nCount)
       pExitInfoRecord = NULL;
       return(FALSE);
    }
+
+   ODExitInfoPrimitiveEndian(pExitInfoRecord, TRUE);
 
                                           /* now we read all the data from the */
                                           /* EXITINFO structure to the OpenDoors */
@@ -1326,7 +1611,9 @@ INT ODWriteExitInfoPrimitive(FILE *pfDropFile, INT nCount)
 
    memcpy(&pExitInfoRecord->loginsec,&od_control.user_loginsec,16);
 
+   ODExitInfoPrimitiveEndian(pExitInfoRecord, FALSE);
    nToReturn=(fwrite(pExitInfoRecord,1,nCount,pfDropFile) == (size_t)nCount);
+   ODExitInfoPrimitiveEndian(pExitInfoRecord, TRUE);
    return(nToReturn);
 }
 

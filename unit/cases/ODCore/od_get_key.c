@@ -24,6 +24,7 @@ static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
 static unsigned ut_kernel_calls;
+static BOOL ut_init_succeeds;
 #ifdef OD_THREAD_SUPPORT
 static unsigned ut_release_calls;
 static unsigned ut_reacquire_calls;
@@ -32,7 +33,7 @@ static unsigned ut_reacquire_calls;
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -84,6 +85,7 @@ static void reset_key(void)
 {
    unsigned index;
    bODInitialized = TRUE;
+   eODLifecycleState = kODLifecycleActive;
    hODInputQueue = (tODInQueueHandle)1;
    od_control.od_last_input = 99;
    ut_waiting_count = 0;
@@ -103,11 +105,31 @@ static void reset_key(void)
    ut_entries = 0;
    ut_exits = 0;
    ut_kernel_calls = 0;
+   ut_init_succeeds = TRUE;
 #ifdef OD_THREAD_SUPPORT
    ut_release_calls = 0;
    ut_reacquire_calls = 0;
 #endif
    ut_kernel_calls = 0;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_key(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(0, utt_od_get_key(FALSE));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
+}
+
+static void pending_session_is_rejected(void)
+{
+   reset_key();
+   eODLifecycleState = kODLifecycleExitPending;
+   ut_waiting_values[0] = FALSE;
+   ut_waiting_count = 1;
+   UT_ASSERT_EQ_INT(0, utt_od_get_key(FALSE));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void a_nonwaiting_read_returns_zero_for_an_empty_queue(void)
@@ -191,5 +213,7 @@ static const UTTestCase ut_cases[] = {
    {"failed nonwaiting dequeue", a_nonwaiting_queue_failure_returns_zero},
    {"nonwaiting line feed", a_nonwaiting_read_ignores_line_feed_and_tracks_remote_input},
    {"waiting retries", a_waiting_read_retries_timeouts_and_line_feed},
-   {"failed checkpoint", a_failed_checkpoint_stops_a_waiting_read}
+   {"failed checkpoint", a_failed_checkpoint_stops_a_waiting_read},
+   {"pending session", pending_session_is_rejected},
+   {"terminal session", terminal_session_is_rejected}
 };

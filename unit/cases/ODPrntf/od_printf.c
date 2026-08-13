@@ -35,6 +35,7 @@ static unsigned ut_attribute_calls;
 static INT ut_last_attribute;
 static size_t ut_display_length;
 static size_t ut_last_realloc_size;
+static BOOL ut_init_succeeds;
 
 static void reset_printf_fixture(void)
 {
@@ -62,6 +63,7 @@ static void reset_printf_fixture(void)
    ut_last_attribute = -1;
    ut_display_length = 0;
    ut_last_realloc_size = 0;
+   ut_init_succeeds = TRUE;
 }
 
 static void select_output(const char *text)
@@ -81,7 +83,16 @@ static void select_output(const char *text)
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_printf_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_printf("%d", 42);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
+   UT_ASSERT_EQ_UINT(0, ut_realloc_calls);
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -326,5 +337,6 @@ static const UTTestCase ut_cases[] = {
    {"inconsistent second format", reports_an_inconsistent_second_format},
    {"plain color scanning", scans_plain_text_for_either_color_syntax},
    {"delimited colors", handles_delimited_color_descriptions_at_each_boundary},
-   {"single-character colors", handles_single_character_colors_at_each_boundary}
+   {"single-character colors", handles_single_character_colors_at_each_boundary},
+   {"terminal session", terminal_session_is_rejected}
 };

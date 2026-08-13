@@ -110,13 +110,28 @@ BOOL ODSyncAPIActiveOnOwnerThread(void)
 #endif
 }
 
+BOOL ODSyncAPIIsNested(void)
+{
+   return(bSyncActive && ODSyncIsOwnerThread() && nAPILevel != 0);
+}
+
+BOOL ODSyncPublicCallAllowed(void)
+{
+   if(eODLifecycleState >= kODLifecycleExitPending)
+   {
+      od_control.od_error = ERR_GENERALFAILURE;
+      return(FALSE);
+   }
+   return(TRUE);
+}
+
 void ODSyncAPIEntry(void)
 {
    BOOL bOutermost = nAPILevel == 0;
 
    ASSERT(ODSyncIsOwnerThread());
    ++nAPILevel;
-   if(bOutermost)
+   if(bOutermost && eODLifecycleState == kODLifecycleActive)
       ODKrnlDispatchPending(TRUE);
 }
 
@@ -124,13 +139,20 @@ void ODSyncAPIExit(void)
 {
    ASSERT(nAPILevel != 0);
    if(nAPILevel == 0) return;
-   if(nAPILevel == 1)
+   if(nAPILevel == 1 && eODLifecycleState == kODLifecycleExitPending)
+   {
+      eODLifecycleState = kODLifecycleFinalizing;
+      od_exit(nODPendingExitErrorLevel, bODPendingExitTermCall);
+   }
+   if(nAPILevel == 1 && eODLifecycleState == kODLifecycleActive)
       ODKrnlDispatchPending(TRUE);
 #ifdef ODPLAT_WIN32
-   if(nAPILevel == 1)
+   if(nAPILevel == 1 && eODLifecycleState == kODLifecycleActive)
       ODScrnPublish();
 #endif
    --nAPILevel;
+   if(nAPILevel == 0 && eODLifecycleState == kODLifecycleTerminal)
+      ODSyncSessionShutdown();
 }
 
 BOOL ODSyncAPICheckpoint(void)
@@ -138,13 +160,15 @@ BOOL ODSyncAPICheckpoint(void)
    unsigned nSavedAPILevel;
 
    if(nAPILevel == 0 || !ODSyncIsOwnerThread())
-      return(bODInitialized);
+      return(eODLifecycleState == kODLifecycleActive);
    nSavedAPILevel = ODSyncAPIRelease();
    ODSyncAPIReacquire(nSavedAPILevel);
+   if(eODLifecycleState != kODLifecycleActive)
+      return(FALSE);
    ODKrnlDispatchPending(TRUE);
-   if(bODInitialized)
+   if(eODLifecycleState == kODLifecycleActive)
       od_kernel();
-   return(bODInitialized);
+   return(eODLifecycleState == kODLifecycleActive);
 }
 
 unsigned ODSyncAPIRelease(void)

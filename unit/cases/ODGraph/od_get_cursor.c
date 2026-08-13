@@ -51,8 +51,19 @@ static void obtains_each_local_cursor_component(void)
    UT_ASSERT_EQ_INT(12, column);
 }
 
+static void terminal_session_is_rejected(void)
+{
+   INT row;
+   INT column;
+   reset_graph_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_get_cursor(&row, &column);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
+}
+
 static const UTTestCase ut_cases[] = {
    {"invalid outputs", rejects_two_null_outputs_after_initializing},
    {"virtual cursor", obtains_each_virtual_cursor_component},
-   {"local cursor", obtains_each_local_cursor_component}
+   {"local cursor", obtains_each_local_cursor_component},
+   {"terminal session", terminal_session_is_rejected}
 };

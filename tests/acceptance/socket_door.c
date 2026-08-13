@@ -1,5 +1,9 @@
 #include <stdlib.h>
 
+#ifdef _WIN32 /* OpenDoor.h has not yet supplied ODPLAT_WIN32. */
+#include <winsock2.h>
+#endif
+
 #define OD_ACCEPTANCE_NO_LOCAL_CONFIG
 #include "test_support.h"
 
@@ -28,6 +32,11 @@ int main(int argc, char **argv)
 #if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
    DWORD_PTR handle;
 #endif
+#ifdef ODPLAT_WIN32
+   struct sockaddr_in address;
+   WSADATA data;
+   SOCKET connection;
+#endif
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    (void)argc;
@@ -35,7 +44,16 @@ int main(int argc, char **argv)
 #else
    OD_TEST_CHECK(argc == 2);
 #ifdef ODPLAT_WIN32
-   handle = (DWORD_PTR)_strtoui64(argv[1], NULL, 10);
+   OD_TEST_CHECK(WSAStartup(MAKEWORD(2, 0), &data) == 0);
+   connection = socket(AF_INET, SOCK_STREAM, 0);
+   OD_TEST_CHECK(connection != INVALID_SOCKET);
+   memset(&address, 0, sizeof(address));
+   address.sin_family = AF_INET;
+   address.sin_addr.s_addr = inet_addr("127.0.0.1");
+   address.sin_port = htons((unsigned short)strtoul(argv[1], NULL, 10));
+   OD_TEST_CHECK(connect(connection, (struct sockaddr *)&address,
+      sizeof(address)) == 0);
+   handle = (DWORD_PTR)connection;
 #else
    handle = (DWORD_PTR)strtoul(argv[1], NULL, 10);
 #endif
@@ -147,6 +165,9 @@ int main(int argc, char **argv)
    fprintf(stderr, "socket: shutting down\n");
 #endif
    od_exit(0, FALSE);
+#ifdef ODPLAT_WIN32
+   WSACleanup();
+#endif
 #if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
    fprintf(stderr, "socket: shut down\n");
 #endif

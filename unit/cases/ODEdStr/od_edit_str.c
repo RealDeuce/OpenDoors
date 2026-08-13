@@ -40,10 +40,11 @@ static unsigned ut_attrib_calls;
 static unsigned ut_disp_calls;
 static unsigned ut_repeat_calls;
 static unsigned ut_putch_calls;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
    ++ut_init_calls;
 }
 
@@ -158,6 +159,17 @@ static void reset_editor(void)
    ut_disp_calls = 0;
    ut_repeat_calls = 0;
    ut_putch_calls = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   char input[8] = "";
+   reset_editor(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_UINT(0,
+      utt_od_edit_str(input, "?", 1, 1, 7, 15, '.', EDIT_FLAG_NO_REDRAW));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void queue_failure(void)
@@ -911,5 +923,6 @@ static const UTTestCase ut_cases[] = {
    {"automatic literal", adds_a_character_before_an_automatic_literal},
    {"cursor validation", cursor_validation_can_reject_or_password_convert},
    {"full append", cannot_append_beyond_a_full_field},
-   {"empty leave blank", leave_blank_with_no_literal_remains_empty}
+   {"empty leave blank", leave_blank_with_no_literal_remains_empty},
+   {"terminal session", terminal_session_is_rejected}
 };

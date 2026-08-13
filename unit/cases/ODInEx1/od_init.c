@@ -27,6 +27,7 @@
 #define UT_CUSTOM_MOCK_getenv
 #define UT_CUSTOM_MOCK_malloc
 #define UT_CUSTOM_MOCK_od_strupr
+#define UT_CUSTOM_MOCK_od_exit
 #define UT_CUSTOM_MOCK_safe_strcat
 #define UT_CUSTOM_MOCK_safe_strcpy
 #define UT_CUSTOM_MOCK_setlocale
@@ -75,6 +76,10 @@ static unsigned ut_mps_calls;
 static unsigned ut_no_file_calls;
 static unsigned ut_exitinfo_calls;
 static unsigned ut_sfdoors_calls;
+static unsigned ut_od_exit_calls;
+static INT ut_od_exit_error;
+static BOOL ut_od_exit_term;
+static BOOL ut_config_requests_exit;
 static BOOL ut_sfdoors_result;
 static const char *ut_error_text;
 static const char *ut_task_value;
@@ -452,6 +457,13 @@ void utm_exit(int status)
    longjmp(ut_exit_target, 1);
 }
 
+void ODCALL utm_od_exit(INT error_level, BOOL term_call)
+{
+   ++ut_od_exit_calls;
+   ut_od_exit_error = error_level;
+   ut_od_exit_term = term_call;
+}
+
 #ifdef ODPLAT_NIX
 char *utm_setlocale(int category, const char *locale)
 {
@@ -468,6 +480,12 @@ static void ut_config_callback(void)
 #endif
 {
    ++ut_config_calls;
+   if(ut_config_requests_exit)
+   {
+      bODExitRequestedDuringInitialization = TRUE;
+      nODPendingExitErrorLevel = 31;
+      bODPendingExitTermCall = TRUE;
+   }
 }
 
 #ifdef ODPLAT_DOS32
@@ -532,6 +550,8 @@ static void reset_init_fixture(void)
    ut_no_file_calls = 0;
    ut_exitinfo_calls = 0;
    ut_sfdoors_calls = 0;
+   ut_od_exit_calls = 0;
+   ut_config_requests_exit = FALSE;
    ut_sfdoors_result = TRUE;
    ut_error_text = NULL;
    ut_task_value = NULL;
@@ -542,6 +562,8 @@ static void reset_init_fixture(void)
    ut_no_file_supplies_info = FALSE;
    ut_exit_expected = FALSE;
    bODInitialized = FALSE;
+   eODLifecycleState = kODLifecycleNeverStarted;
+   bODExitRequestedDuringInitialization = FALSE;
    bIsCallbackActive = FALSE;
    bCalledFromConfig = FALSE;
    bParsedCmdLine = FALSE;
@@ -598,6 +620,27 @@ static void honors_entry_guards_and_sync_failure(void)
    UT_ASSERT_EQ_UINT(0, ut_platform_calls);
 }
 
+static void completes_initialization_before_processing_an_exit_request(void)
+{
+   reset_init_fixture();
+   bODExitRequestedDuringInitialization = TRUE;
+   nODPendingExitErrorLevel = 23;
+   bODPendingExitTermCall = TRUE;
+   utt_od_init();
+   UT_ASSERT_EQ_INT(kODLifecycleActive, eODLifecycleState);
+   UT_ASSERT_EQ_UINT(1, ut_od_exit_calls);
+   UT_ASSERT_EQ_INT(23, ut_od_exit_error);
+   UT_ASSERT_EQ_INT(TRUE, ut_od_exit_term);
+   UT_ASSERT(!bODExitRequestedDuringInitialization);
+
+   reset_init_fixture();
+   eODLifecycleState = kODLifecycleTerminal;
+   utt_od_init();
+   UT_ASSERT_EQ_INT(FALSE, bODInitialized);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_sync_calls);
+}
+
 static void initializes_tables_allocations_and_local_defaults(void)
 {
    reset_init_fixture();
@@ -650,6 +693,16 @@ static void preserves_tables_and_delegates_to_configuration(void)
    UT_ASSERT_EQ_UINT(1, ut_mps_calls);
 #endif
    UT_ASSERT_EQ_UINT(0, ut_platform_calls);
+
+   reset_init_fixture();
+   od_control.config_file = ut_config_callback;
+   ut_config_requests_exit = TRUE;
+   utt_od_init();
+   UT_ASSERT_EQ_UINT(1, ut_config_calls);
+   UT_ASSERT_EQ_UINT(1, ut_od_exit_calls);
+   UT_ASSERT_EQ_INT(31, ut_od_exit_error);
+   UT_ASSERT_EQ_INT(TRUE, ut_od_exit_term);
+   UT_ASSERT(!bODExitRequestedDuringInitialization);
 }
 
 static void handles_allocation_and_queue_failures(void)
@@ -1419,6 +1472,7 @@ static void handles_no_file_callback_outcomes(void)
 static const UTTestCase ut_cases[] = {
 #if UT_TURBO_SHARD == 0 || UT_TURBO_SHARD == 1
    {"entry guards", honors_entry_guards_and_sync_failure},
+   {"initialization exit", completes_initialization_before_processing_an_exit_request},
    {"initial defaults", initializes_tables_allocations_and_local_defaults},
    {"configuration delegation", preserves_tables_and_delegates_to_configuration},
    {"allocation failures", handles_allocation_and_queue_failures},

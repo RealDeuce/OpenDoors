@@ -61,9 +61,18 @@ static void both_graphics_modes_prefer_avatar(void)
    UT_ASSERT_EQ_INT(2, ut_display_length);
 }
 
+static void terminal_session_is_rejected(void)
+{
+   reset_graph_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_clr_line();
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
+}
+
 static const UTTestCase ut_cases[] = {
    {"AVATAR virtual clear", avatar_clears_virtual_screen_and_sends_avatar_sequence},
    {"ANSI local clear", ansi_clears_local_screen_without_remote_leakage},
    {"plain ASCII clear", plain_ascii_sends_spaces_and_backspaces_to_both_screens},
-   {"AVATAR precedence", both_graphics_modes_prefer_avatar}
+   {"AVATAR precedence", both_graphics_modes_prefer_avatar},
+   {"terminal session", terminal_session_is_rejected}
 };

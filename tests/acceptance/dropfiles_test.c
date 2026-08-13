@@ -253,11 +253,26 @@ static int TestExitInfoSize(size_t size, BYTE expected_type)
       "Acceptance BBS", "Test", "Sysop", "COM0", "0", "0",
       "Fixture", "Caller", "Test Lab", "1", "42", "60"
    };
+   int result;
+   FILE *file;
+   unsigned char calls[4];
    if(!WriteCanonicalExitInfo(size) ||
       !WriteLines("dorinfo1.def", dorinfo,
          sizeof(dorinfo) / sizeof(dorinfo[0])))
       return(0);
-   return(RunDropFile("exitinfo.bbs", expected_type, "Fixture Caller"));
+   result = RunDropFile("exitinfo.bbs", expected_type, "Fixture Caller");
+   if(!result || od_control.system_calls != 0x12345678UL)
+      return(0);
+   file = fopen("exitinfo.bbs", "rb");
+   if(file == NULL || fseek(file, 2, SEEK_SET) != 0 ||
+      fread(calls, 1, sizeof(calls), file) != sizeof(calls))
+   {
+      if(file != NULL) fclose(file);
+      return(0);
+   }
+   result = fclose(file) == 0 && calls[0] == 0x78 && calls[1] == 0x56 &&
+      calls[2] == 0x34 && calls[3] == 0x12;
+   return(result);
 }
 
 static int TestExitInfo(void)
@@ -270,37 +285,9 @@ static int TestQbbs(void)
    return(TestExitInfoSize(902, QBBS275EXITINFO));
 }
 
-static void UseLocalOnMissingDropFile(void)
-{
-   od_control.od_force_local = TRUE;
-}
-
 static int TestRa1(void)
 {
-#if defined(_MSC_VER)
    return(TestExitInfoSize(1493, RA1EXITINFO));
-#else
-   /* See ISSUES.md: the unpacked extended structure consumes 1018 bytes
-    * after the 476-byte core, so a canonical 1493-byte record is rejected. */
-   if(!WriteCanonicalExitInfo(1493))
-      return(0);
-   memset(&od_control, 0, sizeof(od_control));
-   strcpy(od_control.info_path, "exitinfo.bbs");
-   od_control.od_disable = DIS_NAME_PROMPT | DIS_CARRIERDETECT |
-      DIS_TIMEOUT | DIS_BPS_SETTING | DIS_LOCAL_INPUT;
-   od_control.od_silent_mode = TRUE;
-   od_control.od_noexit = TRUE;
-   od_control.od_no_file_func = UseLocalOnMissingDropFile;
-   od_control.od_errorlevel[ERRORLEVEL_CRITICAL] = 97;
-   od_init();
-   if(od_control.od_info_type != NO_DOOR_FILE)
-   {
-      od_exit(0, FALSE);
-      return(0);
-   }
-   od_exit(0, FALSE);
-   return(1);
-#endif
 }
 
 static int TestRa2(void)

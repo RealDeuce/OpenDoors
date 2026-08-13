@@ -21,11 +21,12 @@ static unsigned char ut_seen_character;
 static BOOL ut_timer_elapsed;
 static unsigned ut_timer_calls;
 static unsigned ut_kernel_calls;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -78,6 +79,15 @@ static void reset_character(void)
    ut_timer_elapsed = FALSE;
    ut_timer_calls = 0;
    ut_kernel_calls = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_character(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_putch('A');
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void local_mode_uses_the_platform_screen(void)
@@ -114,5 +124,6 @@ static void remote_mode_updates_the_session_and_remote_connection(void)
 
 static const UTTestCase ut_cases[] = {
    {"local character", local_mode_uses_the_platform_screen},
-   {"remote character", remote_mode_updates_the_session_and_remote_connection}
+   {"remote character", remote_mode_updates_the_session_and_remote_connection},
+   {"terminal session", terminal_session_is_rejected}
 };

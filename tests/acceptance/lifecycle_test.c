@@ -1,14 +1,25 @@
 #include "test_support.h"
 
 static int before_exit_calls;
+static int kernel_exit_calls;
 
 static void BeforeExit(void)
 {
    ++before_exit_calls;
+   od_control.od_noexit = TRUE;
+}
+
+static void KernelExit(void)
+{
+   ++kernel_exit_calls;
+   od_control.od_ker_exec = NULL;
+   od_exit(23, FALSE);
 }
 
 int main(void)
 {
+   tODInputEvent event;
+
    ODTestConfigureLocal();
    strcpy(od_control.od_prog_name, "Acceptance Door");
    strcpy(od_control.od_prog_version, "1.0");
@@ -49,7 +60,12 @@ int main(void)
    od_kernel();
    od_sleep(1);
 
-   od_exit(0, FALSE);
+   od_control.od_noexit = FALSE;
+   od_control.od_ker_exec = KernelExit;
+   OD_TEST_CHECK(!od_get_input(&event, OD_NO_TIMEOUT, GETIN_RAW));
+   OD_TEST_CHECK(kernel_exit_calls == 1);
    OD_TEST_CHECK(before_exit_calls == 1);
+   OD_TEST_CHECK(od_control_get() == NULL);
+   OD_TEST_CHECK(od_control.od_error == ERR_GENERALFAILURE);
    return(0);
 }

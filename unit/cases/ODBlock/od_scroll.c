@@ -40,6 +40,7 @@ static BOOL ut_size_result;
 static BOOL ut_malloc_fails;
 static INT ut_repeat_calls;
 static INT ut_last_repeat;
+static BOOL ut_init_succeeds;
 
 static void reset_fixture(void)
 {
@@ -56,6 +57,7 @@ static void reset_fixture(void)
    ut_malloc_fails = FALSE;
    ut_repeat_calls = 0;
    ut_last_repeat = 0;
+   ut_init_succeeds = TRUE;
 }
 
 BOOL utm_ODScrnCopyText(BYTE left, BYTE top, BYTE right, BYTE bottom,
@@ -170,7 +172,18 @@ BOOL ODCALL utm_od_gettext(INT left, INT top, INT right, INT bottom,
    return TRUE;
 }
 
-void ODCALL utm_od_init(void) { bODInitialized = TRUE; }
+void ODCALL utm_od_init(void)
+{
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(FALSE, utt_od_scroll(1, 1, 3, 4, 1, 0));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_mock_count(MOCK_COPY));
+}
 
 BOOL ODCALL utm_od_puttext(INT left, INT top, INT right, INT bottom,
    void *block)
@@ -326,5 +339,6 @@ static const UTTestCase ut_cases[] = {
    {"AVATAR clamping", avatar_clamps_distance_and_reports_allocation_failure},
    {"ANSI directions", ansi_moves_retained_text_in_both_directions},
    {"ANSI failures and clear", ansi_allocation_failures_and_complete_clear},
-   {"ANSI wide clear", ansi_manual_clear_chunks_wide_regions}
+   {"ANSI wide clear", ansi_manual_clear_chunks_wide_regions},
+   {"terminal session", terminal_session_is_rejected}
 };

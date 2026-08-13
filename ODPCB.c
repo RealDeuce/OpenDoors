@@ -44,6 +44,7 @@
 
 #include "OpenDoor.h"
 #include "ODStat.h"
+#include "ODSync.h"
 
 
 /* ----------------------------------------------------------------------------
@@ -63,6 +64,7 @@ ODAPIDEF void ODCALL pdef_pcboard(BYTE btOperation)
    char *pchTemp;
    BYTE btInfoType = od_control.od_info_type;
 
+   if(!ODSyncPublicCallAllowed()) return;
 
    switch(btOperation)
    {
@@ -198,6 +200,7 @@ ODAPIDEF void ODCALL pdef_pcboard(BYTE btOperation)
          break;
    }
 #else /* !ODPLAT_DOS && !ODPLAT_DOS32 */
+   if(!ODSyncPublicCallAllowed()) return;
    (void)btOperation;
 #endif /* !ODPLAT_DOS && !ODPLAT_DOS32 */
 }

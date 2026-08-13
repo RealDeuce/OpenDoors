@@ -10,9 +10,10 @@ tODControl *od_control_get(void);
 
 ## Return value
 
-The return value is a pointer to the same [`tODControl`](../control/index.md)
-object exported as the global [`od_control`](../control/index.md) variable. It
-is never `NULL`.
+Before terminal shutdown, the return value is a pointer to the same
+[`tODControl`](../control/index.md) object exported as the global
+[`od_control`](../control/index.md) variable. After `od_exit()` completes it
+returns `NULL` and sets `od_control.od_error` to `ERR_GENERALFAILURE`.
 
 The pointed-to structure is the writable public [`od_control`](../control/index.md) object and belongs
 to OpenDoors. The application must not free it or assume that the pointer refers
@@ -47,9 +48,10 @@ strncat(control->od_prog_name, "Example Door",
 
 Dereferencing the returned pointer and accessing the global variable are
 exactly equivalent. A change made through one form is immediately visible
-through the other. The pointer remains valid while that OpenDoors library
-instance is loaded and does not change when [`od_init()`](od_init.md) or
-[`od_exit()`](od_exit.md) is called.
+through the other. An already obtained pointer remains valid while that
+OpenDoors library instance is loaded. The host may directly read the object
+after shutdown, but must not call OpenDoors again or use the retained pointer
+to attempt another session.
 
 Unlike most OpenDoors API functions, [`od_control_get()`](od_control_get.md) does not initialize
 OpenDoors and does not run the OpenDoors kernel. It is therefore safe to call
@@ -66,8 +68,9 @@ instance. All API and ABI access must occur on the thread which calls
 
 ## Errors
 
-This function has no failure return and does not change
-[`od_control.od_error`](../control/runtime.md#od_error).
+After terminal shutdown, this function returns `NULL` and sets
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_GENERALFAILURE`](../constants/errors.md#err_generalfailure).
 
 ## Example
 

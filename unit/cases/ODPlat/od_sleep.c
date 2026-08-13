@@ -1,14 +1,26 @@
 #define UT_CUSTOM_MOCK_od_init
 #define UT_CUSTOM_MOCK_ODSyncAPIEntry
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
+#define UT_CUSTOM_MOCK_ODSyncAPIIsNested
+#define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
 static unsigned ut_init_calls;
 static unsigned ut_entry_calls;
 static unsigned ut_exit_calls;
+static BOOL ut_init_succeeds;
+static BOOL ut_api_nested;
+static BOOL ut_public_call_allowed;
+
+BOOL utm_ODSyncAPIIsNested(void) { return(ut_api_nested); }
+BOOL utm_ODSyncPublicCallAllowed(void)
+{
+   if(!ut_public_call_allowed) od_control.od_error = ERR_GENERALFAILURE;
+   return(ut_public_call_allowed);
+}
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void)
@@ -219,6 +231,10 @@ int utm_clock_gettime(clockid_t clock_id, struct timespec *time_value)
 static void reset_common(void)
 {
    bODInitialized = TRUE;
+   eODLifecycleState = kODLifecycleActive;
+   ut_init_succeeds = TRUE;
+   ut_api_nested = FALSE;
+   ut_public_call_allowed = TRUE;
    ut_init_calls = 0;
    ut_entry_calls = 0;
    ut_exit_calls = 0;
@@ -255,6 +271,32 @@ static void reset_common(void)
    ut_clock_calls = 0;
 #endif
 #endif
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_common(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   ut_public_call_allowed = FALSE;
+   utt_od_sleep(0);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_init_calls);
+   UT_ASSERT_EQ_UINT(0, ut_entry_calls);
+
+   reset_common(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   eODLifecycleState = kODLifecycleFinalizing;
+   ut_api_nested = TRUE;
+   ut_public_call_allowed = FALSE;
+   utt_od_sleep(0);
+   UT_ASSERT_EQ_UINT(1, ut_init_calls);
+   UT_ASSERT_EQ_UINT(0, ut_entry_calls);
+
+   reset_common();
+   eODLifecycleState = kODLifecycleFinalizing;
+   ut_api_nested = FALSE;
+   ut_public_call_allowed = FALSE;
+   utt_od_sleep(0);
+   UT_ASSERT_EQ_UINT(0, ut_init_calls);
+   UT_ASSERT_EQ_UINT(0, ut_entry_calls);
 }
 
 #ifdef ODPLAT_DOS
@@ -431,4 +473,5 @@ static const UTTestCase ut_cases[] = {
 #else
    {"UNIX sleep", sleeps_under_single_threaded_unix}
 #endif
+   ,{"terminal session", terminal_session_is_rejected}
 };

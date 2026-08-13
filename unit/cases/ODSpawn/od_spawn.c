@@ -9,6 +9,16 @@ static int ut_errno_value;
 #include "../unix_errno_mock.h"
 #endif
 
+#define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
+static BOOL ut_public_call_allowed = TRUE;
+tODControl od_control;
+BOOL utm_ODSyncPublicCallAllowed(void)
+{
+   if(!ut_public_call_allowed)
+      od_control.od_error = ERR_GENERALFAILURE;
+   return ut_public_call_allowed;
+}
+
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 #define UT_CUSTOM_MOCK_getenv
 #define UT_CUSTOM_MOCK_od_spawnvpe
@@ -182,7 +192,16 @@ static void restores_mask_and_interprets_system_status(void)
 }
 #endif
 
+static void rejects_a_terminal_session(void)
+{
+   ut_public_call_allowed = FALSE;
+   UT_ASSERT(!utt_od_spawn("door arg"));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   ut_public_call_allowed = TRUE;
+}
+
 static const UTTestCase ut_cases[] = {
+   {"terminal session", rejects_a_terminal_session},
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    {"COMSPEC", uses_comspec_when_available},
    {"command.com fallback", falls_back_only_when_comspec_is_missing}

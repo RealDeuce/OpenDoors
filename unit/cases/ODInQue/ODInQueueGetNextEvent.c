@@ -135,6 +135,7 @@ void ODCALL utm_od_kernel(void)
 
 static void reset_wait_mocks(void)
 {
+   eODLifecycleState = kODLifecycleActive;
    ut_timer_elapsed = FALSE;
    ut_timer_left = 50;
    ut_timer_starts = 0;
@@ -144,6 +145,17 @@ static void reset_wait_mocks(void)
    ut_kernel_calls = 0;
    ut_enqueue_on_kernel = 0;
    ut_copy_calls = 0;
+}
+
+static void an_inactive_session_aborts_the_wait(void)
+{
+   tODInputEvent output;
+   tODInQueueHandle handle = ut_queue_handle(4, 0, 0);
+   reset_wait_mocks();
+   eODLifecycleState = kODLifecycleExitPending;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure,
+      utt_ODInQueueGetNextEvent(handle, &output, OD_NO_TIMEOUT));
+   UT_ASSERT_EQ_UINT(0, ut_sleep_calls);
 }
 
 static void removes_immediately_waiting_event_and_wraps(void)
@@ -229,6 +241,7 @@ static const UTTestCase ut_cases[] = {
    {"zero timeout", zero_timeout_checks_kernel_once},
    {"finite timeout", finite_timeout_can_expire},
    {"finite wait", finite_wait_uses_positive_and_minimum_kernel_periods},
-   {"unlimited wait", unlimited_wait_uses_kernel_period}
+   {"unlimited wait", unlimited_wait_uses_kernel_period},
+   {"inactive session", an_inactive_session_aborts_the_wait}
 };
 #endif

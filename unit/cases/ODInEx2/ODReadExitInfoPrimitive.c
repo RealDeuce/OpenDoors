@@ -1,6 +1,7 @@
-#define UT_CUSTOM_MOCK_malloc
+#define UT_CUSTOM_MOCK_calloc
 #define UT_CUSTOM_MOCK_fread
 #define UT_CUSTOM_MOCK_free
+#define UT_CUSTOM_MOCK_ODExitInfoPrimitiveEndian
 #define UT_CUSTOM_MOCK_ODStringPascalToC
 #define UT_CUSTOM_MOCK_memcpy
 #undef user_credit
@@ -8,16 +9,25 @@ static tExitInfoRecord ut_record;
 static BOOL ut_malloc_fails;
 static BOOL ut_read_fails;
 static unsigned ut_free_calls;
+static unsigned ut_endian_calls;
 void *utm_memcpy(void *destination, const void *source, size_t size)
 {
    BYTE *out = destination; const BYTE *in = source; size_t index;
    for(index = 0; index < size; ++index) out[index] = in[index];
    return(destination);
 }
-void *utm_malloc(size_t size)
+void *utm_calloc(size_t count, size_t size)
 {
+   UT_ASSERT_EQ_UINT(1, count);
    UT_ASSERT_EQ_UINT(sizeof(tExitInfoRecord), size);
    return(ut_malloc_fails ? NULL : &ut_record);
+}
+void utm_ODExitInfoPrimitiveEndian(tExitInfoRecord *record,
+   BOOL from_little_endian)
+{
+   UT_ASSERT_EQ_PTR(&ut_record, record);
+   UT_ASSERT_EQ_INT(TRUE, from_little_endian);
+   ++ut_endian_calls;
 }
 size_t utm_fread(void *buffer, size_t size, size_t count, FILE *stream)
 {
@@ -44,16 +54,19 @@ static void set_pascal(char *field, const char *text)
 static void reset_read(void)
 {
    memset(&ut_record, 0, sizeof(ut_record)); memset(&od_control, 0, sizeof(od_control));
-   pExitInfoRecord = NULL; ut_malloc_fails = ut_read_fails = FALSE; ut_free_calls = 0;
+   pExitInfoRecord = NULL; ut_malloc_fails = ut_read_fails = FALSE;
+   ut_free_calls = ut_endian_calls = 0;
 }
 static void reports_allocation_and_read_failures(void)
 {
    reset_read(); ut_malloc_fails = TRUE;
    UT_ASSERT(!utt_ODReadExitInfoPrimitive((FILE *)&ut_record, sizeof(ut_record)));
    UT_ASSERT_NULL(pExitInfoRecord); UT_ASSERT_EQ_UINT(0, ut_free_calls);
+   UT_ASSERT_EQ_UINT(0, ut_endian_calls);
    reset_read(); ut_read_fails = TRUE;
    UT_ASSERT(!utt_ODReadExitInfoPrimitive((FILE *)&ut_record, sizeof(ut_record)));
    UT_ASSERT_NULL(pExitInfoRecord); UT_ASSERT_EQ_UINT(1, ut_free_calls);
+   UT_ASSERT_EQ_UINT(0, ut_endian_calls);
 }
 static void imports_exitinfo_fields(void)
 {
@@ -86,6 +99,7 @@ static void imports_exitinfo_fields(void)
    ut_record.readthru = 40; ut_record.numberpages = 41;
    ut_record.downloadlimint = 42;
    UT_ASSERT(utt_ODReadExitInfoPrimitive((FILE *)&ut_record, sizeof(ut_record)));
+   UT_ASSERT_EQ_UINT(1, ut_endian_calls);
    UT_ASSERT(od_control.baud == 57600); UT_ASSERT(od_control.system_calls == 1234);
    UT_ASSERT(strcmp(od_control.system_last_caller, "Last Caller") == 0);
    UT_ASSERT(strcmp(od_control.timelog_start_date, "01-02-03") == 0);

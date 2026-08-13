@@ -16,27 +16,14 @@ an issue is not treated as a contract change until it is resolved deliberately.
   subsequently replace the defaults, making the behavior depend on how the
   session was initialized.
 
-- [ ] Clear the communications handle when `od_exit()` frees it. A subsequent
-  initialization failure may call `exit()`, which invokes
-  the registered OpenDoors exit handler while `bODInitialized` is true. The
-  handler then passes the stale communications handle left by the preceding
-  session to `ODComClose()`. AddressSanitizer reports a heap use-after-free in
-  this path. `od_exit()` sets the initialized flag to false before returning
-  when `od_noexit` is enabled, so a later public API can currently enter this
-  sequence.
+- [x] Clear the communications and input-queue handles when `od_exit()` frees
+  them. Shutdown now clears both handles before entering the permanent terminal
+  state, so neither can be reused by a later path.
 
-- [ ] Define and enforce a one-session post-exit contract. Every ordinary
-  public API currently calls `od_init()` when `bODInitialized` is false, so an
-  API call made after a returning `od_exit()` implicitly starts another
-  session. The historical `od_noexit` documentation promises only that the
-  host application may continue after shutdown; it does not promise that
-  OpenDoors can be initialized or used again. The recent API reference and
-  `config_reinit_test` added a two-session guarantee which the older lifecycle
-  was not designed to satisfy and which exposes retained and stale per-session
-  state. Resolve this deliberately by rejecting every OpenDoors call after
-  completed teardown, retaining `od_noexit` only to let the host perform
-  non-OpenDoors work, and reconciling the recent documentation and tests with
-  that lifetime rule.
+- [x] Define and enforce a one-session post-exit contract. Public entry now
+  rejects pending, finalizing, and completed sessions, and `od_noexit` only
+  permits the host to continue with non-OpenDoors work. The erroneous
+  two-session test and documentation guarantee were removed.
 
 ## Kernel dispatch and shutdown
 
@@ -45,15 +32,9 @@ an issue is not treated as a contract change until it is resolved deliberately.
   the session writer. Exit dispatch remains in place for work queued while the
   operation runs.
 
-- [ ] Do not resume a single-threaded kernel or its containing API after a
-  returning forced shutdown. Carrier, timeout, inactivity, and local sysop
-  handling call `od_exit()` synchronously from `od_kernel()`. When `od_noexit`
-  is true, `od_exit()` frees the communications object, input queue, and screen
-  state and returns, after which `od_kernel()` can continue draining input or
-  call `ODKrnlTimeUpdate()` with the freed queue, and the outer API can continue
-  as well. This is an internal violation of the rule that no OpenDoors
-  operation may continue after teardown, even when the application made no
-  post-exit API call.
+- [x] Do not resume a kernel or its containing API after a returning forced
+  shutdown. Nested no-exit shutdown now becomes pending, cooperative waits
+  unwind, and the outermost API-exit boundary performs teardown exactly once.
 
 - [ ] Report or prevent input-event loss when the common queue is full.
   `ODInQueueAddEvent()` returns `kODRCNoMemory` when the ring has no free slot,
@@ -66,14 +47,12 @@ an issue is not treated as a contract change until it is resolved deliberately.
 
 ## Door-information files
 
-- [ ] Give every binary `EXITINFO.BBS` record an explicitly defined,
-  compiler-independent byte layout. `ODInEx.h` requests one-byte structure
-  packing for MSVC and newer Turbo C, but not for GCC, Clang, MinGW, or
-  Open Watcom DOS32. The reader nevertheless uses fixed historical byte counts
-  such as 476, 1493, and 2363. Tests which create a fixture with the same
-  private C structure can reproduce the compiler's layout and conceal the
-  incompatibility; acceptance fixtures must instead be assembled from the
-  documented on-disk offsets.
+- [x] Give every binary `EXITINFO.BBS` record an explicitly defined,
+  compiler-independent byte layout. The three on-disk records now use the
+  byte-packed DOS layout on every compiler, without changing the alignment of
+  unrelated internal structures, and all multibyte fields are read and written
+  as little-endian values. Acceptance fixtures use fixed historical byte counts
+  and offsets rather than reproducing the host compiler's structure layout.
 
 ## Child processes
 

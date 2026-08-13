@@ -16,11 +16,12 @@ static unsigned ut_putch_calls;
 static char ut_echoed[8];
 static unsigned ut_disp_calls;
 static const char *ut_last_display;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -60,6 +61,16 @@ static void reset_input(void)
    ut_putch_calls = 0;
    ut_disp_calls = 0;
    ut_last_display = NULL;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   char output[2];
+   reset_input(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_input_str(output, 1, 'a', 'z');
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void rejects_each_invalid_parameter(void)
@@ -137,5 +148,6 @@ static const UTTestCase ut_cases[] = {
    {"invalid parameters", rejects_each_invalid_parameter},
    {"filtered editing", filters_edits_limits_and_terminates_on_line_feed},
    {"carriage return", carriage_return_terminates_an_empty_string},
-   {"session shutdown", session_shutdown_returns_without_echo_or_termination}
+   {"session shutdown", session_shutdown_returns_without_echo_or_termination},
+   {"terminal session", terminal_session_is_rejected}
 };

@@ -1,3 +1,17 @@
+#define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
+static BOOL ut_public_call_allowed = TRUE;
+BOOL utm_ODSyncPublicCallAllowed(void)
+{
+   return(ut_public_call_allowed);
+}
+
+static void rejects_a_terminal_session(void)
+{
+   ut_public_call_allowed = FALSE;
+   utt_pdef_ra(PEROP_INITIALIZE);
+   ut_public_call_allowed = TRUE;
+}
+
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 #define UT_CUSTOM_MOCK_ODRADisplayDate
 #define UT_CUSTOM_MOCK_ODRADisplayFlags
@@ -313,7 +327,8 @@ static const UTTestCase ut_cases[] = {
    {"update one", update_one_covers_each_indicator_transition},
    {"update four", update_four_refreshes_the_clock},
    {"initialize", initialize_assigns_the_remoteaccess_keys},
-   {"unknown operation", ignores_an_unknown_operation}
+   {"unknown operation", ignores_an_unknown_operation},
+   {"terminal session", rejects_a_terminal_session}
 };
 #else
 static void accepts_every_operation_as_a_no_op(void)
@@ -324,6 +339,7 @@ static void accepts_every_operation_as_a_no_op(void)
 }
 
 static const UTTestCase ut_cases[] = {
-   {"non-DOS no-op", accepts_every_operation_as_a_no_op}
+   {"non-DOS no-op", accepts_every_operation_as_a_no_op},
+   {"terminal session", rejects_a_terminal_session}
 };
 #endif

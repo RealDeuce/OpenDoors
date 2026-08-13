@@ -31,10 +31,11 @@ static unsigned ut_localtime_calls;
 static unsigned ut_validate_calls;
 static unsigned ut_fprintf_calls;
 static unsigned ut_fflush_calls;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
    ++ut_init_calls;
 }
 
@@ -125,6 +126,15 @@ static void reset_write(void)
    ut_fprintf_calls = 0;
    ut_fflush_calls = 0;
    errno = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_write(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT(!utt_od_log_write("message"));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void initializes_and_honors_disabled_logging(void)
@@ -210,5 +220,6 @@ static const UTTestCase ut_cases[] = {
    {"lazy open failure", reports_lazy_open_failure},
    {"timestamp failures", rejects_both_invalid_timestamp_forms},
    {"hour formats", writes_both_hour_formats_after_lazy_open},
-   {"output failures", reports_each_output_failure_and_preserves_errno}
+   {"output failures", reports_each_output_failure_and_preserves_errno},
+   {"terminal session", terminal_session_is_rejected}
 };

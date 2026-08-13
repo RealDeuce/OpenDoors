@@ -44,7 +44,16 @@ static void local_mode_uses_the_platform_screen_fallback(void)
    UT_ASSERT_EQ_UINT(0, ut_kernel_calls);
 }
 
+static void terminal_session_is_rejected(void)
+{
+   ut_reset_display(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_disp_str(ut_text);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
+}
+
 static const UTTestCase ut_cases[] = {
    {"remote session string", sends_remote_text_and_updates_the_session_screen},
-   {"local string", local_mode_uses_the_platform_screen_fallback}
+   {"local string", local_mode_uses_the_platform_screen_fallback},
+   {"terminal session", terminal_session_is_rejected}
 };

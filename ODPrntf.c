@@ -89,6 +89,7 @@ ODAPIDEF void ODVCALL od_printf(const char *pszFormat,...)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 

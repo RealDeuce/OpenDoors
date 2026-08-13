@@ -400,6 +400,9 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
       /* processes, and then giving od_kernel() a chance to run.        */
       while(pInputQueueInfo->nInIndex == pInputQueueInfo->nOutIndex)
       {
+         if(eODLifecycleState != kODLifecycleActive)
+            return(kODRCGeneralFailure);
+
          /* If a timeout has been specified, then ensure that the maximum */
          /* wait time has not elapsed.                                    */
          if(Timeout != 0 && Timeout != OD_NO_TIMEOUT

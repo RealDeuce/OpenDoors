@@ -9,6 +9,7 @@
 #define UT_CUSTOM_MOCK_ODDirGetCurrent
 #define UT_CUSTOM_MOCK_ODInitError
 #define UT_CUSTOM_MOCK_ODSearchForDropFile
+#define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
 #define UT_CUSTOM_MOCK_ODStringCopy
 #define UT_CUSTOM_MOCK_ODStringNormalizeLine
 #define UT_CUSTOM_MOCK_ODStringToName
@@ -57,6 +58,14 @@ static char ut_search_path[80];
 static unsigned ut_callback_calls;
 static unsigned ut_color_calls;
 static BOOL ut_clear_original_during_init;
+static BOOL ut_public_call_allowed;
+
+BOOL utm_ODSyncPublicCallAllowed(void)
+{
+   if(!ut_public_call_allowed)
+      od_control.od_error = ERR_GENERALFAILURE;
+   return ut_public_call_allowed;
+}
 
 static char *ut_text_keywords[TEXT_SIZE] = {
    "NODE", "BBSDIR", "DOORDIR", "LOGFILENAME", "DISABLELOGGING",
@@ -502,6 +511,7 @@ static void reset_fixture(void)
    ut_callback_calls = 0;
    ut_color_calls = 0;
    ut_clear_original_during_init = FALSE;
+   ut_public_call_allowed = TRUE;
    szOriginalDir = NULL;
    wODNodeNumber = 0;
    dwForcedBPS = 0;
@@ -528,6 +538,15 @@ static void missing_default_configuration_is_optional(void)
    UT_ASSERT_EQ_UINT(0, ut_exit_calls);
    UT_ASSERT_EQ_INT(FALSE, bCalledFromConfig);
    UT_ASSERT_EQ_INT(FALSE, bIsCallbackActive);
+}
+
+static void rejects_a_terminal_session(void)
+{
+   reset_fixture();
+   ut_public_call_allowed = FALSE;
+   utt_ODConfigInit();
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_init_calls);
 }
 
 static void missing_explicit_configuration_is_fatal(void)
@@ -767,6 +786,7 @@ static void retains_initialized_inactivity_for_explicit_zero(void)
 }
 
 static const UTTestCase ut_cases[] = {
+   {"terminal session", rejects_a_terminal_session},
    {"optional default", missing_default_configuration_is_optional},
    {"required file", missing_explicit_configuration_is_fatal},
    {"all configuration mappings", parses_every_builtin_and_custom_drop_mapping},

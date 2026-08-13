@@ -3,6 +3,7 @@
 #define UT_CUSTOM_MOCK_memcpy
 #define UT_CUSTOM_MOCK_time
 #define UT_CUSTOM_MOCK_fwrite
+#define UT_CUSTOM_MOCK_ODExitInfoPrimitiveEndian
 #undef user_credit
 
 static tExitInfoRecord ut_record;
@@ -11,6 +12,7 @@ static DWORD ut_elapsed_minutes;
 static size_t ut_write_result;
 static unsigned ut_elapsed_calls;
 static unsigned ut_write_calls;
+static unsigned ut_endian_calls;
 
 void *utm_memcpy(void *destination, const void *source, size_t size)
 {
@@ -54,6 +56,14 @@ size_t utm_fwrite(const void *buffer, size_t size, size_t count, FILE *stream)
    UT_ASSERT_EQ_UINT(sizeof(ut_record), count);
    UT_ASSERT_EQ_PTR((FILE *)&ut_record, stream);
    return(ut_write_result);
+}
+
+void utm_ODExitInfoPrimitiveEndian(tExitInfoRecord *record,
+   BOOL from_little_endian)
+{
+   UT_ASSERT_EQ_PTR(&ut_record, record);
+   UT_ASSERT_EQ_INT(ut_endian_calls != 0, from_little_endian);
+   ++ut_endian_calls;
 }
 
 static BOOL pascal_equals(const char *field, const char *text)
@@ -108,6 +118,7 @@ static void initialize_control(void)
    od_control.user_timelimit = 20;
    ut_elapsed_valid = FALSE; ut_elapsed_minutes = 0;
    ut_write_result = 0; ut_elapsed_calls = ut_write_calls = 0;
+   ut_endian_calls = 0;
 }
 
 static void verify_fields(void)
@@ -155,6 +166,7 @@ static void preserves_time_when_elapsed_time_is_invalid(void)
    initialize_control();
    UT_ASSERT(!utt_ODWriteExitInfoPrimitive((FILE *)&ut_record, sizeof(ut_record)));
    UT_ASSERT_EQ_UINT(1, ut_elapsed_calls); UT_ASSERT_EQ_UINT(1, ut_write_calls);
+   UT_ASSERT_EQ_UINT(2, ut_endian_calls);
    UT_ASSERT_EQ_INT(50, ut_record.timelimit);
    verify_fields();
 }
@@ -165,6 +177,7 @@ static void applies_time_adjustment_and_reports_complete_write(void)
    ut_write_result = sizeof(ut_record);
    UT_ASSERT(utt_ODWriteExitInfoPrimitive((FILE *)&ut_record, sizeof(ut_record)));
    UT_ASSERT_EQ_UINT(1, ut_elapsed_calls); UT_ASSERT_EQ_UINT(1, ut_write_calls);
+   UT_ASSERT_EQ_UINT(2, ut_endian_calls);
    UT_ASSERT_EQ_INT(44, ut_record.timelimit);
    verify_fields();
 }

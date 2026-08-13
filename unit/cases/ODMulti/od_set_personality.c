@@ -16,10 +16,11 @@
 static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
    ++ut_init_calls;
 }
 
@@ -120,6 +121,15 @@ static void reset_selector(void)
    ut_ra_calls = 0;
    ut_standard_operation = 0;
    ut_ra_operation = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_selector(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT(!utt_od_set_personality("standard"));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void rejects_empty_and_unknown_names(void)
@@ -188,11 +198,13 @@ static const UTTestCase ut_cases[] = {
    {"invalid names", rejects_empty_and_unknown_names},
    {"first selection", selects_first_personality_without_old_deinitialization},
    {"same selection", leaves_current_personality_unchanged_on_repeat},
-   {"switch selection", deinitializes_old_and_initializes_later_match}
+   {"switch selection", deinitializes_old_and_initializes_later_match},
+   {"terminal session", terminal_session_is_rejected}
 };
 #else
 static void reports_unsupported_with_balanced_api_entry(void)
 {
+   ut_init_succeeds = TRUE;
    memset(&od_control, 0, sizeof(od_control));
    bODInitialized = FALSE;
    ut_init_calls = 0;
@@ -213,7 +225,18 @@ static void reports_unsupported_with_balanced_api_entry(void)
    UT_ASSERT_EQ_INT(ERR_UNSUPPORTED, od_control.od_error);
 }
 
+static void terminal_session_is_rejected(void)
+{
+   memset(&od_control, 0, sizeof(od_control));
+   bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   ut_entries = 0;
+   UT_ASSERT(!utt_od_set_personality("anything"));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
+}
+
 static const UTTestCase ut_cases[] = {
-   {"unsupported", reports_unsupported_with_balanced_api_entry}
+   {"unsupported", reports_unsupported_with_balanced_api_entry},
+   {"terminal session", terminal_session_is_rejected}
 };
 #endif

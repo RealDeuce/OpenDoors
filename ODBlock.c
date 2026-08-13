@@ -107,6 +107,7 @@ ODAPIDEF BOOL ODCALL od_puttext(INT nLeft, INT nTop, INT nRight, INT nBottom,
 
    /* Ensure that OpenDoors is initialized before proceeding. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 
@@ -387,6 +388,7 @@ ODAPIDEF BOOL ODCALL od_gettext(INT nLeft, INT nTop, INT nRight, INT nBottom,
 
    /* Initialize OpenDoors if not already done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 
@@ -490,6 +492,7 @@ ODAPIDEF BOOL ODCALL od_scroll(INT nLeft, INT nTop, INT nRight, INT nBottom,
 
    /* Ensure that OpenDoors has been initialized before proceeding. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 
@@ -777,6 +780,7 @@ ODAPIDEF BOOL ODCALL od_save_screen(void *pBuffer)
 
    /* Ensure that OpenDoors is initialized before proceeding. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 
@@ -839,6 +843,7 @@ ODAPIDEF BOOL ODCALL od_restore_screen(void *pBuffer)
 
    /* Ensure that OpenDoors is initialized before proceeding. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 
@@ -1043,6 +1048,7 @@ ODAPIDEF DWORD ODCALL od_save_screen_size(void)
 
    TRACE(TRACE_API, "od_save_screen_size()");
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(0);
    OD_API_ENTRY();
    dwSize = ODSessionScreenSnapshotSize();
    if(dwSize == 0)
@@ -1061,6 +1067,7 @@ ODAPIDEF BOOL ODCALL od_save_screen_ex(void *pBuffer, DWORD dwBufferSize)
 
    TRACE(TRACE_API, "od_save_screen_ex()");
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
    OD_API_ENTRY();
    bResult = ODSessionScreenSave(pBuffer, dwBufferSize);
    if(!bResult)
@@ -1081,6 +1088,7 @@ ODAPIDEF BOOL ODCALL od_restore_screen_ex(const void *pBuffer,
 
    TRACE(TRACE_API, "od_restore_screen_ex()");
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
    OD_API_ENTRY();
    bResult = ODSessionScreenRestore(pBuffer, dwBufferSize);
    if(!bResult)

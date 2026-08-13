@@ -55,6 +55,7 @@ static unsigned ut_attrib_calls;
 static unsigned ut_putch_calls;
 static unsigned ut_repeat_calls;
 static unsigned ut_disp_calls;
+static BOOL ut_init_succeeds;
 
 size_t utm_strlen(const char *text)
 {
@@ -85,7 +86,7 @@ void utm_free(void *memory)
 
 void ODCALL utm_od_init(void)
 {
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
    ++ut_init_calls;
 }
 
@@ -235,6 +236,15 @@ static void reset_popup(void)
    ut_putch_calls = 0;
    ut_repeat_calls = 0;
    ut_disp_calls = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_popup(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(0, utt_od_popup_menu(NULL, "One", 1, 1, -1, 0));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void command_on_check(unsigned call, INT command)
@@ -528,5 +538,6 @@ static const UTTestCase ut_cases[] = {
    {"kept cancellation", destroys_kept_menus_for_nonpositive_commands},
    {"partial kept menu", tolerates_a_kept_window_without_menu_storage_on_destroy},
    {"cursor update", updates_the_cursor_selection_before_returning},
-   {"session end cleanup", cleans_up_when_the_session_ends_at_each_wait_boundary}
+   {"session end cleanup", cleans_up_when_the_session_ends_at_each_wait_boundary},
+   {"terminal session", terminal_session_is_rejected}
 };

@@ -106,6 +106,14 @@ od_control;
 /* OpenDoors global initialized flag. */
 BOOL bODInitialized = FALSE;
 
+/* OpenDoors session lifecycle and the first saved exit request. */
+tODLifecycleState eODLifecycleState = kODLifecycleNeverStarted;
+INT nODPendingExitErrorLevel;
+BOOL bODPendingExitTermCall;
+BOOL bODPendingExitNoExit;
+BOOL bODExitPrologueComplete;
+BOOL bODExitRequestedDuringInitialization;
+
 /* Global serial port object handle. */
 tPortHandle hSerialPort;
 
@@ -241,7 +249,8 @@ void ODWaitDrain(tODMilliSec MaxWait)
       if(!bODInitialized) return;
 
       /* Give od_kernel() activities a chance to run. */
-      CALL_KERNEL_IF_NEEDED();
+      if(eODLifecycleState == kODLifecycleActive)
+         CALL_KERNEL_IF_NEEDED();
    } 
 }
 
@@ -264,6 +273,7 @@ ODAPIDEF void ODCALL od_clr_scr(void)
    TRACE(TRACE_API, "od_clr_scr()");
 
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -350,6 +360,7 @@ ODAPIDEF void ODCALL od_input_str(char *pszInput,
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -437,6 +448,7 @@ ODAPIDEF void ODCALL od_clear_keybuffer(void)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -467,8 +479,10 @@ ODAPIDEF void ODCALL od_clear_keybuffer(void)
  */
 ODAPIDEF BOOL ODCALL od_key_pending(void)
 {
+   if(!ODSyncPublicCallAllowed()) return(FALSE);
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_get_key()");
@@ -512,6 +526,7 @@ ODAPIDEF char ODCALL od_get_key(BOOL bWait)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(0);
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_get_key()");
@@ -599,6 +614,7 @@ ODAPIDEF BOOL ODCALL od_carrier(void)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 
@@ -671,6 +687,7 @@ ODAPIDEF void ODCALL od_repeat(char chValue, BYTE btTimes)
 
    /* Ensure that OpenDoors has been initialized. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -747,6 +764,7 @@ ODAPIDEF void ODCALL od_page(void)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -940,6 +958,7 @@ ODAPIDEF void ODCALL od_disp(const char *pachBuffer, INT nSize, BOOL bLocalEcho)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -991,6 +1010,7 @@ ODAPIDEF void ODCALL od_disp_str(const char *pszToDisplay)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -1044,6 +1064,7 @@ ODAPIDEF void ODCALL od_set_statusline(INT nSetting)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY()
 
@@ -1246,6 +1267,7 @@ void ODStringToName(char *pszToConvert)
  */
 ODAPIDEF void ODCALL od_set_color(INT nForeground, INT nBackground)
 {
+   if(!ODSyncPublicCallAllowed()) return;
    /* Use od_set_attrib() to perform the actual color setting.          */
    /* Here, we rely on od_set_attrib() to look after initialization,    */
    /* API_ENTRY() and API_EXIT() calls, etc. This allows od_set_color() */
@@ -1273,6 +1295,7 @@ ODAPIDEF void ODCALL od_set_attrib(INT nColor)
 
    /* Ensure that OpenDoors has been initialized. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -1460,6 +1483,7 @@ ODAPIDEF void ODCALL od_putch(char chToDisplay)
 
    /* Initialize OpenDoors if it hasn't been done already. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -1510,6 +1534,7 @@ ODAPIDEF void ODCALL od_set_dtr(BOOL bHigh)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
 
    OD_API_ENTRY();
 
@@ -1566,6 +1591,7 @@ ODAPIDEF char ODCALL od_get_answer(const char *pszOptions)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(0);
 
    OD_API_ENTRY();
 
@@ -1630,6 +1656,7 @@ ODAPIDEF BYTE ODCALL od_color_config(char *pszColorDesc)
 
    /* Initialize OpenDoros if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(0);
 
    OD_API_ENTRY();
 
@@ -1805,6 +1832,8 @@ ODAPIDEF tODControl * ODCALL od_control_get(void)
 {
    /* Log function entry if running in trace mode */
    TRACE(TRACE_API, "od_disp_str()");
+
+   if(!ODSyncPublicCallAllowed()) return(NULL);
 
    return(&od_control);
 }

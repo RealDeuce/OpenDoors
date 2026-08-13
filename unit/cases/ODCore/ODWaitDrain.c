@@ -13,6 +13,7 @@ static unsigned ut_elapsed_calls;
 static BOOL ut_elapsed;
 static unsigned ut_sleep_calls;
 static BOOL ut_shutdown_on_sleep;
+static BOOL ut_pending_on_sleep;
 static unsigned ut_kernel_calls;
 
 tODResult utm_ODComOutbound(tPortHandle port, int *waiting)
@@ -43,6 +44,7 @@ void ODCALL utm_od_sleep(tODMilliSec milliseconds)
    UT_ASSERT_EQ_UINT(0, milliseconds);
    ++ut_sleep_calls;
    if(ut_shutdown_on_sleep) bODInitialized = FALSE;
+   if(ut_pending_on_sleep) eODLifecycleState = kODLifecycleExitPending;
 }
 
 void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
@@ -52,6 +54,7 @@ static void reset_drain(void)
    od_control.baud = 9600;
    hSerialPort = (tPortHandle)1;
    bODInitialized = TRUE;
+   eODLifecycleState = kODLifecycleActive;
    ut_outbound_count = 0;
    ut_outbound_index = 0;
    ut_timer_starts = 0;
@@ -60,6 +63,7 @@ static void reset_drain(void)
    ut_elapsed = FALSE;
    ut_sleep_calls = 0;
    ut_shutdown_on_sleep = FALSE;
+   ut_pending_on_sleep = FALSE;
    ut_kernel_calls = 0;
 }
 
@@ -128,9 +132,22 @@ static void shutdown_after_yield_stops_without_entering_the_kernel(void)
    ut_outbound_values[0] = 4;
    ut_outbound_count = 1;
    ut_shutdown_on_sleep = TRUE;
+   eODLifecycleState = kODLifecycleExitPending;
    utt_ODWaitDrain(OD_NO_TIMEOUT);
    UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
    UT_ASSERT_EQ_UINT(1, ut_outbound_index);
+   UT_ASSERT_EQ_UINT(0, ut_kernel_calls);
+}
+
+static void pending_exit_skips_the_kernel_after_yield(void)
+{
+   reset_drain();
+   ut_outbound_values[0] = 4;
+   ut_outbound_values[1] = 0;
+   ut_outbound_count = 2;
+   ut_pending_on_sleep = TRUE;
+   utt_ODWaitDrain(OD_NO_TIMEOUT);
+   UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
    UT_ASSERT_EQ_UINT(0, ut_kernel_calls);
 }
 
@@ -140,5 +157,6 @@ static const UTTestCase ut_cases[] = {
    {"elapsed timeout", an_elapsed_timeout_returns_with_queued_output},
    {"unbounded wait", an_unbounded_wait_yields_until_the_queue_drains},
    {"running timer", a_running_timer_yields_before_the_queue_drains},
-   {"shutdown", shutdown_after_yield_stops_without_entering_the_kernel}
+   {"shutdown", shutdown_after_yield_stops_without_entering_the_kernel},
+   {"pending exit", pending_exit_skips_the_kernel_after_yield}
 };

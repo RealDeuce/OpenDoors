@@ -18,11 +18,12 @@ static unsigned ut_disp_calls;
 static char ut_disp_bytes[8];
 static INT ut_disp_size;
 static BOOL ut_disp_echo;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -68,6 +69,15 @@ static void reset_repeat(void)
    ut_disp_calls = 0;
    ut_disp_size = 0;
    ut_disp_echo = TRUE;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_repeat(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_repeat('x', 0);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void zero_repetitions_only_cross_the_api_boundary(void)
@@ -118,5 +128,6 @@ static void plain_mode_sends_the_complete_repeated_string(void)
 static const UTTestCase ut_cases[] = {
    {"zero repeats", zero_repetitions_only_cross_the_api_boundary},
    {"AVATAR repeat", avatar_mode_uses_the_repeat_control_sequence},
-   {"plain repeat", plain_mode_sends_the_complete_repeated_string}
+   {"plain repeat", plain_mode_sends_the_complete_repeated_string},
+   {"terminal session", terminal_session_is_rejected}
 };

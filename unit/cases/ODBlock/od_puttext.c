@@ -42,6 +42,7 @@ static BOOL ut_size_result;
 static BOOL ut_malloc_fails;
 static size_t ut_expected_bytes;
 static INT ut_disp_count;
+static BOOL ut_init_succeeds;
 
 static void reset_fixture(void)
 {
@@ -64,6 +65,7 @@ static void reset_fixture(void)
    ut_malloc_fails = FALSE;
    ut_expected_bytes = 0;
    ut_disp_count = 0;
+   ut_init_succeeds = TRUE;
 }
 
 static void set_cell(unsigned char *block, INT column, char value,
@@ -182,8 +184,16 @@ void ODCALL utm_od_disp(const char *buffer, INT size, BOOL local_echo)
 
 void ODCALL utm_od_init(void)
 {
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
    ut_mock_called(MOCK_INIT);
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(FALSE, utt_od_puttext(1, 1, 1, 1, ut_new_block));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_mock_count(MOCK_PUT));
 }
 
 void ODCALL utm_od_set_attrib(INT colour)
@@ -409,5 +419,6 @@ static const UTTestCase ut_cases[] = {
    {"unchanged remote block", unchanged_remote_block_emits_no_text},
    {"ANSI changed runs", ansi_remote_block_skips_long_unchanged_run},
    {"AVATAR changed runs", avatar_changed_run_repositions_after_shorter_gap},
-   {"AVATAR full put", avatar_full_put_and_scroll_suppression_are_honoured}
+   {"AVATAR full put", avatar_full_put_and_scroll_suppression_are_honoured},
+   {"terminal session", terminal_session_is_rejected}
 };

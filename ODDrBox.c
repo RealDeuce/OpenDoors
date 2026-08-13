@@ -73,6 +73,7 @@ ODAPIDEF BOOL ODCALL od_draw_box(BYTE btLeft, BYTE btTop, BYTE btRight,
 
    /* Ensure that OpenDoors has been initialized */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 

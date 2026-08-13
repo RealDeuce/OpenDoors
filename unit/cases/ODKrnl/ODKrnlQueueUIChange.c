@@ -53,12 +53,18 @@ static void queues_ordered_changes_and_updates_the_cache(void)
    tODUIChange *pSecond;
 
    memset(&UIState, 0, sizeof(UIState));
+   eODLifecycleState = kODLifecycleActive;
    pPendingUIHead = NULL;
    pPendingUITail = NULL;
    ut_locks = ut_unlocks = ut_notifications = ut_allocations = 0;
    ut_fail_allocation = TRUE;
    UT_ASSERT(!utt_ODKrnlQueueUIChange(kODUIChangeChat, 0, 0));
    ut_fail_allocation = FALSE;
+
+   eODLifecycleState = kODLifecycleExitPending;
+   UT_ASSERT(!utt_ODKrnlQueueUIChange(kODUIChangeChat, 0, 0));
+   UT_ASSERT_EQ_UINT(0, ut_allocations);
+   eODLifecycleState = kODLifecycleActive;
 
    UT_ASSERT(utt_ODKrnlQueueUIChange(kODUIChangeChat, 0, 0));
    UT_ASSERT(utt_ODKrnlQueueUIChange(kODUIChangeKeyboard, 0, 0));

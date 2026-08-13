@@ -14,11 +14,12 @@ static unsigned ut_result_calls;
 static tODResult ut_seen_result;
 static BOOL ut_seen_carrier;
 static BOOL ut_public_result;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -57,6 +58,15 @@ static void reset_carrier(void)
    ut_seen_result = kODRCGeneralFailure;
    ut_seen_carrier = FALSE;
    ut_public_result = TRUE;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_carrier(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT(!utt_od_carrier());
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void local_mode_reports_no_remote_connection(void)
@@ -91,5 +101,6 @@ static void remote_mode_maps_the_communications_result(void)
 
 static const UTTestCase ut_cases[] = {
    {"local mode", local_mode_reports_no_remote_connection},
-   {"remote result", remote_mode_maps_the_communications_result}
+   {"remote result", remote_mode_maps_the_communications_result},
+   {"terminal session", terminal_session_is_rejected}
 };

@@ -5,6 +5,25 @@
 
 #include "ODTypes.h"
 
+/* Internal session lifecycle.  Once a session reaches the terminal state,
+ * public API entry is permanently disabled for the life of the process. */
+typedef enum
+{
+   kODLifecycleNeverStarted,
+   kODLifecycleInitializing,
+   kODLifecycleActive,
+   kODLifecycleExitPending,
+   kODLifecycleFinalizing,
+   kODLifecycleTerminal
+} tODLifecycleState;
+
+extern tODLifecycleState eODLifecycleState;
+extern INT nODPendingExitErrorLevel;
+extern BOOL bODPendingExitTermCall;
+extern BOOL bODPendingExitNoExit;
+extern BOOL bODExitPrologueComplete;
+extern BOOL bODExitRequestedDuringInitialization;
+
 #ifdef OD_THREAD_SUPPORT
 #include <windows.h>
 typedef struct { CRITICAL_SECTION cs; } tODMutex;
@@ -23,6 +42,8 @@ void ODSyncSessionShutdown(void);
 BOOL ODSyncIsOwnerThread(void);
 BOOL ODSyncSessionActive(void);
 BOOL ODSyncAPIActiveOnOwnerThread(void);
+BOOL ODSyncAPIIsNested(void);
+BOOL ODSyncPublicCallAllowed(void);
 void ODSyncAPIEntry(void);
 void ODSyncAPIExit(void);
 BOOL ODSyncAPICheckpoint(void);

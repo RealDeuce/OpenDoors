@@ -30,11 +30,12 @@ static BOOL ut_end_session_during_drain;
 static unsigned ut_redraw_calls;
 static INT ut_main_result;
 static unsigned ut_main_calls;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void)
@@ -112,6 +113,7 @@ static void reset_multiline(void)
    memset(ut_reallocated_buffer, 0, sizeof(ut_reallocated_buffer));
    memset(&od_control, 0, sizeof(od_control));
    bODInitialized = TRUE;
+   ut_init_succeeds = TRUE;
    od_control.user_ansi = TRUE;
    ut_init_calls = 0;
    ut_entry_calls = 0;
@@ -131,6 +133,16 @@ static void reset_multiline(void)
    ut_redraw_calls = 0;
    ut_main_result = OD_MULTIEDIT_SUCCESS;
    ut_main_calls = 0;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   char buffer[4];
+   reset_multiline(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(OD_MULTIEDIT_ERROR,
+      utt_od_multiline_edit(buffer, sizeof(buffer), NULL));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entry_calls);
 }
 
 static void initializes_before_entering_the_api(void)
@@ -257,5 +269,6 @@ static const UTTestCase ut_cases[] = {
    {"setup failure", cleans_up_a_setup_failure},
    {"format failure", cleans_up_a_formatting_failure},
    {"ended drain", returns_success_if_the_session_ends_while_draining},
-   {"normal edit", returns_the_loop_result_and_publishes_final_buffer}
+   {"normal edit", returns_the_loop_result_and_publishes_final_buffer},
+   {"terminal session", terminal_session_is_rejected}
 };

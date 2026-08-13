@@ -30,9 +30,11 @@
 #endif
 
 static unsigned ut_init_calls;
+static BOOL ut_init_succeeds;
 static unsigned ut_entry_calls;
 static unsigned ut_exit_calls;
 static unsigned ut_exec_calls;
+static BOOL ut_exec_ends_session;
 static BOOL ut_carrier;
 static unsigned ut_carrier_calls;
 static char ut_remote_bytes[4];
@@ -86,15 +88,26 @@ tODMilliSec ODMaxMSToWait;
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds)
+      bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entry_calls; }
 void utm_ODSyncAPIExit(void) { ++ut_exit_calls; }
 #ifdef ODPLAT_DOS32
-static void ODCALL ut_kernel_exec(void) { ++ut_exec_calls; }
+static void ODCALL ut_kernel_exec(void)
+{
+   ++ut_exec_calls;
+   if(ut_exec_ends_session)
+      eODLifecycleState = kODLifecycleExitPending;
+}
 #else
-static void ut_kernel_exec(void) { ++ut_exec_calls; }
+static void ut_kernel_exec(void)
+{
+   ++ut_exec_calls;
+   if(ut_exec_ends_session)
+      eODLifecycleState = kODLifecycleExitPending;
+}
 #endif
 
 tODResult utm_ODComCarrier(tPortHandle handle, BOOL *carrier)
@@ -291,7 +304,10 @@ static void reset_kernel(void)
 {
    unsigned index;
    ut_init_calls = ut_entry_calls = ut_exit_calls = ut_exec_calls = 0;
+   ut_init_succeeds = TRUE;
+   ut_exec_ends_session = FALSE;
    bODInitialized = TRUE;
+   eODLifecycleState = kODLifecycleActive;
    bKernelActive = FALSE;
    od_control.od_ker_exec = NULL;
    ut_carrier = TRUE;
@@ -371,6 +387,14 @@ static void initializes_before_rejecting_a_recursive_call(void)
    UT_ASSERT_EQ_UINT(0, ut_entry_calls);
 
    reset_kernel();
+   bODInitialized = FALSE;
+   ut_init_succeeds = FALSE;
+   utt_od_kernel();
+   UT_ASSERT_EQ_UINT(1, ut_init_calls);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entry_calls);
+
+   reset_kernel();
    bKernelActive = TRUE;
    utt_od_kernel();
    UT_ASSERT_EQ_UINT(0, ut_init_calls);
@@ -393,6 +417,15 @@ static void runs_the_optional_hook_inside_the_api_boundary(void)
    reset_kernel();
    utt_od_kernel();
    UT_ASSERT_EQ_UINT(0, ut_exec_calls);
+
+   reset_kernel();
+   od_control.od_ker_exec = ut_kernel_exec;
+   ut_exec_ends_session = TRUE;
+   utt_od_kernel();
+   UT_ASSERT_EQ_UINT(1, ut_exec_calls);
+   UT_ASSERT_EQ_UINT(0, ut_time_update_calls);
+   UT_ASSERT_EQ_UINT(1, ut_exit_calls);
+   UT_ASSERT(!bKernelActive);
 }
 
 static void applies_carrier_detection_policy_in_remote_mode(void)

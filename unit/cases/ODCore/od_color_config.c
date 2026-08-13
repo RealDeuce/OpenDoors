@@ -9,6 +9,7 @@
 static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
+static BOOL ut_init_succeeds;
 
 static void ut_copy_name(char *destination, const char *source)
 {
@@ -18,7 +19,7 @@ static void ut_copy_name(char *destination, const char *source)
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -70,6 +71,16 @@ static void reset_colors(void)
    ut_init_calls = 0;
    ut_entries = 0;
    ut_exits = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   char description[] = "red";
+   reset_colors(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_UINT(0, utt_od_color_config(description));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void empty_description_returns_the_default_after_initialization(void)
@@ -128,5 +139,6 @@ static const UTTestCase ut_cases[] = {
    {"colour modifiers", parses_foreground_background_brightness_and_blink},
    {"brown and grey", maps_brown_and_grey_to_pc_colour_indexes},
    {"colour marker", stops_at_the_configured_colour_marker},
-   {"overlong token", truncates_an_overlong_unknown_token_and_continues}
+   {"overlong token", truncates_an_overlong_unknown_token_and_continues},
+   {"terminal session", terminal_session_is_rejected}
 };

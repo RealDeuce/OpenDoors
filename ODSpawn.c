@@ -173,6 +173,8 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
    const char *apszArgs[4];
    INT16 nReturnCode;
 
+   if(!ODSyncPublicCallAllowed()) return(FALSE);
+
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_spawn()");
 
@@ -202,6 +204,8 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
    const char *apszArgs[3];
    char *pszProgName;
    size_t nProgNameLength;
+
+   if(!ODSyncPublicCallAllowed()) return(FALSE);
 
    /* Build command and arguments list. */
    /* Build program name. */
@@ -240,6 +244,8 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
    sigset_t OriginalMask;
    int retval;
    int nSystemError;
+
+   if(!ODSyncPublicCallAllowed()) return(FALSE);
 
    /* Suspend kernel */
    if(sigemptyset(&block) == -1 || sigaddset(&block, SIGALRM) == -1)
@@ -323,6 +329,7 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(-1);
    OD_API_ENTRY();
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)

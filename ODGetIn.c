@@ -255,6 +255,7 @@ ODAPIDEF BOOL ODCALL od_get_input(tODInputEvent *pInputEvent,
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 

@@ -108,6 +108,7 @@ static BOOL ODVCALL ODLogFormatWorkString(const char *pszFormat, ...)
  */
 ODAPIDEF void ODCALL ODLogEnable(void)
 {
+   if(!ODSyncPublicCallAllowed()) return;
    /* At this time, this function simply maps to a call to od_log_open(). */
    od_log_open();
 }
@@ -134,6 +135,7 @@ ODAPIDEF BOOL ODCALL od_log_open()
 
    /* Initialize OpenDoors if not already done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    /* An existing stream already represents the active logging session. */
    if(logfile_pointer != NULL) return(TRUE);
@@ -260,6 +262,7 @@ ODAPIDEF BOOL ODCALL od_log_write(const char *pszMessage)
 
    /* Verify that OpenDoors has been initialized. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 

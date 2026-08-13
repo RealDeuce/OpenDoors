@@ -16,6 +16,7 @@ static void dispatches_pending_work_only_at_the_outermost_entry(void)
 {
    nAPILevel = 0;
    bSyncActive = TRUE;
+   eODLifecycleState = kODLifecycleActive;
    ut_dispatches = 0;
    ut_dispatch_level = 0;
    ut_dispatch_allow_callbacks = FALSE;
@@ -26,6 +27,12 @@ static void dispatches_pending_work_only_at_the_outermost_entry(void)
    UT_ASSERT(ut_dispatch_allow_callbacks);
    utt_ODSyncAPIEntry();
    UT_ASSERT_EQ_UINT(2, nAPILevel);
+   UT_ASSERT_EQ_UINT(1, ut_dispatches);
+
+   nAPILevel = 0;
+   eODLifecycleState = kODLifecycleExitPending;
+   utt_ODSyncAPIEntry();
+   UT_ASSERT_EQ_UINT(1, nAPILevel);
    UT_ASSERT_EQ_UINT(1, ut_dispatches);
 }
 

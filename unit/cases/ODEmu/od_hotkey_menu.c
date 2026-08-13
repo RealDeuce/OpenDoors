@@ -15,11 +15,12 @@ static BOOL ut_send_result;
 static char ut_send_hotkey;
 static char ut_answer;
 static const char *ut_expected_keys;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -60,6 +61,15 @@ static void reset_menu(void)
    ut_send_hotkey = '\0';
    ut_answer = 'B';
    ut_expected_keys = "AB";
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_menu(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT_EQ_INT(0, utt_od_hotkey_menu("menu", NULL, FALSE));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void rejects_a_null_hotkey_list_after_initializing(void)
@@ -133,5 +143,6 @@ static const UTTestCase ut_cases[] = {
    {"display hotkey", returns_a_hotkey_pressed_during_display},
    {"wait connected", waits_and_clears_remote_output_when_connected},
    {"wait local", waits_without_a_remote_connection},
-   {"no wait", returns_zero_without_waiting}
+   {"no wait", returns_zero_without_waiting},
+   {"terminal session", terminal_session_is_rejected}
 };

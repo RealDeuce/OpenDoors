@@ -120,6 +120,7 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
 
    /* Initialize OpenDoors if it hasn't already been done. */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 

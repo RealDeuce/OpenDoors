@@ -23,11 +23,12 @@ static BYTE ut_seen_attribute;
 static unsigned ut_disp_calls;
 static char ut_disp_bytes[8];
 static INT ut_disp_size;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -103,7 +104,16 @@ static void reset_attribute(void)
    ut_local_attributes = 0;
    ut_seen_attribute = 0;
    ut_disp_calls = 0;
+   ut_init_succeeds = TRUE;
    ut_disp_size = 0;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_attribute(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_set_attrib(7);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void assert_parameters(const int *expected, unsigned count)
@@ -289,5 +299,6 @@ static const UTTestCase ut_cases[] = {
    {"retained ANSI modifiers", ansi_retains_enabled_blink_and_brightness_without_a_reset},
    {"matching unknown ANSI", ansi_unknown_state_forces_matching_color_components},
    {"ANSI colors", ansi_changes_each_color_and_suppresses_an_exact_match},
-   {"plain text", plain_text_mode_reports_no_graphics}
+   {"plain text", plain_text_mode_reports_no_graphics},
+   {"terminal session", terminal_session_is_rejected}
 };

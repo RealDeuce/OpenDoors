@@ -1,3 +1,17 @@
+#define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
+static BOOL ut_public_call_allowed = TRUE;
+BOOL utm_ODSyncPublicCallAllowed(void)
+{
+   return(ut_public_call_allowed);
+}
+
+static void rejects_a_terminal_session(void)
+{
+   ut_public_call_allowed = FALSE;
+   utt_pdef_opendoors(PEROP_INITIALIZE);
+   ut_public_call_allowed = TRUE;
+}
+
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 #define UT_CUSTOM_MOCK_ODScrnDisplayString
 #define UT_CUSTOM_MOCK_ODScrnPrintf
@@ -232,7 +246,8 @@ static const UTTestCase ut_cases[] = {
    {"help display", displays_help},
    {"indicator updates", updates_both_states_of_each_indicator},
    {"key-map initialization", initializes_the_standard_key_map},
-   {"unknown operation", ignores_an_unknown_operation}
+   {"unknown operation", ignores_an_unknown_operation},
+   {"terminal session", rejects_a_terminal_session}
 };
 
 #else
@@ -247,7 +262,8 @@ static void accepts_every_operation_as_a_noop(void)
 }
 
 static const UTTestCase ut_cases[] = {
-   {"non-DOS no-op", accepts_every_operation_as_a_noop}
+   {"non-DOS no-op", accepts_every_operation_as_a_noop},
+   {"terminal session", rejects_a_terminal_session}
 };
 
 #endif

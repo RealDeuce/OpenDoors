@@ -91,10 +91,15 @@ interactive display. The wrapper explicitly refuses `:0` and `:0.0`:
 ```
 tools/unit-xvfb --display :91 run --platform windows \
     --cc x86_64-w64-mingw32-gcc --wine /usr/local/bin/wine64
-tools/unit-xvfb --display :91 turbo --generated build/unit-turbo-generated \
+tools/unit-xvfb --display :91 --watcom /opt/watcom turbo \
+    --generated build/unit-turbo-generated \
     --stage build/unit-turbo --dosbox /usr/local/bin/dosbox \
-    --wasm "$WATCOM/binl/wasm" --dosbox-config tools/turboc/dosbox.conf
+    --dosbox-config tools/turboc/dosbox.conf
 ```
+
+The optional `--watcom ROOT` argument exports `WATCOM` and prepends its
+`binl` directory before dispatch. If it is omitted, the wrapper honors an
+existing `WATCOM` value or uses `$HOME/watcom` when present.
 
 The runner gives MinGW outputs their required `.exe` suffix. After compiling
 the selected cases, it runs every isolated executable synchronously from one

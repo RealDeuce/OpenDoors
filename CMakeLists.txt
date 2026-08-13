@@ -562,15 +562,6 @@ if(BUILD_TESTING)
                 COMMAND opendoors_custom_drop_lines_test)
             set_tests_properties(custom_drop_lines PROPERTIES TIMEOUT 10)
 
-            add_executable(opendoors_config_reinit_test
-                tests/config_reinit_test.c)
-            target_link_libraries(opendoors_config_reinit_test
-                PRIVATE OpenDoors::Static)
-            set_target_properties(opendoors_config_reinit_test PROPERTIES
-                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-            add_test(NAME config_reinit COMMAND opendoors_config_reinit_test)
-            set_tests_properties(config_reinit PROPERTIES TIMEOUT 10)
-
             add_executable(opendoors_default_config_test
                 tests/default_config_test.c)
             target_link_libraries(opendoors_default_config_test

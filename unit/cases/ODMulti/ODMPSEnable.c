@@ -1,7 +1,14 @@
 #define UT_CUSTOM_MOCK_od_set_personality
+#define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
 
 static unsigned ut_set_calls;
 static const char ut_test_name[] = "TEST";
+static BOOL ut_public_call_allowed = TRUE;
+
+BOOL utm_ODSyncPublicCallAllowed(void)
+{
+   return(ut_public_call_allowed);
+}
 
 #ifdef OD_TEXTMODE
 void ODCALL pdef_opendoors(BYTE operation) { (void)operation; }
@@ -27,6 +34,16 @@ static void installs_the_public_selector(void)
    UT_ASSERT_EQ_UINT(1, ut_set_calls);
 }
 
+static void rejects_a_terminal_session(void)
+{
+   pfSetPersonality = NULL;
+   ut_public_call_allowed = FALSE;
+   utt_ODMPSEnable();
+   UT_ASSERT_NULL(pfSetPersonality);
+   ut_public_call_allowed = TRUE;
+}
+
 static const UTTestCase ut_cases[] = {
-   {"selector hook", installs_the_public_selector}
+   {"selector hook", installs_the_public_selector},
+   {"terminal session", rejects_a_terminal_session}
 };

@@ -95,6 +95,7 @@ ODAPIDEF void * ODCALL od_window_create(INT nLeft, INT nTop, INT nRight,
 
    /* Ensure that OpenDoors has been initialized */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(NULL);
 
    OD_API_ENTRY();
 
@@ -286,6 +287,7 @@ ODAPIDEF BOOL ODCALL od_window_remove(void *pWinInfo)
 
    /* Ensure that OpenDoors has been initialized */
    if(!bODInitialized) od_init();
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
 
    OD_API_ENTRY();
 

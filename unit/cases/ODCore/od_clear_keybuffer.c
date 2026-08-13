@@ -11,11 +11,12 @@ static unsigned ut_exits;
 static unsigned ut_empty_calls;
 static unsigned ut_clear_calls;
 static unsigned ut_kernel_calls;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -48,6 +49,15 @@ static void reset_clear(void)
    ut_empty_calls = 0;
    ut_clear_calls = 0;
    ut_kernel_calls = 0;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_clear(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_clear_keybuffer();
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void local_mode_empties_only_the_common_input_queue(void)
@@ -75,5 +85,6 @@ static void remote_mode_also_purges_the_communications_input(void)
 
 static const UTTestCase ut_cases[] = {
    {"local purge", local_mode_empties_only_the_common_input_queue},
-   {"remote purge", remote_mode_also_purges_the_communications_input}
+   {"remote purge", remote_mode_also_purges_the_communications_input},
+   {"terminal session", terminal_session_is_rejected}
 };

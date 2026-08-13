@@ -1,3 +1,20 @@
+#define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
+static BOOL ut_public_call_allowed = TRUE;
+
+BOOL utm_ODSyncPublicCallAllowed(void)
+{
+   if(!ut_public_call_allowed) od_control.od_error = ERR_GENERALFAILURE;
+   return(ut_public_call_allowed);
+}
+
+static void rejects_a_terminal_session(void)
+{
+   ut_public_call_allowed = FALSE;
+   UT_ASSERT(!utt_od_add_personality("name", 1, 23, NULL));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   ut_public_call_allowed = TRUE;
+}
+
 #ifdef OD_TEXTMODE
 #define UT_CUSTOM_MOCK_strncpy
 #define UT_CUSTOM_MOCK_strupr
@@ -67,7 +84,8 @@ static void rejects_the_thirteenth_personality(void)
 
 static const UTTestCase ut_cases[] = {
    {"stored metadata", stores_uppercase_truncated_metadata},
-   {"capacity", rejects_the_thirteenth_personality}
+   {"capacity", rejects_the_thirteenth_personality},
+   {"terminal session", rejects_a_terminal_session}
 };
 #else
 static void reports_unsupported_without_a_text_screen(void)
@@ -78,6 +96,7 @@ static void reports_unsupported_without_a_text_screen(void)
 }
 
 static const UTTestCase ut_cases[] = {
-   {"unsupported", reports_unsupported_without_a_text_screen}
+   {"unsupported", reports_unsupported_without_a_text_screen},
+   {"terminal session", rejects_a_terminal_session}
 };
 #endif

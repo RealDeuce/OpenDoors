@@ -12,11 +12,12 @@ static BOOL ut_seen_high;
 static tODResult ut_com_result;
 static unsigned ut_result_calls;
 static tODResult ut_seen_result;
+static BOOL ut_init_succeeds;
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -50,6 +51,15 @@ static void reset_dtr(void)
    ut_com_result = kODRCSuccess;
    ut_result_calls = 0;
    ut_seen_result = kODRCGeneralFailure;
+   ut_init_succeeds = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_dtr(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   utt_od_set_dtr(TRUE);
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 static void local_mode_rejects_the_request_after_initialization(void)
@@ -87,5 +97,6 @@ static void remote_mode_passes_the_level_and_result(void)
 
 static const UTTestCase ut_cases[] = {
    {"local DTR", local_mode_rejects_the_request_after_initialization},
-   {"remote DTR", remote_mode_passes_the_level_and_result}
+   {"remote DTR", remote_mode_passes_the_level_and_result},
+   {"terminal session", terminal_session_is_rejected}
 };

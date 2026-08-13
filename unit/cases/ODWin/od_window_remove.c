@@ -10,6 +10,7 @@ static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
 static unsigned ut_frees;
+static BOOL ut_init_succeeds;
 
 static void reset_fixture(void)
 {
@@ -18,12 +19,21 @@ static void reset_fixture(void)
    bODInitialized = TRUE;
    ut_put_result = TRUE;
    ut_init_calls = ut_entries = ut_exits = ut_frees = 0;
+   ut_init_succeeds = TRUE;
 }
 
 void ODCALL utm_od_init(void)
 {
    ++ut_init_calls;
-   bODInitialized = TRUE;
+   if(ut_init_succeeds) bODInitialized = TRUE;
+}
+
+static void terminal_session_is_rejected(void)
+{
+   reset_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
+   UT_ASSERT(!utt_od_window_remove(ut_window_data));
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_entries);
 }
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
@@ -86,5 +96,6 @@ static void restores_and_frees_window(void)
 static const UTTestCase ut_cases[] = {
    {"null window", rejects_null_window_after_initializing},
    {"restore failure", frees_window_when_restore_fails},
-   {"successful restore", restores_and_frees_window}
+   {"successful restore", restores_and_frees_window},
+   {"terminal session", terminal_session_is_rejected}
 };
