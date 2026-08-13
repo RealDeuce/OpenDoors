@@ -2,7 +2,7 @@
 
 static int ut_kernel_calls;
 
-void utm_od_kernel(void)
+void ODCALL utm_od_kernel(void)
 {
    ++ut_kernel_calls;
    UT_ASSERT(bForceStatusUpdate);

@@ -22,19 +22,6 @@ int utm_int386(int interrupt_number, const union REGS *input,
 }
 #endif
 
-#ifdef ODPLAT_WIN32
-#define UT_CUSTOM_MOCK_PostMessageA
-static unsigned ut_post_calls;
-BOOL WINAPI utm_PostMessageA(HWND window, UINT message, WPARAM wparam,
-   LPARAM lparam)
-{
-   ++ut_post_calls; UT_ASSERT(window == hwndScreenWindow);
-   UT_ASSERT_EQ_UINT(WM_MOVE_YOUR_CARET, message);
-   UT_ASSERT_EQ_UINT(0, wparam); UT_ASSERT_EQ_INT(0, lparam);
-   return TRUE;
-}
-#endif
-
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 static void does_not_move_a_disabled_caret(void)
 {
@@ -68,12 +55,11 @@ static void moves_the_caret_to_the_boundary_relative_position(void)
 #endif
 }
 #elif defined(ODPLAT_WIN32)
-static void posts_only_when_the_screen_window_exists(void)
+static void marks_the_owner_screen_generation_dirty(void)
 {
-   ut_post_calls = 0; hwndScreenWindow = NULL;
-   utt_ODScrnUpdateCaretPos(); UT_ASSERT_EQ_UINT(0, ut_post_calls);
-   hwndScreenWindow = (HWND)1;
-   utt_ODScrnUpdateCaretPos(); UT_ASSERT_EQ_UINT(1, ut_post_calls);
+   bScreenDirty = FALSE;
+   utt_ODScrnUpdateCaretPos();
+   UT_ASSERT_EQ_INT(TRUE, bScreenDirty);
 }
 #else
 static void is_a_noop_without_a_hardware_caret(void)
@@ -88,7 +74,7 @@ static const UTTestCase ut_cases[] = {
    {"caret off", does_not_move_a_disabled_caret},
    {"caret position", moves_the_caret_to_the_boundary_relative_position}
 #elif defined(ODPLAT_WIN32)
-   {"window message", posts_only_when_the_screen_window_exists}
+   {"dirty generation", marks_the_owner_screen_generation_dirty}
 #else
    {"no hardware caret", is_a_noop_without_a_hardware_caret}
 #endif

@@ -25,5 +25,5 @@ The thread which calls [`od_init()`](od_init.md) owns the session. All public
 API and ABI access must occur on that thread. The
 [`od_control_read_lock()`](od_control_read_lock.md) and
 [`od_control_write_lock()`](od_control_write_lock.md) functions synchronize
-related control-structure access with internal workers; they do not make the
-API callable from background threads.
+related control-structure access with the internal Windows UI worker; they do
+not make the API callable from background threads.

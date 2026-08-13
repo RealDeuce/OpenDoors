@@ -91,22 +91,18 @@ an issue is not treated as a contract change until it is resolved deliberately.
 ## Windows thread lifecycle
 
 - [x] Review `CreateThread()` use by workers which call the C runtime.
-  Frame, screen, kernel, and chat workers allocate memory, perform formatted
-  I/O, and use other runtime facilities after being created by
-  `CreateThread()`. Determine whether each supported Microsoft and MinGW
-  runtime requires `_beginthreadex()`/`_endthreadex()` for correct per-thread
-  runtime initialization and cleanup, including the static-runtime builds.
-  Windows workers are now created with `_beginthreadex()` and return through
-  its runtime-managed thread wrapper.
+  The former frame, screen, kernel, and chat workers used runtime facilities
+  after being created by `CreateThread()`. Windows worker creation was changed
+  to `_beginthreadex()` with return through its runtime-managed wrapper. The
+  later owner-flow and UI consolidation leaves only the frame worker, which
+  retains that wrapper.
 
 - [ ] Handle failure to deliver cooperative UI shutdown messages before
-  waiting indefinitely for the target thread. `ODScrnStopWindow()` ignores the
-  result of `PostThreadMessage(WM_QUIT)`, and `ODFrameShutdown()` ignores the
+  waiting indefinitely for the target thread. `ODFrameShutdown()` ignores the
   results of `PostMessage(WM_OD_SHUTDOWN)` and its fallback
-  `PostThreadMessage(WM_QUIT)`. Each path then performs an infinite thread
-  join. A stale window handle, missing message queue, or failed post can
-  therefore turn a recoverable shutdown-delivery failure into a permanent
-  process hang.
+  `PostThreadMessage(WM_QUIT)`, then performs an infinite thread join. A stale
+  window handle, missing message queue, or failed post can therefore turn a
+  recoverable shutdown-delivery failure into a permanent process hang.
 
 - [ ] Exercise the real Windows control lock under contention. The isolated
   Windows unit cases mock `WaitForSingleObject()` and manually change the lock

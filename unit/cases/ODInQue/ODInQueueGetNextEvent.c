@@ -126,7 +126,7 @@ void ODCALL utm_od_sleep(tODMilliSec milliseconds)
    ++ut_sleep_calls;
 }
 
-void utm_od_kernel(void)
+void ODCALL utm_od_kernel(void)
 {
    ++ut_kernel_calls;
    if(ut_kernel_calls == ut_enqueue_on_kernel)

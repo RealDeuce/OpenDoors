@@ -101,10 +101,9 @@ void ODScrnLocalInput(BYTE btLeft, BYTE btRow, char *pszString,
 
 /* Functions for local screen window under Win32 version. */
 #ifdef ODPLAT_WIN32
-extern DWORD dwScreenThreadID;
-tODResult ODScrnStartWindow(HANDLE hInstance, tODThreadHandle *phScreenThread,
-   HWND hwndFrame);
-void ODScrnStopWindow(tODThreadHandle *phScreenThread);
+tODResult ODScrnStartWindow(HANDLE hInstance, HWND hwndFrame);
+void ODScrnStopWindow(void);
+void ODScrnPublish(void);
 void ODScrnSetFocusToWindow(void);
 void ODScrnAdjustWindows(void);
 #endif /* ODPLAT_WIN32 */

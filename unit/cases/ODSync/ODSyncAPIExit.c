@@ -1,9 +1,13 @@
 #define UT_CUSTOM_MOCK_ODAcquirePublicLock
 #define UT_CUSTOM_MOCK_ODDispatch
 #define UT_CUSTOM_MOCK_ODSyncControlWriteUnlock
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODScrnPublish
+#endif
 static unsigned ut_acquires;
 static unsigned ut_dispatches;
 static unsigned ut_unlocks;
+static unsigned ut_publishes;
 static BOOL ut_allow_callbacks;
 
 void utm_ODAcquirePublicLock(void) { ++ut_acquires; }
@@ -13,6 +17,9 @@ void utm_ODDispatch(BOOL allow_callbacks)
    ut_allow_callbacks = allow_callbacks;
 }
 void utm_ODSyncControlWriteUnlock(void) { ++ut_unlocks; }
+#ifdef ODPLAT_WIN32
+void utm_ODScrnPublish(void) { ++ut_publishes; }
+#endif
 
 static void returns_defensively_when_no_api_level_is_active(void)
 {
@@ -20,8 +27,10 @@ static void returns_defensively_when_no_api_level_is_active(void)
    ut_acquires = 0;
    ut_dispatches = 0;
    ut_unlocks = 0;
+   ut_publishes = 0;
    utt_ODSyncAPIExit();
    UT_ASSERT_EQ_UINT(0, ut_unlocks);
+   UT_ASSERT_EQ_UINT(0, ut_publishes);
 }
 
 static void defers_release_until_the_outermost_exit(void)
@@ -30,9 +39,11 @@ static void defers_release_until_the_outermost_exit(void)
    ut_acquires = 0;
    ut_dispatches = 0;
    ut_unlocks = 0;
+   ut_publishes = 0;
    utt_ODSyncAPIExit();
    UT_ASSERT_EQ_UINT(1, nAPILevel);
    UT_ASSERT_EQ_UINT(0, ut_unlocks);
+   UT_ASSERT_EQ_UINT(0, ut_publishes);
 
    utt_ODSyncAPIExit();
    UT_ASSERT_EQ_UINT(0, nAPILevel);
@@ -40,6 +51,11 @@ static void defers_release_until_the_outermost_exit(void)
    UT_ASSERT_EQ_UINT(1, ut_dispatches);
    UT_ASSERT_EQ_INT(TRUE, ut_allow_callbacks);
    UT_ASSERT_EQ_UINT(1, ut_acquires);
+#ifdef ODPLAT_WIN32
+   UT_ASSERT_EQ_UINT(1, ut_publishes);
+#else
+   UT_ASSERT_EQ_UINT(0, ut_publishes);
+#endif
 }
 
 static const UTTestCase ut_cases[] = {

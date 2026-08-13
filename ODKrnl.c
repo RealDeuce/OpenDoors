@@ -109,7 +109,7 @@ static BOOL ODKrnlTimeUpdate(BOOL bAllowApplicationCallbacks);
 static void ODKrnlChatCleanup(void);
 static void ODKrnlChatMode(void);
 
-/* Helpers used by asynchronous Windows UI threads. */
+/* Helpers used by the asynchronous Windows UI thread. */
 #ifdef OD_THREAD_SUPPORT
 static void ODKrnlQueueShutdown(BYTE btReasonForShutdown);
 #endif /* OD_THREAD_SUPPORT */

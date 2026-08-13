@@ -161,22 +161,23 @@ static void ODScrnScrollUpAndInvalidate(void);
 
 #ifdef ODPLAT_WIN32
 
-/* Screen thread startup information. */
-typedef struct
-{
-   HWND hwndFrame;
-   HANDLE hInstance;
-} tODScrnThreadInfo;
-
 /* Handle to the screen window. */
 static HWND hwndScreenWindow;
-DWORD dwScreenThreadID;
-static HANDLE hScreenStartedEvent;
-static tODResult ScreenStartResult;
-#define OD_SCREEN_THREAD_TIMEOUT 10000
+
+/* The session owner writes one buffer while the frame thread presents the
+ * other. The presentation mutex is held only while ownership is exchanged or
+ * while GDI reads the display buffer. */
+static void *pDisplayBuffer;
+static tODMutex ScreenPresentationMutex;
+static BOOL bScreenPresentationActive;
+static BOOL bScreenDirty;
+static BYTE btDisplayCursorColumn;
+static BYTE btDisplayCursorRow;
+static BOOL bDisplayCaretOn;
 
 /* Does the screen window currently have input focus? */
 BOOL bScreenHasFocus;
+static BOOL bWinCaretShown;
 
 /* Current font-related information. */
 static HFONT hCurrentFont;
@@ -242,10 +243,6 @@ tWinKeyToODKey aWinKeyToODKey[] =
 #define XPIXEL_AS_COLUMN(nX)        (((INT)(nX)) / nFontCellWidth)
 #define YPIXEL_AS_ROW(nY)           (((INT)(nY)) / nFontCellHeight)
 
-/* User defined messages. */
-#define WM_MOVE_YOUR_CARET          (WM_USER + 1)
-#define WM_KEYDOWN_RELAY            (WM_USER + 2)
-
 /* Height of the flashing caret, in pixels. */
 #define CARET_HEIGHT   3
 
@@ -253,15 +250,11 @@ tWinKeyToODKey aWinKeyToODKey[] =
 LRESULT CALLBACK ODScrnWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
    LPARAM lParam);
 static HWND ODScrnCreateWin(HWND hwndFrame, HANDLE hInstance);
-static void ODScrnMessageLoop(HANDLE hInstance, HWND hwndScreen);
-DWORD OD_THREAD_FUNC ODScrnThreadProc(void *pParam);
 static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom);
 static void ODScrnInvalidate(BYTE btLeft, BYTE btTop, BYTE btRight,
    BYTE btBottom);
 static void ODScrnSetCurrentFont(HWND hwndScreen, HFONT hNewFont);
 static void ODScrnSetWinCaretPos(void);
-static BOOL ODScrnWaitWithMessages(HANDLE hObject, HWND hwndFrame,
-   DWORD dwTimeout);
 
 
 /* ----------------------------------------------------------------------------
@@ -318,8 +311,10 @@ static HWND ODScrnCreateWin(HWND hwndFrame, HANDLE hInstance)
       return(NULL);
    }
 
-   /* Store handle to screen window for access from screen. */
+   /* Publish the UI-owned handle to the session owner. */
+   ODMutexLock(&ScreenPresentationMutex);
    hwndScreenWindow = hwndScreen;
+   ODMutexUnlock(&ScreenPresentationMutex);
 
    return(hwndScreen);
 }
@@ -357,12 +352,8 @@ LRESULT CALLBACK ODScrnWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
    switch(uMsg)
    {
       case WM_SYSCOMMAND:
-         /* We move any SC_KEYMENU WM_SYSCOMMAND messages to the frame */
-         /* window's message queue so that the screen window thread    */
-         /* can continue to process messages when the menu is          */
-         /* activated from the keyboard when the screen window has     */
-         /* the keyboard focus. If this isn't done, the menu will not  */
-         /* behave correctly when activated this way.                  */
+         /* Move SC_KEYMENU to the frame window so its menu processes */
+         /* keyboard activation when the child has input focus.       */
          if(wParam == SC_KEYMENU)
          {
             PostMessage(GetParent(hwnd), uMsg, wParam, lParam);
@@ -404,10 +395,6 @@ LRESULT CALLBACK ODScrnWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
          break;
       }
 
-      case WM_MOVE_YOUR_CARET:
-         ODScrnSetWinCaretPos();
-         break;
-
       case WM_LBUTTONDOWN:
          SetFocus(hwnd);
          break;
@@ -419,23 +406,24 @@ LRESULT CALLBACK ODScrnWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
          /* Remember that we now have the input focus. */
          bScreenHasFocus = TRUE;
+         bWinCaretShown = FALSE;
 
-         /* Update the position of the caret. */
+         /* Update the position and visibility from the displayed state. */
+         ODMutexLock(&ScreenPresentationMutex);
          ODScrnSetWinCaretPos();
-
-         /* Now, make the caret visible. */
-         ShowCaret(hwnd);
+         ODMutexUnlock(&ScreenPresentationMutex);
          break;
 
       case WM_KILLFOCUS:
          /* Remember that we no longer have the input focus. */
          bScreenHasFocus = FALSE;
+         bWinCaretShown = FALSE;
 
          /* Turn off the caret when we loose the input focus. */
          DestroyCaret();
          break;
 
-      case WM_KEYDOWN_RELAY:
+      case WM_KEYDOWN:
       {
          int nVirtKeyPressed = (int)wParam;
          WORD wRepeatCount = LOWORD(lParam);
@@ -464,6 +452,13 @@ LRESULT CALLBACK ODScrnWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
          break;
       }
+
+      case WM_DESTROY:
+         ODMutexLock(&ScreenPresentationMutex);
+         if(hwndScreenWindow == hwnd)
+            hwndScreenWindow = NULL;
+         ODMutexUnlock(&ScreenPresentationMutex);
+         break;
 
       case WM_CHAR:
       {
@@ -516,7 +511,6 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    INT nStartColumn;
    INT nEndColumn;
    BYTE *pbtBufferContents;
-   BYTE abtScreenSnapshot[OD_SCREEN_WIDTH * OD_SCREEN_HEIGHT * 2];
    char achStringToOutput[OD_SCREEN_WIDTH];
    char *pchNextChar;
    BYTE btCurrentAttribute;
@@ -527,16 +521,14 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    ASSERT(nRight >= nLeft);
    ASSERT(nBottom >= nTop);
 
-   /* Copy one coherent screen image while holding shared session access.
-    * GDI may synchronously execute other window code, so do not retain the
-    * session lock while drawing the saved image. */
-   ODSyncControlReadLock();
+   /* The display buffer remains owned by the frame thread until painting is
+    * complete. The session owner may continue changing its other buffer, but
+    * cannot publish a replacement while GDI is reading this one. */
+   ODMutexLock(&ScreenPresentationMutex);
 
    /* Ensure that parameters are within valid range. */
    if(nRight >= OD_SCREEN_WIDTH) nRight = OD_SCREEN_WIDTH - 1;
    if(nBottom >= OD_SCREEN_HEIGHT) nBottom = OD_SCREEN_HEIGHT - 1;
-   memcpy(abtScreenSnapshot, pScrnBuffer, sizeof(abtScreenSnapshot));
-   ODSyncControlReadUnlock();
 
    /* Save the current state of the device context so that we can restore */
    /* it before returning.                                                */
@@ -551,7 +543,7 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    {
       /* Obtain a pointer to the first byte representing this line in */
       /* the screen buffer.                                           */
-      pbtBufferContents = abtScreenSnapshot +
+      pbtBufferContents = (BYTE *)pDisplayBuffer +
          ((nCurrentLine * OD_SCREEN_WIDTH) + nLeft) * 2;
 
       /* Loop for each portion of this line that can be drawn in a single */
@@ -600,14 +592,16 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    /* Restore the device context to its original state before this function */
    /* was called.                                                           */
    RestoreDC(hdc, nIDSavedState);
+   ODScrnSetWinCaretPos();
+   ODMutexUnlock(&ScreenPresentationMutex);
 }
 
 
 /* ----------------------------------------------------------------------------
  * ODScrnInvalidate()                                  *** PRIVATE FUNCTION ***
  *
- * Marks the specified area of the screen window as invalid, forcing the
- * screen thread to redraw it.
+ * Marks the owner screen generation dirty. The complete generation is
+ * published at the next outer API ownership boundary.
  *
  * Parameters: btLeft   - The left most column to invalidate.
  *
@@ -622,20 +616,39 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
 static void ODScrnInvalidate(BYTE btLeft, BYTE btTop, BYTE btRight,
    BYTE btBottom)
 {
-   RECT rcToInvalidate;
+   UNUSED(btLeft);
+   UNUSED(btTop);
+   UNUSED(btRight);
+   UNUSED(btBottom);
+   bScreenDirty = TRUE;
+}
 
-   /* If the screen window has not been created yet, then return without */
-   /* doing anything.                                                    */
-   if(hwndScreenWindow == NULL) return;
 
-   /* Obtain rectangle in client window coordinates, to be invalidated. */
-   rcToInvalidate.left = COLUMN_AS_XPIXEL(btLeft);
-   rcToInvalidate.top = ROW_AS_YPIXEL(btTop);
-   rcToInvalidate.right = COLUMN_AS_XPIXEL(btRight + 1);
-   rcToInvalidate.bottom = ROW_AS_YPIXEL(btBottom + 1);
+/* ----------------------------------------------------------------------------
+ * ODScrnPublish()
+ *
+ * Publishes the session owner's completed screen state to the Windows frame
+ * thread. This is called only at an owner-thread API ownership boundary.
+ */
+void ODScrnPublish(void)
+{
+   void *pOldDisplayBuffer;
 
-   /* Mark this rectangle as invalid. */
-   InvalidateRect(hwndScreenWindow, &rcToInvalidate, FALSE);
+   if(!bScreenPresentationActive || !bScreenDirty)
+      return;
+
+   ODMutexLock(&ScreenPresentationMutex);
+   pOldDisplayBuffer = pDisplayBuffer;
+   pDisplayBuffer = pScrnBuffer;
+   pScrnBuffer = pOldDisplayBuffer;
+   memcpy(pScrnBuffer, pDisplayBuffer, SCREEN_BUFFER_SIZE);
+   btDisplayCursorColumn = btCursorColumn + btLeftBoundary;
+   btDisplayCursorRow = btCursorRow + btTopBoundary;
+   bDisplayCaretOn = bCaretOn;
+   bScreenDirty = FALSE;
+   if(hwndScreenWindow != NULL)
+      InvalidateRect(hwndScreenWindow, NULL, FALSE);
+   ODMutexUnlock(&ScreenPresentationMutex);
 }
 
 
@@ -762,97 +775,26 @@ void ODScrnAdjustWindows(void)
       SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOZORDER);
 }
 
-
 /* ----------------------------------------------------------------------------
- * ODScrnMessageLoop()                                 *** PRIVATE FUNCTION ***
+ * ODScrnStartWindow()
  *
- * Message loop for OpenDoors screen window thread.
- *
- * Parameters: hInstance   - Handle to current instance.
- *
- *             hwndScreen  - Handle to the screen window.
- *
- *     Return: void.
+ * Creates and initializes the local screen child on the frame UI thread.
  */
-static void ODScrnMessageLoop(HANDLE hInstance, HWND hwndScreen)
+tODResult ODScrnStartWindow(HANDLE hInstance, HWND hwndFrame)
 {
-   MSG msg;
-   HWND hwndFrame;
-
-   ASSERT(hInstance != NULL);
-   ASSERT(hwndScreen != NULL);
-
-   /* Obtain a handle to the OpenDoors main frame window. */
-   hwndFrame = GetParent(hwndScreen);
-
-   /* Loop, fetching, translating and dispatching messages for any windows */
-   /* created by this thread. (GetMessage() blocks when no messages are    */
-   /* available.)                                                          */
-   while(GetMessage(&msg, NULL, 0, 0))
-   {
-      if(!ODFrameTranslateAccelerator(hwndFrame, &msg))
-      {
-         TranslateMessage(&msg);
-         if(msg.message == WM_KEYDOWN)
-         {
-            PostMessage(hwndScreen, WM_KEYDOWN_RELAY, msg.wParam, msg.lParam);
-         }
-         DispatchMessage(&msg);
-      }
-   }
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODScrnThreadProc()                                  *** PRIVATE FUNCTION ***
- *
- * Function that execute the OpenDoors screen window thread. This thread's
- * primary task is to draw the screen window contents, when needed.
- *
- * Parameters: pParam   - The thread parameter, which is a pointer to a
- *                        tODScrnThreadInfo structure.
- *
- *     Return: TRUE on success, or FALSE on failure.
- */
-DWORD OD_THREAD_FUNC ODScrnThreadProc(void *pParam)
-{
-   MSG msg;
    INT nCancelErrorLevel;
    INT nCmdShow;
-   tODScrnThreadInfo *pScrnThreadInfo = (tODScrnThreadInfo *)pParam;
    HWND hwndScreen;
-   HANDLE hInstance = pScrnThreadInfo->hInstance;
-   HWND hwndFrame = pScrnThreadInfo->hwndFrame;
 
-   dwScreenThreadID = GetCurrentThreadId();
-   PeekMessage(&msg, NULL, WM_USER, WM_USER, PM_NOREMOVE);
+   ASSERT(hInstance != NULL);
+   ASSERT(hwndFrame != NULL);
 
-   /* We are now done with the thread startup information structure, */
-   /* so deallocate it.                                              */
-   free(pScrnThreadInfo);
-
-   /* Create the screen window. */
    hwndScreen = ODScrnCreateWin(hwndFrame, hInstance);
-
    if(hwndScreen == NULL)
-   {
-      ScreenStartResult = kODRCGeneralFailure;
-      SetEvent(hScreenStartedEvent);
-      dwScreenThreadID = 0;
-      return(FALSE);
-   }
+      return(kODRCGeneralFailure);
 
-   hwndScreenWindow = hwndScreen;
-   ScreenStartResult = kODRCSuccess;
-   SetEvent(hScreenStartedEvent);
-
-   /* Set the current font for the window. This, in turn will force the  */
-   /* window to be adjusted to the appropriate size, and will adjust the */
-   /* size of the OpenDoors frame window accordingly.                    */
    ODScrnSetCurrentFont(hwndScreen, GetStockObject(OEM_FIXED_FONT));
 
-   /* Prompt for the user's name before showing the windows, if required. */   
-#ifdef ODPLAT_WIN32
    if(bPromptForUserName)
    {
       if(DialogBox(hInstance, MAKEINTRESOURCE(IDD_LOGIN), hwndFrame,
@@ -863,203 +805,37 @@ DWORD OD_THREAD_FUNC ODScrnThreadProc(void *pParam)
          ODSyncControlReadUnlock();
          exit(nCancelErrorLevel);
       }
-
-      PostMessage(hwndScreen, WM_SETFOCUS, 0, 0L);
+      SetFocus(hwndScreen);
    }
-#endif /* ODPLAT_WIN32 */
 
-   /* Now, we can make the frame window visible. */
    ODSyncControlReadLock();
    nCmdShow = od_control.od_cmd_show;
    ODSyncControlReadUnlock();
    if(nCmdShow == SW_MINIMIZE || nCmdShow == SW_SHOWMINIMIZED ||
       nCmdShow == SW_SHOWMINNOACTIVE)
-   {
       ShowWindow(hwndFrame, SW_SHOWMINNOACTIVE);
-   }
    else
-   {
       ShowWindow(hwndFrame, SW_RESTORE);
-   }
 
-   /* Now, show the screen window. */
    ShowWindow(hwndScreen, SW_SHOW);
-
-   /* Loop, processing messages for the screen window. */
-   ODScrnMessageLoop(hInstance, hwndScreen);
-
-   /* Destroy the screen window. */
-   if(IsWindow(hwndScreen))
-   {
-      DestroyWindow(hwndScreen);
-   }
-   hwndScreenWindow = NULL;
-   dwScreenThreadID = 0;
-
-   return(TRUE);
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODScrnStartWindow()
- *
- * Function that starts up the screen window thread, which in turn creates
- * and manages the screen window.
- *
- * Parameters: hInstance      - Handle to the current application instance.
- *
- *             phScreenThread - Pointer to location where screen thread handle
- *                              should be stored.
- *
- *             hwndFrame      - Handle to already created frame window.
- *
- *     Return: kODRCSuccess on success, or an error code on failure.
- */
-tODResult ODScrnStartWindow(HANDLE hInstance, tODThreadHandle *phScreenThread,
-   HWND hwndFrame)
-{
-   tODScrnThreadInfo *pScrnThreadInfo;
-   tODResult Result;
-   DWORD dwWaitResult;
-
-   ASSERT(hInstance != NULL);
-   ASSERT(phScreenThread != NULL);
-   ASSERT(hwndFrame != NULL);
-
-   /* Setup thread information to pass into the screen thread at startup. */
-   if((pScrnThreadInfo = malloc(sizeof(tODScrnThreadInfo))) == NULL)
-   {
-      return(kODRCNoMemory);
-   }
-
-   pScrnThreadInfo->hInstance = hInstance;
-   pScrnThreadInfo->hwndFrame = hwndFrame;
-
-   ScreenStartResult = kODRCGeneralFailure;
-   hScreenStartedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-   if(hScreenStartedEvent == NULL)
-   {
-      free(pScrnThreadInfo);
-      return(kODRCGeneralFailure);
-   }
-
-   /* Create the screen thread. */
-   Result = ODThreadCreate(phScreenThread, ODScrnThreadProc,
-      pScrnThreadInfo);
-   if(Result != kODRCSuccess)
-   {
-      free(pScrnThreadInfo);
-      CloseHandle(hScreenStartedEvent);
-      hScreenStartedEvent = NULL;
-      return(Result);
-   }
-
-   dwWaitResult = ODScrnWaitWithMessages(hScreenStartedEvent, hwndFrame,
-      OD_SCREEN_THREAD_TIMEOUT) ? WAIT_OBJECT_0 : WAIT_TIMEOUT;
-   if(dwWaitResult == WAIT_OBJECT_0)
-   {
-      CloseHandle(hScreenStartedEvent);
-      hScreenStartedEvent = NULL;
-      if(ScreenStartResult != kODRCSuccess)
-      {
-         (void)ODScrnWaitWithMessages(*phScreenThread, hwndFrame, INFINITE);
-         CloseHandle(*phScreenThread);
-         *phScreenThread = NULL;
-      }
-      return(ScreenStartResult);
-   }
-
-   /* Do not abandon a thread which may later touch the frame or session.
-    * The deadline makes startup fail, but cooperative cleanup must still
-    * wait until the thread has published its result and can be stopped. */
-   (void)ODScrnWaitWithMessages(hScreenStartedEvent, hwndFrame, INFINITE);
-   if(ScreenStartResult == kODRCSuccess && dwScreenThreadID != 0)
-      PostThreadMessage(dwScreenThreadID, WM_QUIT, 0, 0);
-   (void)ODScrnWaitWithMessages(*phScreenThread, hwndFrame, INFINITE);
-   CloseHandle(*phScreenThread);
-   *phScreenThread = NULL;
-   CloseHandle(hScreenStartedEvent);
-   hScreenStartedEvent = NULL;
-   return(kODRCGeneralFailure);
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODScrnWaitWithMessages()                         *** PRIVATE FUNCTION ***
- *
- * Waits for a screen-thread object while continuing to dispatch messages for
- * the frame thread. Creating or resizing a child window can synchronously
- * notify its parent, so blocking the parent thread in WaitForSingleObject()
- * deadlocks screen startup.
- */
-static BOOL ODScrnWaitWithMessages(HANDLE hObject, HWND hwndFrame,
-   DWORD dwTimeout)
-{
-   DWORD dwStart = GetTickCount();
-   DWORD dwRemaining;
-   DWORD dwWaitResult;
-   MSG msg;
-
-   for(;;)
-   {
-      if(dwTimeout == INFINITE)
-      {
-         dwRemaining = INFINITE;
-      }
-      else
-      {
-         DWORD dwElapsed = GetTickCount() - dwStart;
-         if(dwElapsed >= dwTimeout)
-            dwRemaining = 0;
-         else
-            dwRemaining = dwTimeout - dwElapsed;
-      }
-
-      dwWaitResult = MsgWaitForMultipleObjects(1, &hObject, FALSE,
-         dwRemaining, QS_ALLINPUT);
-      if(dwWaitResult == WAIT_OBJECT_0)
-         return(TRUE);
-      if(dwWaitResult != WAIT_OBJECT_0 + 1)
-         return(FALSE);
-
-      while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-      {
-         if(msg.message == WM_QUIT)
-         {
-            PostQuitMessage((int)msg.wParam);
-            return(FALSE);
-         }
-         if(!ODFrameTranslateAccelerator(hwndFrame, &msg))
-         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-         }
-      }
-   }
+   return(kODRCSuccess);
 }
 
 
 /* ----------------------------------------------------------------------------
  * ODScrnStopWindow()
  *
- * Cooperatively stops and joins the Windows screen thread. Teardown does not
- * continue while a thread can still read released session state.
+ * Destroys the local screen child on the frame UI thread.
  */
-void ODScrnStopWindow(tODThreadHandle *phScreenThread)
+void ODScrnStopWindow(void)
 {
-   ASSERT(phScreenThread != NULL);
-   if(*phScreenThread == NULL) return;
+   HWND hwndScreen;
 
-   if(dwScreenThreadID != 0)
-      PostThreadMessage(dwScreenThreadID, WM_QUIT, 0, 0);
-   ODThreadWaitForExit(*phScreenThread);
-   if(hScreenStartedEvent != NULL)
-   {
-      CloseHandle(hScreenStartedEvent);
-      hScreenStartedEvent = NULL;
-   }
-   CloseHandle(*phScreenThread);
-   *phScreenThread = NULL;
+   ODMutexLock(&ScreenPresentationMutex);
+   hwndScreen = hwndScreenWindow;
+   ODMutexUnlock(&ScreenPresentationMutex);
+   if(hwndScreen != NULL && IsWindow(hwndScreen))
+      DestroyWindow(hwndScreen);
 }
 
 
@@ -1093,12 +869,22 @@ void ODScrnSetFocusToWindow(void)
  */
 static void ODScrnSetWinCaretPos(void)
 {
-   /* Only move the caret if we have focus, and thus we are the one who */
-   /* owns the caret.                                                   */
+   /* The caller holds ScreenPresentationMutex, so cursor position and
+    * visibility come from one published display generation. */
    if(bScreenHasFocus)
    {
-      SetCaretPos(COLUMN_AS_XPIXEL(btCursorColumn + btLeftBoundary),
-         ROW_AS_YPIXEL(btCursorRow + btTopBoundary + 1) - CARET_HEIGHT);
+      SetCaretPos(COLUMN_AS_XPIXEL(btDisplayCursorColumn),
+         ROW_AS_YPIXEL(btDisplayCursorRow + 1) - CARET_HEIGHT);
+      if(bDisplayCaretOn && !bWinCaretShown)
+      {
+         ShowCaret(hwndScreenWindow);
+         bWinCaretShown = TRUE;
+      }
+      else if(!bDisplayCaretOn && bWinCaretShown)
+      {
+         HideCaret(hwndScreenWindow);
+         bWinCaretShown = FALSE;
+      }
    }
 }
 
@@ -1309,13 +1095,31 @@ tODResult ODScrnInitialize(void)
 #endif /* ODPLAT_DOS/NIX */
 
 #ifdef ODPLAT_WIN32
-   /* Allocate memory for screen buffer. */
+   /* Allocate the owner and presenter screen buffers. */
    pScrnBuffer = malloc(SCREEN_BUFFER_SIZE);
 
    if(pScrnBuffer == NULL)
    {
       return(kODRCNoMemory);
    }
+   pDisplayBuffer = malloc(SCREEN_BUFFER_SIZE);
+   if(pDisplayBuffer == NULL)
+   {
+      free(pScrnBuffer);
+      pScrnBuffer = NULL;
+      return(kODRCNoMemory);
+   }
+   if(ODMutexInitialize(&ScreenPresentationMutex) != kODRCSuccess)
+   {
+      free(pDisplayBuffer);
+      free(pScrnBuffer);
+      pDisplayBuffer = NULL;
+      pScrnBuffer = NULL;
+      return(kODRCGeneralFailure);
+   }
+   bScreenPresentationActive = TRUE;
+   bScreenDirty = FALSE;
+   hwndScreenWindow = NULL;
 #endif /* ODPLAT_WIN32 */
 
    /* Initialize display system variables. */
@@ -1338,6 +1142,16 @@ tODResult ODScrnInitialize(void)
    bCaretOn = FALSE;
    ODScrnEnableCaret(TRUE);
 
+#ifdef ODPLAT_WIN32
+   /* Before the UI exists, make both ownership buffers represent the same
+    * initial generation. Later generations are exchanged by ODScrnPublish. */
+   memcpy(pDisplayBuffer, pScrnBuffer, SCREEN_BUFFER_SIZE);
+   btDisplayCursorColumn = btCursorColumn + btLeftBoundary;
+   btDisplayCursorRow = btCursorRow + btTopBoundary;
+   bDisplayCaretOn = bCaretOn;
+   bScreenDirty = FALSE;
+#endif
+
    /* Return with success. */
    return(kODRCSuccess);
 }
@@ -1355,11 +1169,17 @@ tODResult ODScrnInitialize(void)
 void ODScrnShutdown(void)
 {
 #ifdef ODPLAT_WIN32
-   /* Deallocate screen buffer memory. */
-   if(pScrnBuffer != NULL)
+   if(bScreenPresentationActive)
    {
+      bScreenPresentationActive = FALSE;
+      bScreenDirty = FALSE;
+
+      /* Deallocate both buffer generations after the frame thread joined. */
       free(pScrnBuffer);
+      free(pDisplayBuffer);
       pScrnBuffer = NULL;
+      pDisplayBuffer = NULL;
+      ODMutexDestroy(&ScreenPresentationMutex);
    }
 #else /* !ODPLAT_WIN32 */
    /* In silent mode, we must deallocate screen buffer memory. */
@@ -1536,6 +1356,14 @@ void ODScrnEnableCaret(BOOL bEnable)
 {
    if(!bCaretPresentationChange)
       bRequestedCaretOn = bEnable;
+
+#ifdef ODPLAT_WIN32
+   if(bCaretOn != (BYTE)bEnable)
+   {
+      bCaretOn = (BYTE)bEnable;
+      bScreenDirty = TRUE;
+   }
+#endif
 
 #ifdef ODPLAT_DOS
    if(bCaretOn == bEnable) return;
@@ -1944,10 +1772,7 @@ static void ODScrnUpdateCaretPos(void)
 #endif /* ODPLAT_DOS32 */
 
 #ifdef ODPLAT_WIN32
-   if(hwndScreenWindow != NULL)
-   {
-      PostMessage(hwndScreenWindow, WM_MOVE_YOUR_CARET, 0, 0);
-   }
+   bScreenDirty = TRUE;
 #endif /* ODPLAT_WIN32 */
 }
 

@@ -63,7 +63,7 @@ void ODCALL utm_od_init(void)
 
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
 void utm_ODSyncAPIExit(void) { ++ut_exits; }
-void utm_od_kernel(void) { ++ut_kernel_calls; }
+void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
 void *utm_memcpy(void *destination, const void *source, size_t size)
 {

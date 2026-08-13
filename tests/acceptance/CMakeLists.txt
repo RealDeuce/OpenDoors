@@ -55,6 +55,8 @@ opendoors_acceptance_test(command_line command_line_test.c)
 opendoors_acceptance_test(screen screen_test.c)
 if(WIN32)
     target_link_libraries(opendoors_acceptance_screen PRIVATE ws2_32)
+    opendoors_acceptance_test(windows_screen windows_screen_test.c)
+    target_link_libraries(opendoors_acceptance_windows_screen PRIVATE ws2_32)
 endif()
 opendoors_acceptance_test(components components_test.c)
 

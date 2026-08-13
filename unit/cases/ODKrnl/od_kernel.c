@@ -156,6 +156,7 @@ unsigned short utm__bios_keybrd(unsigned command)
    UT_ASSERT_EQ_UINT(_KEYBRD_SHIFTSTATUS, command);
    return((unsigned short)ut_bios_shifts[ut_bios_index++]);
 }
+#endif
 
 static void queue_bios_key(WORD key, BYTE shift)
 {
@@ -284,7 +285,6 @@ static void ODCALL ut_hot_callback(void)
 {
    ++ut_hot_callback_calls;
 }
-#endif
 #endif
 
 static void reset_kernel(void)

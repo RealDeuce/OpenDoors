@@ -196,27 +196,27 @@ settings solve different problems.
 
 ## Threads and API ownership
 
-OpenDoors uses Windows synchronization and worker activity internally where
-needed to keep the local interface, communication input, status information,
-and timers responsive. This does not make the public API generally callable
-from arbitrary application threads.
+OpenDoors uses a Windows UI worker and internal synchronization to keep the
+local interface responsive. Communications, status, and timers use the same
+cooperative owner-thread flow as other platforms. This does not make the
+public API generally callable from arbitrary application threads.
 
 Treat a single application thread as the owner of the OpenDoors session. Call
 [`od_init()`](../reference/api/od_init.md), every other API function, inspect or
 modify every public ABI object, and perform exit on that thread. This is a
-requirement even in a Windows build with internal workers. Background threads
-may prepare application data, but they must hand results back to the owner
-before displaying text, accepting door input, or accessing
+requirement even in a Windows build with the internal UI worker. Background
+threads may prepare application data, but they must hand results back to the
+owner before displaying text, accepting door input, or accessing
 [`od_control`](../reference/control/index.md).
 
 Ordinary source access through the exported
 [`od_control`](../reference/control/index.md) object remains supported. When
-several related fields must be read or changed as one operation while internal
-workers are active, use
+several related fields must be read or changed as one operation while the UI
+worker is active, use
 [`od_control_read_lock()`](../reference/api/od_control_read_lock.md) or
 [`od_control_write_lock()`](../reference/api/od_control_write_lock.md). These
-functions synchronize the owner with OpenDoors workers; they do not authorize
-a background application thread to use the API.
+functions synchronize the owner with the OpenDoors UI worker; they do not
+authorize a background application thread to use the API.
 
 Callbacks configured through [`od_control`](../reference/control/index.md)
 normally run on the session-owner thread as part of OpenDoors processing and

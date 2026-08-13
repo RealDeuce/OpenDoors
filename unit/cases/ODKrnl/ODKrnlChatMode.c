@@ -140,7 +140,7 @@ void ODCALL utm_od_sleep(tODMilliSec duration)
    ++ut_sleep_calls;
 }
 
-void utm_od_kernel(void) { ++ut_kernel_calls; }
+void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
 #ifdef ODPLAT_WIN32
 void utm_ODFrameUpdateWantChat(void) { ++ut_frame_calls; }

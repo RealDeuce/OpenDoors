@@ -25,8 +25,8 @@ The thread which performs initialization owns the session. It must also make
 all subsequent OpenDoors API calls, access
 [`od_control`](../reference/control/index.md), and perform shutdown. See
 [Threads and API ownership](windows.md#threads-and-api-ownership) for the
-callback and synchronization rules which apply when internal Windows workers
-are active.
+callback and synchronization rules which apply while the internal Windows UI
+worker is active.
 
 [`od_kernel()`](../reference/api/od_kernel.md) services time limits, connection
 status, local function keys, and other housekeeping. Normal API traffic invokes

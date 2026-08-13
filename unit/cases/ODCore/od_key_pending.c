@@ -27,7 +27,7 @@ BOOL utm_ODInQueueWaiting(tODInQueueHandle queue)
    return ut_waiting;
 }
 
-void utm_od_kernel(void) { ++ut_kernel_calls; }
+void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
 static void reset_pending(void)
 {

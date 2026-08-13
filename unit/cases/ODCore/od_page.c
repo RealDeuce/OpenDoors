@@ -167,7 +167,7 @@ void ODCALL utm_od_sleep(tODMilliSec duration)
    if(ut_shutdown_on_sleep) bODInitialized = FALSE;
 }
 #endif
-void utm_od_kernel(void) { ++ut_kernel_calls; }
+void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
 #ifdef ODPLAT_WIN32
 void utm_ODFrameUpdateWantChat(void) { ++ut_frame_calls; }

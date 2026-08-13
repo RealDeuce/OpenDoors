@@ -1,6 +1,11 @@
 #define UT_CUSTOM_MOCK_malloc
 #define UT_CUSTOM_MOCK_ODScrnClear
 #define UT_CUSTOM_MOCK_ODScrnEnableCaret
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_free
+#define UT_CUSTOM_MOCK_ODMutexInitialize
+#define UT_CUSTOM_MOCK_memcpy
+#endif
 
 #ifdef ODPLAT_DOS32
 #define UT_CUSTOM_MOCK_memset
@@ -11,10 +16,16 @@
 #endif
 
 static BYTE ut_buffer[SCREEN_BUFFER_SIZE];
-static BOOL ut_malloc_fails;
+static unsigned ut_malloc_fail_call;
 static unsigned ut_malloc_calls;
 static unsigned ut_clear_calls;
 static unsigned ut_caret_calls;
+#ifdef ODPLAT_WIN32
+static BYTE ut_display_buffer[SCREEN_BUFFER_SIZE];
+static unsigned ut_free_calls;
+static tODResult ut_mutex_result;
+static unsigned ut_mutex_calls;
+#endif
 #if defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32) && defined(__WATCOMC__)
 static BOOL ut_desqview_present;
 static unsigned ut_dos_calls;
@@ -38,8 +49,36 @@ static unsigned ut_bios_set_calls;
 void *utm_malloc(size_t size)
 {
    ++ut_malloc_calls; UT_ASSERT_EQ_UINT(SCREEN_BUFFER_SIZE, size);
-   return ut_malloc_fails ? NULL : ut_buffer;
+   if(ut_malloc_calls == ut_malloc_fail_call) return NULL;
+#ifdef ODPLAT_WIN32
+   if(ut_malloc_calls == 2) return ut_display_buffer;
+#endif
+   return ut_buffer;
 }
+
+#ifdef ODPLAT_WIN32
+void utm_free(void *memory)
+{
+   ++ut_free_calls;
+   UT_ASSERT(memory == ut_buffer || memory == ut_display_buffer);
+}
+
+tODResult utm_ODMutexInitialize(tODMutex *mutex)
+{
+   ++ut_mutex_calls; UT_ASSERT(mutex == &ScreenPresentationMutex);
+   return ut_mutex_result;
+}
+
+void *utm_memcpy(void *destination, const void *source, size_t count)
+{
+   size_t index;
+   BYTE *output = (BYTE *)destination;
+   const BYTE *input = (const BYTE *)source;
+   UT_ASSERT_EQ_UINT(SCREEN_BUFFER_SIZE, count);
+   for(index = 0; index < count; ++index) output[index] = input[index];
+   return destination;
+}
+#endif
 
 void utm_ODScrnClear(void)
 {
@@ -118,8 +157,14 @@ static void reset_initialize(void)
    ut_fill(&od_control, 0, sizeof(od_control));
 #endif
    ut_fill(ut_buffer, 0x5a, sizeof(ut_buffer));
-   ut_malloc_fails = FALSE; ut_malloc_calls = ut_clear_calls = 0;
+   ut_malloc_fail_call = 0; ut_malloc_calls = ut_clear_calls = 0;
    ut_caret_calls = 0; pScrnBuffer = NULL; bCaretOn = TRUE;
+#ifdef ODPLAT_WIN32
+   ut_fill(ut_display_buffer, 0xa5, sizeof(ut_display_buffer));
+   pDisplayBuffer = NULL; bScreenPresentationActive = FALSE;
+   bScreenDirty = TRUE; hwndScreenWindow = (HWND)1;
+   ut_free_calls = ut_mutex_calls = 0; ut_mutex_result = kODRCSuccess;
+#endif
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_NIX)
    pAllocatedBufferMemory = NULL;
 #endif
@@ -142,7 +187,7 @@ static void assert_common_success_state(void)
 
 static void reports_allocation_failure_for_a_memory_backed_screen(void)
 {
-   reset_initialize(); ut_malloc_fails = TRUE;
+   reset_initialize(); ut_malloc_fail_call = 1;
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    od_control.od_silent_mode = TRUE;
 #endif
@@ -150,6 +195,25 @@ static void reports_allocation_failure_for_a_memory_backed_screen(void)
    UT_ASSERT_EQ_UINT(1, ut_malloc_calls); UT_ASSERT_EQ_UINT(0, ut_clear_calls);
    UT_ASSERT_EQ_UINT(0, ut_caret_calls);
 }
+
+#ifdef ODPLAT_WIN32
+static void releases_the_owner_buffer_when_display_allocation_fails(void)
+{
+   reset_initialize(); ut_malloc_fail_call = 2;
+   UT_ASSERT_EQ_INT(kODRCNoMemory, utt_ODScrnInitialize());
+   UT_ASSERT_EQ_UINT(2, ut_malloc_calls); UT_ASSERT_EQ_UINT(1, ut_free_calls);
+   UT_ASSERT_EQ_PTR(NULL, pScrnBuffer); UT_ASSERT_EQ_UINT(0, ut_mutex_calls);
+}
+
+static void releases_both_buffers_when_mutex_initialization_fails(void)
+{
+   reset_initialize(); ut_mutex_result = kODRCGeneralFailure;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODScrnInitialize());
+   UT_ASSERT_EQ_UINT(2, ut_malloc_calls); UT_ASSERT_EQ_UINT(2, ut_free_calls);
+   UT_ASSERT_EQ_PTR(NULL, pScrnBuffer); UT_ASSERT_EQ_PTR(NULL, pDisplayBuffer);
+   UT_ASSERT_EQ_UINT(1, ut_mutex_calls);
+}
+#endif
 
 static void initializes_a_memory_backed_screen(void)
 {
@@ -159,6 +223,13 @@ static void initializes_a_memory_backed_screen(void)
 #endif
    UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODScrnInitialize());
    UT_ASSERT_EQ_PTR(ut_buffer, pScrnBuffer);
+#ifdef ODPLAT_WIN32
+   UT_ASSERT_EQ_PTR(ut_display_buffer, pDisplayBuffer);
+   UT_ASSERT_EQ_UINT(2, ut_malloc_calls); UT_ASSERT_EQ_UINT(1, ut_mutex_calls);
+   UT_ASSERT_EQ_INT(TRUE, bScreenPresentationActive);
+   UT_ASSERT_EQ_INT(FALSE, bScreenDirty); UT_ASSERT_EQ_PTR(NULL, hwndScreenWindow);
+   UT_ASSERT_EQ_INT(ut_buffer[0], ut_display_buffer[0]);
+#endif
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_NIX)
    UT_ASSERT_EQ_PTR(ut_buffer, pAllocatedBufferMemory);
 #endif
@@ -259,6 +330,10 @@ static void probes_and_uses_the_desqview_screen_when_available(void)
 
 static const UTTestCase ut_cases[] = {
    {"allocation failure", reports_allocation_failure_for_a_memory_backed_screen},
+#ifdef ODPLAT_WIN32
+   {"display allocation failure", releases_the_owner_buffer_when_display_allocation_fails},
+   {"mutex failure", releases_both_buffers_when_mutex_initialization_fails},
+#endif
    {"memory screen", initializes_a_memory_backed_screen},
 #ifdef ODPLAT_DOS32
    {"dos32 video", selects_dos32_mono_and_colour_video_memory},

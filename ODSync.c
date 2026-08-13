@@ -8,6 +8,9 @@
 #include "ODCore.h"
 #include "ODGen.h"
 #include "ODKrnl.h"
+#ifdef ODPLAT_WIN32
+#include "ODScrn.h"
+#endif
 #include "ODSync.h"
 
 #ifdef OD_THREAD_SUPPORT
@@ -269,6 +272,9 @@ static void ODDispatch(BOOL bAllowApplicationCallbacks)
       ODSyncControlWriteLock();
       ++nAPILevel;
       ODKrnlDispatchPending(bAllowApplicationCallbacks);
+#ifdef ODPLAT_WIN32
+      ODScrnPublish();
+#endif
       --nAPILevel;
       ODSyncControlWriteUnlock();
       bDispatching = FALSE;
@@ -294,6 +300,10 @@ void ODSyncAPIExit(void)
 {
    ASSERT(nAPILevel != 0);
    if(nAPILevel == 0) return;
+#ifdef ODPLAT_WIN32
+   if(nAPILevel == 1)
+      ODScrnPublish();
+#endif
    if(--nAPILevel == 0)
    {
       ODSyncControlWriteUnlock();
@@ -321,6 +331,9 @@ unsigned ODSyncAPIRelease(void)
    unsigned nSavedAPILevel = nAPILevel;
 
    ASSERT(nSavedAPILevel != 0);
+#ifdef ODPLAT_WIN32
+   ODScrnPublish();
+#endif
    nAPILevel = 0;
    ODSyncControlWriteUnlock();
    return(nSavedAPILevel);

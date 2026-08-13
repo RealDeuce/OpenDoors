@@ -28,6 +28,7 @@
 #define UT_CUSTOM_MOCK_ODScrnDisplayString
 #define UT_CUSTOM_MOCK_ODScrnInitialize
 #define UT_CUSTOM_MOCK_ODScrnLocalInput
+#define UT_CUSTOM_MOCK_ODScrnPublish
 #define UT_CUSTOM_MOCK_ODScrnSetAttribute
 #define UT_CUSTOM_MOCK_ODScrnSetBoundary
 #define UT_CUSTOM_MOCK_ODScrnSetCursorPos
@@ -68,6 +69,7 @@ static unsigned ut_sync_calls;
 static unsigned ut_clear_calls;
 static unsigned ut_atexit_calls;
 static unsigned ut_frame_calls;
+static unsigned ut_publish_calls;
 static unsigned ut_error_calls;
 static unsigned ut_exit_calls;
 static unsigned ut_log_calls;
@@ -407,6 +409,11 @@ tODResult utm_ODFrameStart(HANDLE instance, tODThreadHandle *thread)
    ++ut_frame_calls;
    return ut_frame_result;
 }
+
+void utm_ODScrnPublish(void)
+{
+   ++ut_publish_calls;
+}
 #endif
 
 #ifdef OD_TEXTMODE
@@ -519,6 +526,7 @@ static void reset_part_two_fixture(void)
    ut_clear_calls = 0;
    ut_atexit_calls = 0;
    ut_frame_calls = 0;
+   ut_publish_calls = 0;
    ut_error_calls = 0;
    ut_exit_calls = 0;
    ut_log_calls = 0;
@@ -902,6 +910,7 @@ static void exercises_windows_frame_startup(void)
    od_control.od_silent_mode = FALSE;
    utt_ODInitPartTwo();
    UT_ASSERT_EQ_UINT(1, ut_frame_calls);
+   UT_ASSERT_EQ_UINT(1, ut_publish_calls);
    UT_ASSERT_EQ_UINT(1, ut_sync_calls);
 
    reset_part_two_fixture();
@@ -909,6 +918,7 @@ static void exercises_windows_frame_startup(void)
    ut_first_module_missing = TRUE;
    utt_ODInitPartTwo();
    UT_ASSERT_EQ_UINT(1, ut_frame_calls);
+   UT_ASSERT_EQ_UINT(1, ut_publish_calls);
 
    reset_part_two_fixture();
    od_control.od_silent_mode = FALSE;
@@ -916,6 +926,7 @@ static void exercises_windows_frame_startup(void)
    bODInitialized = TRUE;
    utt_ODInitPartTwo();
    UT_ASSERT_EQ_UINT(1, ut_kernel_shutdown_calls);
+   UT_ASSERT_EQ_UINT(1, ut_publish_calls);
    UT_ASSERT_EQ_INT(FALSE, bODInitialized);
    UT_ASSERT_EQ_UINT(1, ut_error_calls);
    UT_ASSERT_EQ_UINT(0, ut_sync_calls);

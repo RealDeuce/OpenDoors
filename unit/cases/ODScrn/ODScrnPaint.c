@@ -1,6 +1,6 @@
-#define UT_CUSTOM_MOCK_ODSyncControlReadLock
-#define UT_CUSTOM_MOCK_ODSyncControlReadUnlock
-#define UT_CUSTOM_MOCK_memcpy
+#define UT_CUSTOM_MOCK_ODMutexLock
+#define UT_CUSTOM_MOCK_ODMutexUnlock
+#define UT_CUSTOM_MOCK_ODScrnSetWinCaretPos
 #define UT_CUSTOM_MOCK_SaveDC
 #define UT_CUSTOM_MOCK_SetBkMode
 #define UT_CUSTOM_MOCK_SelectObject
@@ -23,18 +23,17 @@ static COLORREF ut_foreground[4];
 static COLORREF ut_background[4];
 static unsigned ut_foreground_calls;
 static unsigned ut_background_calls;
+static unsigned ut_caret_calls;
 
-void utm_ODSyncControlReadLock(void) { ++ut_lock_calls; }
-void utm_ODSyncControlReadUnlock(void) { ++ut_unlock_calls; }
-
-void *utm_memcpy(void *destination, const void *source, size_t size)
+void utm_ODMutexLock(tODMutex *mutex)
 {
-   unsigned char *out = (unsigned char *)destination;
-   const unsigned char *in = (const unsigned char *)source;
-   size_t index;
-   for(index = 0; index < size; ++index) out[index] = in[index];
-   return destination;
+   UT_ASSERT(mutex == &ScreenPresentationMutex); ++ut_lock_calls;
 }
+void utm_ODMutexUnlock(tODMutex *mutex)
+{
+   UT_ASSERT(mutex == &ScreenPresentationMutex); ++ut_unlock_calls;
+}
+void utm_ODScrnSetWinCaretPos(void) { ++ut_caret_calls; }
 
 int WINAPI utm_SaveDC(HDC dc)
 {
@@ -91,10 +90,11 @@ static void reset_paint(void)
    memset(ut_text, 0, sizeof(ut_text));
    ut_lock_calls = ut_unlock_calls = ut_text_calls = 0;
    ut_foreground_calls = ut_background_calls = 0;
-   pScrnBuffer = ut_screen; hCurrentFont = ut_font;
+   pDisplayBuffer = ut_screen; hCurrentFont = ut_font;
    nFontCellWidth = 8; nFontCellHeight = 16;
    acrPCTextColors[0] = 100; acrPCTextColors[1] = 101;
    acrPCTextColors[2] = 102; acrPCTextColors[3] = 103;
+   ut_caret_calls = 0;
 }
 
 static void groups_adjacent_cells_with_the_same_attribute(void)
@@ -105,6 +105,7 @@ static void groups_adjacent_cells_with_the_same_attribute(void)
    ut_screen[4] = 'C'; ut_screen[5] = 0x32;
    utt_ODScrnPaint(ut_dc, 0, 0, 2, 0);
    UT_ASSERT_EQ_UINT(1, ut_lock_calls); UT_ASSERT_EQ_UINT(1, ut_unlock_calls);
+   UT_ASSERT_EQ_UINT(1, ut_caret_calls);
    UT_ASSERT_EQ_UINT(2, ut_text_calls);
    UT_ASSERT_EQ_INT(0, ut_text_x[0]); UT_ASSERT_EQ_INT(0, ut_text_y[0]);
    UT_ASSERT_EQ_UINT(2, ut_text_lengths[0]); UT_ASSERT(strcmp("AB", ut_text[0]) == 0);

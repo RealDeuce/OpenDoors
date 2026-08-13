@@ -45,7 +45,7 @@ void ODCALL utm_od_sleep(tODMilliSec milliseconds)
    if(ut_shutdown_on_sleep) bODInitialized = FALSE;
 }
 
-void utm_od_kernel(void) { ++ut_kernel_calls; }
+void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
 static void reset_drain(void)
 {

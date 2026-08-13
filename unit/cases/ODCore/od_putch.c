@@ -60,7 +60,7 @@ BOOL utm_ODTimerElapsed(tODTimer *timer)
    return ut_timer_elapsed;
 }
 
-void utm_od_kernel(void) { ++ut_kernel_calls; }
+void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
 static void reset_character(void)
 {

@@ -34,6 +34,11 @@ external socket peer used for interactive remote input and output. GitHub
 Actions runs the ordinary cases on pushes and pull requests, runs the extended
 matrix nightly or on request, and requires it for releases.
 
+On Windows, `acceptance.windows_screen` also creates the real local frame and
+screen child, forces a published generation through `WM_PAINT`, and injects a
+local key while the owner waits in `od_get_input()`. The helper uses only Win32
+window operations; all OpenDoors calls remain on the session-owner thread.
+
 Acceptance expectations describe the behavior of the current implementation.
 Problems exposed while characterizing that behavior are recorded in
 [`ISSUES.md`](../../ISSUES.md); the test suite does not introduce an unreviewed behavior change to

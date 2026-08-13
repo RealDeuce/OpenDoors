@@ -113,7 +113,6 @@ WNDPROC pfnDefToolbarProc = NULL;
 
 /* Global frame window handle. */
 static HWND hwndCurrentFrame;
-static tODThreadHandle hCurrentScreenThread;
 static DWORD dwFrameThreadID;
 static HANDLE hFrameStartedEvent;
 static tODResult FrameStartResult;
@@ -286,8 +285,7 @@ static HWND ODFrameCreateWindow(HANDLE hInstance)
 
    /* Create the local screen window, which occupies the remaining */
    /* client area of the frame window.                             */
-   if(ODScrnStartWindow(hInstance, &hCurrentScreenThread, hwndFrameWindow)
-      != kODRCSuccess)
+   if(ODScrnStartWindow(hInstance, hwndFrameWindow) != kODRCSuccess)
    {
       pWindowInfo->bProgrammaticShutdown = TRUE;
       ODFrameDestroyWindow(hwndFrameWindow);
@@ -1753,6 +1751,7 @@ DWORD OD_THREAD_FUNC ODFrameThreadProc(void *pParam)
    ODFrameMessageLoop(hInstance, hwndFrame);
 
    /* Destroy the frame window. */
+   ODScrnStopWindow();
    if(IsWindow(hwndFrame))
    {
       ODFrameDestroyWindow(hwndFrame);
@@ -1780,10 +1779,8 @@ tODResult ODFrameStart(HANDLE hInstance, tODThreadHandle *phFrameThread)
    tODResult Result;
    DWORD dwWaitResult;
 
-   hCurrentScreenThread = NULL;
    hwndCurrentFrame = NULL;
    dwFrameThreadID = 0;
-   dwScreenThreadID = 0;
    FrameStartResult = kODRCGeneralFailure;
    hFrameStartedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
    if(hFrameStartedEvent == NULL)
@@ -1823,8 +1820,6 @@ tODResult ODFrameStart(HANDLE hInstance, tODThreadHandle *phFrameThread)
    if(FrameStartResult != kODRCSuccess)
    {
       ODThreadWaitForExit(*phFrameThread);
-      if(hCurrentScreenThread != NULL)
-         ODScrnStopWindow(&hCurrentScreenThread);
       CloseHandle(*phFrameThread);
       *phFrameThread = NULL;
    }
@@ -1848,7 +1843,7 @@ static void ODFramePostThreadQuit(tODThreadHandle hThread, DWORD dwThreadID)
 /* ----------------------------------------------------------------------------
  * ODFrameShutdown()
  *
- * Stops and joins the Win32 frame and screen UI threads. This is separate
+ * Stops and joins the Win32 UI thread which owns both windows. This is separate
  * from the user-driven frame close path, which requests an OpenDoors exit.
  */
 void ODFrameShutdown(tODThreadHandle *phFrameThread)
@@ -1862,14 +1857,6 @@ void ODFrameShutdown(tODThreadHandle *phFrameThread)
    if(hFrame == NULL)
    {
       return;
-   }
-
-   /* The screen window is a child of the frame but belongs to its own
-    * thread. Let that thread destroy the child before the frame thread
-    * destroys its parent. */
-   if(hCurrentScreenThread != NULL)
-   {
-      ODScrnStopWindow(&hCurrentScreenThread);
    }
 
    if(hwndCurrentFrame != NULL)

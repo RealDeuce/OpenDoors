@@ -1,61 +1,64 @@
-#define UT_CUSTOM_MOCK_PostThreadMessageA
-#define UT_CUSTOM_MOCK_ODThreadWaitForExit
-#define UT_CUSTOM_MOCK_CloseHandle
-static unsigned ut_post_calls;
-static unsigned ut_wait_calls;
-static unsigned ut_close_calls;
-static HANDLE ut_thread;
-static HANDLE ut_event;
-BOOL WINAPI utm_PostThreadMessageA(DWORD thread_id, UINT message,
-   WPARAM wparam, LPARAM lparam)
+#define UT_CUSTOM_MOCK_ODMutexLock
+#define UT_CUSTOM_MOCK_ODMutexUnlock
+#define UT_CUSTOM_MOCK_IsWindow
+#define UT_CUSTOM_MOCK_DestroyWindow
+
+static HWND ut_screen = (HWND)1;
+static BOOL ut_is_window;
+static unsigned ut_locks;
+static unsigned ut_unlocks;
+static unsigned ut_is_window_calls;
+static unsigned ut_destroy_calls;
+
+void utm_ODMutexLock(tODMutex *mutex)
 {
-   ++ut_post_calls; UT_ASSERT_EQ_UINT(17, thread_id);
-   UT_ASSERT_EQ_UINT(WM_QUIT, message); UT_ASSERT_EQ_UINT(0, wparam);
-   UT_ASSERT_EQ_INT(0, lparam); return TRUE;
+   ++ut_locks; UT_ASSERT(mutex == &ScreenPresentationMutex);
 }
-void utm_ODThreadWaitForExit(tODThreadHandle thread)
+
+void utm_ODMutexUnlock(tODMutex *mutex)
 {
-   ++ut_wait_calls; UT_ASSERT(thread == ut_thread);
+   ++ut_unlocks; UT_ASSERT(mutex == &ScreenPresentationMutex);
 }
-BOOL WINAPI utm_CloseHandle(HANDLE handle)
+
+BOOL WINAPI utm_IsWindow(HWND window)
 {
-   ++ut_close_calls;
-   UT_ASSERT(handle == ut_thread || handle == ut_event);
-   return TRUE;
+   ++ut_is_window_calls; UT_ASSERT(window == ut_screen); return ut_is_window;
 }
+
+BOOL WINAPI utm_DestroyWindow(HWND window)
+{
+   ++ut_destroy_calls; UT_ASSERT(window == ut_screen); return TRUE;
+}
+
 static void reset_stop(void)
 {
-   ut_thread = (HANDLE)1; ut_event = (HANDLE)2;
-   ut_post_calls = ut_wait_calls = ut_close_calls = 0;
-   dwScreenThreadID = 0; hScreenStartedEvent = NULL;
+   hwndScreenWindow = NULL; ut_is_window = FALSE;
+   ut_locks = ut_unlocks = ut_is_window_calls = ut_destroy_calls = 0;
 }
-static void ignores_an_empty_thread_handle(void)
+
+static void ignores_an_absent_screen_child(void)
 {
-   tODThreadHandle thread;
-   reset_stop(); thread = NULL;
-   utt_ODScrnStopWindow(&thread);
-   UT_ASSERT_EQ_UINT(0, ut_wait_calls); UT_ASSERT_EQ_UINT(0, ut_close_calls);
+   reset_stop(); utt_ODScrnStopWindow();
+   UT_ASSERT_EQ_UINT(1, ut_locks); UT_ASSERT_EQ_UINT(1, ut_unlocks);
+   UT_ASSERT_EQ_UINT(0, ut_is_window_calls); UT_ASSERT_EQ_UINT(0, ut_destroy_calls);
 }
-static void joins_and_closes_a_thread_without_a_start_event(void)
+
+static void ignores_a_child_that_was_already_destroyed(void)
 {
-   tODThreadHandle thread;
-   reset_stop(); thread = ut_thread;
-   utt_ODScrnStopWindow(&thread);
-   UT_ASSERT(thread == NULL); UT_ASSERT_EQ_UINT(0, ut_post_calls);
-   UT_ASSERT_EQ_UINT(1, ut_wait_calls); UT_ASSERT_EQ_UINT(1, ut_close_calls);
+   reset_stop(); hwndScreenWindow = ut_screen;
+   utt_ODScrnStopWindow();
+   UT_ASSERT_EQ_UINT(1, ut_is_window_calls); UT_ASSERT_EQ_UINT(0, ut_destroy_calls);
 }
-static void requests_stop_and_closes_the_pending_event_and_thread(void)
+
+static void destroys_the_child_synchronously_on_the_frame_thread(void)
 {
-   tODThreadHandle thread;
-   reset_stop(); thread = ut_thread;
-   dwScreenThreadID = 17; hScreenStartedEvent = ut_event;
-   utt_ODScrnStopWindow(&thread);
-   UT_ASSERT(thread == NULL); UT_ASSERT(hScreenStartedEvent == NULL);
-   UT_ASSERT_EQ_UINT(1, ut_post_calls); UT_ASSERT_EQ_UINT(1, ut_wait_calls);
-   UT_ASSERT_EQ_UINT(2, ut_close_calls);
+   reset_stop(); hwndScreenWindow = ut_screen; ut_is_window = TRUE;
+   utt_ODScrnStopWindow();
+   UT_ASSERT_EQ_UINT(1, ut_is_window_calls); UT_ASSERT_EQ_UINT(1, ut_destroy_calls);
 }
+
 static const UTTestCase ut_cases[] = {
-   {"empty handle", ignores_an_empty_thread_handle},
-   {"join thread", joins_and_closes_a_thread_without_a_start_event},
-   {"stop with event", requests_stop_and_closes_the_pending_event_and_thread}
+   {"absent child", ignores_an_absent_screen_child},
+   {"destroyed child", ignores_a_child_that_was_already_destroyed},
+   {"destroy child", destroys_the_child_synchronously_on_the_frame_thread}
 };

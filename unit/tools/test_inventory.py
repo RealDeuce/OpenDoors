@@ -37,10 +37,8 @@ class InventoryTests(unittest.TestCase):
                       if item["path"] == "ODScrn.c")
         expected = {
             "ODScrnCreateWin", "ODScrnWindowProc", "ODScrnPaint",
-            "ODScrnInvalidate", "ODScrnSetCurrentFont",
-            "ODScrnAdjustWindows", "ODScrnMessageLoop",
-            "ODScrnThreadProc", "ODScrnStartWindow",
-            "ODScrnWaitWithMessages", "ODScrnStopWindow",
+            "ODScrnInvalidate", "ODScrnPublish", "ODScrnSetCurrentFont",
+            "ODScrnAdjustWindows", "ODScrnStartWindow", "ODScrnStopWindow",
             "ODScrnSetFocusToWindow", "ODScrnSetWinCaretPos",
         }
         actual = {item["name"]: item["platforms"]

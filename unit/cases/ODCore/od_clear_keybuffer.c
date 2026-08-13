@@ -34,7 +34,7 @@ tODResult utm_ODComClearInbound(tPortHandle port)
    return kODRCSuccess;
 }
 
-void utm_od_kernel(void) { ++ut_kernel_calls; }
+void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
 static void reset_clear(void)
 {

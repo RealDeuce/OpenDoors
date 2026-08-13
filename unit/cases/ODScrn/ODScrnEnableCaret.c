@@ -60,7 +60,7 @@ int utm_int386(int interrupt_number, const union REGS *input,
 static void updates_the_requested_state_only_outside_presentation_changes(void)
 {
    bCaretPresentationChange = FALSE; bRequestedCaretOn = FALSE;
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
    bCaretOn = TRUE;
 #endif
    utt_ODScrnEnableCaret(TRUE);
@@ -70,6 +70,23 @@ static void updates_the_requested_state_only_outside_presentation_changes(void)
    utt_ODScrnEnableCaret(TRUE);
    UT_ASSERT_EQ_INT(FALSE, bRequestedCaretOn);
 }
+
+#ifdef ODPLAT_WIN32
+static void dirties_only_a_changed_windows_caret_state(void)
+{
+   bCaretPresentationChange = FALSE; bRequestedCaretOn = FALSE;
+   bCaretOn = FALSE; bScreenDirty = FALSE;
+   utt_ODScrnEnableCaret(TRUE);
+   UT_ASSERT_EQ_INT(TRUE, bCaretOn); UT_ASSERT_EQ_INT(TRUE, bScreenDirty);
+
+   bScreenDirty = FALSE;
+   utt_ODScrnEnableCaret(TRUE);
+   UT_ASSERT_EQ_INT(FALSE, bScreenDirty);
+
+   utt_ODScrnEnableCaret(FALSE);
+   UT_ASSERT_EQ_INT(FALSE, bCaretOn); UT_ASSERT_EQ_INT(TRUE, bScreenDirty);
+}
+#endif
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 static void returns_without_bios_work_when_the_state_already_matches(void)
@@ -109,6 +126,9 @@ static void enables_and_disables_the_bios_caret(void)
 
 static const UTTestCase ut_cases[] = {
    {"requested state", updates_the_requested_state_only_outside_presentation_changes},
+#ifdef ODPLAT_WIN32
+   {"windows state", dirties_only_a_changed_windows_caret_state},
+#endif
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    {"unchanged state", returns_without_bios_work_when_the_state_already_matches},
    {"bios caret", enables_and_disables_the_bios_caret}

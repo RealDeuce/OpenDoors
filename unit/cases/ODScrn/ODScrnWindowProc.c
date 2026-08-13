@@ -11,9 +11,10 @@
 #define UT_CUSTOM_MOCK_ODScrnSetWinCaretPos
 #define UT_CUSTOM_MOCK_SetFocus
 #define UT_CUSTOM_MOCK_CreateCaret
-#define UT_CUSTOM_MOCK_ShowCaret
 #define UT_CUSTOM_MOCK_DestroyCaret
 #define UT_CUSTOM_MOCK_ODKrnlHandleLocalKey
+#define UT_CUSTOM_MOCK_ODMutexLock
+#define UT_CUSTOM_MOCK_ODMutexUnlock
 
 static HWND ut_window = (HWND)1;
 static HWND ut_frame = (HWND)2;
@@ -29,8 +30,9 @@ static unsigned ut_paint_calls;
 static unsigned ut_caret_position_calls;
 static unsigned ut_focus_calls;
 static unsigned ut_create_caret_calls;
-static unsigned ut_show_caret_calls;
 static unsigned ut_destroy_caret_calls;
+static unsigned ut_lock_calls;
+static unsigned ut_unlock_calls;
 static WORD ut_keys[4];
 static unsigned ut_key_calls;
 
@@ -115,9 +117,14 @@ BOOL WINAPI utm_CreateCaret(HWND window, HBITMAP bitmap, int width,
    UT_ASSERT_EQ_INT(CARET_HEIGHT, height); return TRUE;
 }
 
-BOOL WINAPI utm_ShowCaret(HWND window)
+void utm_ODMutexLock(tODMutex *mutex)
 {
-   ++ut_show_caret_calls; UT_ASSERT(window == ut_window); return TRUE;
+   ++ut_lock_calls; UT_ASSERT(mutex == &ScreenPresentationMutex);
+}
+
+void utm_ODMutexUnlock(tODMutex *mutex)
+{
+   ++ut_unlock_calls; UT_ASSERT(mutex == &ScreenPresentationMutex);
 }
 
 BOOL WINAPI utm_DestroyCaret(void)
@@ -136,8 +143,11 @@ static void reset_window_proc(void)
    ut_begin_fails = FALSE; ut_post_calls = ut_default_calls = 0;
    ut_set_long_calls = ut_begin_calls = ut_end_calls = ut_paint_calls = 0;
    ut_caret_position_calls = ut_focus_calls = ut_create_caret_calls = 0;
-   ut_show_caret_calls = ut_destroy_caret_calls = ut_key_calls = 0;
-   bScreenHasFocus = FALSE; nFontCellWidth = 8; nFontCellHeight = 16;
+   ut_destroy_caret_calls = ut_key_calls = 0;
+   ut_lock_calls = ut_unlock_calls = 0;
+   bScreenHasFocus = FALSE; bWinCaretShown = TRUE;
+   hwndScreenWindow = ut_window;
+   nFontCellWidth = 8; nFontCellHeight = 16;
 }
 
 static void relays_only_the_keyboard_menu_system_command(void)
@@ -173,17 +183,16 @@ static void paints_only_when_begin_paint_returns_a_context(void)
    UT_ASSERT_EQ_UINT(1, ut_paint_calls); UT_ASSERT_EQ_UINT(1, ut_end_calls);
 }
 
-static void handles_caret_movement_mouse_focus_and_focus_transitions(void)
+static void handles_mouse_focus_and_focus_transitions(void)
 {
    reset_window_proc();
-   utt_ODScrnWindowProc(ut_window, WM_MOVE_YOUR_CARET, 0, 0);
-   UT_ASSERT_EQ_UINT(1, ut_caret_position_calls);
    utt_ODScrnWindowProc(ut_window, WM_LBUTTONDOWN, 0, 0);
    UT_ASSERT_EQ_UINT(1, ut_focus_calls);
    utt_ODScrnWindowProc(ut_window, WM_SETFOCUS, 0, 0);
    UT_ASSERT(bScreenHasFocus); UT_ASSERT_EQ_UINT(1, ut_create_caret_calls);
-   UT_ASSERT_EQ_UINT(2, ut_caret_position_calls);
-   UT_ASSERT_EQ_UINT(1, ut_show_caret_calls);
+   UT_ASSERT_EQ_INT(FALSE, bWinCaretShown);
+   UT_ASSERT_EQ_UINT(1, ut_caret_position_calls);
+   UT_ASSERT_EQ_UINT(1, ut_lock_calls); UT_ASSERT_EQ_UINT(1, ut_unlock_calls);
    utt_ODScrnWindowProc(ut_window, WM_KILLFOCUS, 0, 0);
    UT_ASSERT(!bScreenHasFocus); UT_ASSERT_EQ_UINT(1, ut_destroy_caret_calls);
 }
@@ -191,16 +200,16 @@ static void handles_caret_movement_mouse_focus_and_focus_transitions(void)
 static void ignores_unmapped_and_zero_repeat_relayed_keys(void)
 {
    reset_window_proc();
-   utt_ODScrnWindowProc(ut_window, WM_KEYDOWN_RELAY, 0xffff, 2);
+   utt_ODScrnWindowProc(ut_window, WM_KEYDOWN, 0xffff, 2);
    UT_ASSERT_EQ_UINT(0, ut_key_calls);
-   utt_ODScrnWindowProc(ut_window, WM_KEYDOWN_RELAY, VK_LEFT, 0);
+   utt_ODScrnWindowProc(ut_window, WM_KEYDOWN, VK_LEFT, 0);
    UT_ASSERT_EQ_UINT(0, ut_key_calls);
 }
 
 static void queues_each_repeat_of_a_mapped_relayed_key(void)
 {
    reset_window_proc();
-   utt_ODScrnWindowProc(ut_window, WM_KEYDOWN_RELAY, VK_LEFT, 2);
+   utt_ODScrnWindowProc(ut_window, WM_KEYDOWN, VK_LEFT, 2);
    UT_ASSERT_EQ_UINT(2, ut_key_calls);
    UT_ASSERT_EQ_UINT(MAKEWORD(0, OD_KEY_LEFT), ut_keys[0]);
    UT_ASSERT_EQ_UINT(MAKEWORD(0, OD_KEY_LEFT), ut_keys[1]);
@@ -226,13 +235,26 @@ static void delegates_unrecognized_messages(void)
    UT_ASSERT_EQ_UINT(1, ut_default_calls);
 }
 
+static void clears_only_the_published_screen_handle_when_destroyed(void)
+{
+   reset_window_proc();
+   utt_ODScrnWindowProc(ut_window, WM_DESTROY, 0, 0);
+   UT_ASSERT_EQ_PTR(NULL, hwndScreenWindow);
+   UT_ASSERT_EQ_UINT(1, ut_lock_calls); UT_ASSERT_EQ_UINT(1, ut_unlock_calls);
+
+   reset_window_proc(); hwndScreenWindow = (HWND)9;
+   utt_ODScrnWindowProc(ut_window, WM_DESTROY, 0, 0);
+   UT_ASSERT(hwndScreenWindow == (HWND)9);
+}
+
 static const UTTestCase ut_cases[] = {
    {"system command", relays_only_the_keyboard_menu_system_command},
    {"create", stores_the_instance_from_the_create_structure},
    {"paint", paints_only_when_begin_paint_returns_a_context},
-   {"focus", handles_caret_movement_mouse_focus_and_focus_transitions},
+   {"focus", handles_mouse_focus_and_focus_transitions},
    {"ignored key", ignores_unmapped_and_zero_repeat_relayed_keys},
    {"mapped key", queues_each_repeat_of_a_mapped_relayed_key},
    {"character", queues_each_character_with_its_scan_code},
+   {"destroy", clears_only_the_published_screen_handle_when_destroyed},
    {"default", delegates_unrecognized_messages}
 };

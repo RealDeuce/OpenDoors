@@ -905,8 +905,8 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    }
 #endif /* !ODPLAT_WIN32 */
 
-   /* Windows UI threads may be waiting to read session state. Release the API
-    * writer while stopping and joining them. */
+   /* The Windows UI thread may be waiting to read session state. Release the
+    * API writer while stopping and joining it. */
 #ifdef OD_THREAD_SUPPORT
    nSavedAPILevel = ODSyncAPIRelease();
 #endif
@@ -923,8 +923,8 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    ODKrnlShutdown();
 
 #ifdef ODPLAT_WIN32
-   /* Stop the frame and screen message loops before releasing the screen
-    * state they display. */
+   /* Stop the frame message loop before releasing the screen state its
+    * windows display. */
    ODFrameShutdown(&hFrameThread);
 #endif /* ODPLAT_WIN32 */
 

@@ -38,11 +38,11 @@ HACCEL WINAPI utm_LoadAcceleratorsA(HINSTANCE instance,LPCSTR name){UT_ASSERT_EQ
 static HWND utm_ODFrameCreateToolbar(HWND parent,HANDLE instance,tODFrameWindowInfo *info){UT_ASSERT_EQ_PTR(ut_frame,parent);UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)1,instance);UT_ASSERT_EQ_PTR(&ut_storage,info);++ut_toolbar_calls;return((HWND)(UINT_PTR)12);}
 static HWND utm_ODFrameCreateStatusBar(HWND parent,HANDLE instance){UT_ASSERT_EQ_PTR(ut_frame,parent);UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)1,instance);++ut_status_calls;return((HWND)(UINT_PTR)13);}
 void utm_ODFrameUpdateWantChat(void){++ut_update_calls;}
-tODResult utm_ODScrnStartWindow(HANDLE instance,tODThreadHandle *thread,HWND parent){UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)1,instance);UT_ASSERT_EQ_PTR(&hCurrentScreenThread,thread);UT_ASSERT_EQ_PTR(ut_frame,parent);if(ut_screen_result==kODRCSuccess)*thread=(HANDLE)(UINT_PTR)14;return(ut_screen_result);}
+tODResult utm_ODScrnStartWindow(HANDLE instance,HWND parent){UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)1,instance);UT_ASSERT_EQ_PTR(ut_frame,parent);return(ut_screen_result);}
 static void utm_ODFrameDestroyWindow(HWND frame){UT_ASSERT_EQ_PTR(ut_frame,frame);UT_ASSERT(ut_storage.bProgrammaticShutdown);++ut_destroy_calls;}
 static void reset_window(void){utm_memset(&ut_storage,0,sizeof(ut_storage));ut_malloc_fails=FALSE;ut_frame=(HWND)(UINT_PTR)2;ut_query_results[0]=ut_query_results[1]=ERROR_SUCCESS;
  ut_query_values[0]=ut_query_values[1]=FALSE;ut_query_calls=ut_set_calls=ut_free_calls=0;ut_toolbar_calls=ut_status_calls=ut_update_calls=ut_destroy_calls=0;ut_screen_result=kODRCSuccess;ut_loaded_icon=FALSE;
- strcpy(od_control.od_prog_name,"Door");od_control.od_app_icon=NULL;hCurrentScreenThread=NULL;}
+ strcpy(od_control.od_prog_name,"Door");od_control.od_app_icon=NULL;}
 static void reports_allocation_and_frame_creation_failures(void)
 {reset_window();ut_malloc_fails=TRUE;UT_ASSERT_NULL(utt_ODFrameCreateWindow((HANDLE)(UINT_PTR)1));UT_ASSERT_EQ_UINT(0,ut_query_calls);
  reset_window();ut_frame=NULL;UT_ASSERT_NULL(utt_ODFrameCreateWindow((HANDLE)(UINT_PTR)1));UT_ASSERT_EQ_UINT(1,ut_free_calls);}
@@ -51,7 +51,7 @@ static void uses_registry_defaults_and_the_default_icon(void)
  UT_ASSERT(ut_loaded_icon);UT_ASSERT_EQ_UINT(2,ut_set_calls);UT_ASSERT(ut_storage.bToolbarOn);UT_ASSERT(ut_storage.bStatusBarOn);UT_ASSERT_EQ_UINT(1,ut_toolbar_calls);UT_ASSERT_EQ_UINT(1,ut_status_calls);UT_ASSERT_EQ_UINT(1,ut_update_calls);UT_ASSERT_EQ_PTR((HACCEL)(UINT_PTR)11,ut_storage.hacclFrameCommands);}
 static void honors_disabled_children_and_a_custom_icon(void)
 {reset_window();od_control.od_app_icon=(HICON)(UINT_PTR)15;UT_ASSERT_EQ_PTR(ut_frame,utt_ODFrameCreateWindow((HANDLE)(UINT_PTR)1));
- UT_ASSERT(!ut_loaded_icon);UT_ASSERT_EQ_UINT(0,ut_toolbar_calls);UT_ASSERT_EQ_UINT(0,ut_status_calls);UT_ASSERT_EQ_PTR((HANDLE)(UINT_PTR)14,hCurrentScreenThread);}
+ UT_ASSERT(!ut_loaded_icon);UT_ASSERT_EQ_UINT(0,ut_toolbar_calls);UT_ASSERT_EQ_UINT(0,ut_status_calls);}
 static void destroys_the_frame_when_the_screen_cannot_start(void)
 {reset_window();ut_screen_result=kODRCGeneralFailure;UT_ASSERT_NULL(utt_ODFrameCreateWindow((HANDLE)(UINT_PTR)1));UT_ASSERT_EQ_UINT(1,ut_destroy_calls);}
 static const UTTestCase ut_cases[]={{"creation failures",reports_allocation_and_frame_creation_failures},{"registry defaults",uses_registry_defaults_and_the_default_icon},{"custom settings",honors_disabled_children_and_a_custom_icon},{"screen failure",destroys_the_frame_when_the_screen_cannot_start}};

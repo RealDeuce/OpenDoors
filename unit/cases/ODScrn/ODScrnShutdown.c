@@ -1,22 +1,54 @@
 #define UT_CUSTOM_MOCK_free
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODMutexDestroy
+#endif
+
 static unsigned ut_free_calls;
-static void *ut_freed;
-void utm_free(void *memory) { ++ut_free_calls; ut_freed = memory; }
+static void *ut_freed[2];
+
+void utm_free(void *memory)
+{
+   UT_ASSERT(ut_free_calls < 2); ut_freed[ut_free_calls++] = memory;
+}
+
+#ifdef ODPLAT_WIN32
+static unsigned ut_destroy_calls;
+void utm_ODMutexDestroy(tODMutex *mutex)
+{
+   ++ut_destroy_calls; UT_ASSERT(mutex == &ScreenPresentationMutex);
+}
+
+static void releases_both_screen_generations_when_active(void)
+{
+   static BYTE owner[2];
+   static BYTE display[2];
+   ut_free_calls = ut_destroy_calls = 0;
+   pScrnBuffer = owner; pDisplayBuffer = display;
+   bScreenPresentationActive = FALSE; bScreenDirty = TRUE;
+   utt_ODScrnShutdown();
+   UT_ASSERT_EQ_UINT(0, ut_free_calls); UT_ASSERT_EQ_UINT(0, ut_destroy_calls);
+
+   bScreenPresentationActive = TRUE;
+   utt_ODScrnShutdown();
+   UT_ASSERT_EQ_UINT(2, ut_free_calls);
+   UT_ASSERT_EQ_PTR(owner, ut_freed[0]); UT_ASSERT_EQ_PTR(display, ut_freed[1]);
+   UT_ASSERT_EQ_PTR(NULL, pScrnBuffer); UT_ASSERT_EQ_PTR(NULL, pDisplayBuffer);
+   UT_ASSERT_EQ_INT(FALSE, bScreenPresentationActive);
+   UT_ASSERT_EQ_INT(FALSE, bScreenDirty); UT_ASSERT_EQ_UINT(1, ut_destroy_calls);
+}
+
+static const UTTestCase ut_cases[] = {
+   {"screen generations", releases_both_screen_generations_when_active}
+};
+#else
 static void releases_only_owned_screen_storage(void)
 {
    static BYTE memory[2];
-   ut_free_calls = 0; ut_freed = NULL;
-#ifdef ODPLAT_WIN32
-   pScrnBuffer = NULL; utt_ODScrnShutdown();
-   UT_ASSERT_EQ_UINT(0, ut_free_calls);
-   pScrnBuffer = memory; utt_ODScrnShutdown();
-   UT_ASSERT_EQ_UINT(1, ut_free_calls); UT_ASSERT_EQ_PTR(memory, ut_freed);
-   UT_ASSERT_EQ_PTR(NULL, pScrnBuffer);
-#else
+   ut_free_calls = 0; ut_freed[0] = NULL;
 #ifdef ODPLAT_NIX
    pAllocatedBufferMemory = memory; pScrnBuffer = memory;
    utt_ODScrnShutdown();
-   UT_ASSERT_EQ_UINT(1, ut_free_calls); UT_ASSERT_EQ_PTR(memory, ut_freed);
+   UT_ASSERT_EQ_UINT(1, ut_free_calls); UT_ASSERT_EQ_PTR(memory, ut_freed[0]);
    UT_ASSERT_EQ_PTR(NULL, pAllocatedBufferMemory); UT_ASSERT_EQ_PTR(NULL, pScrnBuffer);
 #else
    od_control.od_silent_mode = FALSE; pAllocatedBufferMemory = memory;
@@ -27,6 +59,9 @@ static void releases_only_owned_screen_storage(void)
    utt_ODScrnShutdown(); UT_ASSERT_EQ_UINT(1, ut_free_calls);
    UT_ASSERT_EQ_PTR(NULL, pAllocatedBufferMemory); UT_ASSERT_EQ_PTR(NULL, pScrnBuffer);
 #endif
-#endif
 }
-static const UTTestCase ut_cases[] = {{"owned storage", releases_only_owned_screen_storage}};
+
+static const UTTestCase ut_cases[] = {
+   {"owned storage", releases_only_owned_screen_storage}
+};
+#endif

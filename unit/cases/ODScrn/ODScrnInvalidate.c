@@ -13,7 +13,7 @@ BOOL WINAPI utm_InvalidateRect(HWND window, const RECT *rectangle,
    return TRUE;
 }
 
-static void ignores_requests_until_the_window_exists(void)
+static void only_marks_the_owner_screen_dirty(void)
 {
    nFontCellWidth = 8; nFontCellHeight = 16; ut_invalidate_calls = 0;
    hwndScreenWindow = NULL;
@@ -21,9 +21,9 @@ static void ignores_requests_until_the_window_exists(void)
    UT_ASSERT_EQ_UINT(0, ut_invalidate_calls);
    hwndScreenWindow = (HWND)1;
    utt_ODScrnInvalidate(2, 3, 4, 5);
-   UT_ASSERT_EQ_UINT(1, ut_invalidate_calls);
+   UT_ASSERT_EQ_UINT(0, ut_invalidate_calls);
 }
 
 static const UTTestCase ut_cases[] = {
-   {"window rectangle", ignores_requests_until_the_window_exists}
+   {"deferred invalidation", only_marks_the_owner_screen_dirty}
 };

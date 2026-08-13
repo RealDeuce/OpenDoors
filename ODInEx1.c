@@ -2639,6 +2639,9 @@ no_default:
       HANDLE h = GetModuleHandle(OD_DLL_NAME);
       if(h == NULL)
          h = GetModuleHandle(NULL);
+      /* Hand the completed initialization screen to the UI before its first
+       * paint. od_init() itself is not enclosed by an OD_API_EXIT boundary. */
+      ODScrnPublish();
       Result = ODFrameStart(h, &hFrameThread);
       if(Result != kODRCSuccess)
       {

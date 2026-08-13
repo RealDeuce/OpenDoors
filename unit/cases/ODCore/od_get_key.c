@@ -65,7 +65,7 @@ BOOL utm_ODSyncAPICheckpoint(void)
    return ut_checkpoint_values[ut_checkpoint_index++];
 }
 
-void utm_od_kernel(void) { ++ut_kernel_calls; }
+void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 #ifdef OD_THREAD_SUPPORT
 unsigned utm_ODSyncAPIRelease(void)
 {

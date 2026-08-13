@@ -29,21 +29,17 @@ and performs initialization and shutdown. Public API boundaries and bounded
 wait checkpoints call that kernel often enough to make progress without a
 background kernel worker.
 
-Windows retains two user-interface threads:
+Windows retains one library user-interface thread:
 
-- The frame thread owns the top-level Win32 window and its message queue. It
-  converts operator commands into pending owner-thread operations.
-- The screen thread owns the screen child window and presents copies of the
-  virtual screen. It reads the virtual image under the session-state read lock
-  and releases that lock before making GDI calls.
+- The frame thread owns the top-level Win32 window, the screen child, and their
+  shared message queue. It converts operator commands into pending owner-thread
+  operations and paints published screen generations.
 
-While waiting for the screen thread to publish its child window, the frame
-thread continues to dispatch messages. Child creation and resizing can
-synchronously notify the parent, so a plain blocking wait on the frame thread
-would deadlock that exchange. UI startup is published with events rather than
-`volatile` polling. Shutdown requests both threads to stop, wakes their message
-loops, joins them, and closes their handles; asynchronous thread cancellation
-is not used.
+The frame creates and destroys its child synchronously, so Win32 parent/child
+notifications stay on one thread. UI startup is published to the session owner
+with an event rather than `volatile` polling. Shutdown wakes the frame message
+loop, joins the frame thread, and closes its handle; asynchronous thread
+cancellation is not used.
 
 `OD_THREAD_SUPPORT` is an internal build macro. It means the platform thread
 and synchronization primitives needed by the Windows UI must be compiled; it
@@ -54,8 +50,17 @@ macro.
 
 The control lock is a writer-preferring read/write lock implemented from a
 Win32 mutex and change event. An outer public API call holds its write side
-while operating on shared session state. The screen presenter takes read
-access only long enough to copy a coherent screen image.
+while operating on shared session state.
+
+Windows screen state has two complete buffers. The session owner mutates the
+application buffer and records one dirty bit. At the outermost API exit, and
+before a blocking path releases API ownership, it takes the presentation
+mutex, exchanges the application and display buffers, copies the published
+display generation back into the new application buffer, snapshots cursor and
+caret state, invalidates the whole child, and releases the mutex. `WM_PAINT`
+holds only the presentation mutex while GDI reads the display generation. It
+never takes the control lock, and a delayed paint does not prevent the owner
+from continuing to mutate its private application buffer.
 
 The kernel-state mutex protects pending operations posted by the frame thread.
 Code must not hold it while acquiring the control lock or invoking application
@@ -107,7 +112,7 @@ child executes, then restores it before touching session state. There are no
 kernel workers to stop or restart around [`od_spawnvpe()`](../reference/api/od_spawnvpe.md).
 
 [`od_exit()`](../reference/api/od_exit.md) stops and joins the Windows UI
-threads before releasing the input queue, communications object, or virtual
+thread before releasing the input queue, communications object, or virtual
 screen. The cooperative kernel owns no per-run thread resources.
 
 ## Review checklist
@@ -119,8 +124,10 @@ When adding asynchronous activity or shared state, verify all of the following:
    path; partial startup unwinds every resource already created.
 3. A UI thread never invokes public API or owner-thread application code.
 4. Cross-thread work is represented as data and dispatched by the owner.
-5. No lock is held while sleeping, waiting for input, performing communications
-   I/O, painting, or joining a thread.
+5. No control, kernel-state, or input-queue lock is held while sleeping,
+   waiting for input, performing communications I/O, painting, or joining a
+   thread. Windows painting holds only the presentation mutex which protects
+   its immutable display generation.
 6. Application callbacks never run under the kernel-state or input-queue mutex.
 7. The implementation compiles with current MSVC and MinGW and with the 16-bit
    Open Watcom build wherever the code is not platform-guarded.

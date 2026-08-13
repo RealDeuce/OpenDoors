@@ -61,7 +61,7 @@ it does not return a separate copy.
 
 The thread which calls [`od_init()`](../api/od_init.md) owns this object and the
 rest of the OpenDoors API and ABI. When related fields must be inspected or
-changed atomically with respect to internal Windows workers, use
+changed atomically with respect to the internal Windows UI worker, use
 [`od_control_read_lock()`](../api/od_control_read_lock.md) or
 [`od_control_write_lock()`](../api/od_control_write_lock.md). Those functions
 do not permit access from an application background thread.

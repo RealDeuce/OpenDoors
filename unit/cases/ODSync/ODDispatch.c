@@ -2,11 +2,18 @@
 #define UT_CUSTOM_MOCK_ODSyncControlWriteLock
 #define UT_CUSTOM_MOCK_ODSyncControlWriteUnlock
 #define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODScrnPublish
+#endif
 static BOOL ut_owner;
 static unsigned ut_dispatches;
 static unsigned ut_locks;
 static unsigned ut_unlocks;
 static BOOL ut_allow_callbacks;
+#ifdef ODPLAT_WIN32
+static unsigned ut_publishes;
+void utm_ODScrnPublish(void) { ++ut_publishes; }
+#endif
 
 BOOL utm_ODSyncIsOwnerThread(void) { return ut_owner; }
 void utm_ODSyncControlWriteLock(void) { ++ut_locks; }
@@ -28,6 +35,9 @@ static void reset_dispatch(void)
    ut_dispatches = 0;
    ut_locks = 0;
    ut_unlocks = 0;
+#ifdef ODPLAT_WIN32
+   ut_publishes = 0;
+#endif
 }
 
 static void dispatches_only_for_an_active_idle_owner(void)
@@ -55,6 +65,9 @@ static void dispatches_only_for_an_active_idle_owner(void)
    UT_ASSERT_EQ_UINT(1, ut_unlocks);
    UT_ASSERT_EQ_UINT(0, nAPILevel);
    UT_ASSERT_EQ_INT(FALSE, bDispatching);
+#ifdef ODPLAT_WIN32
+   UT_ASSERT_EQ_UINT(1, ut_publishes);
+#endif
 }
 
 static const UTTestCase ut_cases[] = {
