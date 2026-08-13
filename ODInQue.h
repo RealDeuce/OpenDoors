@@ -53,5 +53,7 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
 void ODInQueueEmpty(tODInQueueHandle hInQueue);
 time_t ODInQueueGetLastActivity(tODInQueueHandle hInQueue);
 void ODInQueueResetLastActivity(tODInQueueHandle hInQueue);
+char ODInQueueExchangeLastControlKey(tODInQueueHandle hInQueue,
+   char chNewValue);
 
 #endif /* _INC_ODINQUE */

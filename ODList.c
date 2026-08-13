@@ -50,6 +50,7 @@
 #include "ODCom.h"
 #include "ODPlat.h"
 #include "ODKrnl.h"
+#include "ODInQue.h"
 #include "ODUtil.h"
 
 
@@ -112,6 +113,7 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
    tODDirEntry DirEntry;
    size_t nLineLength;
    BOOL bLineComplete;
+   char chControlKey;
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_list_files()");
@@ -206,7 +208,7 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
 
 
    /* Ignore previously pressed control keys. */
-   chLastControlKey = 0;
+   (void)ODInQueueExchangeLastControlKey(hODInputQueue, 0);
 
 
    /* Loop until the end of the FILES.BBS file has been reached. */
@@ -229,9 +231,10 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
          bUseNextLine = FALSE;
       }
 
-      if(chLastControlKey != 0)
+      chControlKey = ODInQueueExchangeLastControlKey(hODInputQueue, 0);
+      if(chControlKey != 0)
       {
-         switch(chLastControlKey)
+         switch(chControlKey)
          {
             case 's':
                if(od_control.od_list_stop)
@@ -260,7 +263,6 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
                   }
                }
          }
-         chLastControlKey = 0;
       }
 
       /* The first fragment of an overlong line is incomplete too. */

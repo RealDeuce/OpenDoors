@@ -1,6 +1,6 @@
-#define UT_CUSTOM_MOCK_ODSyncAPIWriterHeldByCurrentThread
+#define UT_CUSTOM_MOCK_ODSyncAPIActiveOnOwnerThread
 
-BOOL utm_ODSyncAPIWriterHeldByCurrentThread(void)
+BOOL utm_ODSyncAPIActiveOnOwnerThread(void)
 {
    return(FALSE);
 }

@@ -125,6 +125,10 @@ static BYTE btRAStatusToSet = 0;
 static BOOL bPreset = TRUE;
 #endif /* !ODPLAT_WIN32 */
 static char szIFTemp[256];
+#ifdef ODPLAT_WIN32
+static char szWindowsStartupUserName[sizeof(od_control.user_name)];
+static BOOL bWindowsStartupCancelled;
+#endif
 
 /* Configuration file keywords. */
 static char *apszConfigText[] =
@@ -2633,6 +2637,19 @@ no_default:
    }
 
 #ifdef ODPLAT_WIN32
+   ODStringCopy(szWindowsStartupUserName, od_control.user_name,
+      sizeof(szWindowsStartupUserName));
+   bWindowsStartupCancelled = FALSE;
+
+   if(!ODKrnlRefreshUIState())
+   {
+      ODKrnlShutdown();
+      od_control.od_error = ERR_GENERALFAILURE;
+      bODInitialized = FALSE;
+      ODInitError("Unable to initialize the OpenDoors local window state.");
+      return;
+   }
+
    /* Start the Windows command UI after the owner dispatcher is ready. */
    if(!od_control.od_silent_mode)
    {
@@ -2646,10 +2663,21 @@ no_default:
       if(Result != kODRCSuccess)
       {
          ODKrnlShutdown();
+         if(bWindowsStartupCancelled)
+            exit(od_control.od_errorlevel[1]);
          od_control.od_error = ERR_GENERALFAILURE;
          bODInitialized = FALSE;
          ODInitError("Unable to start the OpenDoors local window.");
          return;
+      }
+
+      if(bPromptForUserName)
+      {
+         ODStringCopy(od_control.user_name, szWindowsStartupUserName,
+            sizeof(od_control.user_name));
+         ODStringCopy(od_control.user_handle, od_control.user_name,
+            sizeof(od_control.user_handle));
+         (void)ODKrnlRefreshUIState();
       }
    }
 #endif /* ODPLAT_WIN32 */
@@ -2726,13 +2754,11 @@ INT_PTR CALLBACK ODInitLoginDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
       case WM_INITDIALOG:
       {
          char szProgramName[sizeof(od_control.od_prog_name)];
-         char szUserName[sizeof(od_control.user_name)];
+         tODUIState State;
 
-         ODSyncControlReadLock();
-         ODStringCopy(szProgramName, od_control.od_prog_name,
+         ODKrnlGetUIState(&State);
+         ODStringCopy(szProgramName, State.szProgramName,
             sizeof(szProgramName));
-         ODStringCopy(szUserName, od_control.user_name, sizeof(szUserName));
-         ODSyncControlReadUnlock();
 
          ODFrameCenterWindowInParent(hwndDlg);
 
@@ -2742,7 +2768,7 @@ INT_PTR CALLBACK ODInitLoginDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
          /* The initial text in the user name dialog box should be the */
          /* default user name.                                         */
          SetWindowText(GetDlgItem(hwndDlg, IDC_USER_NAME),
-            szUserName);
+            szWindowsStartupUserName);
 
          /* Limit the number of characters that may be entered as the */
          /* user's name to the maximum size of the string.            */
@@ -2758,17 +2784,11 @@ INT_PTR CALLBACK ODInitLoginDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
          {
             case IDOK:
             {
-               char szUserName[sizeof(od_control.user_name)];
                /* If the OK button has been pressed, obtain the entered */
                /* user name.                                            */
                GetWindowText(GetDlgItem(hwndDlg, IDC_USER_NAME),
-                  szUserName, sizeof(szUserName));
-               ODSyncControlWriteLock();
-               ODStringCopy(od_control.user_name, szUserName,
-                  sizeof(od_control.user_name));
-               ODStringCopy(od_control.user_handle, od_control.user_name,
-                  sizeof(od_control.user_handle));
-               ODSyncControlWriteUnlock();
+                  szWindowsStartupUserName,
+                  sizeof(szWindowsStartupUserName));
 
                /* Now close the dialog. */
                EndDialog(hwndDlg, IDOK);
@@ -2777,6 +2797,7 @@ INT_PTR CALLBACK ODInitLoginDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 
             case IDCANCEL:
                /* If the Cancel button has benn pressed, close the dialog. */
+               bWindowsStartupCancelled = TRUE;
                EndDialog(hwndDlg, IDCANCEL);
                break;
          }

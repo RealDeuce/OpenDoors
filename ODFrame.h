@@ -48,6 +48,7 @@ BOOL ODFrameTranslateAccelerator(HWND hwndFrame, LPMSG pMsg);
 void ODFrameUpdateCmdUI(void);
 void ODFrameUpdateTimeDisplay(void);
 void ODFrameUpdateWantChat(void);
+void ODFrameControlStateChanged(void);
 void ODFrameCenterWindowInParent(HWND hwndChild);
 
 /* User defined messages that are handled by the frame window. */

@@ -12,6 +12,7 @@
 #define UT_CUSTOM_MOCK_ODStringNormalizeLine
 #define UT_CUSTOM_MOCK_ODSyncAPIEntry
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
+#define UT_CUSTOM_MOCK_ODInQueueExchangeLastControlKey
 #define UT_CUSTOM_MOCK_fclose
 #define UT_CUSTOM_MOCK_fgets
 #define UT_CUSTOM_MOCK_fopen
@@ -72,6 +73,7 @@ static unsigned ut_attrib_calls;
 static unsigned ut_init_calls;
 static unsigned ut_entries;
 static unsigned ut_exits;
+static char ut_last_control_key;
 
 size_t utm_strlen(const char *text)
 {
@@ -114,8 +116,18 @@ char *utm_fgets(char *buffer, int size, FILE *file)
    if(ut_line_index >= ut_line_count) return NULL;
    line = &ut_lines[ut_line_index++];
    utm_ODStringCopy(buffer, line->text, size);
-   chLastControlKey = line->control;
+   ut_last_control_key = line->control;
    return buffer;
+}
+
+char utm_ODInQueueExchangeLastControlKey(tODInQueueHandle queue,
+   char replacement)
+{
+   char previous;
+   UT_ASSERT_EQ_PTR(hODInputQueue, queue);
+   previous = ut_last_control_key;
+   ut_last_control_key = replacement;
+   return previous;
 }
 
 int utm_fclose(FILE *file)
@@ -312,6 +324,7 @@ static void reset_list(void)
    ut_init_calls = 0;
    ut_entries = 0;
    ut_exits = 0;
+   ut_last_control_key = 0;
 }
 
 static void add_line(const char *text, BOOL complete, char control)

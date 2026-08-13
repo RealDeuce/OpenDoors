@@ -7,6 +7,12 @@
 #define OD_ACCEPTANCE_NO_LOCAL_CONFIG
 #include "test_support.h"
 
+#ifdef ODPLAT_DOS32
+#define OD_ACCEPTANCE_CALLBACK ODCALL
+#else
+#define OD_ACCEPTANCE_CALLBACK
+#endif
+
 #ifdef ODPLAT_WIN32
 #include <windows.h>
 #else
@@ -16,7 +22,7 @@
 #include <unistd.h>
 #endif
 
-static void ODCALL TimeMessage(char *message)
+static void OD_ACCEPTANCE_CALLBACK TimeMessage(char *message)
 {
    (void)message;
    od_disp("TIME", 4, FALSE);

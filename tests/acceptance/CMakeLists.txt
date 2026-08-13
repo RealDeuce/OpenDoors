@@ -131,9 +131,15 @@ if(OPENDOORS_ACCEPTANCE_EXTENDED)
         C_STANDARD 90
         C_STANDARD_REQUIRED TRUE
         C_EXTENSIONS TRUE)
+    set(_opendoors_input_progress_launcher)
+    foreach(_opendoors_launcher_arg IN LISTS CMAKE_CROSSCOMPILING_EMULATOR)
+        list(APPEND _opendoors_input_progress_launcher
+            --launcher "${_opendoors_launcher_arg}")
+    endforeach()
     add_test(NAME acceptance.input_progress
         COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/input_progress_controller.py"
+            ${_opendoors_input_progress_launcher}
             "$<TARGET_FILE:opendoors_acceptance_input_progress>")
     set_tests_properties(acceptance.input_progress PROPERTIES
         TIMEOUT 25 LABELS "acceptance-extended")

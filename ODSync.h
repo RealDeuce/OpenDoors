@@ -22,16 +22,11 @@ void ODSyncInitializationComplete(void);
 void ODSyncSessionShutdown(void);
 BOOL ODSyncIsOwnerThread(void);
 BOOL ODSyncSessionActive(void);
-BOOL ODSyncAPIWriterHeldByCurrentThread(void);
+BOOL ODSyncAPIActiveOnOwnerThread(void);
 void ODSyncAPIEntry(void);
 void ODSyncAPIExit(void);
 BOOL ODSyncAPICheckpoint(void);
 unsigned ODSyncAPIRelease(void);
 void ODSyncAPIReacquire(unsigned nSavedAPILevel);
-
-void ODSyncControlReadLock(void);
-void ODSyncControlReadUnlock(void);
-void ODSyncControlWriteLock(void);
-void ODSyncControlWriteUnlock(void);
 
 #endif /* _INC_ODSYNC */

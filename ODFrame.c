@@ -107,8 +107,6 @@ TBBUTTON atbButtons[] =
 #define MIN_TIME              OD_MIN_USER_TIME_MINUTES
 #define MAX_TIME              OD_MAX_USER_TIME_MINUTES
 
-/* Pointer to default edit box window procedure. */
-WNDPROC pfnDefEditProc = NULL;
 WNDPROC pfnDefToolbarProc = NULL;
 
 /* Global frame window handle. */
@@ -116,6 +114,7 @@ static HWND hwndCurrentFrame;
 static DWORD dwFrameThreadID;
 static HANDLE hFrameStartedEvent;
 static tODResult FrameStartResult;
+static LONG lControlStateDirty;
 
 /* Status bar settings. */
 #define NUM_STATUS_PARTS      2
@@ -130,6 +129,7 @@ static tODResult FrameStartResult;
 #define WM_OD_UPDATE_TIME     (WM_APP + 2)
 #define WM_OD_UPDATE_CHAT     (WM_APP + 3)
 #define WM_OD_SHUTDOWN        (WM_APP + 4)
+#define WM_OD_CONTROL_STATE   (WM_APP + 5)
 #define OD_UI_THREAD_TIMEOUT  10000
 
 
@@ -148,8 +148,6 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 LRESULT CALLBACK ODFrameToolbarProc(HWND hwnd, UINT uMsg, WPARAM wParam,
    LPARAM lParam);
 static void ODFrameUpdateTimeLeft(tODFrameWindowInfo *pWindowInfo);
-LRESULT CALLBACK ODFrameTimeEditProc(HWND hwnd, UINT uMsg, WPARAM wParam,
-   LPARAM lParam);
 INT_PTR CALLBACK ODFrameAboutDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
    LPARAM lParam);
 static HWND ODFrameCreateWindow(HANDLE hInstance);
@@ -176,6 +174,9 @@ static HWND ODFrameCreateWindow(HANDLE hInstance)
    tODFrameWindowInfo *pWindowInfo = NULL;
    HKEY hOpenDoorsKey;
    DWORD cbData;
+   tODUIState State;
+
+   ODKrnlGetUIState(&State);
 
    /* Register the main frame window's window class. */
    memset(&wcFrameWindow, 0, sizeof(wcFrameWindow));
@@ -184,9 +185,9 @@ static HWND ODFrameCreateWindow(HANDLE hInstance)
    wcFrameWindow.cbClsExtra = 0;
    wcFrameWindow.cbWndExtra = 0;
    wcFrameWindow.hInstance = hInstance;
-   if(od_control.od_app_icon != NULL)
+   if(State.hAppIcon != NULL)
    {
-      wcFrameWindow.hIcon = od_control.od_app_icon;
+      wcFrameWindow.hIcon = State.hAppIcon;
    }
    else
    {
@@ -245,7 +246,7 @@ static HWND ODFrameCreateWindow(HANDLE hInstance)
    if((hwndFrameWindow = CreateWindowEx(
       0L,
       wcFrameWindow.lpszClassName,
-      od_control.od_prog_name,
+      State.szProgramName,
       WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_BORDER | WS_MINIMIZEBOX,
       CW_USEDEFAULT,
       0,
@@ -316,6 +317,7 @@ static HWND ODFrameCreateToolbar(HWND hwndParent, HANDLE hInstance,
    HWND hwndTimeEdit = NULL;
    HWND hwndTimeUpDown = NULL;
    HWND hwndToolTip;
+   UDACCEL aAcceleration[3];
 
    ASSERT(hwndParent != NULL);
    ASSERT(hInstance != NULL);
@@ -337,10 +339,9 @@ static HWND ODFrameCreateToolbar(HWND hwndParent, HANDLE hInstance,
    pfnDefToolbarProc = (WNDPROC)GetWindowLongPtr(hwndToolbar, GWLP_WNDPROC);
    SetWindowLongPtr(hwndToolbar, GWLP_WNDPROC, (LONG_PTR)ODFrameToolbarProc);
 
-   /* Next, create an edit control on the toolbar, to allow the user's */
-   /* time remaining online to be adjusted.                            */
-   hwndTimeEdit = CreateWindowEx(WS_EX_STATICEDGE, "EDIT", "",
-      WS_CHILD | WS_BORDER | WS_VISIBLE | ES_LEFT,
+   /* Display time as a label; changes are made only with the spinner. */
+   hwndTimeEdit = CreateWindowEx(WS_EX_STATICEDGE, "STATIC", "",
+      WS_CHILD | WS_BORDER | WS_VISIBLE | SS_LEFT | SS_CENTERIMAGE,
       0, 0, 70, 22, hwndToolbar, (HMENU)ID_TIME_EDIT, hInstance, NULL);
 
    if(hwndTimeEdit == NULL)
@@ -357,11 +358,6 @@ static HWND ODFrameCreateToolbar(HWND hwndParent, HANDLE hInstance,
    /* Set font of the edit control to be the standard non-bold font. */
    SendMessage(hwndTimeEdit, WM_SETFONT,
       (WPARAM)GetStockObject(DEFAULT_GUI_FONT), MAKELPARAM(FALSE, 0));
-
-   /* Change the window proc for the edit window to our own, keeping a */
-   /* pointer to the original window proc. */
-   pfnDefEditProc = (WNDPROC)GetWindowLongPtr(hwndTimeEdit, GWLP_WNDPROC);
-   SetWindowLongPtr(hwndTimeEdit, GWLP_WNDPROC, (LONG_PTR)ODFrameTimeEditProc);
 
    /* Add the time edit control to the tooltip control. */
 
@@ -402,6 +398,15 @@ static HWND ODFrameCreateToolbar(HWND hwndParent, HANDLE hInstance,
 
    /* Set the valid range of values for the edit control. */
    SendMessage(hwndTimeUpDown, UDM_SETRANGE, 0L, MAKELONG(MAX_TIME, MIN_TIME));
+
+   aAcceleration[0].nSec = 0;
+   aAcceleration[0].nInc = 1;
+   aAcceleration[1].nSec = 2;
+   aAcceleration[1].nInc = 5;
+   aAcceleration[2].nSec = 5;
+   aAcceleration[2].nInc = 10;
+   SendMessage(hwndTimeUpDown, UDM_SETACCEL, DIM(aAcceleration),
+      (LPARAM)aAcceleration);
 
    /* Store handles to time limit edit and up-down controls. */
    pWindowInfo->hwndTimeEdit = hwndTimeEdit;
@@ -484,11 +489,9 @@ static HWND ODFrameCreateStatusBar(HWND hwndParent, HANDLE hInstance)
 
    /* Add the node number string. */
    {
-      INT nNode;
-      ODSyncControlReadLock();
-      nNode = od_control.od_node;
-      ODSyncControlReadUnlock();
-      sprintf(szStatusText, "Node %d", nNode);
+      tODUIState State;
+      ODKrnlGetUIState(&State);
+      sprintf(szStatusText, "Node %d", State.nNode);
    }
    SendMessage(hwndStatusBar, SB_SETTEXT, (WPARAM)1, (LPARAM)szStatusText);
 
@@ -519,14 +522,16 @@ static void ODFrameSetMainStatusText(HWND hwndStatusBar)
 
    ASSERT(hwndStatusBar != NULL);
 
-   ODSyncControlReadLock();
-   ODStringCopy(szUserName, od_control.user_name, sizeof(szUserName));
-   ODStringCopy(szLocation, od_control.user_location, sizeof(szLocation));
-   ODStringCopy(szReason, od_control.user_reasonforchat, sizeof(szReason));
-   dwConnectSpeed = od_control.od_connect_speed;
-   dwBaud = od_control.baud;
-   bWantChat = od_control.user_wantchat;
-   ODSyncControlReadUnlock();
+   {
+      tODUIState State;
+      ODKrnlGetUIState(&State);
+      ODStringCopy(szUserName, State.szUserName, sizeof(szUserName));
+      ODStringCopy(szLocation, State.szUserLocation, sizeof(szLocation));
+      ODStringCopy(szReason, State.szUserReasonForChat, sizeof(szReason));
+      dwConnectSpeed = State.dwConnectSpeed;
+      dwBaud = State.dwBaud;
+      bWantChat = State.bUserWantsChat;
+   }
 
    /* Generate base status bar text, with the user's name, location and */
    /* connection information.                                           */
@@ -557,9 +562,9 @@ static void ODFrameSetMainStatusText(HWND hwndStatusBar)
 
 static void ODFrameCopyProgramName(char *pszDest, size_t nDestSize)
 {
-   ODSyncControlReadLock();
-   ODStringCopy(pszDest, od_control.od_prog_name, nDestSize);
-   ODSyncControlReadUnlock();
+   tODUIState State;
+   ODKrnlGetUIState(&State);
+   ODStringCopy(pszDest, State.szProgramName, nDestSize);
 }
 
 
@@ -688,30 +693,26 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
    {
       case WM_CREATE:
       {
-         BOOL bHaveHelpCallback;
-         BOOL bHaveConfigCallback;
+         tODUIState State;
          /* At window creation time, store a pointer to the window */
          /* information structure in window's user data.           */
          CREATESTRUCT *pCreateStruct = (CREATESTRUCT *)lParam;
          pWindowInfo = (tODFrameWindowInfo *)pCreateStruct->lpCreateParams;
          SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pWindowInfo);
 
-         ODSyncControlReadLock();
-         bHaveHelpCallback = od_control.od_help_callback != NULL;
-         bHaveConfigCallback = od_control.od_config_callback != NULL;
-         ODSyncControlReadUnlock();
+         ODKrnlGetUIState(&State);
 
          /* Update the enabled and checked states of frame window commands. */
          ODFrameUpdateCmdUI();
 
          /* If the client has not provided a help callback function, then */
          /* remove the Contents item from the help menu.                  */
-         if(!bHaveHelpCallback)
+         if(State.pfHelpCallback == NULL)
          {
             RemoveMenu(GetMenu(hwnd), ID_HELP_CONTENTS, MF_BYCOMMAND);
          }
 
-         if(!bHaveConfigCallback)
+         if(State.pfConfigCallback == NULL)
          {
             RemoveMenu(GetMenu(hwnd), ID_DOOR_CONFIG, MF_BYCOMMAND);
          }
@@ -795,6 +796,13 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
          ODFrameUpdateWantChat();
          break;
 
+      case WM_OD_CONTROL_STATE:
+         InterlockedExchange(&lControlStateDirty, 0);
+         ODFrameUpdateCmdUI();
+         ODFrameUpdateTimeDisplay();
+         ODFrameUpdateWantChat();
+         break;
+
       case WM_COMMAND:
          /* An OpenDoors-defined command has been selected, so switch on */
          /* the command ID.                                              */
@@ -808,23 +816,20 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
             case ID_HELP_CONTENTS:
             {
-               void (*pfCallback)(void);
+               tODUIState State;
                /* Call the client's help callback function, if one was */
                /* provided.                                            */
-               ODSyncControlReadLock();
-               pfCallback = od_control.od_help_callback;
-               ODSyncControlReadUnlock();
-               if(pfCallback != NULL) (*pfCallback)();
+               ODKrnlGetUIState(&State);
+               if(State.pfHelpCallback != NULL) (*State.pfHelpCallback)();
                break;
             }
 
             case ID_DOOR_CONFIG:
             {
-               void (*pfCallback)(void);
-               ODSyncControlReadLock();
-               pfCallback = od_control.od_config_callback;
-               ODSyncControlReadUnlock();
-               if(pfCallback != NULL) (*pfCallback)();
+               tODUIState State;
+               ODKrnlGetUIState(&State);
+               if(State.pfConfigCallback != NULL)
+                  (*State.pfConfigCallback)();
                break;
             }
 
@@ -988,18 +993,6 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                ODKrnlRequestInactivityToggle();
                break;
 
-            case ID_TIME_EDIT:
-            {
-               /* If the user's time remaining has been directly edited, */
-               /* then adjust the time limit accordingly.                */
-               if(HIWORD(wParam) == EN_CHANGE)
-               {
-                  char szTimeText[40];
-                  GetWindowText((HWND)lParam, szTimeText, sizeof(szTimeText));
-                  ODKrnlRequestTimeValue(atoi(szTimeText));
-               }
-            }
-
             default:
                return(TRUE);
          }
@@ -1009,6 +1002,13 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
          /* A control parent notification message has been sent. */
          switch(((LPNMHDR)lParam)->code)
          {
+            case UDN_DELTAPOS:
+            {
+               LPNMUPDOWN pUpDown = (LPNMUPDOWN)lParam;
+               ODKrnlRequestTimeAdjustment(-pUpDown->iDelta);
+               break;
+            }
+
             case TTN_NEEDTEXT:
             {
                /* This is the message from the tool tip control, requesting */
@@ -1038,18 +1038,6 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                }
                break;
             }
-         }
-         break;
-
-      case WM_VSCROLL:
-         /* A scrolling action has taken place. */
-
-         /* If it is the time limit up-down control that has scrolled. */
-         if((HWND)lParam == pWindowInfo->hwndTimeUpDown)
-         {
-            int nPos = HIWORD(wParam);
-
-            ODKrnlRequestTimeValue(nPos);
          }
          break;
 
@@ -1178,6 +1166,25 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
 
 /* ----------------------------------------------------------------------------
+ * ODFrameControlStateChanged()
+ *
+ * Coalesces notifications that the owner-side control cache has changed.
+ */
+void ODFrameControlStateChanged(void)
+{
+   HWND hwndFrame = hwndCurrentFrame;
+
+   if(hwndFrame == NULL)
+      return;
+   if(InterlockedExchange(&lControlStateDirty, 1) == 0)
+   {
+      if(!PostMessage(hwndFrame, WM_OD_CONTROL_STATE, 0, 0))
+         InterlockedExchange(&lControlStateDirty, 0);
+   }
+}
+
+
+/* ----------------------------------------------------------------------------
  * ODFrameUpdateCmdUI()
  *
  * Updates the enabled and checked state of OpenDoors commands that may change.
@@ -1196,6 +1203,7 @@ void ODFrameUpdateCmdUI(void)
    BOOL bSysopNext;
    BOOL bKeyboardOn;
    BOOL bChatActive;
+   tODUIState State;
 
    if(hwndFrame == NULL) return;
    if(GetCurrentThreadId() != dwFrameThreadID)
@@ -1208,12 +1216,11 @@ void ODFrameUpdateCmdUI(void)
    pWindowInfo = (tODFrameWindowInfo *)GetWindowLongPtr(hwndFrame, GWLP_USERDATA);
    if(pWindowInfo == NULL) return;
 
-   ODSyncControlReadLock();
-   bInactivityDisabled = od_control.od_disable_inactivity;
-   bSysopNext = od_control.sysop_next;
-   bKeyboardOn = od_control.od_user_keyboard_on;
-   bChatActive = od_control.od_chat_active;
-   ODSyncControlReadUnlock();
+   ODKrnlGetUIState(&State);
+   bInactivityDisabled = State.bInactivityDisabled;
+   bSysopNext = State.bSysopNext;
+   bKeyboardOn = State.bUserKeyboardOn;
+   bChatActive = State.bChatActive;
 
    /* Check or uncheck the toolbar and status bar menu items. */
    CheckMenuItem(hMenu, ID_VIEW_TOOL_BAR, MF_BYCOMMAND |
@@ -1291,6 +1298,7 @@ void ODFrameUpdateWantChat(void)
    tODFrameWindowInfo *pWindowInfo;
    BOOL bUserWantsChat;
    char szProgramName[sizeof(od_control.od_prog_name)];
+   tODUIState State;
 
    /* If there is no current frame window, then return without doing */
    /* anything.                                                      */
@@ -1305,11 +1313,10 @@ void ODFrameUpdateWantChat(void)
       GWLP_USERDATA);
    ASSERT(pWindowInfo != NULL);
 
-   ODSyncControlReadLock();
-   bUserWantsChat = od_control.user_wantchat;
-   ODStringCopy(szProgramName, od_control.od_prog_name,
+   ODKrnlGetUIState(&State);
+   bUserWantsChat = State.bUserWantsChat;
+   ODStringCopy(szProgramName, State.szProgramName,
       sizeof(szProgramName));
-   ODSyncControlReadUnlock();
 
    /* If the status bar is on, then update the text displayed in the */
    /* status bar's main pane.                                        */
@@ -1422,7 +1429,7 @@ LRESULT CALLBACK ODFrameToolbarProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 /* ----------------------------------------------------------------------------
  * ODFrameUpdateTimeLeft()                             *** PRIVATE FUNCTION ***
  *
- * Updates the displayed time remaining from od_control.user_timelimit.
+ * Updates the displayed time remaining from the UI-state cache.
  *
  * Parameters: pWindowInfo - Pointer to frame window information structure.
  *
@@ -1431,8 +1438,8 @@ LRESULT CALLBACK ODFrameToolbarProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 static void ODFrameUpdateTimeLeft(tODFrameWindowInfo *pWindowInfo)
 {
    char szTimeLeft[12];
-   RECT rcWindow;
    INT nTimeLimit;
+   tODUIState State;
 
    if(pWindowInfo->hwndTimeEdit == NULL)
    {
@@ -1441,9 +1448,8 @@ static void ODFrameUpdateTimeLeft(tODFrameWindowInfo *pWindowInfo)
       return;
    }
 
-   ODSyncControlReadLock();
-   nTimeLimit = od_control.user_timelimit;
-   ODSyncControlReadUnlock();
+   ODKrnlGetUIState(&State);
+   nTimeLimit = State.nTimeLimit;
 
    /* Generate the string to be displayed in the edit control. */
    sprintf(szTimeLeft, "%d min.", nTimeLimit);
@@ -1451,71 +1457,9 @@ static void ODFrameUpdateTimeLeft(tODFrameWindowInfo *pWindowInfo)
    /* Set the edit control's text to the new string. */
    SetWindowText(pWindowInfo->hwndTimeEdit, szTimeLeft);
 
-   /* Force edit control to be redrawn. (Except for rightmost pixel */
-   /* column.)                                                      */
-   GetWindowRect(pWindowInfo->hwndTimeEdit, &rcWindow);
-   rcWindow.right--;
-   InvalidateRect(pWindowInfo->hwndTimeEdit, &rcWindow, TRUE);
-
    /* Set the position of the up-down control to match. */
    SendMessage(pWindowInfo->hwndTimeUpDown, UDM_SETPOS, 0,
       (LPARAM)MAKELONG(nTimeLimit, 0));
-}
-
-
-/* ----------------------------------------------------------------------------
- * ODFrameTimeEditProc()                               *** PRIVATE FUNCTION ***
- *
- * The time edit window proceedure. Relays mouse messages from the edit box
- * to the tooltip control, and then passes all messages on to the standard
- * edit box window proceedure.
- *
- * Parameters: hwnd   - Handle to the time edit window.
- *
- *             uMsg   - Specifies the message.
- *
- *             wParam - Specifies additional message information. The content
- *                      of this parameter depends on the value of the uMsg
- *                      parameter.
- *
- *             lParam - Specifies additional message information. The content
- *                      of this parameter depends on the value of the uMsg
- *                      parameter.
- *
- *     Return: The return value is the result of the message processing and
- *             depends on the message.
- */
-LRESULT CALLBACK ODFrameTimeEditProc(HWND hwnd, UINT uMsg, WPARAM wParam,
-   LPARAM lParam)
-{
-   switch(uMsg)
-   {
-      case WM_MOUSEMOVE:
-      case WM_LBUTTONDOWN:
-      case WM_LBUTTONUP:
-      {
-         MSG msg;
-         HWND hwndToolTip;
-
-         /* Setup message structure. */
-         msg.lParam = lParam;
-         msg.wParam = wParam;
-         msg.message = uMsg;
-         msg.hwnd = hwnd;
-
-         /* Obtain handle to the tooltip window. */
-         hwndToolTip = (HWND)SendMessage(GetParent(hwnd), TB_GETTOOLTIPS,
-            0, 0);
-
-         /* Relay the message to the tooltip window. */
-         SendMessage(hwndToolTip, TTM_RELAYEVENT, 0, (LPARAM)(LPMSG)&msg);
-
-         break;
-      }
-   }
-
-   /* Pass all messages on to the default edit box window proceedure. */
-   return(CallWindowProc(pfnDefEditProc, hwnd, uMsg, wParam, lParam));
 }
 
 
@@ -1544,15 +1488,15 @@ INT_PTR CALLBACK ODFrameAboutDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
          char szProgramName[sizeof(od_control.od_prog_name)];
          char szCopyright[sizeof(od_control.od_prog_copyright)];
          char szVersion[sizeof(od_control.od_prog_version)];
+         tODUIState State;
 
-         ODSyncControlReadLock();
-         ODStringCopy(szProgramName, od_control.od_prog_name,
+         ODKrnlGetUIState(&State);
+         ODStringCopy(szProgramName, State.szProgramName,
             sizeof(szProgramName));
-         ODStringCopy(szCopyright, od_control.od_prog_copyright,
+         ODStringCopy(szCopyright, State.szProgramCopyright,
             sizeof(szCopyright));
-         ODStringCopy(szVersion, od_control.od_prog_version,
+         ODStringCopy(szVersion, State.szProgramVersion,
             sizeof(szVersion));
-         ODSyncControlReadUnlock();
 
          /* At dialog box creation time, update the text in the about      */
          /* box with any information provided by the OpenDoors programmer. */

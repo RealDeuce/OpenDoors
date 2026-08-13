@@ -274,6 +274,24 @@ tODResult ODInQueueAddEvent(tODInQueueHandle hInQueue,
    memcpy(&pInputQueueInfo->paEvents[pInputQueueInfo->nInIndex], pEvent,
       sizeof(tODInputEvent));
 
+   if(pEvent->EventType == EVENT_CHARACTER)
+   {
+      switch(pEvent->chKeyPress)
+      {
+         case 's':
+         case 'S':
+         case 3:
+         case 11:
+         case 0x18:
+            chLastControlKey = 's';
+            break;
+         case 'p':
+         case 'P':
+            chLastControlKey = 'p';
+            break;
+      }
+   }
+
    /* Update queue in index. */
    pInputQueueInfo->nInIndex = nNextInPos;
 
@@ -288,6 +306,29 @@ tODResult ODInQueueAddEvent(tODInQueueHandle hInQueue,
 #endif /* OD_THREAD_SUPPORT */
 
    return(kODRCSuccess);
+}
+
+
+/* Atomically obtains and replaces the file-display control-key side channel. */
+char ODInQueueExchangeLastControlKey(tODInQueueHandle hInQueue,
+   char chNewValue)
+{
+   tInputQueueInfo *pInputQueueInfo = ODHANDLE2PTR(hInQueue, tInputQueueInfo);
+   char chOldValue;
+
+   ASSERT(pInputQueueInfo != NULL);
+   if(pInputQueueInfo == NULL)
+      return(0);
+
+#ifdef OD_THREAD_SUPPORT
+   ODMutexLock(&pInputQueueInfo->QueueMutex);
+#endif
+   chOldValue = chLastControlKey;
+   chLastControlKey = chNewValue;
+#ifdef OD_THREAD_SUPPORT
+   ODMutexUnlock(&pInputQueueInfo->QueueMutex);
+#endif
+   return(chOldValue);
 }
 
 
@@ -322,7 +363,7 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
 
 #ifdef OD_THREAD_SUPPORT
 
-   ASSERT(Timeout == 0 || !ODSyncAPIWriterHeldByCurrentThread());
+   ASSERT(Timeout == 0 || !ODSyncAPIActiveOnOwnerThread());
 
    /* In multithreaded implementations, we wait for there to be an item in  */
    /* the queue by decrementing the queue size semaphore. This will cause   */

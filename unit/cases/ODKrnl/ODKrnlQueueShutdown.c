@@ -1,13 +1,7 @@
-#define UT_CUSTOM_MOCK_ODMutexLock
-#define UT_CUSTOM_MOCK_ODMutexUnlock
-void utm_ODMutexLock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
-void utm_ODMutexUnlock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
-static void records_only_the_first_pending_shutdown_reason(void)
-{
-   btPendingShutdown = 0; utt_ODKrnlQueueShutdown(7);
-   UT_ASSERT_EQ_UINT(7, btPendingShutdown);
-   utt_ODKrnlQueueShutdown(9); UT_ASSERT_EQ_UINT(7, btPendingShutdown);
-}
-static const UTTestCase ut_cases[] = {
-   {"first reason", records_only_the_first_pending_shutdown_reason}
-};
+#define UT_CUSTOM_MOCK_ODKrnlQueueUIChange
+static unsigned ut_calls;
+static BOOL utm_ODKrnlQueueUIChange(tODUIChangeType type, INT value, BYTE reason)
+{ ++ut_calls; UT_ASSERT_EQ_INT(kODUIChangeShutdown, type); UT_ASSERT_EQ_INT(0, value); UT_ASSERT_EQ_UINT(7, reason); return(TRUE); }
+static void queues_shutdown_reason(void)
+{ ut_calls = 0; utt_ODKrnlQueueShutdown(7); UT_ASSERT_EQ_UINT(1, ut_calls); }
+static const UTTestCase ut_cases[] = {{"request", queues_shutdown_reason}};

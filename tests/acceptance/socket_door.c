@@ -3,9 +3,15 @@
 #define OD_ACCEPTANCE_NO_LOCAL_CONFIG
 #include "test_support.h"
 
+#ifdef ODPLAT_DOS32
+#define OD_ACCEPTANCE_CALLBACK ODCALL
+#else
+#define OD_ACCEPTANCE_CALLBACK
+#endif
+
 static int before_chat_calls;
 
-static void ODCALL EndChat(void)
+static void OD_ACCEPTANCE_CALLBACK EndChat(void)
 {
    ++before_chat_calls;
    od_control.od_chat_active = FALSE;

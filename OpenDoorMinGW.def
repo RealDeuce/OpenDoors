@@ -71,7 +71,3 @@ EXPORTS
    od_save_screen_ex=od_save_screen_ex@8 @65
    od_save_screen_size=od_save_screen_size@0 @66
    od_set_port=od_set_port@4 @67
-   od_control_read_lock=od_control_read_lock@0 @68
-   od_control_read_unlock=od_control_read_unlock@0 @69
-   od_control_write_lock=od_control_write_lock@0 @70
-   od_control_write_unlock=od_control_write_unlock@0 @71

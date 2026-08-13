@@ -301,14 +301,14 @@ tODResult ODThreadCreate(tODThreadHandle *phThread,
  */
 void ODThreadWaitForExit(tODThreadHandle hThread)
 {
-   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
+   ASSERT(!ODSyncAPIActiveOnOwnerThread());
    WaitForSingleObject(hThread, INFINITE);
 }
 
 
 void ODThreadSleep(tODMilliSec Milliseconds)
 {
-   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
+   ASSERT(!ODSyncAPIActiveOnOwnerThread());
    Sleep(Milliseconds);
 }
 

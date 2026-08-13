@@ -28,6 +28,34 @@ cmake --build build/acceptance
 ctest --test-dir build/acceptance --output-on-failure
 ```
 
+When cross-running Windows integration and regression binaries through Wine,
+use `tools/wine-ctest` instead of invoking CTest directly. The runner creates
+a private Xvfb display and temporarily configures Wine's crash debugger to
+write noninteractive minidumps. Every new dump is moved to the requested
+artifact directory under a unique name, analyzed with WineDbg, and reported
+on standard error before the original crash-handler setting is restored.
+
+```sh
+tools/wine-ctest --display :91 \
+  --wine /usr/local/bin/wine64.bin --prefix "$HOME/.wine" \
+  --artifacts build/wine64/crashes \
+  --test-dir build/wine64 --output-on-failure
+```
+
+On FreeBSD, run 32-bit tests through the packaged `/usr/local/bin/wine`
+wrapper and set `WINE_i386_ROOT` when the i386 package tree is not in its
+default location. Do not point the test emulator directly at the i386
+`wine.bin`: the wrapper supplies the library mappings needed when a tested
+program creates another Windows process.
+
+```sh
+WINE_i386_ROOT="$HOME/.i386-wine-pkg" \
+tools/wine-ctest --display :92 \
+  --wine /usr/local/bin/wine --prefix "$HOME/.wine" \
+  --artifacts build/wine32/crashes \
+  --test-dir build/wine32 --output-on-failure
+```
+
 The ordinary suite contains deterministic compile, ABI, lifecycle, screen,
 configuration, spawn, and drop-file scenarios. The extended setting adds the
 external socket peer used for interactive remote input and output. GitHub

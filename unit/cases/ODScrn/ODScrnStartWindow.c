@@ -1,14 +1,10 @@
-#include <setjmp.h>
-
 #define UT_CUSTOM_MOCK_ODScrnCreateWin
 #define UT_CUSTOM_MOCK_GetStockObject
 #define UT_CUSTOM_MOCK_ODScrnSetCurrentFont
 #define UT_CUSTOM_MOCK_DialogBoxParamA
-#define UT_CUSTOM_MOCK_ODSyncControlReadLock
-#define UT_CUSTOM_MOCK_ODSyncControlReadUnlock
+#define UT_CUSTOM_MOCK_ODKrnlGetUIState
 #define UT_CUSTOM_MOCK_ShowWindow
 #define UT_CUSTOM_MOCK_SetFocus
-#define UT_CUSTOM_MOCK_exit
 
 static HANDLE ut_instance = (HANDLE)1;
 static HWND ut_frame = (HWND)2;
@@ -18,13 +14,11 @@ static BOOL ut_create_fails;
 static INT_PTR ut_dialog_result;
 static unsigned ut_font_calls;
 static unsigned ut_dialog_calls;
-static unsigned ut_lock_calls;
-static unsigned ut_unlock_calls;
 static unsigned ut_show_calls;
 static int ut_show_commands[2];
 static unsigned ut_focus_calls;
-static unsigned ut_exit_calls;
-static jmp_buf ut_exit_target;
+static unsigned ut_state_calls;
+static tODUIState ut_state;
 
 HWND utm_ODScrnCreateWin(HWND frame, HANDLE instance)
 {
@@ -51,8 +45,11 @@ INT_PTR WINAPI utm_DialogBoxParamA(HINSTANCE instance, LPCSTR template_name,
    UT_ASSERT_EQ_INT(0, parameter); return ut_dialog_result;
 }
 
-void utm_ODSyncControlReadLock(void) { ++ut_lock_calls; }
-void utm_ODSyncControlReadUnlock(void) { ++ut_unlock_calls; }
+void utm_ODKrnlGetUIState(tODUIState *state)
+{
+   ++ut_state_calls;
+   *state = ut_state;
+}
 
 BOOL WINAPI utm_ShowWindow(HWND window, int command)
 {
@@ -67,21 +64,15 @@ HWND WINAPI utm_SetFocus(HWND window)
    ++ut_focus_calls; UT_ASSERT(window == ut_screen); return window;
 }
 
-void utm_exit(int status)
-{
-   ++ut_exit_calls; UT_ASSERT_EQ_INT(73, status); longjmp(ut_exit_target, 1);
-}
-
 static void reset_start(void)
 {
    ut_create_fails = FALSE; ut_dialog_result = IDOK;
    ut_font_calls = ut_dialog_calls = 0;
-   ut_lock_calls = ut_unlock_calls = ut_show_calls = ut_focus_calls = 0;
-   ut_exit_calls = 0;
+   ut_show_calls = ut_focus_calls = ut_state_calls = 0;
    ut_show_commands[0] = ut_show_commands[1] = 0;
+   memset(&ut_state, 0, sizeof(ut_state));
    bPromptForUserName = FALSE;
-   od_control.od_cmd_show = SW_RESTORE;
-   od_control.od_errorlevel[1] = 73;
+   ut_state.nCmdShow = SW_RESTORE;
 }
 
 static void reports_screen_creation_failure(void)
@@ -98,7 +89,7 @@ static void initializes_and_shows_both_windows_on_the_frame_thread(void)
    UT_ASSERT_EQ_INT(kODRCSuccess,
       utt_ODScrnStartWindow(ut_instance, ut_frame));
    UT_ASSERT_EQ_UINT(1, ut_font_calls);
-   UT_ASSERT_EQ_UINT(1, ut_lock_calls); UT_ASSERT_EQ_UINT(1, ut_unlock_calls);
+   UT_ASSERT_EQ_UINT(1, ut_state_calls);
    UT_ASSERT_EQ_UINT(2, ut_show_calls);
    UT_ASSERT_EQ_INT(SW_RESTORE, ut_show_commands[0]);
    UT_ASSERT_EQ_INT(SW_SHOW, ut_show_commands[1]);
@@ -112,7 +103,7 @@ static void preserves_a_requested_minimized_frame_state(void)
    unsigned index;
    for(index = 0; index < DIM(commands); ++index)
    {
-      reset_start(); od_control.od_cmd_show = commands[index];
+      reset_start(); ut_state.nCmdShow = commands[index];
       UT_ASSERT_EQ_INT(kODRCSuccess,
          utt_ODScrnStartWindow(ut_instance, ut_frame));
       UT_ASSERT_EQ_INT(SW_SHOWMINNOACTIVE, ut_show_commands[0]);
@@ -127,16 +118,12 @@ static void prompts_and_focuses_the_screen_when_requested(void)
    UT_ASSERT_EQ_UINT(1, ut_dialog_calls); UT_ASSERT_EQ_UINT(1, ut_focus_calls);
 }
 
-static void exits_with_the_configured_level_when_the_prompt_is_cancelled(void)
+static void reports_failure_when_the_prompt_is_cancelled(void)
 {
    reset_start(); bPromptForUserName = TRUE; ut_dialog_result = IDCANCEL;
-   if(setjmp(ut_exit_target) == 0)
-   {
-      (void)utt_ODScrnStartWindow(ut_instance, ut_frame);
-      UT_ASSERT(FALSE);
-   }
-   UT_ASSERT_EQ_UINT(1, ut_exit_calls);
-   UT_ASSERT_EQ_UINT(1, ut_lock_calls); UT_ASSERT_EQ_UINT(1, ut_unlock_calls);
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure,
+      utt_ODScrnStartWindow(ut_instance, ut_frame));
+   UT_ASSERT_EQ_UINT(1, ut_state_calls);
    UT_ASSERT_EQ_UINT(0, ut_show_calls);
 }
 
@@ -145,5 +132,5 @@ static const UTTestCase ut_cases[] = {
    {"show windows", initializes_and_shows_both_windows_on_the_frame_thread},
    {"minimized", preserves_a_requested_minimized_frame_state},
    {"prompt", prompts_and_focuses_the_screen_when_requested},
-   {"cancel", exits_with_the_configured_level_when_the_prompt_is_cancelled}
+   {"cancel", reports_failure_when_the_prompt_is_cancelled}
 };

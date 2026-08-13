@@ -26,11 +26,9 @@ static void KernelCallback(void)
 
 static void TimeMessage(char *pszMessage)
 {
-   const tODControl *pControl = od_control_read_lock();
    (void)pszMessage;
    bTimerCallbackOnOwner = GetCurrentThreadId() == dwOwnerThread
-      && pControl == &od_control;
-   if(pControl != NULL) od_control_read_unlock();
+      && od_control_get() == &od_control;
 }
 
 int main(void)
@@ -41,7 +39,9 @@ int main(void)
    CHECK(ODInQueueAlloc(&hODInputQueue, 4) == kODRCSuccess);
    CHECK(ODKrnlInitialize() == kODRCSuccess);
    bODInitialized = TRUE;
+   od_control.user_timelimit = 10;
    od_control.od_chat_active = TRUE;
+   CHECK(ODKrnlRefreshUIState());
 
    od_control.od_ker_exec = KernelCallback;
    od_kernel();
@@ -52,12 +52,13 @@ int main(void)
    ODKrnlDispatchPending(TRUE);
    CHECK(!od_control.od_chat_active);
 
-   /* Two requests cancel one another before owner-thread dispatch. */
-   od_control.od_chat_active = TRUE;
-   ODKrnlRequestChatToggle();
-   ODKrnlRequestChatToggle();
+   /* Ordered non-modal requests leave state unchanged after two toggles. */
+   od_control.od_user_keyboard_on = TRUE;
+   CHECK(ODKrnlRefreshUIState());
+   ODKrnlRequestKeyboardToggle();
+   ODKrnlRequestKeyboardToggle();
    ODKrnlDispatchPending(TRUE);
-   CHECK(od_control.od_chat_active);
+   CHECK(od_control.od_user_keyboard_on);
 
    od_control.od_chat_active = FALSE;
    od_control.od_disable_inactivity = TRUE;

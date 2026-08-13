@@ -440,9 +440,11 @@
     {"source":"ODKrnl.c","function":"ODKrnlRequestSysopNextToggle","case":"unit/cases/ODKrnl/ODKrnlRequestSysopNextToggle.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlRequestInactivityToggle","case":"unit/cases/ODKrnl/ODKrnlRequestInactivityToggle.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlRequestTimeAdjustment","case":"unit/cases/ODKrnl/ODKrnlRequestTimeAdjustment.c","platforms":["unix","windows","dos16","dos32"]},
-    {"source":"ODKrnl.c","function":"ODKrnlRequestTimeValue","case":"unit/cases/ODKrnl/ODKrnlRequestTimeValue.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlRequestLockout","case":"unit/cases/ODKrnl/ODKrnlRequestLockout.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlQueueShutdown","case":"unit/cases/ODKrnl/ODKrnlQueueShutdown.c","platforms":["windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlQueueUIChange","case":"unit/cases/ODKrnl/ODKrnlQueueUIChange.c","platforms":["windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRefreshUIState","case":"unit/cases/ODKrnl/ODKrnlRefreshUIState.c","platforms":["windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlGetUIState","case":"unit/cases/ODKrnl/ODKrnlGetUIState.c","platforms":["windows"]},
     {"source":"ODKrnl.c","function":"ODKrnlShutdown","case":"unit/cases/ODKrnl/ODKrnlShutdown.c","platforms":["unix","windows","dos16","dos32"],"configurations":[{"name":"default"},{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"],"platforms":["windows"]}]},
     {"source":"ODKrnl.c","function":"ODKrnlHandleLocalKey","case":"unit/cases/ODKrnl/ODKrnlHandleLocalKey.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlHandleReceivedChar","case":"unit/cases/ODKrnl/ODKrnlHandleReceivedChar.c","platforms":["unix","windows","dos16","dos32"]},
@@ -453,7 +455,7 @@
     {"source":"ODFrame.c","function":"ODFrameGetUsedClientAtBottom","case":"unit/cases/ODFrame/ODFrameGetUsedClientAtBottom.c","platforms":["windows"]},
     {"source":"ODFrame.c","function":"ODFrameDestroyToolbar","case":"unit/cases/ODFrame/ODFrameDestroyToolbar.c","platforms":["windows"]},
     {"source":"ODFrame.c","function":"ODFrameToolbarProc","case":"unit/cases/ODFrame/ODFrameToolbarProc.c","platforms":["windows"]},
-    {"source":"ODFrame.c","function":"ODFrameTimeEditProc","case":"unit/cases/ODFrame/ODFrameTimeEditProc.c","platforms":["windows"]},
+    {"source":"ODFrame.c","function":"ODFrameControlStateChanged","case":"unit/cases/ODFrame/ODFrameControlStateChanged.c","platforms":["windows"]},
     {"source":"ODFrame.c","function":"ODFrameUpdateTimeLeft","case":"unit/cases/ODFrame/ODFrameUpdateTimeLeft.c","platforms":["windows"]},
     {"source":"ODFrame.c","function":"ODFrameCenterWindowInParent","case":"unit/cases/ODFrame/ODFrameCenterWindowInParent.c","platforms":["windows"]},
     {"source":"ODFrame.c","function":"ODFrameMessageLoop","case":"unit/cases/ODFrame/ODFrameMessageLoop.c","platforms":["windows"]},
@@ -1383,6 +1385,12 @@
     },
     {
       "source": "ODInQue.c",
+      "function": "ODInQueueExchangeLastControlKey",
+      "case": "unit/cases/ODInQue/ODInQueueExchangeLastControlKey.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
       "function": "ODInQueueEmpty",
       "case": "unit/cases/ODInQue/ODInQueueEmpty.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
@@ -1648,63 +1656,9 @@
     },
     {
       "source": "ODSync.c",
-      "function": "ODSyncAPIWriterHeldByCurrentThread",
-      "case": "unit/cases/ODSync/ODSyncAPIWriterHeldByCurrentThread.c",
+      "function": "ODSyncAPIActiveOnOwnerThread",
+      "case": "unit/cases/ODSync/ODSyncAPIActiveOnOwnerThread.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODSyncControlReadLock",
-      "case": "unit/cases/ODSync/ODSyncControlReadLock.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODSyncControlReadUnlock",
-      "case": "unit/cases/ODSync/ODSyncControlReadUnlock.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODSyncControlWriteLock",
-      "case": "unit/cases/ODSync/ODSyncControlWriteLock.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODSyncControlWriteUnlock",
-      "case": "unit/cases/ODSync/ODSyncControlWriteUnlock.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODControlWakeWaiters",
-      "case": "unit/cases/ODSync/ODControlWakeWaiters.c",
-      "platforms": ["windows"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODControlReadAcquire",
-      "case": "unit/cases/ODSync/ODControlReadAcquire.c",
-      "platforms": ["windows"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODControlReadRelease",
-      "case": "unit/cases/ODSync/ODControlReadRelease.c",
-      "platforms": ["windows"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODControlWriteAcquire",
-      "case": "unit/cases/ODSync/ODControlWriteAcquire.c",
-      "platforms": ["windows"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODControlWriteRelease",
-      "case": "unit/cases/ODSync/ODControlWriteRelease.c",
-      "platforms": ["windows"]
     },
     {
       "source": "ODSync.c",
@@ -1738,24 +1692,6 @@
     },
     {
       "source": "ODSync.c",
-      "function": "ODReleasePublicLock",
-      "case": "unit/cases/ODSync/ODReleasePublicLock.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODAcquirePublicLock",
-      "case": "unit/cases/ODSync/ODAcquirePublicLock.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODDispatch",
-      "case": "unit/cases/ODSync/ODDispatch.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
       "function": "ODSyncSessionInitialize",
       "case": "unit/cases/ODSync/ODSyncSessionInitialize.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
@@ -1770,30 +1706,6 @@
       "source": "ODSync.c",
       "function": "ODSyncSessionShutdown",
       "case": "unit/cases/ODSync/ODSyncSessionShutdown.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "od_control_read_lock",
-      "case": "unit/cases/ODSync/od_control_read_lock.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "od_control_read_unlock",
-      "case": "unit/cases/ODSync/od_control_read_unlock.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "od_control_write_lock",
-      "case": "unit/cases/ODSync/od_control_write_lock.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "od_control_write_unlock",
-      "case": "unit/cases/ODSync/od_control_write_unlock.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
     },
     {

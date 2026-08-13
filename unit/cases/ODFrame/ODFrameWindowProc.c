@@ -1,7 +1,7 @@
 #ifdef ODPLAT_WIN32
 #include "winptr.h"
-#define UT_CUSTOM_MOCK_ODSyncControlReadLock
-#define UT_CUSTOM_MOCK_ODSyncControlReadUnlock
+#define UT_CUSTOM_MOCK_ODKrnlGetUIState
+#define UT_CUSTOM_MOCK_InterlockedExchange
 #define UT_CUSTOM_MOCK_ODFrameUpdateCmdUI
 #define UT_CUSTOM_MOCK_GetMenu
 #define UT_CUSTOM_MOCK_RemoveMenu
@@ -41,7 +41,7 @@
 #define UT_CUSTOM_MOCK_DefWindowProcA
 #define UT_CUSTOM_MOCK_strcpy
 #define UT_CUSTOM_MOCK_LoadStringA
-static tODFrameWindowInfo ut_info;static unsigned ut_lock_depth;static int ut_message_result;
+static tODFrameWindowInfo ut_info;static tODUIState ut_state;static int ut_message_result;
 static unsigned ut_update_calls,ut_remove_calls,ut_destroy_frame_calls,ut_quit_calls,ut_free_calls,ut_shutdown_calls;
 static unsigned ut_focus_calls,ut_flash_calls,ut_time_calls,ut_chat_update_calls,ut_dialog_calls,ut_post_calls;
 static unsigned ut_chat_calls,ut_keyboard_calls,ut_sysop_calls,ut_lockout_calls,ut_adjust_calls,ut_inactivity_calls,ut_time_value_calls;
@@ -49,10 +49,10 @@ static unsigned ut_destroy_toolbar_calls,ut_destroy_status_calls,ut_create_toolb
 static unsigned ut_send_calls,ut_size_status_calls,ut_def_calls;static INT ut_adjustment,ut_time_value;static BYTE ut_shutdown_reason;
 static unsigned ut_help_callback_calls,ut_config_callback_calls;static char *ut_last_freed;
 char *utm_strcpy(char *destination,const char *source){char *result=destination;while((*destination++=*source++)!='\0'){}return(result);}
+void utm_ODKrnlGetUIState(tODUIState *state){*state=ut_state;}
+LONG WINAPI utm_InterlockedExchange(LONG volatile *target,LONG value){LONG old=*target;*target=value;return(old);}
 UT_WINDOW_LONG_PTR WINAPI UT_GET_WINDOW_LONG_PTR(HWND window,int index){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);UT_ASSERT_EQ_INT(GWLP_USERDATA,index);return((UT_WINDOW_LONG_PTR)&ut_info);}
 UT_WINDOW_LONG_PTR WINAPI UT_SET_WINDOW_LONG_PTR(HWND window,int index,UT_WINDOW_LONG_PTR value){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);UT_ASSERT_EQ_INT(GWLP_USERDATA,index);(void)value;return(0);}
-void utm_ODSyncControlReadLock(void){UT_ASSERT_EQ_UINT(0,ut_lock_depth);ut_lock_depth=1;}
-void utm_ODSyncControlReadUnlock(void){UT_ASSERT_EQ_UINT(1,ut_lock_depth);ut_lock_depth=0;}
 void utm_ODFrameUpdateCmdUI(void){++ut_update_calls;}
 HMENU WINAPI utm_GetMenu(HWND window){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);return((HMENU)(UINT_PTR)2);}
 BOOL WINAPI utm_RemoveMenu(HMENU menu,UINT item,UINT flags){UT_ASSERT_EQ_PTR((HMENU)(UINT_PTR)2,menu);UT_ASSERT(item==ID_HELP_CONTENTS||item==ID_DOOR_CONFIG);UT_ASSERT_EQ_UINT(MF_BYCOMMAND,flags);++ut_remove_calls;return(TRUE);}
@@ -88,26 +88,26 @@ static void utm_ODFrameSizeStatusBar(HWND status){UT_ASSERT_EQ_PTR((HWND)(UINT_P
 LRESULT WINAPI utm_DefWindowProcA(HWND window,UINT message,WPARAM first,LPARAM second){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);(void)message;(void)first;(void)second;++ut_def_calls;return(123);}
 int WINAPI utm_LoadStringA(HINSTANCE instance,UINT id,LPSTR buffer,int size){UT_ASSERT_EQ_PTR(ut_info.hInstance,instance);UT_ASSERT(id!=0);UT_ASSERT(size>7);utm_strcpy(buffer,"command");return(7);}
 static void help_callback(void){++ut_help_callback_calls;}static void config_callback(void){++ut_config_callback_calls;}
-static void reset_proc(void){memset(&ut_info,0,sizeof(ut_info));ut_info.hInstance=(HINSTANCE)(UINT_PTR)9;hwndCurrentFrame=(HWND)(UINT_PTR)1;ut_lock_depth=0;ut_message_result=IDNO;
+static void reset_proc(void){memset(&ut_info,0,sizeof(ut_info));memset(&ut_state,0,sizeof(ut_state));ut_info.hInstance=(HINSTANCE)(UINT_PTR)9;hwndCurrentFrame=(HWND)(UINT_PTR)1;lControlStateDirty=1;ut_message_result=IDNO;
  ut_update_calls=ut_remove_calls=ut_destroy_frame_calls=ut_quit_calls=ut_free_calls=ut_shutdown_calls=0;ut_focus_calls=ut_flash_calls=ut_time_calls=ut_chat_update_calls=ut_dialog_calls=ut_post_calls=0;
  ut_chat_calls=ut_keyboard_calls=ut_sysop_calls=ut_lockout_calls=ut_adjust_calls=ut_inactivity_calls=ut_time_value_calls=0;ut_destroy_toolbar_calls=ut_destroy_status_calls=ut_create_toolbar_calls=ut_create_status_calls=ut_adjust_windows_calls=0;
- ut_send_calls=ut_size_status_calls=ut_def_calls=0;ut_adjustment=ut_time_value=0;ut_shutdown_reason=0;ut_help_callback_calls=ut_config_callback_calls=0;ut_last_freed=NULL;od_control.od_help_callback=NULL;od_control.od_config_callback=NULL;}
+ ut_send_calls=ut_size_status_calls=ut_def_calls=0;ut_adjustment=ut_time_value=0;ut_shutdown_reason=0;ut_help_callback_calls=ut_config_callback_calls=0;ut_last_freed=NULL;}
 static LRESULT call_proc(UINT message,WPARAM first,LPARAM second){return(utt_ODFrameWindowProc((HWND)(UINT_PTR)1,message,first,second));}
 static void covers_creation_close_shutdown_and_destroy(void)
 {CREATESTRUCT create;reset_proc();memset(&create,0,sizeof(create));create.lpCreateParams=&ut_info;call_proc(WM_CREATE,0,(LPARAM)&create);UT_ASSERT_EQ_UINT(2,ut_remove_calls);UT_ASSERT_EQ_UINT(1,ut_update_calls);
- reset_proc();od_control.od_help_callback=help_callback;od_control.od_config_callback=config_callback;create.lpCreateParams=&ut_info;call_proc(WM_CREATE,0,(LPARAM)&create);UT_ASSERT_EQ_UINT(0,ut_remove_calls);
+ reset_proc();ut_state.pfHelpCallback=help_callback;ut_state.pfConfigCallback=config_callback;create.lpCreateParams=&ut_info;call_proc(WM_CREATE,0,(LPARAM)&create);UT_ASSERT_EQ_UINT(0,ut_remove_calls);
  reset_proc();ut_message_result=IDNO;call_proc(WM_CLOSE,0,0);UT_ASSERT_EQ_UINT(0,ut_destroy_frame_calls);ut_message_result=IDYES;call_proc(WM_CLOSE,0,0);UT_ASSERT_EQ_UINT(1,ut_destroy_frame_calls);
  reset_proc();call_proc(WM_OD_SHUTDOWN,0,0);UT_ASSERT(ut_info.bProgrammaticShutdown);UT_ASSERT_EQ_UINT(1,ut_quit_calls);
  reset_proc();ut_info.bToolbarOn=TRUE;ut_info.bStatusBarOn=TRUE;call_proc(WM_DESTROY,0,0);UT_ASSERT_EQ_UINT(1,ut_destroy_toolbar_calls);UT_ASSERT_EQ_UINT(1,ut_destroy_status_calls);UT_ASSERT_EQ_UINT(1,ut_shutdown_calls);UT_ASSERT_EQ_INT(ERRORLEVEL_DROPTOBBS,ut_shutdown_reason);UT_ASSERT_EQ_PTR((char *)&ut_info,ut_last_freed);UT_ASSERT_NULL(hwndCurrentFrame);
  reset_proc();ut_info.bProgrammaticShutdown=TRUE;call_proc(WM_DESTROY,0,0);UT_ASSERT_EQ_UINT(0,ut_shutdown_calls);}
 static void covers_simple_frame_messages(void)
-{reset_proc();call_proc(WM_SETFOCUS,0,0);call_proc(WM_TIMER,0,0);call_proc(WM_OD_UPDATE_COMMANDS,0,0);call_proc(WM_OD_UPDATE_TIME,0,0);call_proc(WM_OD_UPDATE_CHAT,0,0);
- UT_ASSERT_EQ_UINT(1,ut_focus_calls);UT_ASSERT_EQ_UINT(1,ut_flash_calls);UT_ASSERT_EQ_UINT(1,ut_update_calls);UT_ASSERT_EQ_UINT(1,ut_time_calls);UT_ASSERT_EQ_UINT(1,ut_chat_update_calls);}
+{reset_proc();call_proc(WM_SETFOCUS,0,0);call_proc(WM_TIMER,0,0);call_proc(WM_OD_UPDATE_COMMANDS,0,0);call_proc(WM_OD_UPDATE_TIME,0,0);call_proc(WM_OD_UPDATE_CHAT,0,0);call_proc(WM_OD_CONTROL_STATE,0,0);
+ UT_ASSERT_EQ_UINT(1,ut_focus_calls);UT_ASSERT_EQ_UINT(1,ut_flash_calls);UT_ASSERT_EQ_UINT(2,ut_update_calls);UT_ASSERT_EQ_UINT(2,ut_time_calls);UT_ASSERT_EQ_UINT(2,ut_chat_update_calls);UT_ASSERT_EQ_INT(0,lControlStateDirty);}
 static LRESULT command(UINT id,UINT notification,LPARAM source){return(call_proc(WM_COMMAND,MAKEWPARAM(id,notification),source));}
 static void covers_callback_and_session_commands(void)
 {reset_proc();UT_ASSERT_EQ_INT(FALSE,command(ID_HELP_ABOUT,0,0));UT_ASSERT_EQ_UINT(1,ut_dialog_calls);
- command(ID_HELP_CONTENTS,0,0);od_control.od_help_callback=help_callback;command(ID_HELP_CONTENTS,0,0);UT_ASSERT_EQ_UINT(1,ut_help_callback_calls);
- command(ID_DOOR_CONFIG,0,0);od_control.od_config_callback=config_callback;command(ID_DOOR_CONFIG,0,0);UT_ASSERT_EQ_UINT(1,ut_config_callback_calls);
+ command(ID_HELP_CONTENTS,0,0);ut_state.pfHelpCallback=help_callback;command(ID_HELP_CONTENTS,0,0);UT_ASSERT_EQ_UINT(1,ut_help_callback_calls);
+ command(ID_DOOR_CONFIG,0,0);ut_state.pfConfigCallback=config_callback;command(ID_DOOR_CONFIG,0,0);UT_ASSERT_EQ_UINT(1,ut_config_callback_calls);
  command(ID_DOOR_EXIT,0,0);command(ID_DOOR_CHATMODE,0,0);command(ID_DOOR_USERKEYBOARDOFF,0,0);command(ID_DOOR_SYSOPNEXT,0,0);
  UT_ASSERT_EQ_UINT(1,ut_post_calls);UT_ASSERT_EQ_UINT(1,ut_chat_calls);UT_ASSERT_EQ_UINT(1,ut_keyboard_calls);UT_ASSERT_EQ_UINT(1,ut_sysop_calls);
  ut_message_result=IDNO;command(ID_DOOR_HANGUP,0,0);ut_message_result=IDYES;command(ID_DOOR_HANGUP,0,0);UT_ASSERT_EQ_UINT(1,ut_shutdown_calls);UT_ASSERT_EQ_INT(ERRORLEVEL_HANGUP,ut_shutdown_reason);

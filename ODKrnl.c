@@ -103,6 +103,28 @@
 /* Pending command identifiers. */
 #define KERNEL_FUNC_CHATTOGGLE      0x0001
 
+#ifdef ODPLAT_WIN32
+typedef enum
+{
+   kODUIChangeChat,
+   kODUIChangeKeyboard,
+   kODUIChangeSysopNext,
+   kODUIChangeInactivity,
+   kODUIChangeTime,
+   kODUIChangeLockout,
+   kODUIChangeShutdown
+} tODUIChangeType;
+
+typedef struct tODUIChange
+{
+   struct tODUIChange *pNext;
+   tODUIChangeType Type;
+   BOOL bValue;
+   INT nValue;
+   BYTE btReason;
+} tODUIChange;
+#endif
+
 /* Private function prototypes. */
 static void ODKrnlHandleReceivedChar(char chReceived, BOOL bFromRemote);
 static BOOL ODKrnlTimeUpdate(BOOL bAllowApplicationCallbacks);
@@ -110,26 +132,24 @@ static void ODKrnlChatCleanup(void);
 static void ODKrnlChatMode(void);
 
 /* Helpers used by the asynchronous Windows UI thread. */
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
 static void ODKrnlQueueShutdown(BYTE btReasonForShutdown);
-#endif /* OD_THREAD_SUPPORT */
+static BOOL ODKrnlQueueUIChange(tODUIChangeType Type, INT nValue,
+   BYTE btReason);
+#endif /* ODPLAT_WIN32 */
 static BOOL ODKrnlDeliverTimeMessage(char *pszMessage,
    BYTE btReasonForShutdown, BOOL bAllowApplicationCallbacks);
 
 /* Local working variables. */
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
 static tODMutex KernelStateLock;
 static BOOL bKernelStateLockInitialized;
-static BOOL bChatTogglePending;
-static BOOL bKeyboardTogglePending;
-static BOOL bSysopNextTogglePending;
-static BOOL bInactivityTogglePending;
-static BOOL bTimeValuePending;
-static INT nPendingTimeValue;
-static INT nPendingTimeAdjustment;
-static BOOL bLockoutPending;
-static BYTE btPendingShutdown;
-#endif /* OD_THREAD_SUPPORT */
+static tODUIChange *pPendingUIHead;
+static tODUIChange *pPendingUITail;
+#ifdef ODPLAT_WIN32
+static tODUIState UIState;
+#endif
+#endif /* ODPLAT_WIN32 */
 static BOOL bKernelActive = FALSE;
 static BOOL bWarnedAboutInactivity = FALSE;
 static INT16 nLastInactivitySetting = 0;
@@ -218,7 +238,7 @@ tODResult ODKrnlInitialize(void)
    /* Initially, the kernel is not active. */
    bKernelActive = FALSE;
 
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
    if(!bKernelStateLockInitialized)
    {
       if(ODMutexInitialize(&KernelStateLock) != kODRCSuccess)
@@ -226,18 +246,11 @@ tODResult ODKrnlInitialize(void)
       bKernelStateLockInitialized = TRUE;
    }
 
-   ODMutexLock(&KernelStateLock);
-   bChatTogglePending = FALSE;
-   bKeyboardTogglePending = FALSE;
-   bSysopNextTogglePending = FALSE;
-   bInactivityTogglePending = FALSE;
-   bTimeValuePending = FALSE;
-   nPendingTimeValue = 0;
-   nPendingTimeAdjustment = 0;
-   bLockoutPending = FALSE;
-   btPendingShutdown = 0;
-   ODMutexUnlock(&KernelStateLock);
-#endif /* OD_THREAD_SUPPORT */
+   ASSERT(pPendingUIHead == NULL);
+   ASSERT(pPendingUITail == NULL);
+   if(pPendingUIHead != NULL || pPendingUITail != NULL)
+      return(kODRCGeneralFailure);
+#endif /* ODPLAT_WIN32 */
 
    return(kODRCSuccess);
 }
@@ -254,7 +267,29 @@ tODResult ODKrnlInitialize(void)
  */
 void ODKrnlShutdown(void)
 {
-   /* The cooperative kernel owns no worker threads or per-run resources. */
+#ifdef ODPLAT_WIN32
+   tODUIChange *pChange;
+   tODUIChange *pNext;
+
+   if(!bKernelStateLockInitialized)
+      return;
+
+   ODMutexLock(&KernelStateLock);
+   pChange = pPendingUIHead;
+   pPendingUIHead = NULL;
+   pPendingUITail = NULL;
+   ODMutexUnlock(&KernelStateLock);
+
+   while(pChange != NULL)
+   {
+      pNext = pChange->pNext;
+      free(pChange);
+      pChange = pNext;
+   }
+
+   ODMutexDestroy(&KernelStateLock);
+   bKernelStateLockInitialized = FALSE;
+#endif
 }
 
 
@@ -661,9 +696,13 @@ void ODKrnlHandleLocalKey(WORD wKeyCode)
 {
    BOOL bLocalInputDisabled;
 
-   ODSyncControlReadLock();
+#ifdef ODPLAT_WIN32
+   tODUIState State;
+   ODKrnlGetUIState(&State);
+   bLocalInputDisabled = (State.wDisable & DIS_LOCAL_INPUT) != 0;
+#else
    bLocalInputDisabled = (od_control.od_disable & DIS_LOCAL_INPUT) != 0;
-   ODSyncControlReadUnlock();
+#endif
 
    /* If local keyboard input by sysop has not been disabled. */
    if(!bLocalInputDisabled)
@@ -697,14 +736,9 @@ void ODKrnlHandleLocalKey(WORD wKeyCode)
 static void ODKrnlHandleReceivedChar(char chReceived, BOOL bFromRemote)
 {
    tODInputEvent InputEvent;
-   BOOL bKeyboardOn;
-
    /* If we are operating in remote mode, and remote user keyboard has been */
    /* disabled by the sysop, then return, ignoring this character.          */
-   ODSyncControlReadLock();
-   bKeyboardOn = od_control.od_user_keyboard_on;
-   ODSyncControlReadUnlock();
-   if(bFromRemote && !bKeyboardOn)
+   if(bFromRemote && !od_control.od_user_keyboard_on)
    {
       return;
    }
@@ -715,20 +749,6 @@ static void ODKrnlHandleReceivedChar(char chReceived, BOOL bFromRemote)
    InputEvent.chKeyPress = chReceived;
    ODInQueueAddEvent(hODInputQueue, &InputEvent);
 
-   /* Update last control key information. */
-   switch(chReceived)
-   {
-      case 's':
-      case 'S':
-      case 3:
-      case 11:
-      case 0x18:
-         chLastControlKey = 's';
-         break;
-      case 'p':
-      case 'P':
-         chLastControlKey = 'p';
-   }
 }
 
 
@@ -832,10 +852,6 @@ static BOOL ODKrnlTimeUpdate(BOOL bAllowApplicationCallbacks)
 
    }
 
-#ifdef ODPLAT_WIN32
-   ODFrameUpdateTimeDisplay();
-#endif /* ODPLAT_WIN32 */
-
    /* If user has no time left. */
    if(od_control.user_timelimit <= 0
       && !(od_control.od_disable & DIS_TIMEOUT))
@@ -877,12 +893,132 @@ static BOOL ODKrnlDeliverTimeMessage(char *pszMessage,
    return(FALSE);
 }
 
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
+static BOOL ODKrnlQueueUIChange(tODUIChangeType Type, INT nValue,
+   BYTE btReason)
+{
+   tODUIChange *pChange = malloc(sizeof(*pChange));
+
+   if(pChange == NULL)
+   {
+#ifdef ODPLAT_WIN32
+      MessageBeep(MB_ICONEXCLAMATION);
+#endif
+      return(FALSE);
+   }
+
+   pChange->pNext = NULL;
+   pChange->Type = Type;
+   pChange->bValue = FALSE;
+   pChange->nValue = nValue;
+   pChange->btReason = btReason;
+
+   ODMutexLock(&KernelStateLock);
+#ifdef ODPLAT_WIN32
+   switch(Type)
+   {
+      case kODUIChangeChat:
+         pChange->bValue = !UIState.bChatActive;
+         UIState.bChatActive = pChange->bValue;
+         break;
+      case kODUIChangeKeyboard:
+         pChange->bValue = !UIState.bUserKeyboardOn;
+         UIState.bUserKeyboardOn = pChange->bValue;
+         break;
+      case kODUIChangeSysopNext:
+         pChange->bValue = !UIState.bSysopNext;
+         UIState.bSysopNext = pChange->bValue;
+         break;
+      case kODUIChangeInactivity:
+         pChange->bValue = !UIState.bInactivityDisabled;
+         UIState.bInactivityDisabled = pChange->bValue;
+         break;
+      case kODUIChangeTime:
+         UIState.nTimeLimit = MAX(OD_MIN_USER_TIME_MINUTES,
+            MIN(OD_MAX_USER_TIME_MINUTES, UIState.nTimeLimit + nValue));
+         break;
+      default:
+         break;
+   }
+#endif
+
+   if(pPendingUITail == NULL)
+      pPendingUIHead = pChange;
+   else
+      pPendingUITail->pNext = pChange;
+   pPendingUITail = pChange;
+   ODMutexUnlock(&KernelStateLock);
+
+#ifdef ODPLAT_WIN32
+   ODFrameControlStateChanged();
+#endif
+   return(TRUE);
+}
+
 static void ODKrnlQueueShutdown(BYTE btReasonForShutdown)
 {
+   (void)ODKrnlQueueUIChange(kODUIChangeShutdown, 0,
+      btReasonForShutdown);
+}
+#endif
+
+#ifdef ODPLAT_WIN32
+BOOL ODKrnlRefreshUIState(void)
+{
+   BOOL bQueueEmpty;
+
+   ASSERT(bKernelStateLockInitialized);
+   ASSERT(ODSyncIsOwnerThread());
+   if(!bKernelStateLockInitialized || !ODSyncIsOwnerThread())
+      return(FALSE);
+
    ODMutexLock(&KernelStateLock);
-   if(btPendingShutdown == 0)
-      btPendingShutdown = btReasonForShutdown;
+   bQueueEmpty = pPendingUIHead == NULL;
+   if(bQueueEmpty)
+   {
+      UIState.hAppIcon = od_control.od_app_icon;
+      memcpy(UIState.szProgramName, od_control.od_prog_name,
+         sizeof(UIState.szProgramName));
+      memcpy(UIState.szProgramCopyright, od_control.od_prog_copyright,
+         sizeof(UIState.szProgramCopyright));
+      memcpy(UIState.szProgramVersion, od_control.od_prog_version,
+         sizeof(UIState.szProgramVersion));
+      memcpy(UIState.szUserName, od_control.user_name,
+         sizeof(UIState.szUserName));
+      memcpy(UIState.szUserLocation, od_control.user_location,
+         sizeof(UIState.szUserLocation));
+      memcpy(UIState.szUserReasonForChat, od_control.user_reasonforchat,
+         sizeof(UIState.szUserReasonForChat));
+      UIState.dwBaud = od_control.baud;
+      UIState.dwConnectSpeed = od_control.od_connect_speed;
+      UIState.nNode = od_control.od_node;
+      UIState.nTimeLimit = od_control.user_timelimit;
+      UIState.nCmdShow = od_control.od_cmd_show;
+      UIState.wDisable = od_control.od_disable;
+      UIState.bUserWantsChat = od_control.user_wantchat;
+      UIState.bInactivityDisabled = od_control.od_disable_inactivity;
+      UIState.bSysopNext = od_control.sysop_next;
+      UIState.bUserKeyboardOn = od_control.od_user_keyboard_on;
+      UIState.bChatActive = od_control.od_chat_active;
+      UIState.pfHelpCallback = od_control.od_help_callback;
+      UIState.pfConfigCallback = od_control.od_config_callback;
+   }
+   ODMutexUnlock(&KernelStateLock);
+
+   if(bQueueEmpty)
+      ODFrameControlStateChanged();
+   return(bQueueEmpty);
+}
+
+void ODKrnlGetUIState(tODUIState *pState)
+{
+   ASSERT(pState != NULL);
+   ASSERT(bKernelStateLockInitialized);
+   if(pState == NULL || !bKernelStateLockInitialized)
+      return;
+
+   ODMutexLock(&KernelStateLock);
+   memcpy(pState, &UIState, sizeof(*pState));
    ODMutexUnlock(&KernelStateLock);
 }
 #endif
@@ -905,13 +1041,13 @@ void ODKrnlForceOpenDoorsShutdown(BYTE btReasonForShutdown)
 {
    BOOL bHangup;
 
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
    if(!ODSyncIsOwnerThread())
    {
       ODKrnlQueueShutdown(btReasonForShutdown);
       return;
    }
-#endif /* OD_THREAD_SUPPORT */
+#endif /* ODPLAT_WIN32 */
 
    /* Determine whether we should hangup on the user before exiting. */
    if(btReasonForShutdown == ERRORLEVEL_HANGUP
@@ -942,10 +1078,8 @@ void ODKrnlForceOpenDoorsShutdown(BYTE btReasonForShutdown)
 
 void ODKrnlRequestChatToggle(void)
 {
-#ifdef OD_THREAD_SUPPORT
-   ODMutexLock(&KernelStateLock);
-   bChatTogglePending = !bChatTogglePending;
-   ODMutexUnlock(&KernelStateLock);
+#ifdef ODPLAT_WIN32
+   (void)ODKrnlQueueUIChange(kODUIChangeChat, 0, 0);
 #else
    nKrnlFuncPending ^= KERNEL_FUNC_CHATTOGGLE;
 #endif
@@ -953,10 +1087,8 @@ void ODKrnlRequestChatToggle(void)
 
 void ODKrnlRequestKeyboardToggle(void)
 {
-#ifdef OD_THREAD_SUPPORT
-   ODMutexLock(&KernelStateLock);
-   bKeyboardTogglePending = !bKeyboardTogglePending;
-   ODMutexUnlock(&KernelStateLock);
+#ifdef ODPLAT_WIN32
+   (void)ODKrnlQueueUIChange(kODUIChangeKeyboard, 0, 0);
 #else
    od_control.od_user_keyboard_on = !od_control.od_user_keyboard_on;
 #endif
@@ -964,10 +1096,8 @@ void ODKrnlRequestKeyboardToggle(void)
 
 void ODKrnlRequestSysopNextToggle(void)
 {
-#ifdef OD_THREAD_SUPPORT
-   ODMutexLock(&KernelStateLock);
-   bSysopNextTogglePending = !bSysopNextTogglePending;
-   ODMutexUnlock(&KernelStateLock);
+#ifdef ODPLAT_WIN32
+   (void)ODKrnlQueueUIChange(kODUIChangeSysopNext, 0, 0);
 #else
    od_control.sysop_next = !od_control.sysop_next;
 #endif
@@ -975,10 +1105,8 @@ void ODKrnlRequestSysopNextToggle(void)
 
 void ODKrnlRequestInactivityToggle(void)
 {
-#ifdef OD_THREAD_SUPPORT
-   ODMutexLock(&KernelStateLock);
-   bInactivityTogglePending = !bInactivityTogglePending;
-   ODMutexUnlock(&KernelStateLock);
+#ifdef ODPLAT_WIN32
+   (void)ODKrnlQueueUIChange(kODUIChangeInactivity, 0, 0);
 #else
    od_control.od_disable_inactivity = !od_control.od_disable_inactivity;
 #endif
@@ -986,44 +1114,18 @@ void ODKrnlRequestInactivityToggle(void)
 
 void ODKrnlRequestTimeAdjustment(INT nMinutes)
 {
-#ifdef OD_THREAD_SUPPORT
-   ODMutexLock(&KernelStateLock);
-   if(bTimeValuePending)
-      nPendingTimeValue = MAX(OD_MIN_USER_TIME_MINUTES,
-         MIN(OD_MAX_USER_TIME_MINUTES,
-         nPendingTimeValue + nMinutes));
-   else
-      nPendingTimeAdjustment = MAX(-OD_MAX_USER_TIME_MINUTES,
-         MIN(OD_MAX_USER_TIME_MINUTES,
-         nPendingTimeAdjustment + nMinutes));
-   ODMutexUnlock(&KernelStateLock);
+#ifdef ODPLAT_WIN32
+   (void)ODKrnlQueueUIChange(kODUIChangeTime, nMinutes, 0);
 #else
    od_control.user_timelimit += nMinutes;
 #endif
 }
 
-void ODKrnlRequestTimeValue(INT nMinutes)
-{
-#ifdef OD_THREAD_SUPPORT
-   ODMutexLock(&KernelStateLock);
-   bTimeValuePending = TRUE;
-   nPendingTimeValue = MAX(OD_MIN_USER_TIME_MINUTES,
-      MIN(OD_MAX_USER_TIME_MINUTES, nMinutes));
-   nPendingTimeAdjustment = 0;
-   ODMutexUnlock(&KernelStateLock);
-#else
-   od_control.user_timelimit = nMinutes;
-#endif
-}
-
 void ODKrnlRequestLockout(void)
 {
-#ifdef OD_THREAD_SUPPORT
-   ODMutexLock(&KernelStateLock);
-   bLockoutPending = TRUE;
-   if(btPendingShutdown == 0)
-      btPendingShutdown = ERRORLEVEL_HANGUP;
-   ODMutexUnlock(&KernelStateLock);
+#ifdef ODPLAT_WIN32
+   (void)ODKrnlQueueUIChange(kODUIChangeLockout, 0,
+      ERRORLEVEL_HANGUP);
 #else
    od_control.user_security = 0;
    ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_HANGUP);
@@ -1032,80 +1134,80 @@ void ODKrnlRequestLockout(void)
 
 void ODKrnlDispatchPending(BOOL bAllowApplicationCallbacks)
 {
-#ifdef OD_THREAD_SUPPORT
-   BOOL bToggleChat;
-   BOOL bToggleKeyboard;
-   BOOL bToggleSysopNext;
-   BOOL bToggleInactivity;
-   BOOL bSetTime;
-   BOOL bLockout;
-   INT nTimeValue;
-   INT nTimeAdjustment;
-   BYTE btShutdown;
+#ifdef ODPLAT_WIN32
+   tODUIChange *pChange;
+   tODUIChange *pNext;
 
    if(!bKernelStateLockInitialized || !ODSyncIsOwnerThread()) return;
+   (void)bAllowApplicationCallbacks;
 
-   ODMutexLock(&KernelStateLock);
-   bToggleChat = bChatTogglePending;
-   bChatTogglePending = FALSE;
-   bToggleKeyboard = bKeyboardTogglePending;
-   bKeyboardTogglePending = FALSE;
-   bToggleSysopNext = bSysopNextTogglePending;
-   bSysopNextTogglePending = FALSE;
-   bToggleInactivity = bInactivityTogglePending;
-   bInactivityTogglePending = FALSE;
-   bSetTime = bTimeValuePending;
-   bTimeValuePending = FALSE;
-   nTimeValue = nPendingTimeValue;
-   nTimeAdjustment = nPendingTimeAdjustment;
-   nPendingTimeAdjustment = 0;
-   bLockout = bLockoutPending;
-   bLockoutPending = FALSE;
-   btShutdown = btPendingShutdown;
-   btPendingShutdown = 0;
-   ODMutexUnlock(&KernelStateLock);
-
-   /* A no-exit shutdown may have completed at a preceding dispatch point. */
-   if(!bODInitialized)
-      return;
-
-   if(bToggleKeyboard)
-      od_control.od_user_keyboard_on = !od_control.od_user_keyboard_on;
-   if(bToggleSysopNext)
-      od_control.sysop_next = !od_control.sysop_next;
-   if(bToggleInactivity)
-      od_control.od_disable_inactivity = !od_control.od_disable_inactivity;
-   if(bSetTime || nTimeAdjustment != 0)
+   for(;;)
    {
-      if(bSetTime)
-         od_control.user_timelimit = nTimeValue;
-      else
-         od_control.user_timelimit += nTimeAdjustment;
-      od_control.user_timelimit = MAX(OD_MIN_USER_TIME_MINUTES,
-         MIN(OD_MAX_USER_TIME_MINUTES, od_control.user_timelimit));
-   }
-   if(bLockout)
-      od_control.user_security = 0;
+      ODMutexLock(&KernelStateLock);
+      pChange = pPendingUIHead;
+      pPendingUIHead = NULL;
+      pPendingUITail = NULL;
+      ODMutexUnlock(&KernelStateLock);
 
+      if(pChange == NULL)
+      {
 #ifdef ODPLAT_WIN32
-   if(bToggleKeyboard || bToggleSysopNext || bToggleInactivity)
-      ODFrameUpdateCmdUI();
-   if(bSetTime || nTimeAdjustment != 0)
-      ODFrameUpdateTimeDisplay();
+         if(!ODKrnlRefreshUIState())
+            continue;
 #endif
+         return;
+      }
 
-   if(btShutdown != 0)
-   {
-      ODKrnlForceOpenDoorsShutdown(btShutdown);
-      return;
-   }
+      while(pChange != NULL)
+      {
+         pNext = pChange->pNext;
+         switch(pChange->Type)
+         {
+            case kODUIChangeChat:
+               if(pChange->bValue && !od_control.od_chat_active)
+                  ODKrnlChatMode();
+               else if(!pChange->bValue && od_control.od_chat_active)
+                  ODKrnlEndChatMode();
+               break;
+            case kODUIChangeKeyboard:
+               od_control.od_user_keyboard_on = pChange->bValue;
+               break;
+            case kODUIChangeSysopNext:
+               od_control.sysop_next = pChange->bValue;
+               break;
+            case kODUIChangeInactivity:
+               od_control.od_disable_inactivity = pChange->bValue;
+               break;
+            case kODUIChangeTime:
+               od_control.user_timelimit = MAX(OD_MIN_USER_TIME_MINUTES,
+                  MIN(OD_MAX_USER_TIME_MINUTES,
+                  od_control.user_timelimit + pChange->nValue));
+               break;
+            case kODUIChangeLockout:
+               od_control.user_security = 0;
+               ODKrnlForceOpenDoorsShutdown(pChange->btReason);
+               break;
+            case kODUIChangeShutdown:
+               ODKrnlForceOpenDoorsShutdown(pChange->btReason);
+               break;
+            default:
+               /* Ignore a corrupt or future queue node safely. */
+               break;
+         }
+         free(pChange);
+         pChange = pNext;
 
-   if(bToggleChat)
-   {
-      if(od_control.od_chat_active)
-         ODKrnlEndChatMode();
-      else
-         ODKrnlChatMode();
+         if(!bODInitialized)
+         {
+            while(pChange != NULL)
+            {
+               pNext = pChange->pNext;
+               free(pChange);
+               pChange = pNext;
+            }
+            return;
+         }
+      }
    }
 #else
    (void)bAllowApplicationCallbacks;
@@ -1197,9 +1299,6 @@ static void ODKrnlChatMode(void)
    /* Turn off "user wants to chat" indicator, and force the status line. */
    /* to be updated.                                                      */
    od_control.user_wantchat = FALSE;
-#ifdef ODPLAT_WIN32
-   ODFrameUpdateWantChat();
-#endif /* ODPLAT_WIN32 */
 
    bForceStatusUpdate = TRUE;
    CALL_KERNEL_IF_NEEDED();
@@ -1434,10 +1533,5 @@ static void ODKrnlChatCleanup(void)
 
    /* Record that chat mode is no longer active. */
    od_control.od_chat_active = FALSE;
-
-#ifdef ODPLAT_WIN32
-   /* Update the enabled and checked state of commands. */
-   ODFrameUpdateCmdUI();
-#endif /* ODPLAT_WIN32 */
 
 }

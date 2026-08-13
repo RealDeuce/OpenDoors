@@ -4,7 +4,7 @@
 #define UT_CUSTOM_MOCK_sigaddset
 #define UT_CUSTOM_MOCK_sigprocmask
 #endif
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_ODMutexInitialize
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
@@ -17,7 +17,7 @@ static unsigned ut_empty_calls;
 static unsigned ut_add_calls;
 static unsigned ut_mask_calls;
 #endif
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
 static tODResult ut_mutex_result;
 static unsigned ut_initialize_calls;
 static unsigned ut_lock_calls;
@@ -57,7 +57,7 @@ int utm_sigprocmask(int operation, const sigset_t *set, sigset_t *old_set)
 }
 #endif
 
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
 tODResult utm_ODMutexInitialize(tODMutex *mutex)
 {
    UT_ASSERT_EQ_PTR(&KernelStateLock, mutex);
@@ -90,15 +90,7 @@ static void reset_initialization(void)
    ut_mutex_result = kODRCSuccess;
    ut_initialize_calls = ut_lock_calls = ut_unlock_calls = 0;
    bKernelStateLockInitialized = FALSE;
-   bChatTogglePending = TRUE;
-   bKeyboardTogglePending = TRUE;
-   bSysopNextTogglePending = TRUE;
-   bInactivityTogglePending = TRUE;
-   bTimeValuePending = TRUE;
-   nPendingTimeValue = 12;
-   nPendingTimeAdjustment = 13;
-   bLockoutPending = TRUE;
-   btPendingShutdown = 14;
+   pPendingUIHead = pPendingUITail = NULL;
 #endif
    od_control.od_status_on = FALSE;
    bLastStatusSetting = FALSE;
@@ -124,24 +116,15 @@ static void initializes_cooperative_kernel_state(void)
    UT_ASSERT_EQ_UINT(1, ut_add_calls);
    UT_ASSERT_EQ_UINT(1, ut_mask_calls);
 #endif
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
    UT_ASSERT_EQ_UINT(1, ut_initialize_calls);
    UT_ASSERT(bKernelStateLockInitialized);
-   UT_ASSERT_EQ_UINT(1, ut_lock_calls);
-   UT_ASSERT_EQ_UINT(1, ut_unlock_calls);
-   UT_ASSERT(!bChatTogglePending);
-   UT_ASSERT(!bKeyboardTogglePending);
-   UT_ASSERT(!bSysopNextTogglePending);
-   UT_ASSERT(!bInactivityTogglePending);
-   UT_ASSERT(!bTimeValuePending);
-   UT_ASSERT_EQ_INT(0, nPendingTimeValue);
-   UT_ASSERT_EQ_INT(0, nPendingTimeAdjustment);
-   UT_ASSERT(!bLockoutPending);
-   UT_ASSERT_EQ_UINT(0, btPendingShutdown);
+   UT_ASSERT_NULL(pPendingUIHead);
+   UT_ASSERT_NULL(pPendingUITail);
 #endif
 }
 
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
 static void reports_state_lock_initialization_failure_and_reuses_the_lock(void)
 {
    reset_initialization();
@@ -154,14 +137,14 @@ static void reports_state_lock_initialization_failure_and_reuses_the_lock(void)
    bKernelStateLockInitialized = TRUE;
    UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODKrnlInitialize());
    UT_ASSERT_EQ_UINT(0, ut_initialize_calls);
-   UT_ASSERT_EQ_UINT(1, ut_lock_calls);
-   UT_ASSERT_EQ_UINT(1, ut_unlock_calls);
+   UT_ASSERT_EQ_UINT(0, ut_lock_calls);
+   UT_ASSERT_EQ_UINT(0, ut_unlock_calls);
 }
 #endif
 
 static const UTTestCase ut_cases[] = {
    {"state", initializes_cooperative_kernel_state},
-#ifdef OD_THREAD_SUPPORT
+#ifdef ODPLAT_WIN32
    {"state lock", reports_state_lock_initialization_failure_and_reuses_the_lock}
 #endif
 };

@@ -38,6 +38,32 @@
 #define OD_MIN_USER_TIME_MINUTES 0
 #define OD_MAX_USER_TIME_MINUTES 1440
 
+#ifdef ODPLAT_WIN32
+typedef struct
+{
+   HICON hAppIcon;
+   char szProgramName[sizeof(od_control.od_prog_name)];
+   char szProgramCopyright[sizeof(od_control.od_prog_copyright)];
+   char szProgramVersion[sizeof(od_control.od_prog_version)];
+   char szUserName[sizeof(od_control.user_name)];
+   char szUserLocation[sizeof(od_control.user_location)];
+   char szUserReasonForChat[sizeof(od_control.user_reasonforchat)];
+   DWORD dwBaud;
+   DWORD dwConnectSpeed;
+   INT nNode;
+   INT nTimeLimit;
+   INT nCmdShow;
+   WORD wDisable;
+   BOOL bUserWantsChat;
+   BOOL bInactivityDisabled;
+   BOOL bSysopNext;
+   BOOL bUserKeyboardOn;
+   BOOL bChatActive;
+   void (*pfHelpCallback)(void);
+   void (*pfConfigCallback)(void);
+} tODUIState;
+#endif
+
 /* Global kernel-related variables. */
 extern tODTimer RunKernelTimer;
 extern time_t nNextTimeDeductTime;
@@ -64,8 +90,11 @@ void ODKrnlRequestKeyboardToggle(void);
 void ODKrnlRequestSysopNextToggle(void);
 void ODKrnlRequestInactivityToggle(void);
 void ODKrnlRequestTimeAdjustment(INT nMinutes);
-void ODKrnlRequestTimeValue(INT nMinutes);
 void ODKrnlRequestLockout(void);
+#ifdef ODPLAT_WIN32
+BOOL ODKrnlRefreshUIState(void);
+void ODKrnlGetUIState(tODUIState *pState);
+#endif
 
 /* Run the cooperative kernel from OpenDoors progress points. */
 #define CALL_KERNEL_IF_NEEDED()     od_kernel()

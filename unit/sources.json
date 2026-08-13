@@ -22,7 +22,10 @@
       "path": "ODKrnl.c",
       "platforms": ["unix", "windows", "dos16", "dos32"],
       "function_platforms": {
-        "ODKrnlQueueShutdown": ["windows"]
+        "ODKrnlQueueShutdown": ["windows"],
+        "ODKrnlQueueUIChange": ["windows"],
+        "ODKrnlRefreshUIState": ["windows"],
+        "ODKrnlGetUIState": ["windows"]
       }
     },
     {"path": "ODList.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
@@ -39,7 +42,7 @@
     {"path": "ODStand.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
     {"path": "ODStat.c", "platforms": ["unix", "windows", "dos16", "dos32"], "function_platforms": {"ODStatForceStatusUpdate": ["dos16", "dos32"]}},
     {"path": "ODStr.c", "platforms": ["unix"]},
-    {"path": "ODSync.c", "platforms": ["unix", "windows", "dos16", "dos32"], "function_platforms": {"ODControlWakeWaiters": ["windows"], "ODControlReadAcquire": ["windows"], "ODControlReadRelease": ["windows"], "ODControlWriteAcquire": ["windows"], "ODControlWriteRelease": ["windows"]}},
+    {"path": "ODSync.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
     {"path": "ODUtil.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
     {"path": "ODWCat.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
     {"path": "ODWin.c", "platforms": ["unix", "windows", "dos16", "dos32"]},

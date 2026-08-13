@@ -1,12 +1,12 @@
-#define UT_CUSTOM_MOCK_ODSyncAPIWriterHeldByCurrentThread
+#define UT_CUSTOM_MOCK_ODSyncAPIActiveOnOwnerThread
 #define UT_CUSTOM_MOCK_ODSyncAPIRelease
 #define UT_CUSTOM_MOCK_ODSyncAPIReacquire
 #define UT_CUSTOM_MOCK_MessageBoxA
-static BOOL ut_writer_held;
+static BOOL ut_api_active;
 static unsigned ut_release_calls;
 static unsigned ut_reacquire_calls;
 static unsigned ut_message_calls;
-BOOL utm_ODSyncAPIWriterHeldByCurrentThread(void) { return(ut_writer_held); }
+BOOL utm_ODSyncAPIActiveOnOwnerThread(void) { return(ut_api_active); }
 unsigned utm_ODSyncAPIRelease(void) { ++ut_release_calls; return(3); }
 void utm_ODSyncAPIReacquire(unsigned level)
 {
@@ -21,12 +21,12 @@ int WINAPI utm_MessageBoxA(HWND window, LPCSTR text, LPCSTR title, UINT type)
 
 static void displays_with_and_without_releasing_the_api_writer(void)
 {
-   ut_writer_held = FALSE; ut_release_calls = ut_reacquire_calls = 0;
+   ut_api_active = FALSE; ut_release_calls = ut_reacquire_calls = 0;
    ut_message_calls = 0;
    utt_ODDiagnosticMessage("diagnostic", "title");
    UT_ASSERT_EQ_UINT(1, ut_message_calls);
    UT_ASSERT_EQ_UINT(0, ut_release_calls); UT_ASSERT_EQ_UINT(0, ut_reacquire_calls);
-   ut_writer_held = TRUE;
+   ut_api_active = TRUE;
    utt_ODDiagnosticMessage("diagnostic", "title");
    UT_ASSERT_EQ_UINT(1, ut_release_calls); UT_ASSERT_EQ_UINT(1, ut_reacquire_calls);
 }

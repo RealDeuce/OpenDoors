@@ -1,133 +1,83 @@
 # Threading and session ownership
 
-This document describes the internal threading design and the constraints
-which must be preserved when OpenDoors is changed. It is intended for library
-developers. Application authors should use the public rules in
-[Windows programming](../guides/windows.md#threads-and-api-ownership) and the
-[`od_control` lock reference](../reference/api/od_control_read_lock.md).
+This document describes the internal threading design. Application authors
+should use the public rules in
+[Windows programming](../guides/windows.md#threads-and-api-ownership).
 
 ## Compatibility requirements
 
-[OpenDoor.h](../reference/api/index.md) exposes one process-wide
-[`od_control`](../reference/control/index.md) object and an API designed
-around one active door session. The thread which calls
-[`od_init()`](../reference/api/od_init.md) is the session-owner thread. Every
-public function, public global, returned public pointer, and application
-callback which is permitted to call OpenDoors belongs to that thread.
-
-The implementation retains the public [`tODControl`](../reference/types.md#todcontrol)
-layout, established calling conventions, entry points, data exports, and DLL
-ordinals. Windows 98 and Windows XP remain valid legacy targets, so internal
-threading uses facilities available in their Win32 and C runtime environments.
+The public API has one process-wide [`od_control`](../reference/control/index.md)
+object and one active door session. The thread which calls
+[`od_init()`](../reference/api/od_init.md) owns every public function, public
+global, returned public pointer, and owner callback. The implementation must
+retain the `tODControl` layout and established calling conventions, including
+support for legacy Win32 and 16-bit DOS targets.
 
 ## Thread roles
 
-All platforms use the same cooperative kernel flow. The session-owner thread
-polls communications, detects carrier loss, interprets input, updates time and
-status, runs chat mode, mutates terminal state, invokes application callbacks,
-and performs initialization and shutdown. Public API boundaries and bounded
-wait checkpoints call that kernel often enough to make progress without a
-background kernel worker.
+All platforms use the same cooperative kernel flow. The session owner polls
+communications, detects carrier loss, interprets input, updates time and
+status, runs chat mode, mutates terminal state, invokes owner callbacks, and
+performs initialization and shutdown.
 
-Windows retains one library user-interface thread:
+Windows retains one library UI thread. It owns the top-level window, screen
+child, and their message queue; converts operator commands to pending
+owner-thread operations; and paints published screen generations. Startup and
+shutdown use events and a cooperative message-loop stop followed by a join.
 
-- The frame thread owns the top-level Win32 window, the screen child, and their
-  shared message queue. It converts operator commands into pending owner-thread
-  operations and paints published screen generations.
-
-The frame creates and destroys its child synchronously, so Win32 parent/child
-notifications stay on one thread. UI startup is published to the session owner
-with an event rather than `volatile` polling. Shutdown wakes the frame message
-loop, joins the frame thread, and closes its handle; asynchronous thread
-cancellation is not used.
-
-`OD_THREAD_SUPPORT` is an internal build macro. It means the platform thread
-and synchronization primitives needed by the Windows UI must be compiled; it
-does not select a separate kernel implementation and is not a public feature
-macro.
+`OD_THREAD_SUPPORT` is an internal build macro selecting the thread primitives
+needed by the Windows UI. It does not select a separate kernel implementation.
 
 ## Synchronization domains
 
-The control lock is a writer-preferring read/write lock implemented from a
-Win32 mutex and change event. An outer public API call holds its write side
-while operating on shared session state.
+The owner is the sole accessor of `od_control`. The Windows UI reads a cache
+containing only its required fields. At an outer API entry, exit, or blocking
+checkpoint, the owner drains the pending UI FIFO into `od_control` in order and
+then refreshes that cache. The cache and FIFO head and tail are protected by
+the kernel-state mutex.
 
-Windows screen state has two complete buffers. The session owner mutates the
-application buffer and records one dirty bit. At the outermost API exit, and
-before a blocking path releases API ownership, it takes the presentation
-mutex, exchanges the application and display buffers, copies the published
-display generation back into the new application buffer, snapshots cursor and
-caret state, invalidates the whole child, and releases the mutex. `WM_PAINT`
-holds only the presentation mutex while GDI reads the display generation. It
-never takes the control lock, and a delayed paint does not prevent the owner
-from continuing to mutate its private application buffer.
+Windows screen state has two complete buffers. The owner mutates the
+application buffer and records one dirty bit. At outer API exit, or before a
+blocking checkpoint, it exchanges buffers under the presentation mutex and
+invalidates the screen child. `WM_PAINT` holds only that mutex while reading an
+immutable display generation.
 
-The kernel-state mutex protects pending operations posted by the frame thread.
-Code must not hold it while acquiring the control lock or invoking application
-code. The input queue has its own mutex for indices, event storage, and
-last-activity time, plus a counting semaphore for available events.
-Communications-object serialization remains inside the communications module.
-
-The public [`od_control`](../reference/control/index.md) locks are logical,
-nestable owner-thread locks. A read lock may be nested under a write lock;
-read-to-write promotion is rejected. On entry to an outer OpenDoors API call,
-a held public lock is released and the API write lock is acquired. The public
-lock is restored before the call returns.
+The input queue mutex protects its indices, event storage, last-activity time,
+and last list-control key. Its semaphore counts available events.
+Communications serialization remains inside the communications module.
 
 ## Owner dispatch and callbacks
 
-The owner drains pending UI operations at the outermost API entry and exit and
-at bounded blocking-call checkpoints. Pending bits represent chat, keyboard,
-sysop-next, inactivity, time-limit, lockout, and shutdown requests. Dispatch
-copies and clears those bits under the kernel-state mutex, then applies them
-without holding that mutex. A shutdown request takes precedence over a chat
-toggle from the same batch.
+Frame requests are nodes in an ordered linked FIFO: chat, keyboard,
+sysop-next, inactivity, time-limit, lockout, or shutdown. Dispatch detaches the
+FIFO under the kernel-state mutex, then applies and frees nodes without holding
+the mutex. Requests are neither coalesced nor reordered.
 
-Time processing is cooperative and therefore already runs on the owner. Time
-messages and their application callback are delivered synchronously in that
-context. Owner callbacks, including chat and
-[`od_ker_exec`](../reference/control/customization.md#od_ker_exec), may call the
-OpenDoors API recursively. They should return promptly.
+Time processing and normal application callbacks run synchronously on the
+owner. Windows help and configuration callbacks retain their established
+frame-thread context. They block the frame message loop while running and must
+not access any OpenDoors API, ABI object, or returned pointer. They may notify
+application-owned synchronization or queue work for the owner.
 
-Windows help and configuration callbacks retain their established frame-thread
-context. They must return promptly and must not access an OpenDoors API, ABI
-object, or pointer. They may notify application-owned synchronization or queue
-work for the session owner.
-
-No application callback is invoked while the kernel-state or input-queue mutex
-is held. A new callback must be assigned and documented as either an owner
-callback or a restricted UI callback before implementation.
+No callback runs while the kernel-state or input-queue mutex is held.
 
 ## Blocking calls and shutdown
 
-Blocking input and modem-response waits use short bounded waits. The owner
-releases the API writer before each queue or operating-system wait, reacquires
-it afterward, dispatches pending UI work, and runs the cooperative kernel.
-[`od_sleep()`](../reference/api/od_sleep.md) uses the same checkpoint. This
-keeps remote input, carrier state, timers, and UI commands moving while a
-public call waits.
+Blocking input and modem waits use short bounded waits. The owner temporarily
+drops its API nesting level, waits, restores that level, dispatches pending UI
+work, and runs the cooperative kernel. Process creation uses the same nesting
+release and restore around child execution.
 
-Process creation similarly releases the complete nested API level while a
-child executes, then restores it before touching session state. There are no
-kernel workers to stop or restart around [`od_spawnvpe()`](../reference/api/od_spawnvpe.md).
-
-[`od_exit()`](../reference/api/od_exit.md) stops and joins the Windows UI
-thread before releasing the input queue, communications object, or virtual
-screen. The cooperative kernel owns no per-run thread resources.
+[`od_exit()`](../reference/api/od_exit.md) stops and joins the Windows UI before
+destroying the UI FIFO mutex, input queue, communications object, or virtual
+screen.
 
 ## Review checklist
 
-When adding asynchronous activity or shared state, verify all of the following:
-
-1. Work that can run cooperatively stays in the shared owner-thread kernel.
-2. A necessary UI thread has one owner for its handle and one cooperative stop
-   path; partial startup unwinds every resource already created.
-3. A UI thread never invokes public API or owner-thread application code.
-4. Cross-thread work is represented as data and dispatched by the owner.
-5. No control, kernel-state, or input-queue lock is held while sleeping,
-   waiting for input, performing communications I/O, painting, or joining a
-   thread. Windows painting holds only the presentation mutex which protects
-   its immutable display generation.
-6. Application callbacks never run under the kernel-state or input-queue mutex.
-7. The implementation compiles with current MSVC and MinGW and with the 16-bit
-   Open Watcom build wherever the code is not platform-guarded.
+1. Cooperative work stays in the shared owner-thread kernel.
+2. Cross-thread work is represented as data and dispatched by the owner.
+3. The UI thread never invokes owner-thread API or owner callbacks.
+4. No kernel-state or input-queue mutex is held while waiting, painting,
+   communicating, joining a thread, or invoking application code.
+5. New platform-guarded code remains compilable by every applicable legacy
+   toolchain.

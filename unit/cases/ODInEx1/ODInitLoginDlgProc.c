@@ -2,26 +2,20 @@
 #define UT_CUSTOM_MOCK_GetDlgItem
 #define UT_CUSTOM_MOCK_GetWindowTextA
 #define UT_CUSTOM_MOCK_ODFrameCenterWindowInParent
+#define UT_CUSTOM_MOCK_ODKrnlGetUIState
 #define UT_CUSTOM_MOCK_ODStringCopy
-#define UT_CUSTOM_MOCK_ODSyncControlReadLock
-#define UT_CUSTOM_MOCK_ODSyncControlReadUnlock
-#define UT_CUSTOM_MOCK_ODSyncControlWriteLock
-#define UT_CUSTOM_MOCK_ODSyncControlWriteUnlock
 #define UT_CUSTOM_MOCK_SendMessageA
 #define UT_CUSTOM_MOCK_SetWindowTextA
 
 enum
 {
-   MOCK_READ_LOCK = 1,
+   MOCK_GET_STATE = 1,
    MOCK_COPY,
-   MOCK_READ_UNLOCK,
    MOCK_CENTER,
    MOCK_SET_TEXT,
    MOCK_GET_ITEM,
    MOCK_SEND,
    MOCK_GET_TEXT,
-   MOCK_WRITE_LOCK,
-   MOCK_WRITE_UNLOCK,
    MOCK_END
 };
 
@@ -32,29 +26,16 @@ static HWND ut_control = (HWND)&ut_control_token;
 static const char *ut_entered_name;
 static unsigned ut_copy_count;
 static char *ut_copy_destinations[2];
-static const char *ut_copy_sources[2];
+static char ut_copy_sources[2][80];
 static INT ut_copy_sizes[2];
 static const char *ut_window_texts[2];
 static unsigned ut_window_text_count;
+static tODUIState ut_state;
 
-void utm_ODSyncControlReadLock(void)
+void utm_ODKrnlGetUIState(tODUIState *state)
 {
-   ut_mock_called(MOCK_READ_LOCK);
-}
-
-void utm_ODSyncControlReadUnlock(void)
-{
-   ut_mock_called(MOCK_READ_UNLOCK);
-}
-
-void utm_ODSyncControlWriteLock(void)
-{
-   ut_mock_called(MOCK_WRITE_LOCK);
-}
-
-void utm_ODSyncControlWriteUnlock(void)
-{
-   ut_mock_called(MOCK_WRITE_UNLOCK);
+   ut_mock_called(MOCK_GET_STATE);
+   *state = ut_state;
 }
 
 void utm_ODStringCopy(char *destination, const char *source, INT size)
@@ -62,7 +43,7 @@ void utm_ODStringCopy(char *destination, const char *source, INT size)
    INT index;
    UT_ASSERT(ut_copy_count < 2);
    ut_copy_destinations[ut_copy_count] = destination;
-   ut_copy_sources[ut_copy_count] = source;
+   strcpy(ut_copy_sources[ut_copy_count], source);
    ut_copy_sizes[ut_copy_count] = size;
    ++ut_copy_count;
    ut_mock_called(MOCK_COPY);
@@ -140,6 +121,7 @@ BOOL WINAPI utm_EndDialog(HWND dialog, INT_PTR result)
 static void reset_dialog_fixture(void)
 {
    memset(&od_control, 0, sizeof(od_control));
+   memset(&ut_state, 0, sizeof(ut_state));
    memset(ut_copy_destinations, 0, sizeof(ut_copy_destinations));
    memset(ut_copy_sources, 0, sizeof(ut_copy_sources));
    memset(ut_copy_sizes, 0, sizeof(ut_copy_sizes));
@@ -147,49 +129,40 @@ static void reset_dialog_fixture(void)
    ut_copy_count = 0;
    ut_window_text_count = 0;
    ut_entered_name = "Entered Name";
+   strcpy(szWindowsStartupUserName, "Default user");
+   bWindowsStartupCancelled = FALSE;
 }
 
-static void initializes_the_dialog_from_a_locked_control_snapshot(void)
+static void initializes_the_dialog_from_the_ui_state_cache(void)
 {
    INT_PTR result;
    reset_dialog_fixture();
-   strcpy(od_control.od_prog_name, "Door title");
-   strcpy(od_control.user_name, "Default user");
+   strcpy(ut_state.szProgramName, "Door title");
    result = utt_ODInitLoginDlgProc(ut_dialog, WM_INITDIALOG, 0, 0);
    UT_ASSERT_EQ_INT(TRUE, result);
-   UT_ASSERT_EQ_UINT(2, ut_copy_count);
-   UT_ASSERT_EQ_PTR(od_control.od_prog_name, ut_copy_sources[0]);
+   UT_ASSERT_EQ_UINT(1, ut_copy_count);
+   UT_ASSERT(strcmp("Door title", ut_copy_sources[0]) == 0);
    UT_ASSERT_EQ_UINT(sizeof(od_control.od_prog_name), ut_copy_sizes[0]);
-   UT_ASSERT_EQ_PTR(od_control.user_name, ut_copy_sources[1]);
-   UT_ASSERT_EQ_UINT(sizeof(od_control.user_name), ut_copy_sizes[1]);
    UT_ASSERT(strcmp("Door title", ut_window_texts[0]) == 0);
    UT_ASSERT(strcmp("Default user", ut_window_texts[1]) == 0);
-   UT_ASSERT_EQ_UINT(10, ut_mock_call_count);
-   UT_ASSERT_EQ_UINT(MOCK_READ_LOCK, ut_mock_calls[0]);
-   UT_ASSERT_EQ_UINT(MOCK_READ_UNLOCK, ut_mock_calls[3]);
-   UT_ASSERT_EQ_UINT(MOCK_CENTER, ut_mock_calls[4]);
-   UT_ASSERT_EQ_UINT(MOCK_SEND, ut_mock_calls[9]);
+   UT_ASSERT_EQ_UINT(8, ut_mock_call_count);
+   UT_ASSERT_EQ_UINT(MOCK_GET_STATE, ut_mock_calls[0]);
+   UT_ASSERT_EQ_UINT(MOCK_CENTER, ut_mock_calls[2]);
+   UT_ASSERT_EQ_UINT(MOCK_SEND, ut_mock_calls[7]);
 }
 
-static void accepts_the_entered_name_under_the_write_lock(void)
+static void accepts_the_entered_name_for_owner_side_initialization(void)
 {
    INT_PTR result;
    reset_dialog_fixture();
    result = utt_ODInitLoginDlgProc(ut_dialog, WM_COMMAND, IDOK, 0);
    UT_ASSERT_EQ_INT(TRUE, result);
-   UT_ASSERT(strcmp("Entered Name", od_control.user_name) == 0);
-   UT_ASSERT(strcmp("Entered Name", od_control.user_handle) == 0);
-   UT_ASSERT_EQ_UINT(2, ut_copy_count);
-   UT_ASSERT_EQ_PTR(od_control.user_name, ut_copy_destinations[0]);
-   UT_ASSERT_EQ_PTR(od_control.user_handle, ut_copy_destinations[1]);
-   UT_ASSERT_EQ_UINT(sizeof(od_control.user_name), ut_copy_sizes[0]);
-   UT_ASSERT_EQ_UINT(sizeof(od_control.user_handle), ut_copy_sizes[1]);
-   UT_ASSERT_EQ_UINT(7, ut_mock_call_count);
+   UT_ASSERT(strcmp("Entered Name", szWindowsStartupUserName) == 0);
+   UT_ASSERT_EQ_UINT(0, ut_copy_count);
+   UT_ASSERT_EQ_UINT(3, ut_mock_call_count);
    UT_ASSERT_EQ_UINT(MOCK_GET_ITEM, ut_mock_calls[0]);
    UT_ASSERT_EQ_UINT(MOCK_GET_TEXT, ut_mock_calls[1]);
-   UT_ASSERT_EQ_UINT(MOCK_WRITE_LOCK, ut_mock_calls[2]);
-   UT_ASSERT_EQ_UINT(MOCK_WRITE_UNLOCK, ut_mock_calls[5]);
-   UT_ASSERT_EQ_UINT(MOCK_END, ut_mock_calls[6]);
+   UT_ASSERT_EQ_UINT(MOCK_END, ut_mock_calls[2]);
 }
 
 static void closes_on_cancel(void)
@@ -197,6 +170,7 @@ static void closes_on_cancel(void)
    reset_dialog_fixture();
    UT_ASSERT_EQ_INT(TRUE,
       utt_ODInitLoginDlgProc(ut_dialog, WM_COMMAND, IDCANCEL, 0));
+   UT_ASSERT(bWindowsStartupCancelled);
    UT_ASSERT_EQ_UINT(1, ut_mock_call_count);
    UT_ASSERT_EQ_UINT(MOCK_END, ut_mock_calls[0]);
 }
@@ -218,8 +192,8 @@ static void declines_an_unknown_message(void)
 }
 
 static const UTTestCase ut_cases[] = {
-   {"initialize", initializes_the_dialog_from_a_locked_control_snapshot},
-   {"accept", accepts_the_entered_name_under_the_write_lock},
+   {"initialize", initializes_the_dialog_from_the_ui_state_cache},
+   {"accept", accepts_the_entered_name_for_owner_side_initialization},
    {"cancel", closes_on_cancel},
    {"unknown command", consumes_an_unknown_command_without_side_effects},
    {"unknown message", declines_an_unknown_message}

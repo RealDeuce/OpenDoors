@@ -998,7 +998,7 @@
           "name": "od_page",
           "signature_line": 723,
           "body_line": 736,
-          "end_line": 921,
+          "end_line": 917,
           "platforms": [
             "unix",
             "windows",
@@ -1009,9 +1009,9 @@
         },
         {
           "name": "od_disp",
-          "signature_line": 921,
-          "body_line": 941,
-          "end_line": 979,
+          "signature_line": 917,
+          "body_line": 937,
+          "end_line": 975,
           "platforms": [
             "unix",
             "windows",
@@ -1022,9 +1022,9 @@
         },
         {
           "name": "od_disp_str",
-          "signature_line": 979,
-          "body_line": 992,
-          "end_line": 1025,
+          "signature_line": 975,
+          "body_line": 988,
+          "end_line": 1021,
           "platforms": [
             "unix",
             "windows",
@@ -1035,9 +1035,9 @@
         },
         {
           "name": "od_set_statusline",
-          "signature_line": 1025,
-          "body_line": 1040,
-          "end_line": 1151,
+          "signature_line": 1021,
+          "body_line": 1036,
+          "end_line": 1147,
           "platforms": [
             "unix",
             "windows",
@@ -1048,9 +1048,9 @@
         },
         {
           "name": "ODStoreTextInfo",
-          "signature_line": 1151,
-          "body_line": 1165,
-          "end_line": 1167,
+          "signature_line": 1147,
+          "body_line": 1161,
+          "end_line": 1163,
           "platforms": [
             "unix",
             "windows",
@@ -1061,9 +1061,9 @@
         },
         {
           "name": "ODRestoreTextInfo",
-          "signature_line": 1167,
-          "body_line": 1180,
-          "end_line": 1185,
+          "signature_line": 1163,
+          "body_line": 1176,
+          "end_line": 1181,
           "platforms": [
             "unix",
             "windows",
@@ -1074,9 +1074,9 @@
         },
         {
           "name": "ODStringToName",
-          "signature_line": 1185,
-          "body_line": 1199,
-          "end_line": 1237,
+          "signature_line": 1181,
+          "body_line": 1195,
+          "end_line": 1233,
           "platforms": [
             "unix",
             "windows",
@@ -1087,9 +1087,9 @@
         },
         {
           "name": "od_set_color",
-          "signature_line": 1237,
-          "body_line": 1252,
-          "end_line": 1259,
+          "signature_line": 1233,
+          "body_line": 1248,
+          "end_line": 1255,
           "platforms": [
             "unix",
             "windows",
@@ -1100,9 +1100,9 @@
         },
         {
           "name": "od_set_attrib",
-          "signature_line": 1259,
-          "body_line": 1272,
-          "end_line": 1418,
+          "signature_line": 1255,
+          "body_line": 1268,
+          "end_line": 1414,
           "platforms": [
             "unix",
             "windows",
@@ -1113,9 +1113,9 @@
         },
         {
           "name": "ODAddANSIParameter",
-          "signature_line": 1418,
-          "body_line": 1434,
-          "end_line": 1448,
+          "signature_line": 1414,
+          "body_line": 1430,
+          "end_line": 1444,
           "platforms": [
             "unix",
             "windows",
@@ -1126,9 +1126,9 @@
         },
         {
           "name": "od_putch",
-          "signature_line": 1448,
-          "body_line": 1461,
-          "end_line": 1495,
+          "signature_line": 1444,
+          "body_line": 1457,
+          "end_line": 1491,
           "platforms": [
             "unix",
             "windows",
@@ -1139,9 +1139,9 @@
         },
         {
           "name": "od_set_dtr",
-          "signature_line": 1495,
-          "body_line": 1509,
-          "end_line": 1533,
+          "signature_line": 1491,
+          "body_line": 1505,
+          "end_line": 1529,
           "platforms": [
             "unix",
             "windows",
@@ -1152,9 +1152,9 @@
         },
         {
           "name": "ODCoreSetDTRResult",
-          "signature_line": 1533,
-          "body_line": 1546,
-          "end_line": 1549,
+          "signature_line": 1529,
+          "body_line": 1542,
+          "end_line": 1545,
           "platforms": [
             "unix",
             "windows",
@@ -1165,9 +1165,9 @@
         },
         {
           "name": "od_get_answer",
-          "signature_line": 1549,
-          "body_line": 1564,
-          "end_line": 1607,
+          "signature_line": 1545,
+          "body_line": 1560,
+          "end_line": 1603,
           "platforms": [
             "unix",
             "windows",
@@ -1178,9 +1178,9 @@
         },
         {
           "name": "od_color_config",
-          "signature_line": 1607,
-          "body_line": 1623,
-          "end_line": 1704,
+          "signature_line": 1603,
+          "body_line": 1619,
+          "end_line": 1700,
           "platforms": [
             "unix",
             "windows",
@@ -1191,9 +1191,9 @@
         },
         {
           "name": "ODPagePrompt",
-          "signature_line": 1704,
-          "body_line": 1719,
-          "end_line": 1794,
+          "signature_line": 1700,
+          "body_line": 1715,
+          "end_line": 1790,
           "platforms": [
             "unix",
             "windows",
@@ -1204,9 +1204,9 @@
         },
         {
           "name": "od_control_get",
-          "signature_line": 1794,
-          "body_line": 1809,
-          "end_line": 1814,
+          "signature_line": 1790,
+          "body_line": 1805,
+          "end_line": 1810,
           "platforms": [
             "unix",
             "windows",
@@ -1781,9 +1781,9 @@
       "functions": [
         {
           "name": "ODEmulateGetTextInfo",
-          "signature_line": 125,
-          "body_line": 129,
-          "end_line": 146,
+          "signature_line": 126,
+          "body_line": 130,
+          "end_line": 147,
           "platforms": [
             "unix",
             "windows",
@@ -1794,9 +1794,9 @@
         },
         {
           "name": "ODEmulateSetCursorPos",
-          "signature_line": 146,
-          "body_line": 149,
-          "end_line": 154,
+          "signature_line": 147,
+          "body_line": 150,
+          "end_line": 155,
           "platforms": [
             "unix",
             "windows",
@@ -1807,9 +1807,9 @@
         },
         {
           "name": "ODEmulateCopyText",
-          "signature_line": 154,
-          "body_line": 158,
-          "end_line": 165,
+          "signature_line": 155,
+          "body_line": 159,
+          "end_line": 166,
           "platforms": [
             "unix",
             "windows",
@@ -1820,9 +1820,9 @@
         },
         {
           "name": "od_hotkey_menu",
-          "signature_line": 165,
-          "body_line": 194,
-          "end_line": 263,
+          "signature_line": 166,
+          "body_line": 195,
+          "end_line": 264,
           "platforms": [
             "unix",
             "windows",
@@ -1833,9 +1833,9 @@
         },
         {
           "name": "od_send_file",
-          "signature_line": 263,
-          "body_line": 285,
-          "end_line": 597,
+          "signature_line": 264,
+          "body_line": 286,
+          "end_line": 598,
           "platforms": [
             "unix",
             "windows",
@@ -1846,9 +1846,9 @@
         },
         {
           "name": "od_send_file_section",
-          "signature_line": 597,
-          "body_line": 626,
-          "end_line": 1004,
+          "signature_line": 598,
+          "body_line": 627,
+          "end_line": 1005,
           "platforms": [
             "unix",
             "windows",
@@ -1859,9 +1859,9 @@
         },
         {
           "name": "ODEmulatePathExtension",
-          "signature_line": 1004,
-          "body_line": 1019,
-          "end_line": 1037,
+          "signature_line": 1005,
+          "body_line": 1020,
+          "end_line": 1038,
           "platforms": [
             "unix",
             "windows",
@@ -1872,9 +1872,9 @@
         },
         {
           "name": "ODEmulateExtensionIsRIP",
-          "signature_line": 1037,
-          "body_line": 1052,
-          "end_line": 1067,
+          "signature_line": 1038,
+          "body_line": 1053,
+          "end_line": 1068,
           "platforms": [
             "unix",
             "windows",
@@ -1885,9 +1885,9 @@
         },
         {
           "name": "ODEmulateAutoNameFits",
-          "signature_line": 1067,
-          "body_line": 1082,
-          "end_line": 1087,
+          "signature_line": 1068,
+          "body_line": 1083,
+          "end_line": 1088,
           "platforms": [
             "unix",
             "windows",
@@ -1898,9 +1898,9 @@
         },
         {
           "name": "ODEmulateBuildRIPMessage",
-          "signature_line": 1087,
-          "body_line": 1106,
-          "end_line": 1118,
+          "signature_line": 1088,
+          "body_line": 1107,
+          "end_line": 1119,
           "platforms": [
             "unix",
             "windows",
@@ -1911,9 +1911,9 @@
         },
         {
           "name": "ODEmulateFindCompatFile",
-          "signature_line": 1118,
-          "body_line": 1137,
-          "end_line": 1190,
+          "signature_line": 1119,
+          "body_line": 1138,
+          "end_line": 1191,
           "platforms": [
             "unix",
             "windows",
@@ -1924,9 +1924,9 @@
         },
         {
           "name": "od_disp_emu",
-          "signature_line": 1190,
-          "body_line": 1209,
-          "end_line": 1242,
+          "signature_line": 1191,
+          "body_line": 1210,
+          "end_line": 1243,
           "platforms": [
             "unix",
             "windows",
@@ -1937,9 +1937,9 @@
         },
         {
           "name": "od_emulate",
-          "signature_line": 1242,
-          "body_line": 1258,
-          "end_line": 1275,
+          "signature_line": 1243,
+          "body_line": 1259,
+          "end_line": 1276,
           "platforms": [
             "unix",
             "windows",
@@ -1950,9 +1950,9 @@
         },
         {
           "name": "ODEmulateFromBuffer",
-          "signature_line": 1275,
-          "body_line": 1298,
-          "end_line": 2397,
+          "signature_line": 1276,
+          "body_line": 1299,
+          "end_line": 2398,
           "platforms": [
             "unix",
             "windows",
@@ -1963,9 +1963,9 @@
         },
         {
           "name": "ODEmulateFillArea",
-          "signature_line": 2397,
-          "body_line": 2420,
-          "end_line": 2447,
+          "signature_line": 2398,
+          "body_line": 2421,
+          "end_line": 2448,
           "platforms": [
             "unix",
             "windows",
@@ -2174,9 +2174,9 @@
       "functions": [
         {
           "name": "safe_strcpy",
-          "signature_line": 321,
-          "body_line": 326,
-          "end_line": 333,
+          "signature_line": 325,
+          "body_line": 330,
+          "end_line": 337,
           "platforms": [
             "unix",
             "windows",
@@ -2187,9 +2187,9 @@
         },
         {
           "name": "safe_strcat",
-          "signature_line": 333,
-          "body_line": 337,
-          "end_line": 351,
+          "signature_line": 337,
+          "body_line": 341,
+          "end_line": 355,
           "platforms": [
             "unix",
             "windows",
@@ -2200,9 +2200,9 @@
         },
         {
           "name": "od_set_port",
-          "signature_line": 351,
-          "body_line": 365,
-          "end_line": 377,
+          "signature_line": 355,
+          "body_line": 369,
+          "end_line": 381,
           "platforms": [
             "unix",
             "windows",
@@ -2213,9 +2213,9 @@
         },
         {
           "name": "od_init",
-          "signature_line": 377,
-          "body_line": 393,
-          "end_line": 1550,
+          "signature_line": 381,
+          "body_line": 397,
+          "end_line": 1554,
           "platforms": [
             "unix",
             "windows",
@@ -2226,9 +2226,9 @@
         },
         {
           "name": "ODInitReadSFDoorsDAT",
-          "signature_line": 1550,
-          "body_line": 1563,
-          "end_line": 1758,
+          "signature_line": 1554,
+          "body_line": 1567,
+          "end_line": 1762,
           "platforms": [
             "unix",
             "windows",
@@ -2239,9 +2239,9 @@
         },
         {
           "name": "ODInitReadExitInfo",
-          "signature_line": 1758,
-          "body_line": 1771,
-          "end_line": 1974,
+          "signature_line": 1762,
+          "body_line": 1775,
+          "end_line": 1978,
           "platforms": [
             "unix",
             "windows",
@@ -2252,9 +2252,9 @@
         },
         {
           "name": "ODInitTerminalSpeedToBaud",
-          "signature_line": 1974,
-          "body_line": 1990,
-          "end_line": 2064,
+          "signature_line": 1978,
+          "body_line": 1994,
+          "end_line": 2068,
           "platforms": [
             "unix"
           ],
@@ -2262,9 +2262,9 @@
         },
         {
           "name": "ODInitSelectTerminalBaud",
-          "signature_line": 2064,
-          "body_line": 2075,
-          "end_line": 2083,
+          "signature_line": 2068,
+          "body_line": 2079,
+          "end_line": 2087,
           "platforms": [
             "unix"
           ],
@@ -2272,9 +2272,9 @@
         },
         {
           "name": "ODInitApplyUserInfo",
-          "signature_line": 2083,
-          "body_line": 2094,
-          "end_line": 2109,
+          "signature_line": 2087,
+          "body_line": 2098,
+          "end_line": 2113,
           "platforms": [
             "unix"
           ],
@@ -2282,9 +2282,9 @@
         },
         {
           "name": "ODInitPartTwo",
-          "signature_line": 2109,
-          "body_line": 2126,
-          "end_line": 2658,
+          "signature_line": 2113,
+          "body_line": 2130,
+          "end_line": 2686,
           "platforms": [
             "unix",
             "windows",
@@ -2295,9 +2295,9 @@
         },
         {
           "name": "ODInitError",
-          "signature_line": 2658,
-          "body_line": 2673,
-          "end_line": 2702,
+          "signature_line": 2686,
+          "body_line": 2701,
+          "end_line": 2730,
           "platforms": [
             "unix",
             "windows",
@@ -2308,9 +2308,9 @@
         },
         {
           "name": "ODInitLoginDlgProc",
-          "signature_line": 2702,
-          "body_line": 2723,
-          "end_line": 2789,
+          "signature_line": 2730,
+          "body_line": 2751,
+          "end_line": 2810,
           "platforms": [
             "windows"
           ],
@@ -2409,7 +2409,7 @@
           "name": "od_exit",
           "signature_line": 273,
           "body_line": 292,
-          "end_line": 1009,
+          "end_line": 1008,
           "platforms": [
             "unix",
             "windows",
@@ -2420,9 +2420,9 @@
         },
         {
           "name": "ODSearchForDropFile",
-          "signature_line": 1009,
-          "body_line": 1049,
-          "end_line": 1096,
+          "signature_line": 1008,
+          "body_line": 1048,
+          "end_line": 1095,
           "platforms": [
             "unix",
             "windows",
@@ -2433,9 +2433,9 @@
         },
         {
           "name": "ODSearchInDir",
-          "signature_line": 1096,
-          "body_line": 1122,
-          "end_line": 1178,
+          "signature_line": 1095,
+          "body_line": 1121,
+          "end_line": 1177,
           "platforms": [
             "unix",
             "windows",
@@ -2446,9 +2446,9 @@
         },
         {
           "name": "ODReadExitInfoPrimitive",
-          "signature_line": 1178,
-          "body_line": 1193,
-          "end_line": 1257,
+          "signature_line": 1177,
+          "body_line": 1192,
+          "end_line": 1256,
           "platforms": [
             "unix",
             "windows",
@@ -2459,9 +2459,9 @@
         },
         {
           "name": "ODWriteExitInfoPrimitive",
-          "signature_line": 1257,
-          "body_line": 1272,
-          "end_line": 1332,
+          "signature_line": 1256,
+          "body_line": 1271,
+          "end_line": 1331,
           "platforms": [
             "unix",
             "windows",
@@ -2472,9 +2472,9 @@
         },
         {
           "name": "ODAtExitCallback",
-          "signature_line": 1332,
-          "body_line": 1359,
-          "end_line": 1372,
+          "signature_line": 1331,
+          "body_line": 1358,
+          "end_line": 1371,
           "platforms": [
             "unix",
             "dos16",
@@ -2484,9 +2484,9 @@
         },
         {
           "name": "ODSendModemCommand",
-          "signature_line": 1372,
-          "body_line": 1399,
-          "end_line": 1412,
+          "signature_line": 1371,
+          "body_line": 1398,
+          "end_line": 1411,
           "platforms": [
             "windows"
           ],
@@ -2494,9 +2494,9 @@
         },
         {
           "name": "ODSendModemCommandOnce",
-          "signature_line": 1412,
-          "body_line": 1431,
-          "end_line": 1528,
+          "signature_line": 1411,
+          "body_line": 1430,
+          "end_line": 1527,
           "platforms": [
             "windows"
           ],
@@ -2504,9 +2504,9 @@
         },
         {
           "name": "ODWaitForString",
-          "signature_line": 1528,
-          "body_line": 1545,
-          "end_line": 1630,
+          "signature_line": 1527,
+          "body_line": 1544,
+          "end_line": 1629,
           "platforms": [
             "windows"
           ],
@@ -2514,9 +2514,9 @@
         },
         {
           "name": "ODOwnerThreadSleep",
-          "signature_line": 1630,
-          "body_line": 1640,
-          "end_line": 1649,
+          "signature_line": 1629,
+          "body_line": 1639,
+          "end_line": 1648,
           "platforms": [
             "windows"
           ],
@@ -2524,9 +2524,9 @@
         },
         {
           "name": "ODDiagnosticMessage",
-          "signature_line": 1649,
-          "body_line": 1654,
-          "end_line": 1668,
+          "signature_line": 1648,
+          "body_line": 1653,
+          "end_line": 1667,
           "platforms": [
             "windows"
           ],
@@ -2534,9 +2534,9 @@
         },
         {
           "name": "ODInExDisableDTR",
-          "signature_line": 1668,
-          "body_line": 1682,
-          "end_line": 1723,
+          "signature_line": 1667,
+          "body_line": 1681,
+          "end_line": 1722,
           "platforms": [
             "windows"
           ],
@@ -2596,7 +2596,20 @@
           "name": "ODInQueueAddEvent",
           "signature_line": 224,
           "body_line": 241,
-          "end_line": 291,
+          "end_line": 309,
+          "platforms": [
+            "unix",
+            "windows",
+            "dos16",
+            "dos32"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODInQueueExchangeLastControlKey",
+          "signature_line": 309,
+          "body_line": 315,
+          "end_line": 332,
           "platforms": [
             "unix",
             "windows",
@@ -2607,9 +2620,9 @@
         },
         {
           "name": "ODInQueueGetNextEvent",
-          "signature_line": 314,
-          "body_line": 317,
-          "end_line": 408,
+          "signature_line": 355,
+          "body_line": 358,
+          "end_line": 449,
           "platforms": [
             "unix",
             "windows",
@@ -2620,9 +2633,9 @@
         },
         {
           "name": "ODInQueueEmpty",
-          "signature_line": 408,
-          "body_line": 421,
-          "end_line": 431,
+          "signature_line": 449,
+          "body_line": 462,
+          "end_line": 472,
           "platforms": [
             "unix",
             "windows",
@@ -2633,9 +2646,9 @@
         },
         {
           "name": "ODInQueueGetLastActivity",
-          "signature_line": 431,
-          "body_line": 447,
-          "end_line": 462,
+          "signature_line": 472,
+          "body_line": 488,
+          "end_line": 503,
           "platforms": [
             "unix",
             "windows",
@@ -2646,9 +2659,9 @@
         },
         {
           "name": "ODInQueueResetLastActivity",
-          "signature_line": 462,
-          "body_line": 475,
-          "end_line": 488,
+          "signature_line": 503,
+          "body_line": 516,
+          "end_line": 529,
           "platforms": [
             "unix",
             "windows",
@@ -2670,9 +2683,9 @@
       "functions": [
         {
           "name": "ODStatStartArrowUse",
-          "signature_line": 147,
-          "body_line": 161,
-          "end_line": 163,
+          "signature_line": 167,
+          "body_line": 181,
+          "end_line": 183,
           "platforms": [
             "unix",
             "windows",
@@ -2683,9 +2696,9 @@
         },
         {
           "name": "ODStatEndArrowUse",
-          "signature_line": 163,
-          "body_line": 177,
-          "end_line": 180,
+          "signature_line": 183,
+          "body_line": 197,
+          "end_line": 200,
           "platforms": [
             "unix",
             "windows",
@@ -2696,9 +2709,9 @@
         },
         {
           "name": "ODKrnlInitialize",
-          "signature_line": 180,
-          "body_line": 198,
-          "end_line": 243,
+          "signature_line": 200,
+          "body_line": 218,
+          "end_line": 256,
           "platforms": [
             "unix",
             "windows",
@@ -2709,9 +2722,9 @@
         },
         {
           "name": "ODKrnlShutdown",
-          "signature_line": 243,
-          "body_line": 256,
-          "end_line": 258,
+          "signature_line": 256,
+          "body_line": 269,
+          "end_line": 293,
           "platforms": [
             "unix",
             "windows",
@@ -2722,21 +2735,8 @@
         },
         {
           "name": "od_kernel",
-          "signature_line": 271,
-          "body_line": 273,
-          "end_line": 646,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODKrnlHandleLocalKey",
-          "signature_line": 646,
-          "body_line": 661,
+          "signature_line": 306,
+          "body_line": 308,
           "end_line": 681,
           "platforms": [
             "unix",
@@ -2747,10 +2747,23 @@
           "test": null
         },
         {
-          "name": "ODKrnlHandleReceivedChar",
+          "name": "ODKrnlHandleLocalKey",
           "signature_line": 681,
-          "body_line": 698,
-          "end_line": 732,
+          "body_line": 696,
+          "end_line": 720,
+          "platforms": [
+            "unix",
+            "windows",
+            "dos16",
+            "dos32"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODKrnlHandleReceivedChar",
+          "signature_line": 720,
+          "body_line": 737,
+          "end_line": 752,
           "platforms": [
             "unix",
             "windows",
@@ -2761,9 +2774,9 @@
         },
         {
           "name": "ODKrnlTimeUpdate",
-          "signature_line": 732,
-          "body_line": 746,
-          "end_line": 850,
+          "signature_line": 752,
+          "body_line": 766,
+          "end_line": 866,
           "platforms": [
             "unix",
             "windows",
@@ -2774,9 +2787,9 @@
         },
         {
           "name": "ODKrnlDeliverTimeMessage",
-          "signature_line": 850,
-          "body_line": 862,
-          "end_line": 878,
+          "signature_line": 866,
+          "body_line": 878,
+          "end_line": 894,
           "platforms": [
             "unix",
             "windows",
@@ -2786,10 +2799,40 @@
           "test": null
         },
         {
+          "name": "ODKrnlQueueUIChange",
+          "signature_line": 894,
+          "body_line": 899,
+          "end_line": 956,
+          "platforms": [
+            "windows"
+          ],
+          "test": null
+        },
+        {
           "name": "ODKrnlQueueShutdown",
-          "signature_line": 878,
-          "body_line": 882,
-          "end_line": 887,
+          "signature_line": 956,
+          "body_line": 959,
+          "end_line": 962,
+          "platforms": [
+            "windows"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODKrnlRefreshUIState",
+          "signature_line": 962,
+          "body_line": 967,
+          "end_line": 1011,
+          "platforms": [
+            "windows"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODKrnlGetUIState",
+          "signature_line": 1011,
+          "body_line": 1014,
+          "end_line": 1023,
           "platforms": [
             "windows"
           ],
@@ -2797,9 +2840,9 @@
         },
         {
           "name": "ODKrnlForceOpenDoorsShutdown",
-          "signature_line": 887,
-          "body_line": 905,
-          "end_line": 941,
+          "signature_line": 1023,
+          "body_line": 1041,
+          "end_line": 1077,
           "platforms": [
             "unix",
             "windows",
@@ -2810,9 +2853,9 @@
         },
         {
           "name": "ODKrnlRequestChatToggle",
-          "signature_line": 941,
-          "body_line": 944,
-          "end_line": 952,
+          "signature_line": 1077,
+          "body_line": 1080,
+          "end_line": 1086,
           "platforms": [
             "unix",
             "windows",
@@ -2823,9 +2866,9 @@
         },
         {
           "name": "ODKrnlRequestKeyboardToggle",
-          "signature_line": 952,
-          "body_line": 955,
-          "end_line": 963,
+          "signature_line": 1086,
+          "body_line": 1089,
+          "end_line": 1095,
           "platforms": [
             "unix",
             "windows",
@@ -2836,9 +2879,9 @@
         },
         {
           "name": "ODKrnlRequestSysopNextToggle",
-          "signature_line": 963,
-          "body_line": 966,
-          "end_line": 974,
+          "signature_line": 1095,
+          "body_line": 1098,
+          "end_line": 1104,
           "platforms": [
             "unix",
             "windows",
@@ -2849,60 +2892,8 @@
         },
         {
           "name": "ODKrnlRequestInactivityToggle",
-          "signature_line": 974,
-          "body_line": 977,
-          "end_line": 985,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODKrnlRequestTimeAdjustment",
-          "signature_line": 985,
-          "body_line": 988,
-          "end_line": 1003,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODKrnlRequestTimeValue",
-          "signature_line": 1003,
-          "body_line": 1006,
-          "end_line": 1017,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODKrnlRequestLockout",
-          "signature_line": 1017,
-          "body_line": 1020,
-          "end_line": 1031,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODKrnlDispatchPending",
-          "signature_line": 1031,
-          "body_line": 1034,
+          "signature_line": 1104,
+          "body_line": 1107,
           "end_line": 1113,
           "platforms": [
             "unix",
@@ -2913,10 +2904,49 @@
           "test": null
         },
         {
-          "name": "ODKrnlEndChatMode",
+          "name": "ODKrnlRequestTimeAdjustment",
+          "signature_line": 1113,
+          "body_line": 1116,
+          "end_line": 1122,
+          "platforms": [
+            "unix",
+            "windows",
+            "dos16",
+            "dos32"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODKrnlRequestLockout",
           "signature_line": 1122,
-          "body_line": 1134,
-          "end_line": 1136,
+          "body_line": 1125,
+          "end_line": 1133,
+          "platforms": [
+            "unix",
+            "windows",
+            "dos16",
+            "dos32"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODKrnlDispatchPending",
+          "signature_line": 1133,
+          "body_line": 1136,
+          "end_line": 1215,
+          "platforms": [
+            "unix",
+            "windows",
+            "dos16",
+            "dos32"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODKrnlEndChatMode",
+          "signature_line": 1224,
+          "body_line": 1236,
+          "end_line": 1238,
           "platforms": [
             "unix",
             "windows",
@@ -2927,9 +2957,9 @@
         },
         {
           "name": "od_chat",
-          "signature_line": 1136,
-          "body_line": 1151,
-          "end_line": 1166,
+          "signature_line": 1238,
+          "body_line": 1253,
+          "end_line": 1268,
           "platforms": [
             "unix",
             "windows",
@@ -2940,9 +2970,9 @@
         },
         {
           "name": "ODKrnlChatMode",
-          "signature_line": 1166,
-          "body_line": 1179,
-          "end_line": 1394,
+          "signature_line": 1268,
+          "body_line": 1281,
+          "end_line": 1493,
           "platforms": [
             "unix",
             "windows",
@@ -2953,9 +2983,9 @@
         },
         {
           "name": "ODKrnlChatCleanup",
-          "signature_line": 1394,
-          "body_line": 1408,
-          "end_line": 1443,
+          "signature_line": 1493,
+          "body_line": 1507,
+          "end_line": 1537,
           "platforms": [
             "unix",
             "windows",
@@ -2977,9 +3007,9 @@
       "functions": [
         {
           "name": "od_list_files",
-          "signature_line": 73,
-          "body_line": 93,
-          "end_line": 419,
+          "signature_line": 74,
+          "body_line": 94,
+          "end_line": 421,
           "platforms": [
             "unix",
             "windows",
@@ -2990,9 +3020,9 @@
         },
         {
           "name": "ODListFilenameMerge",
-          "signature_line": 419,
-          "body_line": 446,
-          "end_line": 476,
+          "signature_line": 421,
+          "body_line": 448,
+          "end_line": 478,
           "platforms": [
             "unix",
             "windows",
@@ -3003,9 +3033,9 @@
         },
         {
           "name": "ODListFilenameSplit",
-          "signature_line": 476,
-          "body_line": 515,
-          "end_line": 610,
+          "signature_line": 478,
+          "body_line": 517,
+          "end_line": 612,
           "platforms": [
             "unix",
             "windows",
@@ -3016,9 +3046,9 @@
         },
         {
           "name": "ODListGetFirstWord",
-          "signature_line": 610,
-          "body_line": 629,
-          "end_line": 650,
+          "signature_line": 612,
+          "body_line": 631,
+          "end_line": 652,
           "platforms": [
             "unix",
             "windows",
@@ -3029,9 +3059,9 @@
         },
         {
           "name": "ODListGetRemainingWords",
-          "signature_line": 650,
-          "body_line": 665,
-          "end_line": 682,
+          "signature_line": 652,
+          "body_line": 667,
+          "end_line": 684,
           "platforms": [
             "unix",
             "windows",
@@ -3830,7 +3860,7 @@
           "name": "ODScrnStartWindow",
           "signature_line": 776,
           "body_line": 784,
-          "end_line": 822,
+          "end_line": 816,
           "platforms": [
             "windows"
           ],
@@ -3838,9 +3868,9 @@
         },
         {
           "name": "ODScrnStopWindow",
-          "signature_line": 822,
-          "body_line": 831,
-          "end_line": 839,
+          "signature_line": 816,
+          "body_line": 825,
+          "end_line": 833,
           "platforms": [
             "windows"
           ],
@@ -3848,9 +3878,9 @@
         },
         {
           "name": "ODScrnSetFocusToWindow",
-          "signature_line": 839,
-          "body_line": 852,
-          "end_line": 857,
+          "signature_line": 833,
+          "body_line": 846,
+          "end_line": 851,
           "platforms": [
             "windows"
           ],
@@ -3858,9 +3888,9 @@
         },
         {
           "name": "ODScrnSetWinCaretPos",
-          "signature_line": 857,
-          "body_line": 871,
-          "end_line": 889,
+          "signature_line": 851,
+          "body_line": 865,
+          "end_line": 883,
           "platforms": [
             "windows"
           ],
@@ -3868,9 +3898,9 @@
         },
         {
           "name": "ODScrnInitialize",
-          "signature_line": 889,
-          "body_line": 910,
-          "end_line": 1157,
+          "signature_line": 883,
+          "body_line": 904,
+          "end_line": 1151,
           "platforms": [
             "unix",
             "windows",
@@ -3881,9 +3911,9 @@
         },
         {
           "name": "ODScrnShutdown",
-          "signature_line": 1157,
-          "body_line": 1170,
-          "end_line": 1198,
+          "signature_line": 1151,
+          "body_line": 1164,
+          "end_line": 1192,
           "platforms": [
             "unix",
             "windows",
@@ -3894,9 +3924,9 @@
         },
         {
           "name": "ODScrnSetBoundary",
-          "signature_line": 1198,
-          "body_line": 1218,
-          "end_line": 1251,
+          "signature_line": 1192,
+          "body_line": 1212,
+          "end_line": 1245,
           "platforms": [
             "unix",
             "windows",
@@ -3907,9 +3937,9 @@
         },
         {
           "name": "ODScrnSetCursorPos",
-          "signature_line": 1251,
-          "body_line": 1270,
-          "end_line": 1289,
+          "signature_line": 1245,
+          "body_line": 1264,
+          "end_line": 1283,
           "platforms": [
             "unix",
             "windows",
@@ -3920,9 +3950,9 @@
         },
         {
           "name": "ODScrnSetAttribute",
-          "signature_line": 1289,
-          "body_line": 1308,
-          "end_line": 1316,
+          "signature_line": 1283,
+          "body_line": 1302,
+          "end_line": 1310,
           "platforms": [
             "unix",
             "windows",
@@ -3933,9 +3963,9 @@
         },
         {
           "name": "ODScrnEnableScrolling",
-          "signature_line": 1316,
-          "body_line": 1331,
-          "end_line": 1339,
+          "signature_line": 1310,
+          "body_line": 1325,
+          "end_line": 1333,
           "platforms": [
             "unix",
             "windows",
@@ -3946,9 +3976,9 @@
         },
         {
           "name": "ODScrnEnableCaret",
-          "signature_line": 1339,
-          "body_line": 1356,
-          "end_line": 1460,
+          "signature_line": 1333,
+          "body_line": 1350,
+          "end_line": 1454,
           "platforms": [
             "unix",
             "windows",
@@ -3959,9 +3989,9 @@
         },
         {
           "name": "ODScrnGetTextInfo",
-          "signature_line": 1460,
-          "body_line": 1476,
-          "end_line": 1497,
+          "signature_line": 1454,
+          "body_line": 1470,
+          "end_line": 1491,
           "platforms": [
             "unix",
             "windows",
@@ -3972,9 +4002,9 @@
         },
         {
           "name": "ODScrnPrintf",
-          "signature_line": 1497,
-          "body_line": 1514,
-          "end_line": 1557,
+          "signature_line": 1491,
+          "body_line": 1508,
+          "end_line": 1551,
           "platforms": [
             "unix",
             "windows",
@@ -3985,9 +4015,9 @@
         },
         {
           "name": "ODScrnDisplayChar",
-          "signature_line": 1557,
-          "body_line": 1571,
-          "end_line": 1684,
+          "signature_line": 1551,
+          "body_line": 1565,
+          "end_line": 1678,
           "platforms": [
             "unix",
             "windows",
@@ -3998,9 +4028,9 @@
         },
         {
           "name": "ODScrnGetCursorPos",
-          "signature_line": 1684,
-          "body_line": 1699,
-          "end_line": 1728,
+          "signature_line": 1678,
+          "body_line": 1693,
+          "end_line": 1722,
           "platforms": [
             "unix",
             "windows",
@@ -4011,9 +4041,9 @@
         },
         {
           "name": "ODScrnUpdateCaretPos",
-          "signature_line": 1728,
-          "body_line": 1742,
-          "end_line": 1777,
+          "signature_line": 1722,
+          "body_line": 1736,
+          "end_line": 1771,
           "platforms": [
             "unix",
             "windows",
@@ -4024,9 +4054,9 @@
         },
         {
           "name": "ODScrnRingBell",
-          "signature_line": 1777,
-          "body_line": 1781,
-          "end_line": 1796,
+          "signature_line": 1771,
+          "body_line": 1775,
+          "end_line": 1790,
           "platforms": [
             "unix",
             "windows",
@@ -4037,9 +4067,9 @@
         },
         {
           "name": "ODScrnClear",
-          "signature_line": 1796,
-          "body_line": 1811,
-          "end_line": 1855,
+          "signature_line": 1790,
+          "body_line": 1805,
+          "end_line": 1849,
           "platforms": [
             "unix",
             "windows",
@@ -4050,9 +4080,9 @@
         },
         {
           "name": "ODScrnScrollUpAndInvalidate",
-          "signature_line": 1855,
-          "body_line": 1870,
-          "end_line": 1883,
+          "signature_line": 1849,
+          "body_line": 1864,
+          "end_line": 1877,
           "platforms": [
             "unix",
             "windows",
@@ -4063,9 +4093,9 @@
         },
         {
           "name": "ODScrnScrollUpOneLine",
-          "signature_line": 1883,
-          "body_line": 1898,
-          "end_line": 1936,
+          "signature_line": 1877,
+          "body_line": 1892,
+          "end_line": 1930,
           "platforms": [
             "unix",
             "windows",
@@ -4076,9 +4106,9 @@
         },
         {
           "name": "ODScrnGetText",
-          "signature_line": 1936,
-          "body_line": 1965,
-          "end_line": 2006,
+          "signature_line": 1930,
+          "body_line": 1959,
+          "end_line": 2000,
           "platforms": [
             "unix",
             "windows",
@@ -4089,9 +4119,9 @@
         },
         {
           "name": "ODScrnPutText",
-          "signature_line": 2006,
-          "body_line": 2033,
-          "end_line": 2084,
+          "signature_line": 2000,
+          "body_line": 2027,
+          "end_line": 2078,
           "platforms": [
             "unix",
             "windows",
@@ -4102,9 +4132,9 @@
         },
         {
           "name": "ODScrnDisplayString",
-          "signature_line": 2084,
-          "body_line": 2099,
-          "end_line": 2106,
+          "signature_line": 2078,
+          "body_line": 2093,
+          "end_line": 2100,
           "platforms": [
             "unix",
             "windows",
@@ -4115,9 +4145,9 @@
         },
         {
           "name": "ODScrnDisplayBuffer",
-          "signature_line": 2106,
-          "body_line": 2125,
-          "end_line": 2332,
+          "signature_line": 2100,
+          "body_line": 2119,
+          "end_line": 2326,
           "platforms": [
             "unix",
             "windows",
@@ -4128,9 +4158,9 @@
         },
         {
           "name": "ODScrnCopyText",
-          "signature_line": 2332,
-          "body_line": 2366,
-          "end_line": 2417,
+          "signature_line": 2326,
+          "body_line": 2360,
+          "end_line": 2411,
           "platforms": [
             "unix",
             "windows",
@@ -4141,9 +4171,9 @@
         },
         {
           "name": "ODScrnClearToEndOfLine",
-          "signature_line": 2417,
-          "body_line": 2431,
-          "end_line": 2459,
+          "signature_line": 2411,
+          "body_line": 2425,
+          "end_line": 2453,
           "platforms": [
             "unix",
             "windows",
@@ -4154,9 +4184,9 @@
         },
         {
           "name": "ODScrnCreateWindow",
-          "signature_line": 2459,
-          "body_line": 2488,
-          "end_line": 2568,
+          "signature_line": 2453,
+          "body_line": 2482,
+          "end_line": 2562,
           "platforms": [
             "unix",
             "dos16",
@@ -4166,9 +4196,9 @@
         },
         {
           "name": "ODScrnDestroyWindow",
-          "signature_line": 2568,
-          "body_line": 2584,
-          "end_line": 2604,
+          "signature_line": 2562,
+          "body_line": 2578,
+          "end_line": 2598,
           "platforms": [
             "unix",
             "dos16",
@@ -4178,9 +4208,9 @@
         },
         {
           "name": "ODScrnLocalInput",
-          "signature_line": 2604,
-          "body_line": 2629,
-          "end_line": 2720,
+          "signature_line": 2598,
+          "body_line": 2623,
+          "end_line": 2714,
           "platforms": [
             "dos16",
             "dos32"
@@ -4189,9 +4219,9 @@
         },
         {
           "name": "ODScrnShowMessage",
-          "signature_line": 2720,
-          "body_line": 2744,
-          "end_line": 2803,
+          "signature_line": 2714,
+          "body_line": 2738,
+          "end_line": 2797,
           "platforms": [
             "unix",
             "windows",
@@ -4202,9 +4232,9 @@
         },
         {
           "name": "ODScrnRemoveMessage",
-          "signature_line": 2803,
-          "body_line": 2817,
-          "end_line": 2834,
+          "signature_line": 2797,
+          "body_line": 2811,
+          "end_line": 2828,
           "platforms": [
             "unix",
             "windows",
@@ -4215,9 +4245,9 @@
         },
         {
           "name": "ODSessionScreenRectValid",
-          "signature_line": 2868,
-          "body_line": 2872,
-          "end_line": 2880,
+          "signature_line": 2862,
+          "body_line": 2866,
+          "end_line": 2874,
           "platforms": [
             "unix",
             "windows",
@@ -4228,9 +4258,9 @@
         },
         {
           "name": "ODSessionScreenCell",
-          "signature_line": 2880,
-          "body_line": 2883,
-          "end_line": 2888,
+          "signature_line": 2874,
+          "body_line": 2877,
+          "end_line": 2882,
           "platforms": [
             "unix",
             "windows",
@@ -4241,9 +4271,9 @@
         },
         {
           "name": "ODSessionScreenMarkDirty",
-          "signature_line": 2888,
-          "body_line": 2892,
-          "end_line": 2910,
+          "signature_line": 2882,
+          "body_line": 2886,
+          "end_line": 2904,
           "platforms": [
             "unix",
             "windows",
@@ -4254,9 +4284,9 @@
         },
         {
           "name": "ODSessionScreenInitialize",
-          "signature_line": 2910,
-          "body_line": 2913,
-          "end_line": 2984,
+          "signature_line": 2904,
+          "body_line": 2907,
+          "end_line": 2978,
           "platforms": [
             "unix",
             "windows",
@@ -4267,9 +4297,9 @@
         },
         {
           "name": "ODSessionScreenShutdown",
-          "signature_line": 2984,
-          "body_line": 2987,
-          "end_line": 2993,
+          "signature_line": 2978,
+          "body_line": 2981,
+          "end_line": 2987,
           "platforms": [
             "unix",
             "windows",
@@ -4280,9 +4310,9 @@
         },
         {
           "name": "ODSessionScreenAvailable",
-          "signature_line": 2993,
-          "body_line": 2996,
-          "end_line": 2998,
+          "signature_line": 2987,
+          "body_line": 2990,
+          "end_line": 2992,
           "platforms": [
             "unix",
             "windows",
@@ -4293,9 +4323,9 @@
         },
         {
           "name": "ODSessionScreenError",
-          "signature_line": 2998,
-          "body_line": 3001,
-          "end_line": 3003,
+          "signature_line": 2992,
+          "body_line": 2995,
+          "end_line": 2997,
           "platforms": [
             "unix",
             "windows",
@@ -4306,9 +4336,9 @@
         },
         {
           "name": "ODSessionScreenWidth",
-          "signature_line": 3003,
-          "body_line": 3006,
-          "end_line": 3008,
+          "signature_line": 2997,
+          "body_line": 3000,
+          "end_line": 3002,
           "platforms": [
             "unix",
             "windows",
@@ -4319,9 +4349,9 @@
         },
         {
           "name": "ODSessionScreenHeight",
-          "signature_line": 3008,
-          "body_line": 3011,
-          "end_line": 3013,
+          "signature_line": 3002,
+          "body_line": 3005,
+          "end_line": 3007,
           "platforms": [
             "unix",
             "windows",
@@ -4332,9 +4362,9 @@
         },
         {
           "name": "ODSessionScreenGetInfo",
-          "signature_line": 3013,
-          "body_line": 3016,
-          "end_line": 3027,
+          "signature_line": 3007,
+          "body_line": 3010,
+          "end_line": 3021,
           "platforms": [
             "unix",
             "windows",
@@ -4345,9 +4375,9 @@
         },
         {
           "name": "ODSessionScreenSetBoundary",
-          "signature_line": 3027,
-          "body_line": 3030,
-          "end_line": 3044,
+          "signature_line": 3021,
+          "body_line": 3024,
+          "end_line": 3038,
           "platforms": [
             "unix",
             "windows",
@@ -4358,9 +4388,9 @@
         },
         {
           "name": "ODSessionScreenSetCursorPos",
-          "signature_line": 3044,
-          "body_line": 3047,
-          "end_line": 3065,
+          "signature_line": 3038,
+          "body_line": 3041,
+          "end_line": 3059,
           "platforms": [
             "unix",
             "windows",
@@ -4371,6 +4401,19 @@
         },
         {
           "name": "ODSessionScreenSetAttribute",
+          "signature_line": 3059,
+          "body_line": 3062,
+          "end_line": 3065,
+          "platforms": [
+            "unix",
+            "windows",
+            "dos16",
+            "dos32"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODSessionScreenEnableScrolling",
           "signature_line": 3065,
           "body_line": 3068,
           "end_line": 3071,
@@ -4383,23 +4426,10 @@
           "test": null
         },
         {
-          "name": "ODSessionScreenEnableScrolling",
+          "name": "ODSessionScreenScrollUpOneLine",
           "signature_line": 3071,
           "body_line": 3074,
-          "end_line": 3077,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODSessionScreenScrollUpOneLine",
-          "signature_line": 3077,
-          "body_line": 3080,
-          "end_line": 3104,
+          "end_line": 3098,
           "platforms": [
             "unix",
             "windows",
@@ -4410,9 +4440,9 @@
         },
         {
           "name": "ODSessionScreenDisplayChar",
-          "signature_line": 3104,
-          "body_line": 3107,
-          "end_line": 3169,
+          "signature_line": 3098,
+          "body_line": 3101,
+          "end_line": 3163,
           "platforms": [
             "unix",
             "windows",
@@ -4423,6 +4453,19 @@
         },
         {
           "name": "ODSessionScreenDisplayBuffer",
+          "signature_line": 3163,
+          "body_line": 3166,
+          "end_line": 3169,
+          "platforms": [
+            "unix",
+            "windows",
+            "dos16",
+            "dos32"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODSessionScreenDisplayString",
           "signature_line": 3169,
           "body_line": 3172,
           "end_line": 3175,
@@ -4435,23 +4478,10 @@
           "test": null
         },
         {
-          "name": "ODSessionScreenDisplayString",
+          "name": "ODSessionScreenClear",
           "signature_line": 3175,
           "body_line": 3178,
-          "end_line": 3181,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODSessionScreenClear",
-          "signature_line": 3181,
-          "body_line": 3184,
-          "end_line": 3205,
+          "end_line": 3199,
           "platforms": [
             "unix",
             "windows",
@@ -4462,9 +4492,9 @@
         },
         {
           "name": "ODSessionScreenClearToEndOfLine",
-          "signature_line": 3205,
-          "body_line": 3208,
-          "end_line": 3228,
+          "signature_line": 3199,
+          "body_line": 3202,
+          "end_line": 3222,
           "platforms": [
             "unix",
             "windows",
@@ -4475,9 +4505,9 @@
         },
         {
           "name": "ODSessionScreenGetText",
-          "signature_line": 3228,
-          "body_line": 3232,
-          "end_line": 3251,
+          "signature_line": 3222,
+          "body_line": 3226,
+          "end_line": 3245,
           "platforms": [
             "unix",
             "windows",
@@ -4488,9 +4518,9 @@
         },
         {
           "name": "ODSessionScreenPutText",
-          "signature_line": 3251,
-          "body_line": 3255,
-          "end_line": 3278,
+          "signature_line": 3245,
+          "body_line": 3249,
+          "end_line": 3272,
           "platforms": [
             "unix",
             "windows",
@@ -4501,9 +4531,9 @@
         },
         {
           "name": "ODSessionScreenCopyText",
-          "signature_line": 3278,
-          "body_line": 3282,
-          "end_line": 3324,
+          "signature_line": 3272,
+          "body_line": 3276,
+          "end_line": 3318,
           "platforms": [
             "unix",
             "windows",
@@ -4514,9 +4544,9 @@
         },
         {
           "name": "ODSessionScreenPresent",
-          "signature_line": 3324,
-          "body_line": 3327,
-          "end_line": 3388,
+          "signature_line": 3318,
+          "body_line": 3321,
+          "end_line": 3382,
           "platforms": [
             "unix",
             "windows",
@@ -4527,9 +4557,9 @@
         },
         {
           "name": "ODSessionScreenBeginEmulation",
-          "signature_line": 3388,
-          "body_line": 3391,
-          "end_line": 3394,
+          "signature_line": 3382,
+          "body_line": 3385,
+          "end_line": 3388,
           "platforms": [
             "unix",
             "windows",
@@ -4540,9 +4570,9 @@
         },
         {
           "name": "ODSessionScreenEndEmulation",
-          "signature_line": 3394,
-          "body_line": 3397,
-          "end_line": 3403,
+          "signature_line": 3388,
+          "body_line": 3391,
+          "end_line": 3397,
           "platforms": [
             "unix",
             "windows",
@@ -4553,9 +4583,9 @@
         },
         {
           "name": "ODSessionScreenIsEmulating",
-          "signature_line": 3403,
-          "body_line": 3406,
-          "end_line": 3408,
+          "signature_line": 3397,
+          "body_line": 3400,
+          "end_line": 3402,
           "platforms": [
             "unix",
             "windows",
@@ -4566,9 +4596,9 @@
         },
         {
           "name": "ODSessionSnapshotPutDWORD",
-          "signature_line": 3408,
-          "body_line": 3413,
-          "end_line": 3418,
+          "signature_line": 3402,
+          "body_line": 3407,
+          "end_line": 3412,
           "platforms": [
             "unix",
             "windows",
@@ -4579,9 +4609,9 @@
         },
         {
           "name": "ODSessionSnapshotGetDWORD",
-          "signature_line": 3418,
-          "body_line": 3421,
-          "end_line": 3424,
+          "signature_line": 3412,
+          "body_line": 3415,
+          "end_line": 3418,
           "platforms": [
             "unix",
             "windows",
@@ -4592,9 +4622,9 @@
         },
         {
           "name": "ODSessionSnapshotDimensions",
-          "signature_line": 3424,
-          "body_line": 3427,
-          "end_line": 3442,
+          "signature_line": 3418,
+          "body_line": 3421,
+          "end_line": 3436,
           "platforms": [
             "unix",
             "windows",
@@ -4605,9 +4635,9 @@
         },
         {
           "name": "ODSessionScreenSnapshotSize",
-          "signature_line": 3442,
-          "body_line": 3445,
-          "end_line": 3456,
+          "signature_line": 3436,
+          "body_line": 3439,
+          "end_line": 3450,
           "platforms": [
             "unix",
             "windows",
@@ -4618,9 +4648,9 @@
         },
         {
           "name": "ODSessionScreenSave",
-          "signature_line": 3456,
-          "body_line": 3459,
-          "end_line": 3534,
+          "signature_line": 3450,
+          "body_line": 3453,
+          "end_line": 3528,
           "platforms": [
             "unix",
             "windows",
@@ -4631,9 +4661,9 @@
         },
         {
           "name": "ODSessionScreenRestore",
-          "signature_line": 3534,
-          "body_line": 3537,
-          "end_line": 3651,
+          "signature_line": 3528,
+          "body_line": 3531,
+          "end_line": 3645,
           "platforms": [
             "unix",
             "windows",
@@ -4937,9 +4967,9 @@
       "functions": [
         {
           "name": "ODMutexInitialize",
-          "signature_line": 37,
-          "body_line": 40,
-          "end_line": 48,
+          "signature_line": 19,
+          "body_line": 23,
+          "end_line": 31,
           "platforms": [
             "unix",
             "windows",
@@ -4950,9 +4980,9 @@
         },
         {
           "name": "ODMutexDestroy",
-          "signature_line": 48,
-          "body_line": 51,
-          "end_line": 57,
+          "signature_line": 31,
+          "body_line": 34,
+          "end_line": 40,
           "platforms": [
             "unix",
             "windows",
@@ -4963,9 +4993,9 @@
         },
         {
           "name": "ODMutexLock",
-          "signature_line": 57,
-          "body_line": 60,
-          "end_line": 66,
+          "signature_line": 40,
+          "body_line": 43,
+          "end_line": 49,
           "platforms": [
             "unix",
             "windows",
@@ -4976,9 +5006,9 @@
         },
         {
           "name": "ODMutexUnlock",
-          "signature_line": 66,
-          "body_line": 69,
-          "end_line": 75,
+          "signature_line": 49,
+          "body_line": 52,
+          "end_line": 58,
           "platforms": [
             "unix",
             "windows",
@@ -4988,60 +5018,10 @@
           "test": null
         },
         {
-          "name": "ODControlWakeWaiters",
-          "signature_line": 75,
-          "body_line": 79,
-          "end_line": 81,
-          "platforms": [
-            "windows"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODControlReadAcquire",
-          "signature_line": 81,
-          "body_line": 84,
-          "end_line": 95,
-          "platforms": [
-            "windows"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODControlReadRelease",
-          "signature_line": 95,
-          "body_line": 98,
-          "end_line": 105,
-          "platforms": [
-            "windows"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODControlWriteAcquire",
-          "signature_line": 105,
-          "body_line": 108,
-          "end_line": 121,
-          "platforms": [
-            "windows"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODControlWriteRelease",
-          "signature_line": 121,
-          "body_line": 124,
-          "end_line": 130,
-          "platforms": [
-            "windows"
-          ],
-          "test": null
-        },
-        {
           "name": "ODSyncSessionInitialize",
-          "signature_line": 130,
-          "body_line": 134,
-          "end_line": 165,
+          "signature_line": 58,
+          "body_line": 61,
+          "end_line": 76,
           "platforms": [
             "unix",
             "windows",
@@ -5052,9 +5032,9 @@
         },
         {
           "name": "ODSyncInitializationComplete",
-          "signature_line": 165,
-          "body_line": 168,
-          "end_line": 180,
+          "signature_line": 76,
+          "body_line": 79,
+          "end_line": 81,
           "platforms": [
             "unix",
             "windows",
@@ -5065,9 +5045,9 @@
         },
         {
           "name": "ODSyncSessionShutdown",
-          "signature_line": 180,
-          "body_line": 183,
-          "end_line": 195,
+          "signature_line": 81,
+          "body_line": 84,
+          "end_line": 89,
           "platforms": [
             "unix",
             "windows",
@@ -5078,9 +5058,9 @@
         },
         {
           "name": "ODSyncIsOwnerThread",
-          "signature_line": 195,
-          "body_line": 198,
-          "end_line": 206,
+          "signature_line": 89,
+          "body_line": 92,
+          "end_line": 100,
           "platforms": [
             "unix",
             "windows",
@@ -5091,9 +5071,9 @@
         },
         {
           "name": "ODSyncSessionActive",
-          "signature_line": 206,
-          "body_line": 208,
-          "end_line": 208,
+          "signature_line": 100,
+          "body_line": 102,
+          "end_line": 102,
           "platforms": [
             "unix",
             "windows",
@@ -5103,101 +5083,10 @@
           "test": null
         },
         {
-          "name": "ODSyncAPIWriterHeldByCurrentThread",
-          "signature_line": 208,
-          "body_line": 211,
-          "end_line": 217,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODSyncControlReadLock",
-          "signature_line": 217,
-          "body_line": 220,
-          "end_line": 225,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODSyncControlReadUnlock",
-          "signature_line": 225,
-          "body_line": 228,
-          "end_line": 233,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODSyncControlWriteLock",
-          "signature_line": 233,
-          "body_line": 236,
-          "end_line": 241,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODSyncControlWriteUnlock",
-          "signature_line": 241,
-          "body_line": 244,
-          "end_line": 249,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODReleasePublicLock",
-          "signature_line": 249,
-          "body_line": 252,
-          "end_line": 257,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODAcquirePublicLock",
-          "signature_line": 257,
-          "body_line": 260,
-          "end_line": 265,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODDispatch",
-          "signature_line": 265,
-          "body_line": 268,
-          "end_line": 282,
+          "name": "ODSyncAPIActiveOnOwnerThread",
+          "signature_line": 102,
+          "body_line": 105,
+          "end_line": 111,
           "platforms": [
             "unix",
             "windows",
@@ -5208,9 +5097,9 @@
         },
         {
           "name": "ODSyncAPIEntry",
-          "signature_line": 282,
-          "body_line": 285,
-          "end_line": 297,
+          "signature_line": 111,
+          "body_line": 114,
+          "end_line": 121,
           "platforms": [
             "unix",
             "windows",
@@ -5221,9 +5110,9 @@
         },
         {
           "name": "ODSyncAPIExit",
-          "signature_line": 297,
-          "body_line": 300,
-          "end_line": 313,
+          "signature_line": 121,
+          "body_line": 124,
+          "end_line": 134,
           "platforms": [
             "unix",
             "windows",
@@ -5234,9 +5123,9 @@
         },
         {
           "name": "ODSyncAPICheckpoint",
-          "signature_line": 313,
-          "body_line": 316,
-          "end_line": 327,
+          "signature_line": 134,
+          "body_line": 137,
+          "end_line": 148,
           "platforms": [
             "unix",
             "windows",
@@ -5247,9 +5136,9 @@
         },
         {
           "name": "ODSyncAPIRelease",
-          "signature_line": 327,
-          "body_line": 330,
-          "end_line": 340,
+          "signature_line": 148,
+          "body_line": 151,
+          "end_line": 160,
           "platforms": [
             "unix",
             "windows",
@@ -5260,61 +5149,9 @@
         },
         {
           "name": "ODSyncAPIReacquire",
-          "signature_line": 340,
-          "body_line": 343,
-          "end_line": 347,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "od_control_read_lock",
-          "signature_line": 347,
-          "body_line": 350,
-          "end_line": 360,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "od_control_read_unlock",
-          "signature_line": 360,
-          "body_line": 363,
-          "end_line": 372,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "od_control_write_lock",
-          "signature_line": 372,
-          "body_line": 375,
-          "end_line": 385,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "od_control_write_unlock",
-          "signature_line": 385,
-          "body_line": 388,
-          "end_line": 401,
+          "signature_line": 160,
+          "body_line": 163,
+          "end_line": 166,
           "platforms": [
             "unix",
             "windows",
@@ -5548,9 +5385,9 @@
       "functions": [
         {
           "name": "ODFrameCreateWindow",
-          "signature_line": 160,
-          "body_line": 173,
-          "end_line": 296,
+          "signature_line": 158,
+          "body_line": 171,
+          "end_line": 297,
           "platforms": [
             "windows"
           ],
@@ -5558,9 +5395,9 @@
         },
         {
           "name": "ODFrameCreateToolbar",
-          "signature_line": 296,
-          "body_line": 314,
-          "end_line": 415,
+          "signature_line": 297,
+          "body_line": 315,
+          "end_line": 420,
           "platforms": [
             "windows"
           ],
@@ -5568,9 +5405,9 @@
         },
         {
           "name": "ODFrameDestroyToolbar",
-          "signature_line": 415,
-          "body_line": 431,
-          "end_line": 447,
+          "signature_line": 420,
+          "body_line": 436,
+          "end_line": 452,
           "platforms": [
             "windows"
           ],
@@ -5578,9 +5415,9 @@
         },
         {
           "name": "ODFrameCreateStatusBar",
-          "signature_line": 447,
-          "body_line": 462,
-          "end_line": 496,
+          "signature_line": 452,
+          "body_line": 467,
+          "end_line": 499,
           "platforms": [
             "windows"
           ],
@@ -5588,9 +5425,9 @@
         },
         {
           "name": "ODFrameSetMainStatusText",
-          "signature_line": 496,
-          "body_line": 509,
-          "end_line": 556,
+          "signature_line": 499,
+          "body_line": 512,
+          "end_line": 561,
           "platforms": [
             "windows"
           ],
@@ -5598,9 +5435,9 @@
         },
         {
           "name": "ODFrameCopyProgramName",
-          "signature_line": 556,
-          "body_line": 559,
-          "end_line": 563,
+          "signature_line": 561,
+          "body_line": 564,
+          "end_line": 568,
           "platforms": [
             "windows"
           ],
@@ -5608,9 +5445,9 @@
         },
         {
           "name": "ODFrameDestroyStatusBar",
-          "signature_line": 563,
-          "body_line": 576,
-          "end_line": 578,
+          "signature_line": 568,
+          "body_line": 581,
+          "end_line": 583,
           "platforms": [
             "windows"
           ],
@@ -5618,9 +5455,9 @@
         },
         {
           "name": "ODFrameSizeStatusBar",
-          "signature_line": 578,
-          "body_line": 591,
-          "end_line": 607,
+          "signature_line": 583,
+          "body_line": 596,
+          "end_line": 612,
           "platforms": [
             "windows"
           ],
@@ -5628,9 +5465,9 @@
         },
         {
           "name": "ODFrameGetUsedClientAtTop",
-          "signature_line": 607,
-          "body_line": 621,
-          "end_line": 632,
+          "signature_line": 612,
+          "body_line": 626,
+          "end_line": 637,
           "platforms": [
             "windows"
           ],
@@ -5638,9 +5475,9 @@
         },
         {
           "name": "ODFrameGetUsedClientAtBottom",
-          "signature_line": 632,
-          "body_line": 646,
-          "end_line": 657,
+          "signature_line": 637,
+          "body_line": 651,
+          "end_line": 662,
           "platforms": [
             "windows"
           ],
@@ -5648,9 +5485,19 @@
         },
         {
           "name": "ODFrameWindowProc",
-          "signature_line": 657,
-          "body_line": 682,
-          "end_line": 1177,
+          "signature_line": 662,
+          "body_line": 687,
+          "end_line": 1165,
+          "platforms": [
+            "windows"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODFrameControlStateChanged",
+          "signature_line": 1165,
+          "body_line": 1174,
+          "end_line": 1184,
           "platforms": [
             "windows"
           ],
@@ -5658,9 +5505,9 @@
         },
         {
           "name": "ODFrameUpdateCmdUI",
-          "signature_line": 1177,
-          "body_line": 1190,
-          "end_line": 1246,
+          "signature_line": 1184,
+          "body_line": 1197,
+          "end_line": 1253,
           "platforms": [
             "windows"
           ],
@@ -5668,9 +5515,9 @@
         },
         {
           "name": "ODFrameUpdateTimeDisplay",
-          "signature_line": 1246,
-          "body_line": 1260,
-          "end_line": 1277,
+          "signature_line": 1253,
+          "body_line": 1267,
+          "end_line": 1284,
           "platforms": [
             "windows"
           ],
@@ -5678,9 +5525,9 @@
         },
         {
           "name": "ODFrameUpdateWantChat",
-          "signature_line": 1277,
-          "body_line": 1290,
-          "end_line": 1351,
+          "signature_line": 1284,
+          "body_line": 1297,
+          "end_line": 1358,
           "platforms": [
             "windows"
           ],
@@ -5688,9 +5535,9 @@
         },
         {
           "name": "ODFrameDestroyWindow",
-          "signature_line": 1351,
-          "body_line": 1365,
-          "end_line": 1382,
+          "signature_line": 1358,
+          "body_line": 1372,
+          "end_line": 1389,
           "platforms": [
             "windows"
           ],
@@ -5698,9 +5545,9 @@
         },
         {
           "name": "ODFrameToolbarProc",
-          "signature_line": 1382,
-          "body_line": 1407,
-          "end_line": 1419,
+          "signature_line": 1389,
+          "body_line": 1414,
+          "end_line": 1426,
           "platforms": [
             "windows"
           ],
@@ -5708,8 +5555,8 @@
         },
         {
           "name": "ODFrameUpdateTimeLeft",
-          "signature_line": 1419,
-          "body_line": 1432,
+          "signature_line": 1426,
+          "body_line": 1439,
           "end_line": 1463,
           "platforms": [
             "windows"
@@ -5717,20 +5564,10 @@
           "test": null
         },
         {
-          "name": "ODFrameTimeEditProc",
-          "signature_line": 1463,
-          "body_line": 1490,
-          "end_line": 1519,
-          "platforms": [
-            "windows"
-          ],
-          "test": null
-        },
-        {
           "name": "ODFrameAboutDlgProc",
-          "signature_line": 1519,
-          "body_line": 1539,
-          "end_line": 1605,
+          "signature_line": 1463,
+          "body_line": 1483,
+          "end_line": 1549,
           "platforms": [
             "windows"
           ],
@@ -5738,9 +5575,9 @@
         },
         {
           "name": "ODFrameCenterWindowInParent",
-          "signature_line": 1605,
-          "body_line": 1618,
-          "end_line": 1648,
+          "signature_line": 1549,
+          "body_line": 1562,
+          "end_line": 1592,
           "platforms": [
             "windows"
           ],
@@ -5748,9 +5585,9 @@
         },
         {
           "name": "ODFrameMessageLoop",
-          "signature_line": 1648,
-          "body_line": 1663,
-          "end_line": 1680,
+          "signature_line": 1592,
+          "body_line": 1607,
+          "end_line": 1624,
           "platforms": [
             "windows"
           ],
@@ -5758,9 +5595,9 @@
         },
         {
           "name": "ODFrameTranslateAccelerator",
-          "signature_line": 1680,
-          "body_line": 1697,
-          "end_line": 1712,
+          "signature_line": 1624,
+          "body_line": 1641,
+          "end_line": 1656,
           "platforms": [
             "windows"
           ],
@@ -5768,9 +5605,9 @@
         },
         {
           "name": "ODFrameThreadProc",
-          "signature_line": 1712,
-          "body_line": 1726,
-          "end_line": 1763,
+          "signature_line": 1656,
+          "body_line": 1670,
+          "end_line": 1707,
           "platforms": [
             "windows"
           ],
@@ -5778,9 +5615,9 @@
         },
         {
           "name": "ODFrameStart",
-          "signature_line": 1763,
-          "body_line": 1778,
-          "end_line": 1827,
+          "signature_line": 1707,
+          "body_line": 1722,
+          "end_line": 1771,
           "platforms": [
             "windows"
           ],
@@ -5788,9 +5625,9 @@
         },
         {
           "name": "ODFramePostThreadQuit",
-          "signature_line": 1827,
-          "body_line": 1837,
-          "end_line": 1840,
+          "signature_line": 1771,
+          "body_line": 1781,
+          "end_line": 1784,
           "platforms": [
             "windows"
           ],
@@ -5798,9 +5635,9 @@
         },
         {
           "name": "ODFrameShutdown",
-          "signature_line": 1840,
-          "body_line": 1850,
-          "end_line": 1879,
+          "signature_line": 1784,
+          "body_line": 1794,
+          "end_line": 1823,
           "platforms": [
             "windows"
           ],
@@ -5808,9 +5645,9 @@
         },
         {
           "name": "ODFrameMessageDlgProc",
-          "signature_line": 1879,
-          "body_line": 1899,
-          "end_line": 1944,
+          "signature_line": 1823,
+          "body_line": 1843,
+          "end_line": 1888,
           "platforms": [
             "windows"
           ],

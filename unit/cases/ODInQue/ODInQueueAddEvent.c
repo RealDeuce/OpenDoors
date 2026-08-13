@@ -8,6 +8,8 @@
 
 #include "common.h"
 
+char chLastControlKey;
+
 static unsigned ut_copy_calls;
 #ifdef OD_THREAD_SUPPORT
 static unsigned ut_locks;
@@ -108,8 +110,51 @@ static void appends_and_wraps_events(void)
 #endif
 }
 
+static void records_control_keys_only_when_the_event_is_queued(void)
+{
+   tODInputEvent event;
+   tODInQueueHandle handle = ut_queue_handle(3, 0, 0);
+
+   event.EventType = EVENT_EXTENDED_KEY;
+   event.bFromRemote = FALSE;
+   event.chKeyPress = 'z';
+   chLastControlKey = 0;
+   reset_counts();
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODInQueueAddEvent(handle, &event));
+   UT_ASSERT_EQ_INT(0, chLastControlKey);
+
+#define TEST_CONTROL_KEY(input, expected) \
+   ut_queue.nInIndex = 0; ut_queue.nOutIndex = 0; \
+   event.EventType = EVENT_CHARACTER; event.chKeyPress = (input); \
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODInQueueAddEvent(handle, &event)); \
+   UT_ASSERT_EQ_INT((expected), chLastControlKey)
+
+   TEST_CONTROL_KEY('s', 's');
+   TEST_CONTROL_KEY('S', 's');
+   TEST_CONTROL_KEY(3, 's');
+   TEST_CONTROL_KEY(11, 's');
+   TEST_CONTROL_KEY(0x18, 's');
+   TEST_CONTROL_KEY('p', 'p');
+   TEST_CONTROL_KEY('P', 'p');
+   TEST_CONTROL_KEY('z', 'p');
+#undef TEST_CONTROL_KEY
+
+   ut_queue.nInIndex = 0;
+   ut_queue.nOutIndex = 0;
+   event.chKeyPress = 's';
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODInQueueAddEvent(handle, &event));
+   UT_ASSERT_EQ_INT('s', chLastControlKey);
+
+   ut_queue.nInIndex = 1;
+   ut_queue.nOutIndex = 2;
+   event.chKeyPress = 'P';
+   UT_ASSERT_EQ_INT(kODRCNoMemory, utt_ODInQueueAddEvent(handle, &event));
+   UT_ASSERT_EQ_INT('s', chLastControlKey);
+}
+
 static const UTTestCase ut_cases[] = {
    {"invalid event arguments", rejects_each_null_argument},
    {"full queue", reports_full_queue_after_recording_activity},
    {"append and wrap", appends_and_wraps_events}
+   ,{"control keys", records_control_keys_only_when_the_event_is_queued}
 };

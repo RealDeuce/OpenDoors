@@ -21,6 +21,7 @@
 #define UT_CUSTOM_MOCK_ODWaitDrain
 #define UT_CUSTOM_MOCK_ODScrnRemoveMessage
 #define UT_CUSTOM_MOCK_od_kernel
+#define UT_CUSTOM_MOCK_ODInQueueExchangeLastControlKey
 
 #define UT_SEND_MAX_EVENTS 20
 typedef struct UTReadEvent {
@@ -57,6 +58,7 @@ static FILE *ut_closed[2];
 static unsigned ut_wait_calls;
 static BOOL ut_uninitialize_on_wait;
 static unsigned ut_kernel_calls;
+static char ut_last_control_key;
 
 size_t utm_strlen(const char *text);
 void ODCALL utm_od_init(void) { ++ut_init_calls; bODInitialized = TRUE; }
@@ -165,7 +167,16 @@ static void utm_ODEmulateFromBuffer(const char *text, BOOL remote,
    ut_emulate_session[ut_emulate_calls] = session;
    ++ut_emulate_calls;
    if(ut_control_after_emulate != 0)
-      chLastControlKey = ut_control_after_emulate;
+      ut_last_control_key = ut_control_after_emulate;
+}
+char utm_ODInQueueExchangeLastControlKey(tODInQueueHandle queue,
+   char replacement)
+{
+   char previous;
+   UT_ASSERT_EQ_PTR(hODInputQueue, queue);
+   previous = ut_last_control_key;
+   ut_last_control_key = replacement;
+   return(previous);
 }
 BOOL utm_ODPagePrompt(BOOL *pausing)
 {
@@ -229,7 +240,7 @@ static void reset_send(void)
    ut_kernel_calls = 0;
    pszCurrentHotkeys = NULL;
    chHotkeyPressed = 0;
-   chLastControlKey = 0;
+   ut_last_control_key = 0;
    od_control.od_error = 0;
    od_control.od_page_pausing = FALSE;
    od_control.od_list_stop = FALSE;
@@ -412,7 +423,7 @@ static void honors_stop_pause_and_other_control_keys(void)
    add_read((FILE *)&ut_remote_token, "line");
    add_read((FILE *)&ut_remote_token, NULL);
    UT_ASSERT(utt_od_send_file("screen.ans"));
-   UT_ASSERT_EQ_INT(0, chLastControlKey);
+   UT_ASSERT_EQ_INT(0, ut_last_control_key);
 
    reset_send();
    ut_control_after_emulate = 'p';

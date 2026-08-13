@@ -780,10 +780,6 @@ ODAPIDEF void ODCALL od_page(void)
    {
       /* Indicate that the user wants to chat. */
       od_control.user_wantchat = TRUE;
-#ifdef ODPLAT_WIN32
-      ODFrameUpdateWantChat();
-#endif /* ODPLAT_WIN32 */
-
       /* Determine whether or not sysop paging should be permitted at */
       /* the current time.                                            */
       nUnixTime = time(NULL);

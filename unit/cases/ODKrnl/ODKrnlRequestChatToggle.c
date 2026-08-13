@@ -1,21 +1,16 @@
-#ifdef OD_THREAD_SUPPORT
-#define UT_CUSTOM_MOCK_ODMutexLock
-#define UT_CUSTOM_MOCK_ODMutexUnlock
-static unsigned ut_locks, ut_unlocks;
-void utm_ODMutexLock(tODMutex *mutex) { ++ut_locks; UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
-void utm_ODMutexUnlock(tODMutex *mutex) { ++ut_unlocks; UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODKrnlQueueUIChange
+static unsigned ut_calls;
+static BOOL utm_ODKrnlQueueUIChange(tODUIChangeType type, INT value, BYTE reason)
+{ ++ut_calls; UT_ASSERT_EQ_INT(kODUIChangeChat, type); UT_ASSERT_EQ_INT(0, value); UT_ASSERT_EQ_UINT(0, reason); return(TRUE); }
 #endif
-static void toggles_the_pending_chat_request(void)
+static void requests_chat_toggle(void)
 {
-#ifdef OD_THREAD_SUPPORT
-   ut_locks = ut_unlocks = 0; bChatTogglePending = FALSE;
-   utt_ODKrnlRequestChatToggle(); UT_ASSERT(bChatTogglePending);
-   utt_ODKrnlRequestChatToggle(); UT_ASSERT(!bChatTogglePending);
-   UT_ASSERT_EQ_UINT(2, ut_locks); UT_ASSERT_EQ_UINT(2, ut_unlocks);
+#ifdef ODPLAT_WIN32
+   ut_calls = 0; utt_ODKrnlRequestChatToggle(); UT_ASSERT_EQ_UINT(1, ut_calls);
 #else
    nKrnlFuncPending = 0; utt_ODKrnlRequestChatToggle();
    UT_ASSERT((nKrnlFuncPending & KERNEL_FUNC_CHATTOGGLE) != 0);
-   utt_ODKrnlRequestChatToggle(); UT_ASSERT_EQ_INT(0, nKrnlFuncPending);
 #endif
 }
-static const UTTestCase ut_cases[] = {{"toggle", toggles_the_pending_chat_request}};
+static const UTTestCase ut_cases[] = {{"request", requests_chat_toggle}};

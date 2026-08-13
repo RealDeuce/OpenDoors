@@ -905,8 +905,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    }
 #endif /* !ODPLAT_WIN32 */
 
-   /* The Windows UI thread may be waiting to read session state. Release the
-    * API writer while stopping and joining it. */
+   /* Drop the API nesting level while stopping and joining the Windows UI. */
 #ifdef OD_THREAD_SUPPORT
    nSavedAPILevel = ODSyncAPIRelease();
 #endif
@@ -919,14 +918,14 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    }
 #endif
 
-   /* Shutdown the OpenDoors kernel. */
-   ODKrnlShutdown();
-
 #ifdef ODPLAT_WIN32
-   /* Stop the frame message loop before releasing the screen state its
-    * windows display. */
+   /* Stop the only producer of deferred UI changes before destroying the
+    * queue and its mutex. */
    ODFrameShutdown(&hFrameThread);
 #endif /* ODPLAT_WIN32 */
+
+   /* Shutdown the OpenDoors kernel. */
+   ODKrnlShutdown();
 
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
@@ -1655,7 +1654,7 @@ static void ODDiagnosticMessage(const char *pszText, const char *pszTitle)
 #ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel = 0;
 
-   if(ODSyncAPIWriterHeldByCurrentThread())
+   if(ODSyncAPIActiveOnOwnerThread())
       nSavedAPILevel = ODSyncAPIRelease();
 #endif
 

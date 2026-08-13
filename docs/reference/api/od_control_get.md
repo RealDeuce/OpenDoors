@@ -61,11 +61,8 @@ implicitly.
 
 The function does not provide synchronization or create independent control
 structures. OpenDoors has one active control structure per loaded library
-instance. Use [`od_control_read_lock()`](od_control_read_lock.md) or
-[`od_control_write_lock()`](od_control_write_lock.md) when access must be
-synchronized with an active internal worker. All API and ABI access must still
-occur on the thread which calls [`od_init()`](od_init.md); obtaining the pointer
-does not transfer session ownership.
+instance. All API and ABI access must occur on the thread which calls
+[`od_init()`](od_init.md); obtaining the pointer does not transfer ownership.
 
 ## Errors
 
@@ -90,6 +87,4 @@ static void configure_local_session(void)
 ## See also
 
 [`od_control`](../control/index.md), [`tODControl`](../control/index.md),
-[`od_init()`](od_init.md),
-[`od_control_read_lock()`](od_control_read_lock.md),
-[`od_control_write_lock()`](od_control_write_lock.md)
+[`od_init()`](od_init.md)

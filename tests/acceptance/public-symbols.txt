@@ -65,7 +65,3 @@ pdef_pcboard
 pdef_ra
 pdef_wildcat
 od_control
-od_control_read_lock
-od_control_read_unlock
-od_control_write_lock
-od_control_write_unlock

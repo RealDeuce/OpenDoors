@@ -64,6 +64,7 @@
 #include "ODScrn.h"
 #include "ODVScrn.h"
 #include "ODKrnl.h"
+#include "ODInQue.h"
 #include "ODUtil.h"
 
 
@@ -293,6 +294,7 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
    char chKey;
    char *pchParsing;
    char szMessage[74];
+   char chControlKey;
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_send_file()");
@@ -395,7 +397,7 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
    bAvatarInsertMode = FALSE;
 
    /* Reset [S]top/[P]ause control key status. */
-   chLastControlKey = 0;
+   (void)ODInQueueExchangeLastControlKey(hODInputQueue, 0);
 
    if(!bAnythingLocal)
    {
@@ -433,9 +435,10 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
       }
 
       /* If a control key has been pressed. */
-      if(chLastControlKey)
+      chControlKey = ODInQueueExchangeLastControlKey(hODInputQueue, 0);
+      if(chControlKey)
       {
-         switch(chLastControlKey)
+         switch(chControlKey)
          {
             /* If it was a stop control key. */
             case 's':
@@ -469,8 +472,6 @@ abort_send:
                }
          }
 
-         /* Clear control key status. */
-         chLastControlKey = 0;
       }
 
       /* Get next line, if any. */
@@ -638,6 +639,7 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
    BOOL bSectionFound = FALSE;
    UINT uSectionNameLength;
    size_t nSectionNameLength;
+   char chControlKey;
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_send_file_section()");
@@ -749,7 +751,7 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
    bAvatarInsertMode = FALSE;
 
    /* Reset [S]top/[P]ause control key status. */
-   chLastControlKey = 0;
+   (void)ODInQueueExchangeLastControlKey(hODInputQueue, 0);
 
    if(!bAnythingLocal)
    {
@@ -794,9 +796,10 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
       }
 
       /* If a control key has been pressed. */
-      if(chLastControlKey)
+      chControlKey = ODInQueueExchangeLastControlKey(hODInputQueue, 0);
+      if(chControlKey)
       {
-         switch(chLastControlKey)
+         switch(chControlKey)
          {
             /* If it was a stop control key. */
             case 's':
@@ -830,8 +833,6 @@ abort_send:
                }
          }
 
-         /* Clear control key status. */
-         chLastControlKey = 0;
       }
 
       /* Get next line, if any. */

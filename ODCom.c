@@ -1276,7 +1276,7 @@ tODResult ODComOpen(tPortHandle hPort)
 #endif
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
-   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
+   ASSERT(!ODSyncAPIActiveOnOwnerThread());
    VERIFY_CALL(pPortInfo != NULL);
 
    /* Ensure that port is not already open. */
@@ -1872,7 +1872,7 @@ tODResult ODComOpenFromExistingHandle(tPortHandle hPort,
 {
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
-   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
+   ASSERT(!ODSyncAPIActiveOnOwnerThread());
    VERIFY_CALL(pPortInfo != NULL);
 
    VERIFY_CALL(!pPortInfo->bIsOpen);
@@ -1939,7 +1939,7 @@ tODResult ODComClose(tPortHandle hPort)
 #endif /* INCLUDE_UART_COM */
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
-   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
+   ASSERT(!ODSyncAPIActiveOnOwnerThread());
    VERIFY_CALL(pPortInfo != NULL);
 
    VERIFY_CALL(pPortInfo->bIsOpen);
@@ -2738,7 +2738,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 {
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
-   ASSERT(!bWait || !ODSyncAPIWriterHeldByCurrentThread());
+   ASSERT(!bWait || !ODSyncAPIActiveOnOwnerThread());
    VERIFY_CALL(pPortInfo != NULL);
    VERIFY_CALL(pbtNext != NULL);
 
@@ -3090,7 +3090,7 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
 {
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
 
-   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
+   ASSERT(!ODSyncAPIActiveOnOwnerThread());
    VERIFY_CALL(pPortInfo != NULL);
 
    VERIFY_CALL(pPortInfo->bIsOpen);
@@ -3556,7 +3556,7 @@ tODResult ODComSendBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize)
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
    BYTE *buf = pbtBuffer;
 
-   ASSERT(!ODSyncAPIWriterHeldByCurrentThread());
+   ASSERT(!ODSyncAPIActiveOnOwnerThread());
    VERIFY_CALL(pPortInfo != NULL);
    VERIFY_CALL(pbtBuffer != NULL);
    VERIFY_CALL(nSize >= 0);

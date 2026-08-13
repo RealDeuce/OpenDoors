@@ -782,8 +782,7 @@ void ODScrnAdjustWindows(void)
  */
 tODResult ODScrnStartWindow(HANDLE hInstance, HWND hwndFrame)
 {
-   INT nCancelErrorLevel;
-   INT nCmdShow;
+   tODUIState State;
    HWND hwndScreen;
 
    ASSERT(hInstance != NULL);
@@ -794,25 +793,20 @@ tODResult ODScrnStartWindow(HANDLE hInstance, HWND hwndFrame)
       return(kODRCGeneralFailure);
 
    ODScrnSetCurrentFont(hwndScreen, GetStockObject(OEM_FIXED_FONT));
+   ODKrnlGetUIState(&State);
 
    if(bPromptForUserName)
    {
       if(DialogBox(hInstance, MAKEINTRESOURCE(IDD_LOGIN), hwndFrame,
          ODInitLoginDlgProc) == IDCANCEL)
       {
-         ODSyncControlReadLock();
-         nCancelErrorLevel = od_control.od_errorlevel[1];
-         ODSyncControlReadUnlock();
-         exit(nCancelErrorLevel);
+         return(kODRCGeneralFailure);
       }
       SetFocus(hwndScreen);
    }
 
-   ODSyncControlReadLock();
-   nCmdShow = od_control.od_cmd_show;
-   ODSyncControlReadUnlock();
-   if(nCmdShow == SW_MINIMIZE || nCmdShow == SW_SHOWMINIMIZED ||
-      nCmdShow == SW_SHOWMINNOACTIVE)
+   if(State.nCmdShow == SW_MINIMIZE || State.nCmdShow == SW_SHOWMINIMIZED ||
+      State.nCmdShow == SW_SHOWMINNOACTIVE)
       ShowWindow(hwndFrame, SW_SHOWMINNOACTIVE);
    else
       ShowWindow(hwndFrame, SW_RESTORE);

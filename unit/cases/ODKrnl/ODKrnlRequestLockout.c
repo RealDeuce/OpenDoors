@@ -1,26 +1,22 @@
-#ifdef OD_THREAD_SUPPORT
-#define UT_CUSTOM_MOCK_ODMutexLock
-#define UT_CUSTOM_MOCK_ODMutexUnlock
-void utm_ODMutexLock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
-void utm_ODMutexUnlock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODKrnlQueueUIChange
+static unsigned ut_calls;
+static BOOL utm_ODKrnlQueueUIChange(tODUIChangeType type, INT value, BYTE reason)
+{ ++ut_calls; UT_ASSERT_EQ_INT(kODUIChangeLockout, type); UT_ASSERT_EQ_INT(0, value); UT_ASSERT_EQ_UINT(ERRORLEVEL_HANGUP, reason); return(TRUE); }
 #else
 #define UT_CUSTOM_MOCK_ODKrnlForceOpenDoorsShutdown
-static unsigned ut_shutdowns;
-void utm_ODKrnlForceOpenDoorsShutdown(BYTE reason)
-{ ++ut_shutdowns; UT_ASSERT_EQ_UINT(ERRORLEVEL_HANGUP, reason); }
+static unsigned ut_calls;
+void utm_ODKrnlForceOpenDoorsShutdown(BYTE reason) { ++ut_calls; UT_ASSERT_EQ_UINT(ERRORLEVEL_HANGUP, reason); }
 #endif
-static void records_lockout_and_preserves_an_existing_shutdown_reason(void)
+static void requests_lockout(void)
 {
-#ifdef OD_THREAD_SUPPORT
-   bLockoutPending = FALSE; btPendingShutdown = 0; utt_ODKrnlRequestLockout();
-   UT_ASSERT(bLockoutPending); UT_ASSERT_EQ_UINT(ERRORLEVEL_HANGUP, btPendingShutdown);
-   bLockoutPending = FALSE; btPendingShutdown = ERRORLEVEL_NOCARRIER;
-   utt_ODKrnlRequestLockout(); UT_ASSERT(bLockoutPending);
-   UT_ASSERT_EQ_UINT(ERRORLEVEL_NOCARRIER, btPendingShutdown);
-#else
+   ut_calls = 0;
+#ifndef ODPLAT_WIN32
    memset(&od_control, 0, sizeof(od_control)); od_control.user_security = 100;
-   ut_shutdowns = 0; utt_ODKrnlRequestLockout();
-   UT_ASSERT_EQ_INT(0, od_control.user_security); UT_ASSERT_EQ_UINT(1, ut_shutdowns);
+#endif
+   utt_ODKrnlRequestLockout(); UT_ASSERT_EQ_UINT(1, ut_calls);
+#ifndef ODPLAT_WIN32
+   UT_ASSERT_EQ_INT(0, od_control.user_security);
 #endif
 }
-static const UTTestCase ut_cases[] = {{"lockout", records_lockout_and_preserves_an_existing_shutdown_reason}};
+static const UTTestCase ut_cases[] = {{"request", requests_lockout}};

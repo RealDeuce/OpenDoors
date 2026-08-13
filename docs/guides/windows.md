@@ -210,13 +210,9 @@ owner before displaying text, accepting door input, or accessing
 [`od_control`](../reference/control/index.md).
 
 Ordinary source access through the exported
-[`od_control`](../reference/control/index.md) object remains supported. When
-several related fields must be read or changed as one operation while the UI
-worker is active, use
-[`od_control_read_lock()`](../reference/api/od_control_read_lock.md) or
-[`od_control_write_lock()`](../reference/api/od_control_write_lock.md). These
-functions synchronize the owner with the OpenDoors UI worker; they do not
-authorize a background application thread to use the API.
+[`od_control`](../reference/control/index.md) object remains supported on the
+session-owner thread. OpenDoors publishes the fields needed by its UI at API
+boundaries; application background threads must not access the object.
 
 Callbacks configured through [`od_control`](../reference/control/index.md)
 normally run on the session-owner thread as part of OpenDoors processing and
