@@ -176,6 +176,31 @@ class CoverageWaiverTests(unittest.TestCase):
             records, generated, "sample.c"),
             [[40, 3, 2, 20, 1, 1, [True, True]]])
 
+    def test_discards_llvm_records_from_other_files(self):
+        generated = [
+            '#line 70 "support.h"', 'header decision',
+            '#line 40 "sample.c"', 'source decision',
+        ]
+        records = [
+            [2, 3, 2, 20, 0, 1, 1, 0, 4],
+            [4, 3, 4, 20, 1, 1, 1, 0, 4],
+        ]
+        self.assertEqual(map_llvm_record_lines(
+            records, generated, "sample.c"),
+            [[40, 3, 4, 20, 1, 1, 1, 0, 4]])
+
+    def test_discards_unreachable_do_while_zero_branch_records(self):
+        generated = [
+            '#line 40 "sample.c"', 'source decision', '} while(0)',
+        ]
+        records = [
+            [2, 3, 2, 20, 1, 1, 1, 0, 4],
+            [3, 1, 3, 11, 0, 2, 1, 0, 4],
+        ]
+        self.assertEqual(map_llvm_record_lines(
+            records, generated, "sample.c"),
+            [[40, 3, 2, 20, 1, 1, 1, 0, 4]])
+
     def test_approved_and_proposed_waivers_have_distinct_dispositions(self):
         entries = [{
             "source": "sample.c", "function": "sample",

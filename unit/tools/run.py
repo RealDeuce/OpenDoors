@@ -326,13 +326,21 @@ def original_source_line(generated_lines: list[str], generated_line: int,
 
 def map_llvm_record_lines(records: list, generated_lines: list[str],
                           source: str) -> list:
-    """Return LLVM coverage records with physical lines mapped to the source."""
+    """Return relevant LLVM records with physical lines mapped to the source."""
     result = []
     for record in records:
         mapped = original_source_line(generated_lines, record[0], source)
+        if mapped is None:
+            continue
+        # LLVM 22 emits an unreachable branch for the loop backedge in the
+        # conventional statement-macro wrapper.  It cannot execute and is not
+        # a source decision, so do not require tests to cover it.
+        generated_text = generated_lines[record[0] - 1]
+        if re.fullmatch(r'\s*}\s*while\s*\(\s*0\s*\)\s*;?\s*',
+                        generated_text):
+            continue
         copy = list(record)
-        if mapped is not None:
-            copy[0] = mapped
+        copy[0] = mapped
         result.append(copy)
     return result
 
