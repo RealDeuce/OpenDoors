@@ -9,9 +9,11 @@ otherwise, failures place an [`ERR_*`](../constants/errors.md) value in
 [`od_control.od_error`](../control/runtime.md).
 
 After [`od_exit()`](od_exit.md) completes, the library is permanently terminal
-and rejects every later function call with `ERR_GENERALFAILURE`. A host using
-`od_noexit` may continue without OpenDoors and may directly inspect the
-exported `od_control` object, but it cannot start a second session.
+and rejects every later function call with
+[`ERR_GENERALFAILURE`](../constants/errors.md#err_generalfailure). A host using
+[`od_noexit`](../control/customization.md#od_noexit) may continue without
+OpenDoors and may directly inspect the exported
+[`od_control`](../control/index.md) object, but it cannot start a second session.
 
 ## Function groups
 

@@ -39,8 +39,11 @@ appropriately.
 including connection and door information handling. Do not substitute the C
 library's `exit()` where an orderly OpenDoors shutdown is required.
 
-Each loaded OpenDoors instance supports one session. When `od_exit()` has
-completed, including when `od_noexit` lets the host process continue, the
+Each loaded OpenDoors instance supports one session. When
+[`od_exit()`](../reference/api/od_exit.md) has completed, including when
+[`od_noexit`](../reference/control/customization.md#od_noexit) lets the host
+process continue, the
 library remains terminal and cannot be initialized again. All later function
-calls are rejected. The host may still directly inspect `od_control`, but must
-perform all further work without calling OpenDoors.
+calls are rejected. The host may still directly inspect
+[`od_control`](../reference/control/index.md), but must perform all further work
+without calling OpenDoors.

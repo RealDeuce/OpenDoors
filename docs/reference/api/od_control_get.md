@@ -12,8 +12,10 @@ tODControl *od_control_get(void);
 
 Before terminal shutdown, the return value is a pointer to the same
 [`tODControl`](../control/index.md) object exported as the global
-[`od_control`](../control/index.md) variable. After `od_exit()` completes it
-returns `NULL` and sets `od_control.od_error` to `ERR_GENERALFAILURE`.
+[`od_control`](../control/index.md) variable. After [`od_exit()`](od_exit.md)
+completes it returns `NULL` and sets
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_GENERALFAILURE`](../constants/errors.md#err_generalfailure).
 
 The pointed-to structure is the writable public [`od_control`](../control/index.md) object and belongs
 to OpenDoors. The application must not free it or assume that the pointer refers

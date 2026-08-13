@@ -83,13 +83,12 @@ an issue is not treated as a contract change until it is resolved deliberately.
   window handle, missing message queue, or failed post can therefore turn a
   recoverable shutdown-delivery failure into a permanent process hang.
 
-- [ ] Exercise the real Windows control lock under contention. The isolated
-  Windows unit cases mock `WaitForSingleObject()` and manually change the lock
-  predicate, while `windows_chat_failure_test` does not create competing
-  control-lock readers or writers. Add repeated multi-reader wakeup, queued
-  writer preference, entry/exit dispatch, and shutdown contention coverage
-  using the actual Windows event and critical section so missed wakes,
-  starvation, and lifecycle races are observable.
+- [x] Remove the obsolete Windows control-lock contention concern. The session
+  reader/writer control lock, including its event and writer-preference
+  machinery, was removed when control data became owner-owned and the Windows
+  UI worker was changed to consume a cache and deferred update queue. There is
+  consequently no longer a real control lock whose reader/writer behavior
+  needs the proposed integration test.
 
 - [ ] Enforce owner-thread API entry in non-asserting Windows builds. Public
   API entry currently relies on `ASSERT(ODSyncIsOwnerThread())`, but

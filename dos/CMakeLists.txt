@@ -126,7 +126,9 @@ set(OPENDOORS_PERSONALITY_SDK_DIR
 file(MAKE_DIRECTORY "${OPENDOORS_PERSONALITY_SDK_DIR}")
 foreach(personality_sdk_file IN ITEMS
     OpenDoor.h
+    ODSync.h
     ODStat.h
+    ODTypes.h
     ODStand.c
     ODPCB.c
     ODRA.c
@@ -253,7 +255,9 @@ set(OPENDOORS_PERSONALITY_SDK_DIR
 file(MAKE_DIRECTORY "${OPENDOORS_PERSONALITY_SDK_DIR}")
 foreach(personality_sdk_file IN ITEMS
     OpenDoor.h
+    ODSync.h
     ODStat.h
+    ODTypes.h
     ODStand.c
     ODPCB.c
     ODRA.c

@@ -76,13 +76,14 @@ neutral or failure value and
 [`od_control`](../control/index.md) object remains available for direct reads
 by the host after shutdown.
 
-The before-exit callback runs before OpenDoors decides whether `od_noexit`
-applies, so it may set or clear that field based on application state. If a
-callback or nested kernel operation requests a returning shutdown, OpenDoors
-records the first request, causes cooperative waits to stop, and defers resource
-destruction until the outermost public API call unwinds. A request made during
-initialization is likewise retained; initialization completes before the one
-shutdown sequence begins.
+The before-exit callback runs before OpenDoors decides whether
+[`od_noexit`](../control/customization.md#od_noexit) applies, so it may set or
+clear that field based on application state. If a callback or nested kernel
+operation requests a returning shutdown, OpenDoors records the first request,
+causes cooperative waits to stop, and defers resource destruction until the
+outermost public API call unwinds. A request made during initialization is
+likewise retained; initialization completes before the one shutdown sequence
+begins.
 
 On non-Windows text-mode targets, the local output window is reset to the full
 80-by-25 display and the attribute is reset to grey on black. If
