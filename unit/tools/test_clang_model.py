@@ -61,7 +61,7 @@ class ClangModelTests(unittest.TestCase):
         self.assertIn("od_disp", names)
         self.assertIn("strlen", names)
         self.assertEqual({item.name for item in target.variables},
-                         {"bODInitialized", "od_control"})
+                         {"bODInitialized", "eODLifecycleState", "od_control"})
 
     def test_pointer_returning_dependency_is_retained(self):
         block = build_model(ROOT / "ODBlock.c")
