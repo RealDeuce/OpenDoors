@@ -17,10 +17,10 @@ void od_parse_cmd_line(INT nArgCount, char *papszArguments[]);
 ### Windows
 
 `pszCmdLine` is the argument string supplied to `WinMain()`. It does not include
-the executable name. OpenDoors divides this string at whitespace before parsing
-it. The splitter used by this function does not implement Windows quote or
-backslash processing; see [`od_split_cmd_line()`](od_split_cmd_line.md) for the
-exact rules.
+the executable name. OpenDoors applies the Windows `CommandLineToArgvW` quote
+and backslash grammar before parsing it. See
+[`od_split_cmd_line()`](od_split_cmd_line.md) for the exact platform-specific
+rules.
 
 ### DOS
 
@@ -120,9 +120,9 @@ unknown application option, not an abbreviation for `-SOCKET` or `-SILENT`.
 `-USERNAME`, `-LOCATION`, and `-BBSNAME` collect consecutive arguments that do
 not begin with `-` or `/`, inserting one space between them. This joining takes
 place after the platform-specific processing described under Parameters: the
-Win32 build first applies OpenDoors' whitespace splitter, DOS uses the argument
-array constructed by the compiler's C runtime, and Unix-like builds use the
-argument array supplied to `main()`.
+Win32 build first applies the Windows command-line grammar, DOS uses the
+argument array constructed by the compiler's C runtime, and Unix-like builds
+use the argument array supplied to `main()`.
 
 Collection stops before the next prefixed option. If the joined value is too
 large for its destination, OpenDoors retains the initial bytes which fit and

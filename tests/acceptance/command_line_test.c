@@ -46,11 +46,19 @@ int main(void)
 
    arguments = od_split_cmd_line("-NAME \"Jane Smith\" -LOCAL", &count);
    OD_TEST_CHECK(arguments != NULL);
+#ifdef ODPLAT_WIN32
+   OD_TEST_CHECK(count == 4);
+   OD_TEST_CHECK(strcmp(arguments[1], "-NAME") == 0);
+   OD_TEST_CHECK(strcmp(arguments[2], "Jane Smith") == 0);
+   OD_TEST_CHECK(strcmp(arguments[3], "-LOCAL") == 0);
+   OD_TEST_CHECK(arguments[4] == NULL);
+#else
    OD_TEST_CHECK(count == 5);
    OD_TEST_CHECK(strcmp(arguments[1], "-NAME") == 0);
    OD_TEST_CHECK(strcmp(arguments[2], "\"Jane") == 0);
    OD_TEST_CHECK(strcmp(arguments[3], "Smith\"") == 0);
    OD_TEST_CHECK(arguments[5] == NULL);
+#endif
    od_free_split_cmd_line(arguments);
    return(0);
 }

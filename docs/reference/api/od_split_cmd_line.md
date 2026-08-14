@@ -37,29 +37,35 @@ is public so applications which need the same conversion can use OpenDoors'
 rules rather than duplicating them.
 
 The first returned element represents the program-name position normally found
-in `argv[0]`. On Windows, OpenDoors attempts to recover the executable portion
-from the process command line. If it cannot do so unambiguously, the first
+in `argv[0]`. On Windows, OpenDoors obtains this value by parsing the process's
+complete command line. If the process command line is unavailable, the first
 element is an empty string. On non-Windows platforms the first element is an
-empty string because the supplied string contains no program name. The words
-read from `pszCmdLine` begin at element 1.
+empty string because the supplied string contains no program name. The
+arguments read from `pszCmdLine` begin at element 1.
 
-Arguments are separated by one or more characters for which the C library
-`isspace()` function returns nonzero. Consecutive whitespace is discarded and
-does not create empty arguments. An empty or all-whitespace command string is
-valid and produces only the element in the `argv[0]` position.
-
-This is deliberately a simple splitter. Quote marks, backslashes, and other
-shell metacharacters have no special meaning. For example:
+On Windows, OpenDoors resolves `CommandLineToArgvW` from `shell32.dll` at run
+time and applies that API's quote and backslash grammar. A compatible internal
+parser is used if the API is unavailable on an older system. Spaces and tabs
+separate arguments outside quotation marks, quoted whitespace remains within
+one argument, and `""` represents an empty argument. Runs of backslashes
+immediately before a quotation mark are decoded according to the Windows
+rules. For example:
 
 ```text
 -name "Jane Smith" -local
 ```
 
-is split into `-name`, `"Jane`, `Smith"`, and `-local`; the quote characters
-remain in the two affected arguments. The function does not implement the
-Microsoft C runtime quoting algorithm, a Unix shell grammar, variable
-expansion, wildcard expansion, or command substitution. A caller which needs
-one of those grammars must parse it separately.
+is split into `-name`, `Jane Smith`, and `-local`.
+
+On non-Windows platforms, arguments are separated by one or more characters
+for which the C library `isspace()` function returns nonzero. Consecutive
+whitespace is discarded and does not create empty arguments. Quote marks and
+backslashes have no special meaning there; the example above is split into
+`-name`, `"Jane`, `Smith"`, and `-local`.
+
+On every platform, an empty command string is valid and produces only the
+element in the `argv[0]` position. This function does not perform shell
+expansion, variable expansion, wildcard expansion, or command substitution.
 
 The array contains at most 4,096 entries including the program-name position.
 If the input contains more words, only the arguments which fit are returned.
@@ -83,8 +89,8 @@ The function reports the following errors through
 
 - [`ERR_PARAMETER`](../constants/errors.md#err_parameter) if `pszCmdLine` or
   `nArgCount` is `NULL`.
-- [`ERR_MEMORY`](../constants/errors.md#err_memory) if storage for the pointer
-  array, program-name element, or command-line copy cannot be allocated.
+- [`ERR_MEMORY`](../constants/errors.md#err_memory) if storage cannot be
+  allocated or a Windows command-line conversion cannot be completed.
 
 When `nArgCount` is non-null, it is set to 0 for either failure. The caller must
 not call [`od_free_split_cmd_line()`](od_free_split_cmd_line.md) when the return

@@ -2,7 +2,7 @@
 
 This document describes the internal threading design. Application authors
 should use the public rules in
-[Windows programming](../guides/windows.md#threads-and-api-ownership).
+[Windows programming](../guides/windows.md#threads-and-serialized-api-access).
 
 ## Compatibility requirements
 

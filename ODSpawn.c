@@ -74,8 +74,131 @@
 #include "ODKrnl.h"
 #include "ODSwap.h"
 
+static INT16 ODSpawnVPEInternal(INT16 nModeFlag, const char *pszPath,
+   const char *const papszArg[], const char *const papszEnv[]
+#ifdef ODPLAT_WIN32
+   , BOOL bQuoteWindowsArguments
+#endif
+   );
+
 #ifdef ODPLAT_WIN32
 #include "ODFrame.h"
+
+static size_t ODWindowsQuoteArgument(char *pszDestination,
+   const char *pszArgument);
+static char **ODWindowsQuoteArguments(const char *const papszArguments[]);
+#endif /* ODPLAT_WIN32 */
+
+#ifdef ODPLAT_WIN32
+/* ----------------------------------------------------------------------------
+ * ODWindowsQuoteArgument()
+ *
+ * Quotes one raw argument for the Microsoft C command-line grammar. The
+ * returned size excludes the terminating nul character.
+ */
+static size_t ODWindowsQuoteArgument(char *pszDestination,
+   const char *pszArgument)
+{
+   const char *pszCurrent;
+   size_t nOutput = 0;
+   size_t nSlashCount;
+   size_t nIndex;
+   BOOL bQuote;
+
+#define OD_WINDOWS_QUOTE_PUT(ch) \
+   do { char chToPut = (ch); \
+      if(pszDestination != NULL) pszDestination[nOutput] = chToPut; \
+      ++nOutput; } while(0)
+
+   bQuote = *pszArgument == '\0';
+   for(pszCurrent = pszArgument; *pszCurrent != '\0'; ++pszCurrent)
+   {
+      if(*pszCurrent == ' ' || *pszCurrent == '\t')
+         bQuote = TRUE;
+   }
+   if(bQuote)
+      OD_WINDOWS_QUOTE_PUT('\"');
+
+   pszCurrent = pszArgument;
+   while(*pszCurrent != '\0')
+   {
+      nSlashCount = 0;
+      while(*pszCurrent == '\\')
+      {
+         ++nSlashCount;
+         ++pszCurrent;
+      }
+      if(*pszCurrent == '\"')
+      {
+         for(nIndex = 0; nIndex < nSlashCount * 2 + 1; ++nIndex)
+            OD_WINDOWS_QUOTE_PUT('\\');
+         OD_WINDOWS_QUOTE_PUT('\"');
+         ++pszCurrent;
+      }
+      else if(*pszCurrent == '\0')
+      {
+         if(bQuote)
+            nSlashCount *= 2;
+         for(nIndex = 0; nIndex < nSlashCount; ++nIndex)
+            OD_WINDOWS_QUOTE_PUT('\\');
+      }
+      else
+      {
+         for(nIndex = 0; nIndex < nSlashCount; ++nIndex)
+            OD_WINDOWS_QUOTE_PUT('\\');
+         OD_WINDOWS_QUOTE_PUT(*pszCurrent++);
+      }
+   }
+   if(bQuote)
+      OD_WINDOWS_QUOTE_PUT('\"');
+   if(pszDestination != NULL)
+      pszDestination[nOutput] = '\0';
+#undef OD_WINDOWS_QUOTE_PUT
+   return(nOutput);
+}
+
+/* ----------------------------------------------------------------------------
+ * ODWindowsQuoteArguments()
+ *
+ * Builds the temporary, prequoted vector required by the Windows CRT spawn
+ * functions. The pointers and strings share one allocation.
+ */
+static char **ODWindowsQuoteArguments(const char *const papszArguments[])
+{
+   size_t nArgumentCount = 0;
+   size_t nPointerBytes;
+   size_t nStringBytes = 0;
+   size_t nQuotedLength;
+   size_t nIndex;
+   char **papszQuoted;
+   char *pszOutput;
+
+   while(papszArguments[nArgumentCount] != NULL)
+      ++nArgumentCount;
+   nPointerBytes = (nArgumentCount + 1) * sizeof(char *);
+   for(nIndex = 0; nIndex < nArgumentCount; ++nIndex)
+   {
+      nQuotedLength = ODWindowsQuoteArgument(NULL, papszArguments[nIndex]);
+      if(nQuotedLength == (size_t)-1
+         || nStringBytes > (size_t)-1 - (nQuotedLength + 1))
+         return(NULL);
+      nStringBytes += nQuotedLength + 1;
+   }
+   if(nPointerBytes > (size_t)-1 - nStringBytes)
+      return(NULL);
+   papszQuoted = (char **)malloc(nPointerBytes + nStringBytes);
+   if(papszQuoted == NULL)
+      return(NULL);
+   pszOutput = (char *)papszQuoted + nPointerBytes;
+   for(nIndex = 0; nIndex < nArgumentCount; ++nIndex)
+   {
+      papszQuoted[nIndex] = pszOutput;
+      pszOutput += ODWindowsQuoteArgument(pszOutput,
+         papszArguments[nIndex]) + 1;
+   }
+   papszQuoted[nArgumentCount] = NULL;
+   return(papszQuoted);
+}
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_DOS
@@ -233,8 +356,9 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
       apszArgs[2] = NULL;
    }
 
-   /* Now, call od_spawnvpe(). */
-   bSpawned = od_spawnvpe(P_WAIT, pszProgName, apszArgs, NULL) != -1;
+   /* Preserve od_spawn()'s preformatted command-line tail. */
+   bSpawned = ODSpawnVPEInternal(P_WAIT, pszProgName, apszArgs, NULL,
+      FALSE) != -1;
    free(pszProgName);
    return(bSpawned);
 #endif /* ODPLAT_WIN32 */
@@ -306,6 +430,27 @@ ODAPIDEF BOOL ODCALL od_spawn(const char *pszCommandLine)
 ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    const char *const papszArg[], const char *const papszEnv[])
 {
+#ifdef ODPLAT_WIN32
+   return(ODSpawnVPEInternal(nModeFlag, pszPath, papszArg, papszEnv, TRUE));
+#else
+   return(ODSpawnVPEInternal(nModeFlag, pszPath, papszArg, papszEnv));
+#endif
+}
+
+/* ----------------------------------------------------------------------------
+ * ODSpawnVPEInternal()
+ *
+ * Implements od_spawnvpe(). Under Windows, bQuoteWindowsArguments selects
+ * normalized raw argv elements for od_spawnvpe() or the preformatted tail
+ * historically accepted by od_spawn().
+ */
+static INT16 ODSpawnVPEInternal(INT16 nModeFlag, const char *pszPath,
+   const char *const papszArg[], const char *const papszEnv[]
+#ifdef ODPLAT_WIN32
+   , BOOL bQuoteWindowsArguments
+#endif
+   )
+{
    INT16 nToReturn;
    time_t nStartUnixTime;
    DWORD dwQuotient;
@@ -314,6 +459,8 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
 #endif
 #ifdef ODPLAT_WIN32
    void *pWindow;
+   const char *const *papszWindowsArguments;
+   char **papszQuotedWindowsArguments = NULL;
 #endif /* ODPLAT_WIN32 */   
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    char *pszDir;
@@ -331,6 +478,29 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
    if(!bODInitialized) od_init();
    OD_RETURN_IF_SESSION_ENDED(-1);
    OD_API_ENTRY();
+
+#ifdef ODPLAT_WIN32
+   if(papszArg == NULL || papszArg[0] == NULL)
+   {
+      od_control.od_error = ERR_PARAMETER;
+      OD_API_EXIT();
+      return(-1);
+   }
+   if(bQuoteWindowsArguments)
+   {
+      papszQuotedWindowsArguments = ODWindowsQuoteArguments(papszArg);
+      if(papszQuotedWindowsArguments == NULL)
+      {
+         od_control.od_error = ERR_MEMORY;
+         OD_API_EXIT();
+         return(-1);
+      }
+      papszWindowsArguments =
+         (const char *const *)papszQuotedWindowsArguments;
+   }
+   else
+      papszWindowsArguments = papszArg;
+#endif
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    /* Ensure the nModeFlag is P_WAIT, which is the only valid value for */
@@ -410,6 +580,10 @@ ODAPIDEF INT16 ODCALL od_spawnvpe(INT16 nModeFlag, const char *pszPath,
          nToReturn = -1;
          goto RestoreDOSState;
 #else
+#ifdef ODPLAT_WIN32
+         if(papszQuotedWindowsArguments != NULL)
+            free(papszQuotedWindowsArguments);
+#endif
          OD_API_EXIT();
          return(-1);
 #endif
@@ -443,6 +617,11 @@ after_wait_shutdown:
    /* Execute specified program with the specified arguments. */
 #ifdef ODPLAT_DOS32
    nToReturn = spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
+#elif defined(ODPLAT_WIN32)
+   nToReturn = (INT16)_spawnvpe(nModeFlag, pszPath, papszWindowsArguments,
+      papszEnv);
+   if(papszQuotedWindowsArguments != NULL)
+      free(papszQuotedWindowsArguments);
 #else
    nToReturn = _spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
 #endif

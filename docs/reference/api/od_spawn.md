@@ -49,9 +49,12 @@ The manner in which `pszCommandLine` is interpreted is platform dependent:
   named by `COMSPEC` using its `/c` option. If that program cannot be found, it
   retries with `command.com`.
 - On Windows, OpenDoors treats the text before the first space as the program
-  name. All remaining text is passed as one argument to
-  [`od_spawnvpe()`](od_spawnvpe.md). This simple split does not recognize a
-  quoted program path containing spaces.
+  name. All remaining text is retained as a preformatted command-line tail for
+  the Windows C runtime. This preserves [`od_spawn()`](od_spawn.md) as the
+  interface for a child which expects a custom Windows command-line grammar;
+  use [`od_spawnvpe()`](od_spawnvpe.md) when starting a conventional child from
+  an array of raw argument values. The simple program-name split does not
+  recognize a quoted program path containing spaces.
 - On Unix-like targets, the complete string is passed to `system()`. OpenDoors
   temporarily blocks `SIGALRM`, the signal used by its kernel timer, while
   `system()` is running and then restores the caller's complete signal mask.

@@ -18,9 +18,11 @@
 #define UT_CUSTOM_MOCK_ODSyncAPIReacquire
 #endif
 #ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODWindowsQuoteArguments
 #define UT_CUSTOM_MOCK_ODScrnShowMessage
 #define UT_CUSTOM_MOCK_ODScrnRemoveMessage
 #define UT_CUSTOM_MOCK_ODInExDisableDTR
+#define UT_CUSTOM_MOCK_free
 #endif
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 #define UT_CUSTOM_MOCK_malloc
@@ -41,6 +43,15 @@
 #define UT_CUSTOM_MOCK_ODDirGetCurrent
 #define UT_CUSTOM_MOCK_ODDirChangeCurrent
 #endif
+
+#endif
+
+#ifdef ODPLAT_WIN32
+#define TEST_SPAWNVPE(mode, path, arguments, environment) \
+   utt_ODSpawnVPEInternal(mode, path, arguments, environment, TRUE)
+#else
+#define TEST_SPAWNVPE(mode, path, arguments, environment) \
+   utt_ODSpawnVPEInternal(mode, path, arguments, environment)
 #endif
 
 static const char *ut_arguments[] = {"program", "argument", NULL};
@@ -55,6 +66,14 @@ static unsigned ut_spawn_calls, ut_close_calls, ut_open_calls;
 static unsigned ut_wait_calls, ut_reset_activity_calls, ut_clear_calls;
 #ifdef OD_THREAD_SUPPORT
 static unsigned ut_release_calls, ut_reacquire_calls;
+#endif
+#ifdef ODPLAT_WIN32
+static const char *ut_empty_arguments[] = {NULL};
+static const char *ut_quoted_arguments[] = {"<program>", "<argument>", NULL};
+static BOOL ut_quote_fails;
+static BOOL ut_expect_quoted_arguments;
+static unsigned ut_quote_calls;
+static unsigned ut_windows_free_calls;
 #endif
 
 void utm_ODSyncAPIEntry(void) { ++ut_api_entry_calls; }
@@ -84,7 +103,13 @@ static INT16 ut_spawn_primitive(INT16 mode, const char *path,
    const char *const arguments[], const char *const environment[])
 {
    ++ut_spawn_calls; UT_ASSERT(mode == P_WAIT || mode == P_NOWAIT);
-   UT_ASSERT(strcmp(path, "program") == 0); UT_ASSERT_EQ_PTR(ut_arguments, arguments);
+   UT_ASSERT(strcmp(path, "program") == 0);
+#ifdef ODPLAT_WIN32
+   UT_ASSERT_EQ_PTR(ut_expect_quoted_arguments ? ut_quoted_arguments :
+      ut_arguments, arguments);
+#else
+   UT_ASSERT_EQ_PTR(ut_arguments, arguments);
+#endif
    UT_ASSERT_EQ_PTR(ut_environment, environment); return(ut_spawn_result);
 }
 #ifdef ODPLAT_DOS32
@@ -111,6 +136,17 @@ void utm_ODSyncAPIReacquire(unsigned level)
 
 #ifdef ODPLAT_WIN32
 static unsigned ut_show_calls, ut_remove_calls, ut_disable_dtr_calls;
+char **utm_ODWindowsQuoteArguments(const char *const arguments[])
+{
+   ++ut_quote_calls;
+   UT_ASSERT_EQ_PTR(ut_arguments, arguments);
+   return(ut_quote_fails ? NULL : (char **)ut_quoted_arguments);
+}
+void utm_free(void *memory)
+{
+   UT_ASSERT_EQ_PTR(ut_quoted_arguments, memory);
+   ++ut_windows_free_calls;
+}
 void *utm_ODScrnShowMessage(char *text, int flags)
 { UT_ASSERT(strcmp(text, "Running sub-program...") == 0); UT_ASSERT_EQ_INT(0, flags); ++ut_show_calls; return(&ut_show_calls); }
 void utm_ODScrnRemoveMessage(void *window)
@@ -187,6 +223,10 @@ static void reset_spawnvpe(void)
 #endif
 #ifdef ODPLAT_WIN32
    ut_show_calls = ut_remove_calls = ut_disable_dtr_calls = 0;
+   ut_quote_fails = FALSE;
+   ut_expect_quoted_arguments = TRUE;
+   ut_quote_calls = 0;
+   ut_windows_free_calls = 0;
 #endif
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    ut_malloc_calls = ut_malloc_fail_at = ut_free_calls = 0;
@@ -201,8 +241,11 @@ static void reset_spawnvpe(void)
 static void initializes_and_propagates_primitive_result(void)
 {
    reset_spawnvpe(); bODInitialized = FALSE; ut_spawn_result = -1;
-   UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(-1, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_UINT(1, ut_api_entry_calls); UT_ASSERT_EQ_UINT(1, ut_api_exit_calls);
+#ifdef ODPLAT_WIN32
+   UT_ASSERT_EQ_UINT(1, ut_windows_free_calls);
+#endif
 }
 
 static void rejects_a_terminal_session_after_initialization(void)
@@ -211,7 +254,7 @@ static void rejects_a_terminal_session_after_initialization(void)
    bODInitialized = FALSE;
    ut_init_succeeds = FALSE;
    UT_ASSERT_EQ_INT(-1,
-      utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+      TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
    UT_ASSERT_EQ_UINT(0, ut_api_entry_calls);
    UT_ASSERT_EQ_UINT(0, ut_spawn_calls);
@@ -221,13 +264,13 @@ static void rejects_a_terminal_session_after_initialization(void)
 static void covers_waiting_and_nonwaiting_modes(void)
 {
    reset_spawnvpe();
-   UT_ASSERT_EQ_INT(7, utt_od_spawnvpe(P_NOWAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(7, TEST_SPAWNVPE(P_NOWAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_UINT(0, ut_wait_calls); UT_ASSERT_EQ_UINT(0, ut_reset_activity_calls);
    reset_spawnvpe(); ut_wait_aborts = TRUE;
-   UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(-1, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_UINT(0, ut_spawn_calls); UT_ASSERT_EQ_UINT(1, ut_api_exit_calls);
    reset_spawnvpe(); od_control.baud = 9600;
-   UT_ASSERT_EQ_INT(7, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(7, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_UINT(1, ut_close_calls); UT_ASSERT_EQ_UINT(1, ut_open_calls);
 #ifdef ODPLAT_WIN32
    UT_ASSERT_EQ_UINT(1, ut_disable_dtr_calls); UT_ASSERT_EQ_UINT(1, ut_remove_calls);
@@ -235,28 +278,63 @@ static void covers_waiting_and_nonwaiting_modes(void)
 }
 #endif
 
+#ifdef ODPLAT_WIN32
+static void rejects_invalid_arguments_and_quote_failure(void)
+{
+   reset_spawnvpe();
+   UT_ASSERT_EQ_INT(-1,
+      TEST_SPAWNVPE(P_WAIT, "program", NULL, ut_environment));
+   UT_ASSERT_EQ_INT(ERR_PARAMETER, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_spawn_calls);
+
+   reset_spawnvpe();
+   UT_ASSERT_EQ_INT(-1,
+      TEST_SPAWNVPE(P_WAIT, "program", ut_empty_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(ERR_PARAMETER, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_spawn_calls);
+
+   reset_spawnvpe();
+   ut_quote_fails = TRUE;
+   UT_ASSERT_EQ_INT(-1,
+      TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(ERR_MEMORY, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_spawn_calls);
+   UT_ASSERT_EQ_UINT(0, ut_windows_free_calls);
+}
+
+static void preserves_preformatted_windows_arguments(void)
+{
+   reset_spawnvpe();
+   ut_expect_quoted_arguments = FALSE;
+   UT_ASSERT_EQ_INT(7, utt_ODSpawnVPEInternal(P_WAIT, "program",
+      ut_arguments, ut_environment, FALSE));
+   UT_ASSERT_EQ_UINT(0, ut_quote_calls);
+   UT_ASSERT_EQ_UINT(0, ut_windows_free_calls);
+}
+#endif
+
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 static void rejects_invalid_mode_and_allocation_failures(void)
 {
    reset_spawnvpe();
-   UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_NOWAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(-1, TEST_SPAWNVPE(P_NOWAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_INT(ERR_PARAMETER, od_control.od_error);
    reset_spawnvpe(); ut_malloc_fail_at = 1;
-   UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(-1, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_INT(ERR_MEMORY, od_control.od_error); UT_ASSERT_EQ_UINT(0, ut_free_calls);
    reset_spawnvpe(); ut_malloc_fail_at = 2;
-   UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(-1, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_INT(ERR_MEMORY, od_control.od_error); UT_ASSERT_EQ_UINT(1, ut_free_calls);
 }
 
 static void covers_dos_screen_wait_and_serial_paths(void)
 {
    reset_spawnvpe(); od_control.od_clear_on_exit = TRUE;
-   UT_ASSERT_EQ_INT(7, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(7, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_UINT(1, ut_screen_clear_calls); UT_ASSERT_EQ_UINT(1, ut_cursor_calls);
    UT_ASSERT_EQ_UINT(2, ut_free_calls);
    reset_spawnvpe(); ut_wait_aborts = TRUE;
-   UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(-1, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_UINT(0, ut_spawn_calls); UT_ASSERT_EQ_UINT(2, ut_free_calls);
    UT_ASSERT_EQ_UINT(1, ut_screen_put_calls);
    UT_ASSERT_EQ_UINT(2, ut_boundary_calls);
@@ -266,13 +344,13 @@ static void covers_dos_screen_wait_and_serial_paths(void)
    UT_ASSERT_EQ_UINT(2, ut_cursor_calls);
    UT_ASSERT_EQ_INT(7, ut_cursor_column); UT_ASSERT_EQ_INT(8, ut_cursor_row);
    reset_spawnvpe(); od_control.od_silent_mode = TRUE; ut_wait_aborts = TRUE;
-   UT_ASSERT_EQ_INT(-1, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(-1, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_UINT(0, ut_spawn_calls); UT_ASSERT_EQ_UINT(2, ut_free_calls);
    UT_ASSERT_EQ_UINT(0, ut_screen_put_calls);
    UT_ASSERT_EQ_UINT(1, ut_boundary_calls);
    UT_ASSERT_EQ_UINT(1, ut_attribute_calls); UT_ASSERT_EQ_UINT(1, ut_cursor_calls);
    reset_spawnvpe(); od_control.baud = 9600;
-   UT_ASSERT_EQ_INT(7, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(7, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_UINT(1, ut_close_calls); UT_ASSERT_EQ_UINT(1, ut_open_calls);
 }
 #endif
@@ -280,13 +358,13 @@ static void covers_dos_screen_wait_and_serial_paths(void)
 static void covers_time_accounting_modes(void)
 {
    reset_spawnvpe();
-   UT_ASSERT_EQ_INT(7, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(7, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT_EQ_INT(18, od_control.user_timelimit);
    reset_spawnvpe(); bIsShell = TRUE;
-   UT_ASSERT_EQ_INT(7, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(7, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT(nNextTimeDeductTime == 120);
    reset_spawnvpe(); od_control.od_spawn_freeze_time = TRUE;
-   UT_ASSERT_EQ_INT(7, utt_od_spawnvpe(P_WAIT, "program", ut_arguments, ut_environment));
+   UT_ASSERT_EQ_INT(7, TEST_SPAWNVPE(P_WAIT, "program", ut_arguments, ut_environment));
    UT_ASSERT(nNextTimeDeductTime == 120);
 }
 static const UTTestCase ut_cases[] = {
@@ -298,6 +376,10 @@ static const UTTestCase ut_cases[] = {
 #endif
 #if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
    {"wait modes", covers_waiting_and_nonwaiting_modes},
+#endif
+#ifdef ODPLAT_WIN32
+   {"arguments and quote failure", rejects_invalid_arguments_and_quote_failure},
+   {"preformatted arguments", preserves_preformatted_windows_arguments},
 #endif
    {"time accounting", covers_time_accounting_modes}
 };

@@ -36,8 +36,8 @@ int main(void)
    /* Local operation always enables the local display. */
    OD_TEST_CHECK(od_control.od_silent_mode == FALSE);
    OD_TEST_CHECK(strcmp(od_control.od_prog_name, "Acceptance Door") == 0);
-   OD_TEST_CHECK(od_control.user_screenwidth == 80);
-   OD_TEST_CHECK(od_control.user_screen_length == 23);
+   OD_TEST_CHECK(od_control.user_screenwidth == 100);
+   OD_TEST_CHECK(od_control.user_screen_length == 30);
    OD_TEST_CHECK(od_control.od_page_len != 0);
    OD_TEST_CHECK(od_control.od_color_char == '\0');
    OD_TEST_CHECK(od_control.od_color_delimiter == '`');

@@ -24,10 +24,12 @@ INT16 od_spawnvpe(INT16 nModeFlag, const char *pszPath,
   current `PATH` environment variable.
 
 `papszArg`
-: Null-terminated argument array in the form expected by the target C
-  runtime's `spawnvpe()` function. Supply the executable name in element zero
-  when required by the child program or host C runtime. Quoting within the
-  strings is interpreted according to that runtime's rules.
+: Null-terminated argument array. Supply the executable name in element zero
+  when required by the child program or host C runtime. On Windows and
+  Unix-like systems, each string represents one raw argument; callers do not
+  add quotation marks merely because an argument contains spaces. On DOS, the
+  compiler runtime serializes the array into a raw command tail, whose eventual
+  interpretation depends on the child program.
 
 `papszEnv`
 : Null-terminated array of `name=value` environment strings to be given to the
@@ -61,11 +63,14 @@ clears stale input, restores the saved local state, and adjusts the caller's
 remaining-time accounting according to
 [`od_spawn_freeze_time`](../control/customization.md#od_spawn_freeze_time).
 
-OpenDoors passes `papszArg` to the target's `spawnvpe()`-compatible interface
-without reinterpreting or adding quotation marks to its strings. The strings
-in a non-null `papszEnv` become the complete child environment; they are not
-additions to the current environment. Each environment entry must have the
-form `name=value`, and the final array element must be `NULL`.
+On Windows, OpenDoors quotes and escapes each raw argument before passing it to
+the target's `_spawnvpe()`-compatible interface. Unix-like targets pass the
+array directly to the operating system. DOS retains its established compiler
+runtime launch path without imposing a command-line grammar that the operating
+system does not define. The strings in a non-null `papszEnv` become the complete
+child environment; they are not additions to the current environment. Each
+environment entry must have the form `name=value`, and the final array element
+must be `NULL`.
 
 ## Platform notes
 
@@ -80,10 +85,13 @@ also swap the door to EMS or disk while the child is running.
 
 On Windows, OpenDoors delegates process creation and executable lookup to the
 Microsoft-compatible `_spawnvpe()` runtime. Windows creates a process with one
-command-line string, and the runtime forms that string from `papszArg`. Include
-quotation marks in an argument string when the Microsoft runtime requires them;
-for example, use `"\"two words\""` to pass `two words` as one argument to a
-child using the same command-line decoding convention. A successful
+command-line string, so OpenDoors serializes each raw array element using the
+Microsoft C command-line quote and backslash rules. For example, an element
+whose value is `two words` reaches a conventional C child as one argument
+containing those two words; caller-supplied quotation marks are preserved as
+literal characters in that argument. Programs which intentionally use a
+different command-line decoder may instead use [`od_spawn()`](od_spawn.md) to
+supply preformatted Windows command text. A successful
 [`P_NOWAIT`](../constants/general.md#p_nowait) value originates as a native
 process handle, but the public interface narrows it to
 [`INT16`](../types.md#int16); portable code must use it only as a success
@@ -99,10 +107,13 @@ and reaps the intermediate process, so the asynchronous process cannot leave a
 zombie owned by the door. This operation does not change the application's
 `SIGCHLD` disposition, and a successful asynchronous launch returns zero.
 
-Allocation of the DOS screen or directory buffers can fail with
-[`ERR_MEMORY`](../constants/errors.md#err_memory). Other native launch failures
-are represented by the return value and the platform runtime's error state;
-this function does not translate every native failure into
+Allocation of the DOS screen or directory buffers, or of the temporary Windows
+quoted argument vector, can fail with
+[`ERR_MEMORY`](../constants/errors.md#err_memory). On Windows, a null argument
+array or a null element zero fails with
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter). Other native launch
+failures are represented by the return value and the platform runtime's error
+state; this function does not translate every native failure into
 [`od_control.od_error`](../control/runtime.md#od_error).
 
 ## Example
@@ -111,7 +122,7 @@ This example searches for `TEST.EXE`, supplies two arguments, and gives the
 child a copy of the current environment:
 
 ```c
-const char *args[] = { "TEST.EXE", "--check", NULL };
+const char *args[] = { "TEST.EXE", "argument one", "--check", NULL };
 INT16 result = od_spawnvpe(P_WAIT, "TEST.EXE", args, NULL);
 
 if(result == -1)

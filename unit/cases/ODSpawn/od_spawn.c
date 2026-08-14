@@ -75,7 +75,7 @@ static void falls_back_only_when_comspec_is_missing(void)
 #define UT_CUSTOM_MOCK_malloc
 #define UT_CUSTOM_MOCK_memcpy
 #define UT_CUSTOM_MOCK_free
-#define UT_CUSTOM_MOCK_od_spawnvpe
+#define UT_CUSTOM_MOCK_ODSpawnVPEInternal
 static char ut_program[64];
 static BOOL ut_malloc_fails;
 static INT16 ut_spawn_result;
@@ -100,11 +100,13 @@ void *utm_memcpy(void *destination, const void *source, size_t size)
 }
 void utm_free(void *memory)
 { UT_ASSERT_EQ_PTR(ut_program, memory); ++ut_free_calls; }
-INT16 ODCALL utm_od_spawnvpe(INT16 mode, const char *path,
-   const char *const arguments[], const char *const environment[])
+INT16 utm_ODSpawnVPEInternal(INT16 mode, const char *path,
+   const char *const arguments[], const char *const environment[],
+   BOOL quote_arguments)
 {
    UT_ASSERT_EQ_INT(P_WAIT, mode); UT_ASSERT_EQ_PTR(ut_program, path);
    UT_ASSERT_EQ_PTR(path, arguments[0]); UT_ASSERT_NULL(environment);
+   UT_ASSERT(!quote_arguments);
    if(strcmp(path, "program") == 0)
    { UT_ASSERT(strcmp(arguments[1], "one two") == 0); UT_ASSERT_NULL(arguments[2]); }
    else

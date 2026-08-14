@@ -265,10 +265,30 @@
       ],
       "functions": [
         {
+          "name": "ODWindowsCommandLineToArgvFallback",
+          "signature_line": 127,
+          "body_line": 138,
+          "end_line": 222,
+          "platforms": [
+            "windows"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODWindowsCommandLineToArgv",
+          "signature_line": 222,
+          "body_line": 232,
+          "end_line": 263,
+          "platforms": [
+            "windows"
+          ],
+          "test": null
+        },
+        {
           "name": "od_split_cmd_line",
-          "signature_line": 119,
-          "body_line": 136,
-          "end_line": 247,
+          "signature_line": 263,
+          "body_line": 281,
+          "end_line": 506,
           "platforms": [
             "unix",
             "windows",
@@ -279,9 +299,9 @@
         },
         {
           "name": "od_free_split_cmd_line",
-          "signature_line": 247,
-          "body_line": 259,
-          "end_line": 269,
+          "signature_line": 506,
+          "body_line": 518,
+          "end_line": 528,
           "platforms": [
             "unix",
             "windows",
@@ -292,9 +312,9 @@
         },
         {
           "name": "od_parse_cmd_line",
-          "signature_line": 269,
-          "body_line": 303,
-          "end_line": 598,
+          "signature_line": 528,
+          "body_line": 562,
+          "end_line": 857,
           "platforms": [
             "unix",
             "windows",
@@ -305,9 +325,9 @@
         },
         {
           "name": "ODParseOpenHandle",
-          "signature_line": 598,
-          "body_line": 617,
-          "end_line": 645,
+          "signature_line": 857,
+          "body_line": 876,
+          "end_line": 904,
           "platforms": [
             "unix",
             "windows"
@@ -316,9 +336,9 @@
         },
         {
           "name": "ODAdvanceToNextArg",
-          "signature_line": 645,
-          "body_line": 664,
-          "end_line": 673,
+          "signature_line": 904,
+          "body_line": 923,
+          "end_line": 932,
           "platforms": [
             "unix",
             "windows",
@@ -329,9 +349,9 @@
         },
         {
           "name": "ODGetNextArgName",
-          "signature_line": 673,
-          "body_line": 698,
-          "end_line": 741,
+          "signature_line": 932,
+          "body_line": 957,
+          "end_line": 1000,
           "platforms": [
             "unix",
             "windows",
@@ -342,9 +362,9 @@
         },
         {
           "name": "ODGetCommandLineParameter",
-          "signature_line": 741,
-          "body_line": 757,
-          "end_line": 878,
+          "signature_line": 1000,
+          "body_line": 1016,
+          "end_line": 1137,
           "platforms": [
             "unix",
             "windows",
@@ -4801,10 +4821,30 @@
       ],
       "functions": [
         {
+          "name": "ODWindowsQuoteArgument",
+          "signature_line": 89,
+          "body_line": 101,
+          "end_line": 158,
+          "platforms": [
+            "windows"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODWindowsQuoteArguments",
+          "signature_line": 158,
+          "body_line": 167,
+          "end_line": 201,
+          "platforms": [
+            "windows"
+          ],
+          "test": null
+        },
+        {
           "name": "od_spawn",
-          "signature_line": 157,
-          "body_line": 171,
-          "end_line": 279,
+          "signature_line": 280,
+          "body_line": 294,
+          "end_line": 403,
           "platforms": [
             "unix",
             "windows",
@@ -4815,9 +4855,22 @@
         },
         {
           "name": "od_spawnvpe",
-          "signature_line": 279,
-          "body_line": 308,
-          "end_line": 524,
+          "signature_line": 403,
+          "body_line": 432,
+          "end_line": 438,
+          "platforms": [
+            "unix",
+            "windows",
+            "dos16",
+            "dos32"
+          ],
+          "test": null
+        },
+        {
+          "name": "ODSpawnVPEInternal",
+          "signature_line": 438,
+          "body_line": 453,
+          "end_line": 703,
           "platforms": [
             "unix",
             "windows",
@@ -4828,9 +4881,9 @@
         },
         {
           "name": "_spawnvpe",
-          "signature_line": 524,
-          "body_line": 548,
-          "end_line": 598,
+          "signature_line": 703,
+          "body_line": 727,
+          "end_line": 777,
           "platforms": [
             "unix",
             "dos16"
@@ -4839,9 +4892,9 @@
         },
         {
           "name": "addvect",
-          "signature_line": 598,
-          "body_line": 613,
-          "end_line": 649,
+          "signature_line": 777,
+          "body_line": 792,
+          "end_line": 828,
           "platforms": [
             "dos16"
           ],
@@ -4849,9 +4902,9 @@
         },
         {
           "name": "savevect",
-          "signature_line": 649,
-          "body_line": 662,
-          "end_line": 680,
+          "signature_line": 828,
+          "body_line": 841,
+          "end_line": 859,
           "platforms": [
             "dos16"
           ],
@@ -4859,9 +4912,9 @@
         },
         {
           "name": "testfile",
-          "signature_line": 680,
-          "body_line": 697,
-          "end_line": 763,
+          "signature_line": 859,
+          "body_line": 876,
+          "end_line": 942,
           "platforms": [
             "dos16"
           ],
@@ -4869,9 +4922,9 @@
         },
         {
           "name": "tempfile",
-          "signature_line": 763,
-          "body_line": 778,
-          "end_line": 815,
+          "signature_line": 942,
+          "body_line": 957,
+          "end_line": 994,
           "platforms": [
             "dos16"
           ],
@@ -4879,9 +4932,9 @@
         },
         {
           "name": "cmdenv",
-          "signature_line": 815,
-          "body_line": 837,
-          "end_line": 958,
+          "signature_line": 994,
+          "body_line": 1016,
+          "end_line": 1137,
           "platforms": [
             "dos16"
           ],
@@ -4889,9 +4942,9 @@
         },
         {
           "name": "doxspawn",
-          "signature_line": 958,
-          "body_line": 976,
-          "end_line": 1065,
+          "signature_line": 1137,
+          "body_line": 1155,
+          "end_line": 1244,
           "platforms": [
             "dos16"
           ],
@@ -4899,9 +4952,9 @@
         },
         {
           "name": "_spawnve",
-          "signature_line": 1065,
-          "body_line": 1085,
-          "end_line": 1126,
+          "signature_line": 1244,
+          "body_line": 1264,
+          "end_line": 1305,
           "platforms": [
             "dos16"
           ],
@@ -4909,9 +4962,9 @@
         },
         {
           "name": "ODUnixExecProgram",
-          "signature_line": 1131,
-          "body_line": 1138,
-          "end_line": 1197,
+          "signature_line": 1310,
+          "body_line": 1317,
+          "end_line": 1376,
           "platforms": [
             "unix"
           ],
@@ -4919,9 +4972,9 @@
         },
         {
           "name": "ODUnixReportSpawnError",
-          "signature_line": 1197,
-          "body_line": 1202,
-          "end_line": 1226,
+          "signature_line": 1376,
+          "body_line": 1381,
+          "end_line": 1405,
           "platforms": [
             "unix"
           ],
@@ -4929,9 +4982,9 @@
         },
         {
           "name": "ODUnixReadSpawnError",
-          "signature_line": 1226,
-          "body_line": 1231,
-          "end_line": 1260,
+          "signature_line": 1405,
+          "body_line": 1410,
+          "end_line": 1439,
           "platforms": [
             "unix"
           ],
@@ -4939,9 +4992,9 @@
         },
         {
           "name": "ODUnixWaitForChild",
-          "signature_line": 1260,
-          "body_line": 1263,
-          "end_line": 1272,
+          "signature_line": 1439,
+          "body_line": 1442,
+          "end_line": 1451,
           "platforms": [
             "unix"
           ],
@@ -4949,9 +5002,9 @@
         },
         {
           "name": "_spawnvpe",
-          "signature_line": 1272,
-          "body_line": 1292,
-          "end_line": 1449,
+          "signature_line": 1451,
+          "body_line": 1471,
+          "end_line": 1628,
           "platforms": [
             "unix",
             "dos16"

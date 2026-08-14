@@ -4,8 +4,18 @@
 
 int main(int argc, char **argv)
 {
+   static const char *expected[] = {
+      "argument one",
+      "",
+      "quote\"inside",
+      "slashes\\\\\"quote",
+      "ends with slash\\",
+      "tab\targument",
+      "argument-two"
+   };
    const char *value = getenv("OD_ACCEPT_VALUE");
    FILE *file;
+   int index;
    if(argc == 2 && strcmp(argv[1], "--simple") == 0)
    {
       file = fopen("ODSIMPLE.OK", "w");
@@ -14,23 +24,21 @@ int main(int argc, char **argv)
       return(fputs("simple spawn passed\n", file) < 0 || fclose(file) != 0
          ? 21 : 0);
    }
-   if(argc != 3)
+   if(argc != 8)
    {
-      int index;
-      fprintf(stderr, "spawn child received %d arguments, expected 3\n", argc);
+      fprintf(stderr, "spawn child received %d arguments, expected 8\n", argc);
       for(index = 0; index < argc; ++index)
          fprintf(stderr, "spawn child argv[%d] is '%s'\n", index, argv[index]);
       return(17);
    }
-   if(strcmp(argv[1], "argument one") != 0)
+   for(index = 0; index < 7; ++index)
    {
-      fprintf(stderr, "spawn child argv[1] is '%s'\n", argv[1]);
-      return(17);
-   }
-   if(strcmp(argv[2], "argument-two") != 0)
-   {
-      fprintf(stderr, "spawn child argv[2] is '%s'\n", argv[2]);
-      return(17);
+      if(strcmp(argv[index + 1], expected[index]) != 0)
+      {
+         fprintf(stderr, "spawn child argv[%d] is '%s', expected '%s'\n",
+            index + 1, argv[index + 1], expected[index]);
+         return(17);
+      }
    }
    if(value == NULL || strcmp(value, "environment value") != 0)
    {

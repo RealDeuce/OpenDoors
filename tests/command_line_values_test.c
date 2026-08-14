@@ -58,12 +58,20 @@ static int TestSplitter(void)
    papszArguments = od_split_cmd_line("-NAME \"Jane Smith\" -LOCAL",
       &nArgCount);
    CHECK(papszArguments != NULL);
+#ifdef ODPLAT_WIN32
+   CHECK(nArgCount == 4);
+   CHECK(strcmp(papszArguments[1], "-NAME") == 0);
+   CHECK(strcmp(papszArguments[2], "Jane Smith") == 0);
+   CHECK(strcmp(papszArguments[3], "-LOCAL") == 0);
+   CHECK(papszArguments[4] == NULL);
+#else
    CHECK(nArgCount == 5);
    CHECK(strcmp(papszArguments[1], "-NAME") == 0);
    CHECK(strcmp(papszArguments[2], "\"Jane") == 0);
    CHECK(strcmp(papszArguments[3], "Smith\"") == 0);
    CHECK(strcmp(papszArguments[4], "-LOCAL") == 0);
    CHECK(papszArguments[5] == NULL);
+#endif
    od_free_split_cmd_line(papszArguments);
    return(0);
 }

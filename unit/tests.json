@@ -200,7 +200,10 @@
     {"source":"ODInEx2.c","function":"ODWriteExitInfoPrimitive","case":"unit/cases/ODInEx2/ODWriteExitInfoPrimitive.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODInEx2.c","function":"od_exit","case":"unit/cases/ODInEx2/od_exit.c","platforms":["unix","windows","dos16","dos32"],"configurations":[{"name":"release"},{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"]}]},
     {"source":"ODSpawn.c","function":"od_spawn","case":"unit/cases/ODSpawn/od_spawn.c","platforms":["unix","windows","dos16","dos32"]},
-    {"source":"ODSpawn.c","function":"od_spawnvpe","case":"unit/cases/ODSpawn/od_spawnvpe.c","platforms":["unix","windows","dos16","dos32"]},
+    {"source":"ODSpawn.c","function":"od_spawnvpe","case":"unit/cases/ODSpawn/od_spawnvpe_wrapper.c","platforms":["unix","windows","dos16","dos32"]},
+    {"source":"ODSpawn.c","function":"ODSpawnVPEInternal","case":"unit/cases/ODSpawn/od_spawnvpe.c","platforms":["unix","windows","dos16","dos32"]},
+    {"source":"ODSpawn.c","function":"ODWindowsQuoteArgument","case":"unit/cases/ODSpawn/ODWindowsQuoteArgument.c","platforms":["windows"]},
+    {"source":"ODSpawn.c","function":"ODWindowsQuoteArguments","case":"unit/cases/ODSpawn/ODWindowsQuoteArguments.c","platforms":["windows"]},
     {"source":"ODSpawn.c","function":"ODUnixExecProgram","case":"unit/cases/ODSpawn/ODUnixExecProgram.c","platforms":["unix"]},
     {"source":"ODSpawn.c","function":"ODUnixReportSpawnError","case":"unit/cases/ODSpawn/ODUnixReportSpawnError.c","platforms":["unix"]},
     {"source":"ODSpawn.c","function":"ODUnixReadSpawnError","case":"unit/cases/ODSpawn/ODUnixReadSpawnError.c","platforms":["unix"]},
@@ -638,6 +641,18 @@
       "function": "od_split_cmd_line",
       "case": "unit/cases/ODCmdLn/od_split_cmd_line.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCmdLn.c",
+      "function": "ODWindowsCommandLineToArgvFallback",
+      "case": "unit/cases/ODCmdLn/ODWindowsCommandLineToArgvFallback.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODCmdLn.c",
+      "function": "ODWindowsCommandLineToArgv",
+      "case": "unit/cases/ODCmdLn/ODWindowsCommandLineToArgv.c",
+      "platforms": ["windows"]
     },
     {
       "source": "ODCmdLn.c",
