@@ -617,13 +617,15 @@ after_wait_shutdown:
    /* Execute specified program with the specified arguments. */
 #ifdef ODPLAT_DOS32
    nToReturn = spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
-#elif defined(ODPLAT_WIN32)
+#else
+#ifdef ODPLAT_WIN32
    nToReturn = (INT16)_spawnvpe(nModeFlag, pszPath, papszWindowsArguments,
       papszEnv);
    if(papszQuotedWindowsArguments != NULL)
       free(papszQuotedWindowsArguments);
 #else
    nToReturn = _spawnvpe(nModeFlag, pszPath, papszArg, papszEnv);
+#endif
 #endif
 
 #ifdef OD_THREAD_SUPPORT

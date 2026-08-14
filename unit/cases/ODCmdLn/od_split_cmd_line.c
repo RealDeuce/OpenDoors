@@ -50,9 +50,11 @@ static unsigned ut_malloc_fail_call;
 static unsigned ut_local_free_calls;
 static unsigned ut_parser_calls;
 static unsigned ut_parser_fail_call;
+static unsigned ut_parser_empty_call;
 static BOOL ut_parser_returns_module;
 static unsigned ut_conversion_calls;
 static unsigned ut_conversion_fail_call;
+static unsigned ut_free_library_calls;
 #endif
 
 void *utm_calloc(size_t count, size_t size)
@@ -224,6 +226,11 @@ LPWSTR *utm_ODWindowsCommandLineToArgv(LPCWSTR command, INT *count,
       return(NULL);
    memset(ut_wide_storage, 0, sizeof(ut_wide_storage));
    memset(ut_wide_arguments, 0, sizeof(ut_wide_arguments));
+   if(ut_parser_calls == ut_parser_empty_call)
+   {
+      *count = 0;
+      return(ut_wide_arguments);
+   }
    return(ut_parse_wide(command, count));
 }
 
@@ -237,6 +244,7 @@ HLOCAL WINAPI utm_LocalFree(HLOCAL memory)
 BOOL WINAPI utm_FreeLibrary(HMODULE module)
 {
    UT_ASSERT_EQ_PTR((HMODULE)(UINT_PTR)0x1234, module);
+   ++ut_free_library_calls;
    return(TRUE);
 }
 #endif
@@ -260,9 +268,11 @@ static void reset_fixture(void)
    ut_local_free_calls = 0;
    ut_parser_calls = 0;
    ut_parser_fail_call = 0;
+   ut_parser_empty_call = 0;
    ut_parser_returns_module = FALSE;
    ut_conversion_calls = 0;
    ut_conversion_fail_call = 0;
+   ut_free_library_calls = 0;
 #endif
 }
 
@@ -326,6 +336,11 @@ static void rejects_invalid_parameters_and_allocation_failures(void)
    UT_ASSERT_NULL(utt_od_split_cmd_line("value", &count));
    UT_ASSERT_EQ_INT(0, count);
 
+   reset_fixture();
+   ut_parser_empty_call = 2;
+   UT_ASSERT_NULL(utt_od_split_cmd_line("value", &count));
+   UT_ASSERT_EQ_INT(0, count);
+
    for(conversion_failure = 1; conversion_failure <= 8;
       ++conversion_failure)
    {
@@ -334,6 +349,14 @@ static void rejects_invalid_parameters_and_allocation_failures(void)
       UT_ASSERT_NULL(utt_od_split_cmd_line("value", &count));
       UT_ASSERT_EQ_INT(0, count);
    }
+
+   reset_fixture();
+   ut_parser_returns_module = TRUE;
+   ut_conversion_fail_call = 7;
+   UT_ASSERT_NULL(utt_od_split_cmd_line("value", &count));
+   UT_ASSERT_EQ_INT(0, count);
+   UT_ASSERT_EQ_UINT(2, ut_local_free_calls);
+   UT_ASSERT_EQ_UINT(2, ut_free_library_calls);
 #else
    ut_strdup_fail_call = 1;
    result = utt_od_split_cmd_line("value", &count);

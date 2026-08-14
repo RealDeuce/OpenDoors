@@ -310,6 +310,14 @@ static void preserves_preformatted_windows_arguments(void)
       ut_arguments, ut_environment, FALSE));
    UT_ASSERT_EQ_UINT(0, ut_quote_calls);
    UT_ASSERT_EQ_UINT(0, ut_windows_free_calls);
+
+   reset_spawnvpe();
+   ut_expect_quoted_arguments = FALSE;
+   ut_wait_aborts = TRUE;
+   UT_ASSERT_EQ_INT(-1, utt_ODSpawnVPEInternal(P_WAIT, "program",
+      ut_arguments, ut_environment, FALSE));
+   UT_ASSERT_EQ_UINT(0, ut_quote_calls);
+   UT_ASSERT_EQ_UINT(0, ut_windows_free_calls);
 }
 #endif
 

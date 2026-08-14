@@ -51,6 +51,12 @@ static void parses_documented_quote_and_backslash_cases(void)
    UT_ASSERT(wide_equal(L"test", arguments[0]));
    UT_ASSERT(wide_equal(L"a\"", arguments[1]));
    UT_ASSERT(wide_equal(L"b c", arguments[2]));
+
+   arguments = utt_ODWindowsCommandLineToArgvFallback(
+      L"test trailing\\", &count);
+   UT_ASSERT_NOT_NULL(arguments);
+   UT_ASSERT_EQ_INT(2, count);
+   UT_ASSERT(wide_equal(L"trailing\\", arguments[1]));
 }
 
 static void handles_whitespace_limits_and_allocation_failure(void)

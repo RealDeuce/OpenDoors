@@ -424,8 +424,7 @@ ODAPIDEF char ** ODCALL od_split_cmd_line(const char* pszCmdLine, INT *nArgCount
       LocalFree((HLOCAL)papszFullWide);
    if(hFullShell32 != NULL)
       FreeLibrary(hFullShell32);
-   if(papszTailWide != NULL)
-      LocalFree((HLOCAL)papszTailWide);
+   LocalFree((HLOCAL)papszTailWide);
    if(hTailShell32 != NULL)
       FreeLibrary(hTailShell32);
    free(pszFullWide);

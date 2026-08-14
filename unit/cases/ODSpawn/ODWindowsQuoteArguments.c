@@ -55,6 +55,7 @@ static void builds_one_contiguous_quoted_vector(void)
 static void reports_allocation_and_size_failures(void)
 {
    static const char *arguments[] = {"a", NULL};
+   static const char *two_arguments[] = {"a", "b", NULL};
    reset_fixture();
    ut_malloc_fails = TRUE;
    UT_ASSERT_NULL(utt_ODWindowsQuoteArguments(arguments));
@@ -66,6 +67,10 @@ static void reports_allocation_and_size_failures(void)
    reset_fixture();
    ut_forced_length = (size_t)-1 - 2 * sizeof(char *);
    UT_ASSERT_NULL(utt_ODWindowsQuoteArguments(arguments));
+
+   reset_fixture();
+   ut_forced_length = (size_t)-1 / 2 + 1;
+   UT_ASSERT_NULL(utt_ODWindowsQuoteArguments(two_arguments));
 }
 
 static const UTTestCase ut_cases[] = {

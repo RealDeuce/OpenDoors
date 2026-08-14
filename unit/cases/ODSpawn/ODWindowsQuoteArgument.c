@@ -19,6 +19,7 @@ static void quotes_the_microsoft_argument_grammar(void)
    assert_quote("tab\targument", "\"tab\targument\"");
    assert_quote("quote\"inside", "quote\\\"inside");
    assert_quote("\\\"", "\\\\\\\"");
+   assert_quote("C:\\plain\\", "C:\\plain\\");
    assert_quote("C:\\Program Files\\Common\\",
       "\"C:\\Program Files\\Common\\\\\"");
 }
