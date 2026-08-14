@@ -1775,12 +1775,19 @@ tODResult ODFrameStart(HANDLE hInstance, tODThreadHandle *phFrameThread)
  * ODFramePostThreadQuit()                           *** PRIVATE FUNCTION ***
  *
  * Posts WM_QUIT to a UI thread whose startup event established its message
- * queue, or returns if the thread has already stopped.
+ * queue, or succeeds immediately if the thread has already stopped.
+ *
+ *     Return: TRUE if no request is needed or WM_QUIT was posted.
  */
-static void ODFramePostThreadQuit(tODThreadHandle hThread, DWORD dwThreadID)
+static BOOL ODFramePostThreadQuit(tODThreadHandle hThread, DWORD dwThreadID)
 {
-   if(WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT && dwThreadID != 0)
-      PostThreadMessage(dwThreadID, WM_QUIT, 0, 0);
+   DWORD dwWaitResult = WaitForSingleObject(hThread, 0);
+
+   if(dwWaitResult == WAIT_OBJECT_0)
+      return(TRUE);
+   if(dwWaitResult != WAIT_TIMEOUT || dwThreadID == 0)
+      return(FALSE);
+   return(PostThreadMessage(dwThreadID, WM_QUIT, 0, 0));
 }
 
 
@@ -1789,16 +1796,34 @@ static void ODFramePostThreadQuit(tODThreadHandle hThread, DWORD dwThreadID)
  *
  * Asks the Win32 UI thread to destroy its windows and stop its message loop,
  * without waiting for the thread to finish.
+ *
+ *     Return: TRUE if a shutdown request was delivered or the thread had
+ *             already stopped, FALSE if every delivery path failed.
  */
-void ODFrameRequestShutdown(tODThreadHandle hFrameThread)
+BOOL ODFrameRequestShutdown(tODThreadHandle hFrameThread)
 {
+   DWORD_PTR dwMessageResult;
+
    if(hFrameThread == NULL)
-      return;
+      return(TRUE);
 
    if(hwndCurrentFrame != NULL)
-      PostMessage(hwndCurrentFrame, WM_OD_SHUTDOWN, 0, 0);
-   else
-      ODFramePostThreadQuit(hFrameThread, dwFrameThreadID);
+   {
+      if(PostMessage(hwndCurrentFrame, WM_OD_SHUTDOWN, 0, 0))
+         return(TRUE);
+
+      /* A bounded synchronous send bypasses a full posted-message queue,
+       * while a stale window or blocked UI thread fails without hanging the
+       * owner indefinitely. */
+      if(SendMessageTimeout(hwndCurrentFrame, WM_OD_SHUTDOWN, 0, 0,
+         SMTO_ABORTIFHUNG | SMTO_BLOCK, OD_UI_THREAD_TIMEOUT,
+         &dwMessageResult) != 0)
+         return(TRUE);
+   }
+
+   if(ODFramePostThreadQuit(hFrameThread, dwFrameThreadID))
+      return(TRUE);
+   return(FALSE);
 }
 
 
@@ -1821,7 +1846,13 @@ void ODFrameShutdown(tODThreadHandle *phFrameThread)
       return;
    }
 
-   ODFrameRequestShutdown(hFrame);
+   if(!ODFrameRequestShutdown(hFrame))
+   {
+      /* With no delivered request, an infinite join could never complete.
+       * Keep every handle intact so a later process-level recovery retains
+       * the live thread's state. */
+      return;
+   }
 
    if(dwFrameThreadID != dwCurrentThreadID)
    {

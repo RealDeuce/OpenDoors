@@ -5769,8 +5769,8 @@
         {
           "name": "ODFramePostThreadQuit",
           "signature_line": 1771,
-          "body_line": 1781,
-          "end_line": 1784,
+          "body_line": 1783,
+          "end_line": 1791,
           "platforms": [
             "windows"
           ],
@@ -5778,9 +5778,9 @@
         },
         {
           "name": "ODFrameRequestShutdown",
-          "signature_line": 1784,
-          "body_line": 1794,
-          "end_line": 1802,
+          "signature_line": 1791,
+          "body_line": 1804,
+          "end_line": 1827,
           "platforms": [
             "windows"
           ],
@@ -5788,9 +5788,9 @@
         },
         {
           "name": "ODFrameShutdown",
-          "signature_line": 1802,
-          "body_line": 1812,
-          "end_line": 1838,
+          "signature_line": 1827,
+          "body_line": 1837,
+          "end_line": 1869,
           "platforms": [
             "windows"
           ],
@@ -5798,9 +5798,9 @@
         },
         {
           "name": "ODFrameMessageDlgProc",
-          "signature_line": 1838,
-          "body_line": 1858,
-          "end_line": 1903,
+          "signature_line": 1869,
+          "body_line": 1889,
+          "end_line": 1934,
           "platforms": [
             "windows"
           ],

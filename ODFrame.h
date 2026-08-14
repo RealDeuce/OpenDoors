@@ -41,7 +41,7 @@
 
 /* Internal frame window functions. */
 tODResult ODFrameStart(HANDLE hInstance, tODThreadHandle *phFrameThread);
-void ODFrameRequestShutdown(tODThreadHandle hFrameThread);
+BOOL ODFrameRequestShutdown(tODThreadHandle hFrameThread);
 void ODFrameShutdown(tODThreadHandle *phFrameThread);
 INT ODFrameGetUsedClientAtTop(HWND hwndFrame);
 INT ODFrameGetUsedClientAtBottom(HWND hwndFrame);

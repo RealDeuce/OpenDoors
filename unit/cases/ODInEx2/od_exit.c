@@ -170,7 +170,8 @@ void utm_ODThreadSleep(tODMilliSec milliseconds) { (void)milliseconds; }
 #endif
 #ifdef ODPLAT_WIN32
 void utm_ODFrameShutdown(tODThreadHandle *thread) { (void)thread; }
-void utm_ODFrameRequestShutdown(tODThreadHandle thread) { (void)thread; }
+BOOL utm_ODFrameRequestShutdown(tODThreadHandle thread)
+{ (void)thread; return(TRUE); }
 void utm_ODInExDisableDTR(void) {}
 BOOL utm_ODSyncIsOwnerThread(void) { return(ut_owner_thread); }
 void utm_ODKrnlRequestExit(INT error_level, BOOL term_call)

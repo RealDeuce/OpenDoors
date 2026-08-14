@@ -74,12 +74,12 @@ an issue is not treated as a contract change until it is resolved deliberately.
   later owner-flow and UI consolidation leaves only the frame worker, which
   retains that wrapper.
 
-- [ ] Handle failure to deliver cooperative UI shutdown messages before
-  waiting indefinitely for the target thread. `ODFrameShutdown()` ignores the
-  results of `PostMessage(WM_OD_SHUTDOWN)` and its fallback
-  `PostThreadMessage(WM_QUIT)`, then performs an infinite thread join. A stale
-  window handle, missing message queue, or failed post can therefore turn a
-  recoverable shutdown-delivery failure into a permanent process hang.
+- [x] Handle failure to deliver cooperative UI shutdown messages before
+  waiting for the target thread. A failed asynchronous window post now falls
+  back to a bounded synchronous send and then a checked thread-queue post.
+  `ODFrameShutdown()` only joins after one of those delivery paths succeeds;
+  if every path fails, it preserves the live thread and its handles instead of
+  entering an impossible infinite wait.
 
 - [x] Remove the obsolete Windows control-lock contention concern. The session
   reader/writer control lock, including its event and writer-preference
