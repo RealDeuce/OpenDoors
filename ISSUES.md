@@ -6,15 +6,10 @@ an issue is not treated as a contract change until it is resolved deliberately.
 
 ## Initialization and terminal state
 
-- [ ] Preserve explicitly configured virtual-screen dimensions during
-  initialization. For every information type other than `CUSTOM`, `od_init()`
-  assigns 80 columns and 23 rows before reading or bypassing the drop file.
-  Consequently, a caller using local operation or `DIS_INFOFILE` cannot select
-  a wider or taller virtual screen through `user_screenwidth` and
-  `user_screen_length`; the values are reset even when the caller assigned
-  them before initialization. Drop-file formats which provide dimensions may
-  subsequently replace the defaults, making the behavior depend on how the
-  session was initialized.
+- [x] Preserve explicitly configured virtual-screen dimensions during
+  initialization. `od_init()` now applies the 80-column and 23-row defaults
+  independently only when the corresponding field is zero. Drop-file formats
+  which provide dimensions may still replace those initial values.
 
 - [x] Clear the communications and input-queue handles when `od_exit()` frees
   them. Shutdown now clears both handles before entering the permanent terminal

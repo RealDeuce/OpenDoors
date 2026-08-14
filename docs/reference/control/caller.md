@@ -670,7 +670,7 @@ This value of this variable represents the total number of lines that can be dis
 
 This variable is set to the user's setting within the BBS under systems that produce any of the following door information file formats: CHAIN.TXT, EXITINFO.BBS, PC-Board/GAP and Wildcat style DOOR.SYS and CALLINFO.BBS files.
 
-This variable is used by the OpenDoors function, [`od_list_files()`](../api/od_list_files.md). If this variable contains a valid value, OpenDoors will pause the listing of files after every screen, and give the user the option of continuing, aborting, or disabling the "Continue?" prompt for the rest of the file listing. Thus, if you are using the [`od_list_files()`](../api/od_list_files.md) under a system that does not produce one of the door information files listed above, you may wish to obtain the user's screen length from the user themselves. If the screen length is not available from the particular type of door information file that is found, and you do not set this value yourself, this variable will default to 23. If you are going to set the value of this variable yourself, you should do so after having called [`od_init()`](../api/od_init.md) or some OpenDoors function.
+This variable is used by the OpenDoors function, [`od_list_files()`](../api/od_list_files.md). If this variable contains a valid value, OpenDoors will pause the listing of files after every screen, and give the user the option of continuing, aborting, or disabling the "Continue?" prompt for the rest of the file listing. Thus, if you are using the [`od_list_files()`](../api/od_list_files.md) under a system that does not produce one of the door information files listed above, you may wish to obtain the user's screen length from the user themselves. If the screen length is not available from the particular type of door information file that is found, and you do not set this value yourself, this variable will default to 23. A nonzero value assigned before [`od_init()`](../api/od_init.md) is preserved unless the selected door-information format supplies a replacement.
 
 ### `user_screenwidth`
 
@@ -679,6 +679,10 @@ BYTE od_control.user_screenwidth;
 ```
 
 This variable contains a value representing the width of the user's screen, and will most often be equal to 80. This variable is only available under systems that produce a CHAIN.TXT or RA 1.00 and later style extended EXITINFO.BBS door information file.
+
+When no width is supplied, [`od_init()`](../api/od_init.md) defaults this field
+to 80. A nonzero value assigned before initialization is preserved unless the
+selected door-information format supplies a replacement.
 
 ### `user_security`
 

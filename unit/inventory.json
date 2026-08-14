@@ -2215,7 +2215,7 @@
           "name": "od_init",
           "signature_line": 383,
           "body_line": 399,
-          "end_line": 1582,
+          "end_line": 1584,
           "platforms": [
             "unix",
             "windows",
@@ -2226,9 +2226,9 @@
         },
         {
           "name": "ODInitReadSFDoorsDAT",
-          "signature_line": 1582,
-          "body_line": 1595,
-          "end_line": 1790,
+          "signature_line": 1584,
+          "body_line": 1597,
+          "end_line": 1792,
           "platforms": [
             "unix",
             "windows",
@@ -2239,9 +2239,9 @@
         },
         {
           "name": "ODInitReadExitInfo",
-          "signature_line": 1790,
-          "body_line": 1803,
-          "end_line": 2008,
+          "signature_line": 1792,
+          "body_line": 1805,
+          "end_line": 2010,
           "platforms": [
             "unix",
             "windows",
@@ -2252,9 +2252,9 @@
         },
         {
           "name": "ODInitTerminalSpeedToBaud",
-          "signature_line": 2008,
-          "body_line": 2024,
-          "end_line": 2098,
+          "signature_line": 2010,
+          "body_line": 2026,
+          "end_line": 2100,
           "platforms": [
             "unix"
           ],
@@ -2262,9 +2262,9 @@
         },
         {
           "name": "ODInitSelectTerminalBaud",
-          "signature_line": 2098,
-          "body_line": 2109,
-          "end_line": 2117,
+          "signature_line": 2100,
+          "body_line": 2111,
+          "end_line": 2119,
           "platforms": [
             "unix"
           ],
@@ -2272,9 +2272,9 @@
         },
         {
           "name": "ODInitApplyUserInfo",
-          "signature_line": 2117,
-          "body_line": 2128,
-          "end_line": 2143,
+          "signature_line": 2119,
+          "body_line": 2130,
+          "end_line": 2145,
           "platforms": [
             "unix"
           ],
@@ -2282,9 +2282,9 @@
         },
         {
           "name": "ODInitPartTwo",
-          "signature_line": 2143,
-          "body_line": 2160,
-          "end_line": 2715,
+          "signature_line": 2145,
+          "body_line": 2162,
+          "end_line": 2717,
           "platforms": [
             "unix",
             "windows",
@@ -2295,9 +2295,9 @@
         },
         {
           "name": "ODInitError",
-          "signature_line": 2715,
-          "body_line": 2730,
-          "end_line": 2759,
+          "signature_line": 2717,
+          "body_line": 2732,
+          "end_line": 2761,
           "platforms": [
             "unix",
             "windows",
@@ -2308,9 +2308,9 @@
         },
         {
           "name": "ODInitLoginDlgProc",
-          "signature_line": 2759,
-          "body_line": 2780,
-          "end_line": 2839,
+          "signature_line": 2761,
+          "body_line": 2782,
+          "end_line": 2841,
           "platforms": [
             "windows"
           ],

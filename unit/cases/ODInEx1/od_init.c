@@ -657,6 +657,8 @@ static void initializes_tables_allocations_and_local_defaults(void)
    UT_ASSERT_EQ_INT(DEFAULT_EVENT_QUEUE_SIZE, ut_queue_size);
    UT_ASSERT_EQ_INT(TRUE, od_control.od_user_keyboard_on);
    UT_ASSERT_EQ_INT(NO_DOOR_FILE, od_control.od_info_type);
+   UT_ASSERT_EQ_INT(80, od_control.user_screenwidth);
+   UT_ASSERT_EQ_INT(23, od_control.user_screen_length);
    UT_ASSERT_EQ_INT(TRUE, od_control.user_ansi);
    UT_ASSERT_EQ_INT(60, od_control.user_timelimit);
 #ifdef ODPLAT_NIX
@@ -667,6 +669,28 @@ static void initializes_tables_allocations_and_local_defaults(void)
    UT_ASSERT(utm_strcmp("Unknown Location", od_control.user_location) == 0);
    UT_ASSERT_EQ_UINT(1, ut_platform_calls);
    UT_ASSERT_EQ_UINT(1, ut_part_two_calls);
+}
+
+static void preserves_configured_screen_dimensions(void)
+{
+   reset_init_fixture();
+   od_control.user_screenwidth = 132;
+   od_control.user_screen_length = 50;
+   utt_od_init();
+   UT_ASSERT_EQ_INT(132, od_control.user_screenwidth);
+   UT_ASSERT_EQ_INT(50, od_control.user_screen_length);
+
+   reset_init_fixture();
+   od_control.user_screenwidth = 132;
+   utt_od_init();
+   UT_ASSERT_EQ_INT(132, od_control.user_screenwidth);
+   UT_ASSERT_EQ_INT(23, od_control.user_screen_length);
+
+   reset_init_fixture();
+   od_control.user_screen_length = 50;
+   utt_od_init();
+   UT_ASSERT_EQ_INT(80, od_control.user_screenwidth);
+   UT_ASSERT_EQ_INT(50, od_control.user_screen_length);
 }
 
 static void preserves_tables_and_delegates_to_configuration(void)
@@ -1475,6 +1499,7 @@ static const UTTestCase ut_cases[] = {
    {"entry guards", honors_entry_guards_and_sync_failure},
    {"initialization exit", completes_initialization_before_processing_an_exit_request},
    {"initial defaults", initializes_tables_allocations_and_local_defaults},
+   {"configured screen dimensions", preserves_configured_screen_dimensions},
    {"configuration delegation", preserves_tables_and_delegates_to_configuration},
    {"allocation failures", handles_allocation_and_queue_failures},
    {"node precedence", applies_node_precedence},
