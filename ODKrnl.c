@@ -412,7 +412,8 @@ check_keyboard_again:
 #ifdef ODPLAT_WIN32
    if(!ODConsoleReadKey(&wKey, &btShiftStatus))
       goto after_key_check;
-#elif defined(__WATCOMC__)
+#else /* !ODPLAT_WIN32 */
+#if defined(__WATCOMC__)
    if(_bios_keybrd(_KEYBRD_READY) == 0)
       goto after_key_check;
    wKey = _bios_keybrd(_KEYBRD_READ);
@@ -435,7 +436,8 @@ key_waiting:
    ASM    mov btShiftStatus, al
    ASM    pop di
    ASM    pop si
-#endif
+#endif /* __WATCOMC__ */
+#endif /* !ODPLAT_WIN32 */
 
       if(nArrowUseCount > 0 && (wKey == 0x4800 || wKey == 0x5000)
          && !(btShiftStatus & 2))

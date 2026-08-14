@@ -2543,13 +2543,15 @@ malloc_error:
       ODScrnSetBoundary(1, 1, 80, 25);
       ODSessionScreenInitialize(80, 25);
    }
-#elif defined(OD_TEXTMODE)
+#else /* !ODPLAT_WIN32 */
+#if defined(OD_TEXTMODE)
    ODScrnSetBoundary(1, 1, 80, 23);
    ODSessionScreenInitialize(80, 23);
 #else /* !OD_TEXTMODE */
    ODScrnSetBoundary(1, 1, 80, 25);
    ODSessionScreenInitialize(80, 25);
 #endif /* !OD_TEXTMODE */
+#endif /* !ODPLAT_WIN32 */
 
 #ifndef ODPLAT_WIN32
    if(bPreset)

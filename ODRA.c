@@ -49,7 +49,9 @@
 #include "OpenDoor.h"
 #include "ODStat.h"
 #include "ODSync.h"
+#ifdef ODPLAT_WIN32
 #include "ODPlat.h"
+#endif
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 

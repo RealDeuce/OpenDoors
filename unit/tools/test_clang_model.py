@@ -131,7 +131,7 @@ class ClangModelTests(unittest.TestCase):
     def test_runtime_library_objects_are_not_redefined(self):
         definitions = build_model(ROOT / "ODCmdLn.c")
         target = next(item for item in definitions
-                      if item.name == "od_parse_cmd_line")
+                      if item.name == "ODParseCommandLineArguments")
         names = {item.name for item in target.variables}
         self.assertNotIn("__stdoutp", names)
         self.assertIn("od_control", names)

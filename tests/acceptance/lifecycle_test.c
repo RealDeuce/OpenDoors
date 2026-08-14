@@ -33,16 +33,10 @@ int main(void)
 
    OD_TEST_CHECK(od_control.od_info_type == NO_DOOR_FILE);
    OD_TEST_CHECK(od_control.od_force_local == TRUE);
-   /* Local operation uses an attached Windows console when one is available;
-    * a console-subsystem process without one deliberately stays silent. */
 #ifdef ODPLAT_WIN32
-   {
-      HANDLE output = CreateFileA("CONOUT$", GENERIC_READ,
-         FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
-      OD_TEST_CHECK(od_control.od_silent_mode ==
-         (output == INVALID_HANDLE_VALUE));
-      if(output != INVALID_HANDLE_VALUE) CloseHandle(output);
-   }
+   /* ODTestConfigureLocal() explicitly requests silent mode. Windows
+    * preserves that request and must not attach to or allocate a console. */
+   OD_TEST_CHECK(od_control.od_silent_mode == TRUE);
 #else
    OD_TEST_CHECK(od_control.od_silent_mode == FALSE);
 #endif

@@ -15,7 +15,8 @@ class InventoryTests(unittest.TestCase):
                       if item["path"] == "ODStat.c")
         function = next(item for item in source["functions"]
                         if item["name"] == "ODStatForceStatusUpdate")
-        self.assertEqual(function["platforms"], ["dos16", "dos32"])
+        self.assertEqual(function["platforms"],
+                         ["windows", "dos16", "dos32"])
 
     def test_guarded_platform_helpers_have_explicit_platforms(self):
         inventory = build_inventory()
@@ -47,7 +48,7 @@ class InventoryTests(unittest.TestCase):
         self.assertTrue(all(platforms == ["windows"]
                             for platforms in actual.values()))
 
-    def test_text_window_helpers_exclude_graphical_windows(self):
+    def test_text_window_helpers_include_console_windows(self):
         inventory = build_inventory()
         source = next(item for item in inventory["sources"]
                       if item["path"] == "ODScrn.c")
@@ -55,16 +56,18 @@ class InventoryTests(unittest.TestCase):
         actual = {item["name"]: item["platforms"]
                   for item in source["functions"] if item["name"] in expected}
         self.assertEqual(set(actual), expected)
-        self.assertTrue(all(platforms == ["unix", "dos16", "dos32"]
+        self.assertTrue(all(platforms ==
+                            ["unix", "windows", "dos16", "dos32"]
                             for platforms in actual.values()))
 
-    def test_text_mode_local_input_is_dos_only(self):
+    def test_text_mode_local_input_includes_console_windows(self):
         inventory = build_inventory()
         source = next(item for item in inventory["sources"]
                       if item["path"] == "ODScrn.c")
         function = next(item for item in source["functions"]
                         if item["name"] == "ODScrnLocalInput")
-        self.assertEqual(function["platforms"], ["dos16", "dos32"])
+        self.assertEqual(function["platforms"],
+                         ["windows", "dos16", "dos32"])
 
     def test_kernel_ui_queue_helper_is_windows_only(self):
         inventory = build_inventory()

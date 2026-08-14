@@ -2500,9 +2500,9 @@ void *ODScrnCreateWindow(BYTE btLeft, BYTE btTop, BYTE btRight,
 {
    void *pUnder;
    INT nBetween;
+   INT nColumn;
    INT nCount;
    INT nFirst;
-   char *pszString;
    int nTitleWidth;
 
    ASSERT(pszTitle != NULL);
@@ -2554,19 +2554,14 @@ void *ODScrnCreateWindow(BYTE btLeft, BYTE btTop, BYTE btRight,
    while(nCount--) ODScrnDisplayChar((unsigned char)196);
    ODScrnDisplayChar((unsigned char)183);
 
-   /* Build string for working lines */
-   pszString = szBuffer;
-   *pszString++ = (unsigned char)186;
-   nCount = nBetween;
-   while(nCount--) *pszString++ = ' ';
-   *pszString++ = (unsigned char)186;
-   *pszString++ = '\0';
-
    /* Draw working lines of window */
    for(nCount = btTop + 1; nCount < btBottom; ++nCount)
    {
       ODScrnSetCursorPos(btLeft, (BYTE)nCount);
-      ODScrnDisplayString(szBuffer);
+      ODScrnDisplayChar((unsigned char)186);
+      for(nColumn = 0; nColumn < nBetween; ++nColumn)
+         ODScrnDisplayChar(' ');
+      ODScrnDisplayChar((unsigned char)186);
    }
 
    /* Draw last line of window */

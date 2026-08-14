@@ -100,23 +100,25 @@ if(WIN32)
     opendoors_acceptance_library_path(
         acceptance.windows_console_parser_mismatch)
 
-    add_executable(opendoors_acceptance_windows_console
-        windows_console_test.c)
-    target_link_libraries(opendoors_acceptance_windows_console
-        PRIVATE OpenDoors::StaticConsole)
-    target_include_directories(opendoors_acceptance_windows_console
-        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    set_target_properties(opendoors_acceptance_windows_console PROPERTIES
-        C_STANDARD 90
-        C_STANDARD_REQUIRED TRUE
-        C_EXTENSIONS TRUE)
-    add_test(NAME acceptance.windows_console
-        COMMAND "${Python3_EXECUTABLE}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/expect_success.py"
-            ${_opendoors_windows_launcher}
-            --marker "OPENDOORS_WINDOWS_CONSOLE_ACCEPTANCE_OK"
-            "$<TARGET_FILE:opendoors_acceptance_windows_console>")
-    set_tests_properties(acceptance.windows_console PROPERTIES TIMEOUT 20)
+    if(TARGET OpenDoors::StaticConsole)
+        add_executable(opendoors_acceptance_windows_console
+            windows_console_test.c)
+        target_link_libraries(opendoors_acceptance_windows_console
+            PRIVATE OpenDoors::StaticConsole)
+        target_include_directories(opendoors_acceptance_windows_console
+            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+        set_target_properties(opendoors_acceptance_windows_console PROPERTIES
+            C_STANDARD 90
+            C_STANDARD_REQUIRED TRUE
+            C_EXTENSIONS TRUE)
+        add_test(NAME acceptance.windows_console
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/expect_success.py"
+                ${_opendoors_windows_launcher}
+                --marker "OPENDOORS_WINDOWS_CONSOLE_ACCEPTANCE_OK"
+                "$<TARGET_FILE:opendoors_acceptance_windows_console>")
+        set_tests_properties(acceptance.windows_console PROPERTIES TIMEOUT 20)
+    endif()
 
     if(TARGET OpenDoors::SharedConsole)
         add_executable(opendoors_acceptance_windows_console_shared

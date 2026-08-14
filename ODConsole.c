@@ -170,6 +170,8 @@ void ODConsoleSetSize(INT nWidth, INT nHeight, INT *pnActualWidth,
    COORD Size;
    CONSOLE_SCREEN_BUFFER_INFO Info;
    SMALL_RECT Window;
+   INT nWindowWidth;
+   INT nWindowHeight;
 
    if(nWidth < 1) nWidth = 1;
    if(nHeight < 1) nHeight = 1;
@@ -180,17 +182,21 @@ void ODConsoleSetSize(INT nWidth, INT nHeight, INT *pnActualWidth,
       return;
    }
 
-   Largest = GetLargestConsoleWindowSize(hConsoleOutput);
-   if(Largest.X > 0 && nWidth > Largest.X) nWidth = Largest.X;
-   if(Largest.Y > 0 && nHeight > Largest.Y) nHeight = Largest.Y;
    if(nWidth > SHRT_MAX) nWidth = SHRT_MAX;
    if(nHeight > SHRT_MAX) nHeight = SHRT_MAX;
    Size.X = (SHORT)nWidth;
    Size.Y = (SHORT)nHeight;
+   Largest = GetLargestConsoleWindowSize(hConsoleOutput);
+   nWindowWidth = nWidth;
+   nWindowHeight = nHeight;
+   if(Largest.X > 0 && nWindowWidth > Largest.X)
+      nWindowWidth = Largest.X;
+   if(Largest.Y > 0 && nWindowHeight > Largest.Y)
+      nWindowHeight = Largest.Y;
    Window.Left = 0;
    Window.Top = 0;
-   Window.Right = (SHORT)(nWidth - 1);
-   Window.Bottom = (SHORT)(nHeight - 1);
+   Window.Right = (SHORT)(nWindowWidth - 1);
+   Window.Bottom = (SHORT)(nWindowHeight - 1);
 
    if(GetConsoleScreenBufferInfo(hConsoleOutput, &Info))
    {
