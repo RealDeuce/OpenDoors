@@ -28,5 +28,6 @@ OpenDoors and may directly inspect the exported
   and arguments.
 - **Special control** initializes, services, configures, and ends a session.
 
-The thread which calls [`od_init()`](od_init.md) owns the session. All public
-API and ABI access must occur on that thread.
+OpenDoors does not serialize API or ABI access and does not require calls to
+remain on the thread which called [`od_init()`](od_init.md). A multithreaded
+application must protect all such access with one application lock.

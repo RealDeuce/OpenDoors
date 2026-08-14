@@ -760,7 +760,7 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
           * ordinary od_exit(), shutdown is already in progress. */
          if(!pWindowInfo->bProgrammaticShutdown)
          {
-            ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_DROPTOBBS);
+            ODKrnlRequestShutdown(ERRORLEVEL_DROPTOBBS);
          }
 
          /* When the frame window is destroyed, it is the window proc's   */
@@ -867,7 +867,7 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
                   szProgramName,
                   MB_ICONQUESTION | MB_YESNO) == IDYES)
                {
-                  ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_HANGUP);
+                  ODKrnlRequestShutdown(ERRORLEVEL_HANGUP);
                }
                break;
             }
@@ -1168,7 +1168,7 @@ LRESULT CALLBACK ODFrameWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 /* ----------------------------------------------------------------------------
  * ODFrameControlStateChanged()
  *
- * Coalesces notifications that the owner-side control cache has changed.
+ * Coalesces notifications that the application-side control cache has changed.
  */
 void ODFrameControlStateChanged(void)
 {
@@ -1814,7 +1814,7 @@ BOOL ODFrameRequestShutdown(tODThreadHandle hFrameThread)
 
       /* A bounded synchronous send bypasses a full posted-message queue,
        * while a stale window or blocked UI thread fails without hanging the
-       * owner indefinitely. */
+       * application flow indefinitely. */
       if(SendMessageTimeout(hwndCurrentFrame, WM_OD_SHUTDOWN, 0, 0,
          SMTO_ABORTIFHUNG | SMTO_BLOCK, OD_UI_THREAD_TIMEOUT,
          &dwMessageResult) != 0)

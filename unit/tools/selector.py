@@ -23,7 +23,6 @@ FULL_PREFIXES = (
 )
 FULL_FILES = {
     "CMakeLists.txt", "dos/CMakeLists.txt",
-    "unit/sources.json", "unit/inventory.json", "unit/tests.json",
 }
 
 
@@ -206,6 +205,40 @@ def all_selection(inventory: dict[str, object]) -> dict[str, list[str]]:
     }
 
 
+def manifest_document(revision: str, path: str) -> dict[str, object]:
+    """Load a JSON manifest from a Git revision or the working tree."""
+    text = (working_file(path) if revision == "WORKTREE"
+            else file_at(revision, path))
+    return json.loads(text) if text is not None else {}
+
+
+def manifest_metadata_changed(base: str, head: str, path: str,
+                              collection: str) -> bool:
+    """Report a top-level manifest/schema change outside its records."""
+    old = manifest_document(base, path).copy()
+    new = manifest_document(head, path).copy()
+    old.pop(collection, None)
+    new.pop(collection, None)
+    return old != new
+
+
+def changed_manifest_keys(base: str, head: str, path: str,
+                          collection: str, key_fields: tuple[str, ...]) \
+        -> set[tuple[str, ...]]:
+    """Return the union of records whose manifest value changed."""
+    def records(revision: str) -> dict[tuple[str, ...], dict[str, object]]:
+        document = manifest_document(revision, path)
+        return {
+            tuple(str(item[field]) for field in key_fields): item
+            for item in document.get(collection, [])
+        }
+
+    old = records(base)
+    new = records(head)
+    return {key for key in old.keys() | new.keys()
+            if old.get(key) != new.get(key)}
+
+
 def select(base: str, head: str, force_full: bool) -> dict[str, object]:
     inventory = build_inventory()
     tests = registered_tests()
@@ -215,12 +248,45 @@ def select(base: str, head: str, force_full: bool) -> dict[str, object]:
         reason = "full"
     else:
         files = changed_files(base, head)
-        if any(path in FULL_FILES or path.startswith(FULL_PREFIXES)
-               for path in files):
+        manifest_collections = {
+            "unit/inventory.json": "sources",
+            "unit/sources.json": "sources",
+            "unit/tests.json": "tests",
+        }
+        infrastructure_changed = any(
+            path in FULL_FILES or path.startswith(FULL_PREFIXES)
+            for path in files)
+        schema_changed = any(
+            path in files and manifest_metadata_changed(
+                base, head, path, collection)
+            for path, collection in manifest_collections.items())
+        if infrastructure_changed or schema_changed:
             selected = all_selection(inventory)
             reason = "unit-infrastructure"
         else:
             by_source: dict[str, set[str] | None] = {}
+            function_names = {
+                path: {item["name"] for item in source["functions"]}
+                for path, source in configured.items()
+            }
+            if "unit/tests.json" in files:
+                changed_owners = changed_manifest_keys(
+                    base, head, "unit/tests.json", "tests",
+                    ("source", "function"))
+                for source, function in changed_owners:
+                    if (source not in configured or
+                            function not in function_names[source]):
+                        continue
+                    current = by_source.get(source, set())
+                    if current is not None:
+                        current.add(function)
+                        by_source[source] = current
+            if "unit/sources.json" in files:
+                changed_sources = changed_manifest_keys(
+                    base, head, "unit/sources.json", "sources", ("path",))
+                for (source,) in changed_sources:
+                    if source in configured:
+                        by_source[source] = None
             changed_headers = {path for path in files
                                if Path(path).suffix.lower() in {".h", ".inc"}}
             for path in files:

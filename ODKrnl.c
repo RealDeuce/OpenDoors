@@ -134,7 +134,6 @@ static void ODKrnlChatMode(void);
 
 /* Helpers used by the asynchronous Windows UI thread. */
 #ifdef ODPLAT_WIN32
-static void ODKrnlQueueShutdown(BYTE btReasonForShutdown);
 static BOOL ODKrnlQueueUIChange(tODUIChangeType Type, INT nValue,
    BYTE btReason);
 #endif /* ODPLAT_WIN32 */
@@ -898,7 +897,7 @@ static BOOL ODKrnlTimeUpdate(BOOL bAllowApplicationCallbacks)
 /* ----------------------------------------------------------------------------
  * ODKrnlDeliverTimeMessage()                           *** PRIVATE FUNCTION ***
  *
- * Delivers a kernel-generated time message on the owner thread.
+ * Delivers a kernel-generated time message in the application API flow.
  *
  *     Return: TRUE if timer processing must stop.
  */
@@ -988,7 +987,7 @@ static BOOL ODKrnlQueueUIChange(tODUIChangeType Type, INT nValue,
    return(TRUE);
 }
 
-static void ODKrnlQueueShutdown(BYTE btReasonForShutdown)
+void ODKrnlRequestShutdown(BYTE btReasonForShutdown)
 {
    (void)ODKrnlQueueUIChange(kODUIChangeShutdown, 0,
       btReasonForShutdown);
@@ -1001,8 +1000,7 @@ BOOL ODKrnlRefreshUIState(void)
    BOOL bQueueEmpty;
 
    ASSERT(bKernelStateLockInitialized);
-   ASSERT(ODSyncIsOwnerThread());
-   if(!bKernelStateLockInitialized || !ODSyncIsOwnerThread())
+   if(!bKernelStateLockInitialized)
       return(FALSE);
 
    ODMutexLock(&KernelStateLock);
@@ -1073,14 +1071,6 @@ void ODKrnlGetUIState(tODUIState *pState)
 void ODKrnlForceOpenDoorsShutdown(BYTE btReasonForShutdown)
 {
    BOOL bHangup;
-
-#ifdef ODPLAT_WIN32
-   if(!ODSyncIsOwnerThread())
-   {
-      ODKrnlQueueShutdown(btReasonForShutdown);
-      return;
-   }
-#endif /* ODPLAT_WIN32 */
 
    /* Determine whether we should hangup on the user before exiting. */
    if(btReasonForShutdown == ERRORLEVEL_HANGUP
@@ -1181,7 +1171,7 @@ void ODKrnlDispatchPending(BOOL bAllowApplicationCallbacks)
    tODUIChange *pChange;
    tODUIChange *pNext;
 
-   if(!bKernelStateLockInitialized || !ODSyncIsOwnerThread()) return;
+   if(!bKernelStateLockInitialized) return;
    (void)bAllowApplicationCallbacks;
 
    for(;;)

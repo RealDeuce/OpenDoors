@@ -16,13 +16,13 @@
     {"path": "ODGetIn.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
     {"path": "ODGraph.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
     {"path": "ODInEx1.c", "platforms": ["unix", "windows", "dos16", "dos32"], "function_platforms": {"ODInitTerminalSpeedToBaud": ["unix"], "ODInitSelectTerminalBaud": ["unix"], "ODInitApplyUserInfo": ["unix"], "ODInitLoginDlgProc": ["windows"]}},
-    {"path": "ODInEx2.c", "platforms": ["unix", "windows", "dos16", "dos32"], "function_platforms": {"ODAtExitCallback": ["unix", "dos16", "dos32"], "ODSendModemCommand": ["windows"], "ODSendModemCommandOnce": ["windows"], "ODWaitForString": ["windows"], "ODOwnerThreadSleep": ["windows"], "ODDiagnosticMessage": ["windows"], "ODInExDisableDTR": ["windows"]}},
+    {"path": "ODInEx2.c", "platforms": ["unix", "windows", "dos16", "dos32"], "function_platforms": {"ODAtExitCallback": ["unix", "dos16", "dos32"], "ODSendModemCommand": ["windows"], "ODSendModemCommandOnce": ["windows"], "ODWaitForString": ["windows"], "ODAPISleep": ["windows"], "ODDiagnosticMessage": ["windows"], "ODInExDisableDTR": ["windows"]}},
     {"path": "ODInQue.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
     {
       "path": "ODKrnl.c",
       "platforms": ["unix", "windows", "dos16", "dos32"],
       "function_platforms": {
-        "ODKrnlQueueShutdown": ["windows"],
+        "ODKrnlRequestShutdown": ["windows"],
         "ODKrnlQueueUIChange": ["windows"],
         "ODKrnlRefreshUIState": ["windows"],
         "ODKrnlGetUIState": ["windows"]

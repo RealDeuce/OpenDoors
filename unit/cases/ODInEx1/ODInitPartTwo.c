@@ -35,7 +35,6 @@
 #define UT_CUSTOM_MOCK_ODScrnSetCursorPos
 #define UT_CUSTOM_MOCK_ODSessionScreenInitialize
 #define UT_CUSTOM_MOCK_ODStringCopy
-#define UT_CUSTOM_MOCK_ODSyncInitializationComplete
 #define UT_CUSTOM_MOCK_atexit
 #define UT_CUSTOM_MOCK_cfgetispeed
 #define UT_CUSTOM_MOCK_cfgetospeed
@@ -67,7 +66,6 @@ static unsigned ut_dtr_calls;
 static unsigned ut_kernel_calls;
 static unsigned ut_kernel_shutdown_calls;
 static unsigned ut_refresh_calls;
-static unsigned ut_sync_calls;
 static unsigned ut_clear_calls;
 static unsigned ut_atexit_calls;
 static unsigned ut_frame_calls;
@@ -309,11 +307,6 @@ void utm_ODKrnlShutdown(void)
    ++ut_kernel_shutdown_calls;
 }
 
-void utm_ODSyncInitializationComplete(void)
-{
-   ++ut_sync_calls;
-}
-
 void utm_ODInitError(char *text)
 {
    ++ut_error_calls;
@@ -535,7 +528,6 @@ static void reset_part_two_fixture(void)
    ut_kernel_calls = 0;
    ut_kernel_shutdown_calls = 0;
    ut_refresh_calls = 0;
-   ut_sync_calls = 0;
    ut_clear_calls = 0;
    ut_atexit_calls = 0;
    ut_frame_calls = 0;
@@ -625,7 +617,6 @@ static void initializes_defaults_and_a_serial_session(void)
    UT_ASSERT_EQ_INT(TRUE, od_control.od_list_pause);
    UT_ASSERT(strcmp("DOOR.LOG", od_control.od_logfile_name) == 0);
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
-   UT_ASSERT_EQ_UINT(1, ut_sync_calls);
 #ifdef OD_TEXTMODE
    UT_ASSERT_EQ_INT(23, ut_boundary_bottom);
    UT_ASSERT_EQ_INT(23, ut_session_height);
@@ -885,7 +876,6 @@ static void handles_kernel_failure_and_exit_registration(void)
    UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
    UT_ASSERT_EQ_INT(FALSE, bODInitialized);
    UT_ASSERT_EQ_UINT(1, ut_error_calls);
-   UT_ASSERT_EQ_UINT(0, ut_sync_calls);
 
 #ifndef ODPLAT_WIN32
    reset_part_two_fixture();
@@ -929,7 +919,6 @@ static void exercises_windows_frame_startup(void)
    UT_ASSERT_EQ_UINT(1, ut_kernel_shutdown_calls);
    UT_ASSERT_EQ_INT(FALSE, bODInitialized);
    UT_ASSERT_EQ_UINT(1, ut_error_calls);
-   UT_ASSERT_EQ_UINT(0, ut_sync_calls);
 
    reset_part_two_fixture();
    od_control.od_silent_mode = FALSE;
@@ -937,7 +926,6 @@ static void exercises_windows_frame_startup(void)
    UT_ASSERT_EQ_UINT(1, ut_refresh_calls);
    UT_ASSERT_EQ_UINT(1, ut_frame_calls);
    UT_ASSERT_EQ_UINT(1, ut_publish_calls);
-   UT_ASSERT_EQ_UINT(1, ut_sync_calls);
 
    reset_part_two_fixture();
    od_control.od_silent_mode = FALSE;
@@ -962,7 +950,6 @@ static void exercises_windows_frame_startup(void)
    UT_ASSERT_EQ_UINT(1, ut_publish_calls);
    UT_ASSERT_EQ_INT(FALSE, bODInitialized);
    UT_ASSERT_EQ_UINT(1, ut_error_calls);
-   UT_ASSERT_EQ_UINT(0, ut_sync_calls);
 
    reset_part_two_fixture();
    od_control.od_silent_mode = FALSE;

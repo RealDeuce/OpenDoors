@@ -1,4 +1,4 @@
-/* OpenDoors session ownership and synchronization. */
+/* OpenDoors session synchronization and serialized API nesting. */
 
 #define BUILDING_OPENDOORS
 
@@ -15,9 +15,6 @@
 
 static BOOL bSyncActive;
 static unsigned nAPILevel;
-#ifdef OD_THREAD_SUPPORT
-static DWORD dwOwnerThreadID;
-#endif
 
 tODResult ODMutexInitialize(tODMutex *pMutex)
 {
@@ -60,24 +57,11 @@ void ODMutexUnlock(tODMutex *pMutex)
 tODResult ODSyncSessionInitialize(void)
 {
    if(bSyncActive)
-   {
-#ifdef OD_THREAD_SUPPORT
-      if(!bODInitialized && nAPILevel == 0)
-         dwOwnerThreadID = GetCurrentThreadId();
-#endif
       return(kODRCSuccess);
-   }
-#ifdef OD_THREAD_SUPPORT
-   dwOwnerThreadID = GetCurrentThreadId();
-#endif
+
    nAPILevel = 0;
    bSyncActive = TRUE;
    return(kODRCSuccess);
-}
-
-void ODSyncInitializationComplete(void)
-{
-   /* Session ownership is complete as soon as initialization begins. */
 }
 
 void ODSyncSessionShutdown(void)
@@ -88,23 +72,12 @@ void ODSyncSessionShutdown(void)
    nAPILevel = 0;
 }
 
-BOOL ODSyncIsOwnerThread(void)
-{
-   if(!bSyncActive)
-      return(TRUE);
-#ifdef OD_THREAD_SUPPORT
-   return(dwOwnerThreadID == GetCurrentThreadId());
-#else
-   return(TRUE);
-#endif
-}
-
 BOOL ODSyncSessionActive(void) { return(bSyncActive); }
 
-BOOL ODSyncAPIActiveOnOwnerThread(void)
+BOOL ODSyncAPILevelActive(void)
 {
 #ifdef OD_THREAD_SUPPORT
-   return(bSyncActive && ODSyncIsOwnerThread() && nAPILevel != 0);
+   return(bSyncActive && nAPILevel != 0);
 #else
    return(FALSE);
 #endif
@@ -112,7 +85,7 @@ BOOL ODSyncAPIActiveOnOwnerThread(void)
 
 BOOL ODSyncAPIIsNested(void)
 {
-   return(bSyncActive && ODSyncIsOwnerThread() && nAPILevel != 0);
+   return(bSyncActive && nAPILevel != 0);
 }
 
 BOOL ODSyncPublicCallAllowed(void)
@@ -129,7 +102,6 @@ void ODSyncAPIEntry(void)
 {
    BOOL bOutermost = nAPILevel == 0;
 
-   ASSERT(ODSyncIsOwnerThread());
    ++nAPILevel;
    if(bOutermost && eODLifecycleState == kODLifecycleActive)
       ODKrnlDispatchPending(TRUE);
@@ -159,7 +131,7 @@ BOOL ODSyncAPICheckpoint(void)
 {
    unsigned nSavedAPILevel;
 
-   if(nAPILevel == 0 || !ODSyncIsOwnerThread())
+   if(nAPILevel == 0)
       return(eODLifecycleState == kODLifecycleActive);
    nSavedAPILevel = ODSyncAPIRelease();
    ODSyncAPIReacquire(nSavedAPILevel);

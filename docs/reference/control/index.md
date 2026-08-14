@@ -59,10 +59,12 @@ The same address can be obtained with
 bindings and environments in which importing a data symbol is inconvenient;
 it does not return a separate copy.
 
-The thread which calls [`od_init()`](../api/od_init.md) owns this object and the
-rest of the OpenDoors API and ABI. Application background threads must not
-inspect or modify it. The internal Windows UI consumes a cache refreshed by
-the owner at OpenDoors API boundaries.
+OpenDoors does not internally serialize this object or impose affinity to the
+thread which calls [`od_init()`](../api/od_init.md). A multithreaded application
+must protect every access to this object, every OpenDoors API call, and every
+other public global or returned pointer with the same application lock. The
+internal Windows UI consumes a cache refreshed by the serialized application
+flow at OpenDoors API boundaries.
 
 The structure is deliberately exposed for source and binary compatibility.
 Applications must nevertheless use the declaration supplied by the installed

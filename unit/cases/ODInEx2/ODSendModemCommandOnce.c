@@ -1,5 +1,5 @@
 #define UT_CUSTOM_MOCK_ODCoreSendRemoteByte
-#define UT_CUSTOM_MOCK_ODOwnerThreadSleep
+#define UT_CUSTOM_MOCK_ODAPISleep
 #define UT_CUSTOM_MOCK_ODWaitForString
 #ifdef OD_DIAGNOSTICS
 #define UT_CUSTOM_MOCK_strcat
@@ -21,7 +21,7 @@ tODResult utm_ODCoreSendRemoteByte(BYTE value)
    UT_ASSERT(ut_sent_count < sizeof(ut_sent)); ut_sent[ut_sent_count++] = value;
    return(kODRCSuccess);
 }
-void utm_ODOwnerThreadSleep(tODMilliSec milliseconds)
+void utm_ODAPISleep(tODMilliSec milliseconds)
 {
    UT_ASSERT(ut_sleep_count < sizeof(ut_sleeps) / sizeof(ut_sleeps[0]));
    ut_sleeps[ut_sleep_count++] = milliseconds;

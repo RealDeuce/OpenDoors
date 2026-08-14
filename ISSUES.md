@@ -83,19 +83,18 @@ an issue is not treated as a contract change until it is resolved deliberately.
 
 - [x] Remove the obsolete Windows control-lock contention concern. The session
   reader/writer control lock, including its event and writer-preference
-  machinery, was removed when control data became owner-owned and the Windows
+  machinery, was removed when control data became application-flow-owned and the Windows
   UI worker was changed to consume a cache and deferred update queue. There is
   consequently no longer a real control lock whose reader/writer behavior
   needs the proposed integration test.
 
-- [ ] Enforce owner-thread API entry in non-asserting Windows builds. Public
-  API entry currently relies on `ASSERT(ODSyncIsOwnerThread())`, but
-  `nAPILevel` and the physical-writer bookkeeping are process-global. A
-  non-owner application thread entering concurrently in a release build can
-  mistake the owner's active call for recursion, skip physical exclusion, and
-  release or reacquire the owner's writer from a blocking path. The documented
-  single-owner requirement should fail deterministically rather than corrupt
-  synchronization state.
+- [x] Replace permanent Windows owner-thread affinity with caller
+  serialization. OpenDoors no longer records the thread which initialized the
+  session; a serialized application may hand subsequent calls to another
+  thread. Applications must use one lock for every API call, public global,
+  and returned pointer. The Windows frame thread now uses explicit request
+  queues, while overlapping application calls remain an unsupported contract
+  violation rather than a partially enforced special case.
 
 ## Resolved during acceptance-suite development
 

@@ -194,36 +194,35 @@ local, and it does not suppress output to the caller. Conversely,
 selects a local session and ignores a remote drop-file connection. These
 settings solve different problems.
 
-## Threads and API ownership
+## Threads and serialized API access
 
 OpenDoors uses a Windows UI worker and internal synchronization to keep the
 local interface responsive. Communications, status, and timers use the same
-cooperative owner-thread flow as other platforms. This does not make the
-public API generally callable from arbitrary application threads.
+cooperative application flow as other platforms. The public API and ABI are
+process-global and are not internally serialized.
 
-Treat a single application thread as the owner of the OpenDoors session. Call
-[`od_init()`](../reference/api/od_init.md), every other API function, inspect or
-modify every public ABI object, and perform exit on that thread. This is a
-requirement even in a Windows build with the internal UI worker. Background
-threads may prepare application data, but they must hand results back to the
-owner before displaying text, accepting door input, or accessing
-[`od_control`](../reference/control/index.md).
+An application may hand the session between its threads, but only one thread
+may use OpenDoors at a time. Protect every API call, direct access to
+[`od_control`](../reference/control/index.md) or another public global, and the
+complete useful lifetime of a returned OpenDoors pointer with the same
+application lock. On Windows, a `CRITICAL_SECTION` is a convenient choice
+because it permits recursive entry by the same thread. The lock must remain
+held for the complete public call, including while that call waits internally.
 
-Ordinary source access through the exported
-[`od_control`](../reference/control/index.md) object remains supported on the
-session-owner thread. OpenDoors publishes the fields needed by its UI at API
-boundaries; application background threads must not access the object.
+OpenDoors publishes the fields needed by its UI at API boundaries. Its private
+UI worker does not make concurrent application access safe.
 
 Callbacks configured through [`od_control`](../reference/control/index.md)
-normally run on the session-owner thread as part of OpenDoors processing and
-may call the API recursively. The Windows help and configuration callbacks are
-the exceptions: they retain their frame-thread context and must not access any
-OpenDoors function, global, or returned pointer. They should queue
-application-owned work for the owner thread and return promptly.
+normally run synchronously on the application thread making the active API
+call and may call the API recursively. A wrapper which acquires the application
+lock must therefore use recursive synchronization. The Windows help and
+configuration callbacks are the exceptions: they retain their frame-thread
+context and must not access any OpenDoors function, global, or returned
+pointer. They should queue application-owned work and return promptly.
 
 Long application computations should periodically call
-[`od_kernel()`](../reference/api/od_kernel.md) from the owning thread. Most API
-calls invoke the kernel themselves, so ordinary input/output loops require no
+[`od_kernel()`](../reference/api/od_kernel.md) from the serialized application
+flow. Most API calls invoke the kernel themselves, so ordinary input/output loops require no
 special pumping. A loop which spends several seconds doing only application
 work must allow OpenDoors to observe disconnects, time limits, and local
 operator commands.

@@ -1,4 +1,4 @@
-/* Internal synchronization and session-owner services. */
+/* Internal synchronization and serialized API-flow services. */
 
 #ifndef _INC_ODSYNC
 #define _INC_ODSYNC
@@ -37,11 +37,9 @@ void ODMutexLock(tODMutex *pMutex);
 void ODMutexUnlock(tODMutex *pMutex);
 
 tODResult ODSyncSessionInitialize(void);
-void ODSyncInitializationComplete(void);
 void ODSyncSessionShutdown(void);
-BOOL ODSyncIsOwnerThread(void);
 BOOL ODSyncSessionActive(void);
-BOOL ODSyncAPIActiveOnOwnerThread(void);
+BOOL ODSyncAPILevelActive(void);
 BOOL ODSyncAPIIsNested(void);
 BOOL ODSyncPublicCallAllowed(void);
 void ODSyncAPIEntry(void);

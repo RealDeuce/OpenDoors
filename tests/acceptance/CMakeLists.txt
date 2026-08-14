@@ -58,6 +58,8 @@ if(WIN32)
     target_link_libraries(opendoors_acceptance_screen PRIVATE ws2_32)
     opendoors_acceptance_test(windows_screen windows_screen_test.c)
     target_link_libraries(opendoors_acceptance_windows_screen PRIVATE ws2_32)
+    opendoors_acceptance_test(windows_thread_handoff
+        windows_thread_handoff_test.c)
 endif()
 opendoors_acceptance_test(components components_test.c)
 

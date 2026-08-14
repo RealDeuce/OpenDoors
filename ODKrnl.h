@@ -93,6 +93,7 @@ void ODKrnlRequestTimeAdjustment(INT nMinutes);
 void ODKrnlRequestLockout(void);
 void ODKrnlRequestExit(INT nErrorLevel, BOOL bTermCall);
 #ifdef ODPLAT_WIN32
+void ODKrnlRequestShutdown(BYTE btReasonForShutdown);
 BOOL ODKrnlRefreshUIState(void);
 void ODKrnlGetUIState(tODUIState *pState);
 #endif

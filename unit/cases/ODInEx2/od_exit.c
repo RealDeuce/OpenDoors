@@ -44,8 +44,6 @@
 #define UT_CUSTOM_MOCK_ODFrameShutdown
 #define UT_CUSTOM_MOCK_ODFrameRequestShutdown
 #define UT_CUSTOM_MOCK_ODInExDisableDTR
-#define UT_CUSTOM_MOCK_ODKrnlRequestExit
-#define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
 #ifdef OD_DIAGNOSTICS
 #define UT_CUSTOM_MOCK_ODDiagnosticMessage
 #endif
@@ -72,12 +70,6 @@ static tExitInfoRecord ut_exitinfo_record;
 static tExtendedExitInfo ut_extended_record;
 static unsigned ut_ra2_endian_calls;
 static unsigned ut_extended_endian_calls;
-#ifdef ODPLAT_WIN32
-static BOOL ut_owner_thread;
-static unsigned ut_request_exit_calls;
-static INT ut_requested_error_level;
-static BOOL ut_requested_term_call;
-#endif
 
 void utm_ODExitInfoRA2Endian(tRA2ExitInfoRecord *record,
    BOOL from_little_endian)
@@ -173,13 +165,6 @@ void utm_ODFrameShutdown(tODThreadHandle *thread) { (void)thread; }
 BOOL utm_ODFrameRequestShutdown(tODThreadHandle thread)
 { (void)thread; return(TRUE); }
 void utm_ODInExDisableDTR(void) {}
-BOOL utm_ODSyncIsOwnerThread(void) { return(ut_owner_thread); }
-void utm_ODKrnlRequestExit(INT error_level, BOOL term_call)
-{
-   ++ut_request_exit_calls;
-   ut_requested_error_level = error_level;
-   ut_requested_term_call = term_call;
-}
 #ifdef OD_DIAGNOSTICS
 void utm_ODDiagnosticMessage(const char *message, const char *title) { (void)message; (void)title; }
 #endif
@@ -227,28 +212,7 @@ static void reset_exit(void)
    ut_nested_api = FALSE;
    ut_init_succeeds = TRUE;
    ut_init_ends_session = FALSE;
-#ifdef ODPLAT_WIN32
-   ut_owner_thread = TRUE;
-   ut_request_exit_calls = 0;
-   ut_requested_error_level = 0;
-   ut_requested_term_call = FALSE;
-#endif
 }
-
-#ifdef ODPLAT_WIN32
-static void queues_exit_from_a_non_owner_thread(void)
-{
-   reset_exit();
-   ut_owner_thread = FALSE;
-   utt_od_exit(23, TRUE);
-   UT_ASSERT_EQ_UINT(1, ut_request_exit_calls);
-   UT_ASSERT_EQ_INT(23, ut_requested_error_level);
-   UT_ASSERT_EQ_INT(TRUE, ut_requested_term_call);
-   UT_ASSERT_EQ_INT(kODLifecycleActive, eODLifecycleState);
-   UT_ASSERT_EQ_INT(TRUE, bODInitialized);
-   UT_ASSERT_EQ_UINT(0, ut_api_entry_calls);
-}
-#endif
 
 static void defers_nested_noexit_teardown(void)
 {
@@ -456,9 +420,6 @@ static void covers_disconnect_and_screen_cleanup(void)
 }
 
 static const UTTestCase ut_cases[] = {
-#ifdef ODPLAT_WIN32
-   {"non-owner exit", queues_exit_from_a_non_owner_thread},
-#endif
    {"nested noexit", defers_nested_noexit_teardown},
    {"initialization exit", saves_an_initialization_exit_request_once},
    {"terminal guards", rejects_completed_and_failed_initialization_sessions},

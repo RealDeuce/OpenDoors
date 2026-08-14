@@ -1,11 +1,8 @@
 #define UT_CUSTOM_MOCK_ODKrnlDispatchPending
 #define UT_CUSTOM_MOCK_ODSyncAPIReacquire
 #define UT_CUSTOM_MOCK_ODSyncAPIRelease
-#define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
 #define UT_CUSTOM_MOCK_od_kernel
 
-static BOOL ut_owner;
-static unsigned ut_owner_calls;
 static unsigned ut_release_calls;
 static unsigned ut_dispatch_calls;
 static unsigned ut_reacquire_calls;
@@ -13,12 +10,6 @@ static unsigned ut_kernel_calls;
 static BOOL ut_allow_callbacks;
 static unsigned ut_reacquire_level;
 static BOOL ut_shutdown_on_dispatch;
-
-BOOL utm_ODSyncIsOwnerThread(void)
-{
-   ++ut_owner_calls;
-   return ut_owner;
-}
 
 unsigned utm_ODSyncAPIRelease(void)
 {
@@ -44,8 +35,6 @@ void utm_ODSyncAPIReacquire(unsigned level)
 
 static void reset_checkpoint(void)
 {
-   ut_owner = TRUE;
-   ut_owner_calls = 0;
    ut_release_calls = 0;
    ut_dispatch_calls = 0;
    ut_reacquire_calls = 0;
@@ -56,23 +45,15 @@ static void reset_checkpoint(void)
    ut_shutdown_on_dispatch = FALSE;
 }
 
-static void returns_state_without_releasing_outside_an_owned_api_call(void)
+static void returns_state_without_releasing_outside_an_api_call(void)
 {
    reset_checkpoint();
    nAPILevel = 0;
    UT_ASSERT_EQ_INT(TRUE, utt_ODSyncAPICheckpoint());
-   UT_ASSERT_EQ_UINT(0, ut_owner_calls);
-   UT_ASSERT_EQ_UINT(0, ut_release_calls);
-
-   nAPILevel = 1;
-   ut_owner = FALSE;
-   eODLifecycleState = kODLifecycleExitPending;
-   UT_ASSERT_EQ_INT(FALSE, utt_ODSyncAPICheckpoint());
-   UT_ASSERT_EQ_UINT(1, ut_owner_calls);
    UT_ASSERT_EQ_UINT(0, ut_release_calls);
 }
 
-static void releases_dispatches_and_reacquires_for_the_owner(void)
+static void releases_dispatches_and_reacquires_the_api_level(void)
 {
    reset_checkpoint();
    nAPILevel = 1;
@@ -100,6 +81,6 @@ static void releases_dispatches_and_reacquires_for_the_owner(void)
 }
 
 static const UTTestCase ut_cases[] = {
-   {"unowned checkpoint", returns_state_without_releasing_outside_an_owned_api_call},
-   {"owned checkpoint", releases_dispatches_and_reacquires_for_the_owner}
+   {"inactive checkpoint", returns_state_without_releasing_outside_an_api_call},
+   {"active checkpoint", releases_dispatches_and_reacquires_the_api_level}
 };

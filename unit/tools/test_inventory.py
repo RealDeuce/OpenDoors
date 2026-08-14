@@ -72,7 +72,7 @@ class InventoryTests(unittest.TestCase):
                       if item["path"] == "ODKrnl.c")
         platforms = {item["name"]: item["platforms"]
                      for item in source["functions"]}
-        self.assertEqual(platforms["ODKrnlQueueShutdown"], ["windows"])
+        self.assertEqual(platforms["ODKrnlRequestShutdown"], ["windows"])
         signals = {"sig_run_kernel", "sig_get_char", "sig_no_carrier"}
         self.assertTrue(signals.isdisjoint(platforms))
 

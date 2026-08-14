@@ -1,6 +1,6 @@
-#define UT_CUSTOM_MOCK_ODSyncAPIActiveOnOwnerThread
+#define UT_CUSTOM_MOCK_ODSyncAPILevelActive
 
-BOOL utm_ODSyncAPIActiveOnOwnerThread(void)
+BOOL utm_ODSyncAPILevelActive(void)
 {
    return(FALSE);
 }

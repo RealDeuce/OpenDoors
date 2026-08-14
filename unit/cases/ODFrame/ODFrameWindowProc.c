@@ -16,7 +16,7 @@
 #define UT_CUSTOM_MOCK_GetDlgItem
 #define UT_CUSTOM_MOCK_ODFrameDestroyToolbar
 #define UT_CUSTOM_MOCK_ODFrameDestroyStatusBar
-#define UT_CUSTOM_MOCK_ODKrnlForceOpenDoorsShutdown
+#define UT_CUSTOM_MOCK_ODKrnlRequestShutdown
 #define UT_CUSTOM_MOCK_free
 #define UT_CUSTOM_MOCK_ODScrnSetFocusToWindow
 #define UT_CUSTOM_MOCK_FlashWindow
@@ -68,7 +68,7 @@ void WINAPI utm_PostQuitMessage(int code){UT_ASSERT_EQ_INT(0,code);++ut_quit_cal
 HWND WINAPI utm_GetDlgItem(HWND window,int id){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);return((HWND)(UINT_PTR)id);}
 static void utm_ODFrameDestroyToolbar(HWND toolbar,tODFrameWindowInfo *info){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)ID_TOOLBAR,toolbar);UT_ASSERT_EQ_PTR(&ut_info,info);++ut_destroy_toolbar_calls;}
 static void utm_ODFrameDestroyStatusBar(HWND status){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)ID_STATUSBAR,status);++ut_destroy_status_calls;}
-void utm_ODKrnlForceOpenDoorsShutdown(BYTE reason){ut_shutdown_reason=reason;++ut_shutdown_calls;}
+void utm_ODKrnlRequestShutdown(BYTE reason){ut_shutdown_reason=reason;++ut_shutdown_calls;}
 void utm_free(void *memory){ut_last_freed=(char *)memory;++ut_free_calls;}
 void utm_ODScrnSetFocusToWindow(void){++ut_focus_calls;}
 BOOL WINAPI utm_FlashWindow(HWND window,BOOL invert){UT_ASSERT_EQ_PTR((HWND)(UINT_PTR)1,window);UT_ASSERT(invert);++ut_flash_calls;return(TRUE);}

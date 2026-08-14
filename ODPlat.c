@@ -301,14 +301,14 @@ tODResult ODThreadCreate(tODThreadHandle *phThread,
  */
 void ODThreadWaitForExit(tODThreadHandle hThread)
 {
-   ASSERT(!ODSyncAPIActiveOnOwnerThread());
+   ASSERT(!ODSyncAPILevelActive());
    WaitForSingleObject(hThread, INFINITE);
 }
 
 
 void ODThreadSleep(tODMilliSec Milliseconds)
 {
-   ASSERT(!ODSyncAPIActiveOnOwnerThread());
+   ASSERT(!ODSyncAPILevelActive());
    Sleep(Milliseconds);
 }
 
@@ -432,7 +432,7 @@ void ODProcessExit(INT nExitCode)
 }
 
 
-/* Rings the local platform bell without consulting owner-owned state. */
+/* Rings the local platform bell without consulting application-owned state. */
 void ODPlatRingBell(void)
 {
 #ifdef ODPLAT_DOS

@@ -1,10 +1,8 @@
-#define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
 #define UT_CUSTOM_MOCK_ODKrnlDispatchPending
 static unsigned ut_dispatches;
 static unsigned ut_dispatch_level;
 static BOOL ut_dispatch_allow_callbacks;
 
-BOOL utm_ODSyncIsOwnerThread(void) { return TRUE; }
 void utm_ODKrnlDispatchPending(BOOL allow_callbacks)
 {
    ++ut_dispatches;

@@ -1,5 +1,4 @@
 #ifdef ODPLAT_WIN32
-#define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
 #define UT_CUSTOM_MOCK_ODKrnlForceOpenDoorsShutdown
@@ -9,7 +8,6 @@
 #define UT_CUSTOM_MOCK_od_exit
 #define UT_CUSTOM_MOCK_free
 
-static BOOL ut_owner;
 static BOOL ut_refresh;
 static unsigned ut_refresh_failures;
 static unsigned ut_force_calls;
@@ -22,7 +20,6 @@ static INT ut_exit_error;
 static BOOL ut_exit_term;
 static tODUIChange ut_changes[8];
 
-BOOL utm_ODSyncIsOwnerThread(void) { return(ut_owner); }
 void utm_ODMutexLock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
 void utm_ODMutexUnlock(tODMutex *mutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, mutex); }
 void utm_ODKrnlForceOpenDoorsShutdown(BYTE reason) { ++ut_force_calls; ut_reason = reason; }
@@ -43,7 +40,6 @@ static void reset_pending(void)
    memset(ut_changes, 0, sizeof(ut_changes));
    bKernelStateLockInitialized = TRUE;
    pPendingUIHead = pPendingUITail = NULL;
-   ut_owner = TRUE;
    ut_refresh = TRUE;
    ut_refresh_failures = 0;
    ut_force_calls = ut_chat_start_calls = ut_chat_end_calls = ut_free_calls = 0;
@@ -66,12 +62,10 @@ static void append_change(unsigned index, tODUIChangeType type, BOOL value,
    pPendingUITail = change;
 }
 
-static void rejects_uninitialized_or_non_owner_dispatch(void)
+static void rejects_uninitialized_dispatch(void)
 {
    reset_pending(); bKernelStateLockInitialized = FALSE;
    utt_ODKrnlDispatchPending(FALSE); UT_ASSERT_EQ_UINT(0, ut_free_calls);
-   reset_pending(); ut_owner = FALSE;
-   utt_ODKrnlDispatchPending(TRUE); UT_ASSERT_EQ_UINT(0, ut_free_calls);
    reset_pending(); utt_ODKrnlDispatchPending(FALSE);
    UT_ASSERT_EQ_UINT(0, ut_free_calls);
    reset_pending(); ut_refresh_failures = 1;
@@ -146,7 +140,7 @@ static void applies_a_direct_exit_and_discards_later_changes(void)
 }
 
 static const UTTestCase ut_cases[] = {
-   {"ownership", rejects_uninitialized_or_non_owner_dispatch},
+   {"initialization", rejects_uninitialized_dispatch},
    {"FIFO", applies_fifo_changes_in_order},
    {"shutdown", applies_lockout_and_shutdown},
    {"direct exit", applies_a_direct_exit_and_discards_later_changes}

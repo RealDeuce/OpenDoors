@@ -64,8 +64,10 @@ matrix nightly or on request, and requires it for releases.
 
 On Windows, `acceptance.windows_screen` also creates the real local frame and
 screen child, forces a published generation through `WM_PAINT`, and injects a
-local key while the owner waits in `od_get_input()`. The helper uses only Win32
-window operations; all OpenDoors calls remain on the session-owner thread.
+local key while the application waits in `od_get_input()`. The helper uses only
+Win32 window operations. `acceptance.windows_thread_handoff` verifies that an
+application lock can serialize API calls and shutdown across different caller
+threads.
 
 Acceptance expectations describe the behavior of the current implementation.
 Problems exposed while characterizing that behavior are recorded in

@@ -2284,7 +2284,7 @@
           "name": "ODInitPartTwo",
           "signature_line": 2143,
           "body_line": 2160,
-          "end_line": 2716,
+          "end_line": 2715,
           "platforms": [
             "unix",
             "windows",
@@ -2295,9 +2295,9 @@
         },
         {
           "name": "ODInitError",
-          "signature_line": 2716,
-          "body_line": 2731,
-          "end_line": 2760,
+          "signature_line": 2715,
+          "body_line": 2730,
+          "end_line": 2759,
           "platforms": [
             "unix",
             "windows",
@@ -2308,9 +2308,9 @@
         },
         {
           "name": "ODInitLoginDlgProc",
-          "signature_line": 2760,
-          "body_line": 2781,
-          "end_line": 2840,
+          "signature_line": 2759,
+          "body_line": 2780,
+          "end_line": 2839,
           "platforms": [
             "windows"
           ],
@@ -2409,7 +2409,7 @@
           "name": "od_exit",
           "signature_line": 273,
           "body_line": 292,
-          "end_line": 1079,
+          "end_line": 1070,
           "platforms": [
             "unix",
             "windows",
@@ -2420,9 +2420,9 @@
         },
         {
           "name": "ODSearchForDropFile",
-          "signature_line": 1079,
-          "body_line": 1119,
-          "end_line": 1166,
+          "signature_line": 1070,
+          "body_line": 1110,
+          "end_line": 1157,
           "platforms": [
             "unix",
             "windows",
@@ -2433,9 +2433,9 @@
         },
         {
           "name": "ODSearchInDir",
-          "signature_line": 1166,
-          "body_line": 1192,
-          "end_line": 1248,
+          "signature_line": 1157,
+          "body_line": 1183,
+          "end_line": 1239,
           "platforms": [
             "unix",
             "windows",
@@ -2446,9 +2446,9 @@
         },
         {
           "name": "ODExitInfoPrimitiveEndian",
-          "signature_line": 1276,
-          "body_line": 1287,
-          "end_line": 1352,
+          "signature_line": 1267,
+          "body_line": 1278,
+          "end_line": 1343,
           "platforms": [
             "unix",
             "windows",
@@ -2459,9 +2459,9 @@
         },
         {
           "name": "ODExitInfoExtendedEndian",
-          "signature_line": 1352,
-          "body_line": 1362,
-          "end_line": 1367,
+          "signature_line": 1343,
+          "body_line": 1353,
+          "end_line": 1358,
           "platforms": [
             "unix",
             "windows",
@@ -2472,9 +2472,9 @@
         },
         {
           "name": "ODExitInfoRA2Endian",
-          "signature_line": 1367,
-          "body_line": 1377,
-          "end_line": 1460,
+          "signature_line": 1358,
+          "body_line": 1368,
+          "end_line": 1451,
           "platforms": [
             "unix",
             "windows",
@@ -2485,9 +2485,9 @@
         },
         {
           "name": "ODReadExitInfoPrimitive",
-          "signature_line": 1460,
-          "body_line": 1475,
-          "end_line": 1541,
+          "signature_line": 1451,
+          "body_line": 1466,
+          "end_line": 1532,
           "platforms": [
             "unix",
             "windows",
@@ -2498,9 +2498,9 @@
         },
         {
           "name": "ODWriteExitInfoPrimitive",
-          "signature_line": 1541,
-          "body_line": 1556,
-          "end_line": 1618,
+          "signature_line": 1532,
+          "body_line": 1547,
+          "end_line": 1609,
           "platforms": [
             "unix",
             "windows",
@@ -2511,9 +2511,9 @@
         },
         {
           "name": "ODAtExitCallback",
-          "signature_line": 1618,
-          "body_line": 1645,
-          "end_line": 1658,
+          "signature_line": 1609,
+          "body_line": 1636,
+          "end_line": 1649,
           "platforms": [
             "unix",
             "dos16",
@@ -2523,9 +2523,9 @@
         },
         {
           "name": "ODSendModemCommand",
-          "signature_line": 1658,
-          "body_line": 1685,
-          "end_line": 1698,
+          "signature_line": 1649,
+          "body_line": 1676,
+          "end_line": 1689,
           "platforms": [
             "windows"
           ],
@@ -2533,9 +2533,9 @@
         },
         {
           "name": "ODSendModemCommandOnce",
-          "signature_line": 1698,
-          "body_line": 1717,
-          "end_line": 1814,
+          "signature_line": 1689,
+          "body_line": 1708,
+          "end_line": 1805,
           "platforms": [
             "windows"
           ],
@@ -2543,19 +2543,19 @@
         },
         {
           "name": "ODWaitForString",
-          "signature_line": 1814,
-          "body_line": 1831,
-          "end_line": 1916,
+          "signature_line": 1805,
+          "body_line": 1822,
+          "end_line": 1907,
           "platforms": [
             "windows"
           ],
           "test": null
         },
         {
-          "name": "ODOwnerThreadSleep",
-          "signature_line": 1916,
-          "body_line": 1926,
-          "end_line": 1935,
+          "name": "ODAPISleep",
+          "signature_line": 1907,
+          "body_line": 1917,
+          "end_line": 1926,
           "platforms": [
             "windows"
           ],
@@ -2563,9 +2563,9 @@
         },
         {
           "name": "ODDiagnosticMessage",
-          "signature_line": 1935,
-          "body_line": 1940,
-          "end_line": 1954,
+          "signature_line": 1926,
+          "body_line": 1931,
+          "end_line": 1945,
           "platforms": [
             "windows"
           ],
@@ -2573,9 +2573,9 @@
         },
         {
           "name": "ODInExDisableDTR",
-          "signature_line": 1954,
-          "body_line": 1968,
-          "end_line": 2009,
+          "signature_line": 1945,
+          "body_line": 1959,
+          "end_line": 2000,
           "platforms": [
             "windows"
           ],
@@ -2774,9 +2774,9 @@
       "functions": [
         {
           "name": "ODStatStartArrowUse",
-          "signature_line": 168,
-          "body_line": 182,
-          "end_line": 184,
+          "signature_line": 167,
+          "body_line": 181,
+          "end_line": 183,
           "platforms": [
             "unix",
             "windows",
@@ -2787,9 +2787,9 @@
         },
         {
           "name": "ODStatEndArrowUse",
-          "signature_line": 184,
-          "body_line": 198,
-          "end_line": 201,
+          "signature_line": 183,
+          "body_line": 197,
+          "end_line": 200,
           "platforms": [
             "unix",
             "windows",
@@ -2800,9 +2800,9 @@
         },
         {
           "name": "ODKrnlInitialize",
-          "signature_line": 201,
-          "body_line": 219,
-          "end_line": 257,
+          "signature_line": 200,
+          "body_line": 218,
+          "end_line": 256,
           "platforms": [
             "unix",
             "windows",
@@ -2813,9 +2813,9 @@
         },
         {
           "name": "ODKrnlShutdown",
-          "signature_line": 257,
-          "body_line": 270,
-          "end_line": 294,
+          "signature_line": 256,
+          "body_line": 269,
+          "end_line": 293,
           "platforms": [
             "unix",
             "windows",
@@ -2826,9 +2826,9 @@
         },
         {
           "name": "od_kernel",
-          "signature_line": 307,
-          "body_line": 309,
-          "end_line": 706,
+          "signature_line": 306,
+          "body_line": 308,
+          "end_line": 705,
           "platforms": [
             "unix",
             "windows",
@@ -2839,9 +2839,9 @@
         },
         {
           "name": "ODKrnlHandleLocalKey",
-          "signature_line": 706,
-          "body_line": 721,
-          "end_line": 749,
+          "signature_line": 705,
+          "body_line": 720,
+          "end_line": 748,
           "platforms": [
             "unix",
             "windows",
@@ -2852,9 +2852,9 @@
         },
         {
           "name": "ODKrnlHandleReceivedChar",
-          "signature_line": 749,
-          "body_line": 766,
-          "end_line": 781,
+          "signature_line": 748,
+          "body_line": 765,
+          "end_line": 780,
           "platforms": [
             "unix",
             "windows",
@@ -2865,9 +2865,9 @@
         },
         {
           "name": "ODKrnlTimeUpdate",
-          "signature_line": 781,
-          "body_line": 795,
-          "end_line": 895,
+          "signature_line": 780,
+          "body_line": 794,
+          "end_line": 894,
           "platforms": [
             "unix",
             "windows",
@@ -2878,9 +2878,9 @@
         },
         {
           "name": "ODKrnlDeliverTimeMessage",
-          "signature_line": 895,
-          "body_line": 907,
-          "end_line": 923,
+          "signature_line": 894,
+          "body_line": 906,
+          "end_line": 922,
           "platforms": [
             "unix",
             "windows",
@@ -2891,19 +2891,19 @@
         },
         {
           "name": "ODKrnlQueueUIChange",
-          "signature_line": 923,
-          "body_line": 928,
-          "end_line": 989,
+          "signature_line": 922,
+          "body_line": 927,
+          "end_line": 988,
           "platforms": [
             "windows"
           ],
           "test": null
         },
         {
-          "name": "ODKrnlQueueShutdown",
-          "signature_line": 989,
-          "body_line": 992,
-          "end_line": 995,
+          "name": "ODKrnlRequestShutdown",
+          "signature_line": 988,
+          "body_line": 991,
+          "end_line": 994,
           "platforms": [
             "windows"
           ],
@@ -2911,9 +2911,9 @@
         },
         {
           "name": "ODKrnlRefreshUIState",
-          "signature_line": 995,
-          "body_line": 1000,
-          "end_line": 1044,
+          "signature_line": 994,
+          "body_line": 999,
+          "end_line": 1042,
           "platforms": [
             "windows"
           ],
@@ -2921,9 +2921,9 @@
         },
         {
           "name": "ODKrnlGetUIState",
-          "signature_line": 1044,
-          "body_line": 1047,
-          "end_line": 1056,
+          "signature_line": 1042,
+          "body_line": 1045,
+          "end_line": 1054,
           "platforms": [
             "windows"
           ],
@@ -2931,9 +2931,9 @@
         },
         {
           "name": "ODKrnlForceOpenDoorsShutdown",
-          "signature_line": 1056,
-          "body_line": 1074,
-          "end_line": 1110,
+          "signature_line": 1054,
+          "body_line": 1072,
+          "end_line": 1100,
           "platforms": [
             "unix",
             "windows",
@@ -2944,9 +2944,9 @@
         },
         {
           "name": "ODKrnlRequestChatToggle",
-          "signature_line": 1110,
-          "body_line": 1113,
-          "end_line": 1119,
+          "signature_line": 1100,
+          "body_line": 1103,
+          "end_line": 1109,
           "platforms": [
             "unix",
             "windows",
@@ -2957,9 +2957,9 @@
         },
         {
           "name": "ODKrnlRequestKeyboardToggle",
-          "signature_line": 1119,
-          "body_line": 1122,
-          "end_line": 1128,
+          "signature_line": 1109,
+          "body_line": 1112,
+          "end_line": 1118,
           "platforms": [
             "unix",
             "windows",
@@ -2970,9 +2970,9 @@
         },
         {
           "name": "ODKrnlRequestSysopNextToggle",
-          "signature_line": 1128,
-          "body_line": 1131,
-          "end_line": 1137,
+          "signature_line": 1118,
+          "body_line": 1121,
+          "end_line": 1127,
           "platforms": [
             "unix",
             "windows",
@@ -2983,9 +2983,9 @@
         },
         {
           "name": "ODKrnlRequestInactivityToggle",
-          "signature_line": 1137,
-          "body_line": 1140,
-          "end_line": 1146,
+          "signature_line": 1127,
+          "body_line": 1130,
+          "end_line": 1136,
           "platforms": [
             "unix",
             "windows",
@@ -2996,9 +2996,9 @@
         },
         {
           "name": "ODKrnlRequestTimeAdjustment",
-          "signature_line": 1146,
-          "body_line": 1149,
-          "end_line": 1155,
+          "signature_line": 1136,
+          "body_line": 1139,
+          "end_line": 1145,
           "platforms": [
             "unix",
             "windows",
@@ -3009,9 +3009,9 @@
         },
         {
           "name": "ODKrnlRequestLockout",
-          "signature_line": 1155,
-          "body_line": 1158,
-          "end_line": 1166,
+          "signature_line": 1145,
+          "body_line": 1148,
+          "end_line": 1156,
           "platforms": [
             "unix",
             "windows",
@@ -3022,9 +3022,9 @@
         },
         {
           "name": "ODKrnlRequestExit",
-          "signature_line": 1166,
-          "body_line": 1169,
-          "end_line": 1176,
+          "signature_line": 1156,
+          "body_line": 1159,
+          "end_line": 1166,
           "platforms": [
             "unix",
             "windows",
@@ -3035,9 +3035,9 @@
         },
         {
           "name": "ODKrnlDispatchPending",
-          "signature_line": 1176,
-          "body_line": 1179,
-          "end_line": 1262,
+          "signature_line": 1166,
+          "body_line": 1169,
+          "end_line": 1252,
           "platforms": [
             "unix",
             "windows",
@@ -3048,9 +3048,9 @@
         },
         {
           "name": "ODKrnlEndChatMode",
-          "signature_line": 1271,
-          "body_line": 1283,
-          "end_line": 1285,
+          "signature_line": 1261,
+          "body_line": 1273,
+          "end_line": 1275,
           "platforms": [
             "unix",
             "windows",
@@ -3061,9 +3061,9 @@
         },
         {
           "name": "od_chat",
-          "signature_line": 1285,
-          "body_line": 1300,
-          "end_line": 1316,
+          "signature_line": 1275,
+          "body_line": 1290,
+          "end_line": 1306,
           "platforms": [
             "unix",
             "windows",
@@ -3074,9 +3074,9 @@
         },
         {
           "name": "ODKrnlChatMode",
-          "signature_line": 1316,
-          "body_line": 1329,
-          "end_line": 1541,
+          "signature_line": 1306,
+          "body_line": 1319,
+          "end_line": 1531,
           "platforms": [
             "unix",
             "windows",
@@ -3087,9 +3087,9 @@
         },
         {
           "name": "ODKrnlChatCleanup",
-          "signature_line": 1541,
-          "body_line": 1555,
-          "end_line": 1585,
+          "signature_line": 1531,
+          "body_line": 1545,
+          "end_line": 1575,
           "platforms": [
             "unix",
             "windows",
@@ -5084,9 +5084,9 @@
       "functions": [
         {
           "name": "ODMutexInitialize",
-          "signature_line": 19,
-          "body_line": 23,
-          "end_line": 31,
+          "signature_line": 17,
+          "body_line": 20,
+          "end_line": 28,
           "platforms": [
             "unix",
             "windows",
@@ -5097,9 +5097,9 @@
         },
         {
           "name": "ODMutexDestroy",
-          "signature_line": 31,
-          "body_line": 34,
-          "end_line": 40,
+          "signature_line": 28,
+          "body_line": 31,
+          "end_line": 37,
           "platforms": [
             "unix",
             "windows",
@@ -5110,9 +5110,9 @@
         },
         {
           "name": "ODMutexLock",
-          "signature_line": 40,
-          "body_line": 43,
-          "end_line": 49,
+          "signature_line": 37,
+          "body_line": 40,
+          "end_line": 46,
           "platforms": [
             "unix",
             "windows",
@@ -5123,9 +5123,9 @@
         },
         {
           "name": "ODMutexUnlock",
-          "signature_line": 49,
-          "body_line": 52,
-          "end_line": 58,
+          "signature_line": 46,
+          "body_line": 49,
+          "end_line": 55,
           "platforms": [
             "unix",
             "windows",
@@ -5136,22 +5136,9 @@
         },
         {
           "name": "ODSyncSessionInitialize",
-          "signature_line": 58,
-          "body_line": 61,
-          "end_line": 76,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODSyncInitializationComplete",
-          "signature_line": 76,
-          "body_line": 79,
-          "end_line": 81,
+          "signature_line": 55,
+          "body_line": 58,
+          "end_line": 65,
           "platforms": [
             "unix",
             "windows",
@@ -5162,22 +5149,9 @@
         },
         {
           "name": "ODSyncSessionShutdown",
-          "signature_line": 81,
-          "body_line": 84,
-          "end_line": 89,
-          "platforms": [
-            "unix",
-            "windows",
-            "dos16",
-            "dos32"
-          ],
-          "test": null
-        },
-        {
-          "name": "ODSyncIsOwnerThread",
-          "signature_line": 89,
-          "body_line": 92,
-          "end_line": 100,
+          "signature_line": 65,
+          "body_line": 68,
+          "end_line": 73,
           "platforms": [
             "unix",
             "windows",
@@ -5188,9 +5162,9 @@
         },
         {
           "name": "ODSyncSessionActive",
-          "signature_line": 100,
-          "body_line": 102,
-          "end_line": 102,
+          "signature_line": 73,
+          "body_line": 75,
+          "end_line": 75,
           "platforms": [
             "unix",
             "windows",
@@ -5200,10 +5174,10 @@
           "test": null
         },
         {
-          "name": "ODSyncAPIActiveOnOwnerThread",
-          "signature_line": 102,
-          "body_line": 105,
-          "end_line": 111,
+          "name": "ODSyncAPILevelActive",
+          "signature_line": 75,
+          "body_line": 78,
+          "end_line": 84,
           "platforms": [
             "unix",
             "windows",
@@ -5214,9 +5188,9 @@
         },
         {
           "name": "ODSyncAPIIsNested",
-          "signature_line": 111,
-          "body_line": 114,
-          "end_line": 116,
+          "signature_line": 84,
+          "body_line": 87,
+          "end_line": 89,
           "platforms": [
             "unix",
             "windows",
@@ -5227,9 +5201,9 @@
         },
         {
           "name": "ODSyncPublicCallAllowed",
-          "signature_line": 116,
-          "body_line": 119,
-          "end_line": 126,
+          "signature_line": 89,
+          "body_line": 92,
+          "end_line": 99,
           "platforms": [
             "unix",
             "windows",
@@ -5240,9 +5214,9 @@
         },
         {
           "name": "ODSyncAPIEntry",
-          "signature_line": 126,
-          "body_line": 129,
-          "end_line": 136,
+          "signature_line": 99,
+          "body_line": 102,
+          "end_line": 108,
           "platforms": [
             "unix",
             "windows",
@@ -5253,9 +5227,9 @@
         },
         {
           "name": "ODSyncAPIExit",
-          "signature_line": 136,
-          "body_line": 139,
-          "end_line": 156,
+          "signature_line": 108,
+          "body_line": 111,
+          "end_line": 128,
           "platforms": [
             "unix",
             "windows",
@@ -5266,9 +5240,9 @@
         },
         {
           "name": "ODSyncAPICheckpoint",
-          "signature_line": 156,
-          "body_line": 159,
-          "end_line": 172,
+          "signature_line": 128,
+          "body_line": 131,
+          "end_line": 144,
           "platforms": [
             "unix",
             "windows",
@@ -5279,9 +5253,9 @@
         },
         {
           "name": "ODSyncAPIRelease",
-          "signature_line": 172,
-          "body_line": 175,
-          "end_line": 184,
+          "signature_line": 144,
+          "body_line": 147,
+          "end_line": 156,
           "platforms": [
             "unix",
             "windows",
@@ -5292,9 +5266,9 @@
         },
         {
           "name": "ODSyncAPIReacquire",
-          "signature_line": 184,
-          "body_line": 187,
-          "end_line": 190,
+          "signature_line": 156,
+          "body_line": 159,
+          "end_line": 162,
           "platforms": [
             "unix",
             "windows",

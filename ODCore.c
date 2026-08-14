@@ -175,8 +175,8 @@ static void ODAddANSIParameter(char *szControlSequence, int nParameterValue);
  *
  * Perform potentially blocking communications output without preventing
  * the Windows screen presenter from reading stable session state. These
- * helpers are called only from the session-owner API boundary. Pending owner
- * work remains deferred until an established checkpoint.
+ * helpers are called only from the serialized application API flow. Pending
+ * application work remains deferred until an established checkpoint.
  */
 tODResult ODCoreSendRemoteByte(BYTE btToSend)
 {

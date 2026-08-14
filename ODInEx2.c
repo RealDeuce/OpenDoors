@@ -263,7 +263,7 @@ BOOL ODCALL ODDropFileClose(tODDropFileWriter *pWriter)
 static BOOL ODSendModemCommand(char *pszCommand, int nRetries);
 static BOOL ODSendModemCommandOnce(char *pszCommand);
 static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout);
-static void ODOwnerThreadSleep(tODMilliSec Milliseconds);
+static void ODAPISleep(tODMilliSec Milliseconds);
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
 static void ODDiagnosticMessage(const char *pszText, const char *pszTitle);
 #endif
@@ -306,15 +306,6 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 
    /* Log function entry if running in trace mode */
    TRACE(TRACE_API, "od_exit()");
-
-#ifdef ODPLAT_WIN32
-   if(eODLifecycleState == kODLifecycleActive
-      && !ODSyncIsOwnerThread())
-   {
-      ODKrnlRequestExit(nErrorLevel, bTermCall);
-      return;
-   }
-#endif
 
 #if defined(OD_DIAGNOSTICS) && defined(ODPLAT_WIN32)
    if(od_control.od_internal_debug)
@@ -1755,7 +1746,7 @@ static BOOL ODSendModemCommandOnce(char *pszCommand)
 
             case '~':
                /* A tilde character denotes a 1 second pause. */
-               ODOwnerThreadSleep(1000);
+               ODAPISleep(1000);
                break;
 
             default:
@@ -1771,7 +1762,7 @@ static BOOL ODSendModemCommandOnce(char *pszCommand)
 #endif /* OD_DIAGNOSTICS */
          }
 
-         ODOwnerThreadSleep(200);
+         ODAPISleep(200);
       }
       else
       {
@@ -1902,7 +1893,7 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
 #ifdef OD_THREAD_SUPPORT
          if(!ODSyncAPICheckpoint()) return(FALSE);
 #else
-         ODOwnerThreadSleep(0);
+         ODAPISleep(0);
 #endif
       }
    }
@@ -1917,12 +1908,12 @@ static BOOL ODWaitForString(char *pszResponse, tODMilliSec ResponseTimeout)
 
 
 /* ----------------------------------------------------------------------------
- * ODOwnerThreadSleep()                               *** PRIVATE FUNCTION ***
+ * ODAPISleep()                                       *** PRIVATE FUNCTION ***
  *
- * Sleeps from inside an owner-thread API operation while allowing
+ * Sleeps from inside an API operation while allowing
  * cooperative kernel work to progress.
  */
-static void ODOwnerThreadSleep(tODMilliSec Milliseconds)
+static void ODAPISleep(tODMilliSec Milliseconds)
 {
 #ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel = ODSyncAPIRelease();
@@ -1941,7 +1932,7 @@ static void ODDiagnosticMessage(const char *pszText, const char *pszTitle)
 #ifdef OD_THREAD_SUPPORT
    unsigned nSavedAPILevel = 0;
 
-   if(ODSyncAPIActiveOnOwnerThread())
+   if(ODSyncAPILevelActive())
       nSavedAPILevel = ODSyncAPIRelease();
 #endif
 

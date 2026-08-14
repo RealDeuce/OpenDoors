@@ -267,6 +267,14 @@ local include closure it appears. Unit infrastructure and workflow changes
 select the complete suite. Any analysis failure must broaden selection rather
 than skip tests.
 
+Changes to `unit/tests.json` select the union of changed old and new test
+owners. Changes to a source record in `unit/sources.json` select that complete
+current source. `unit/inventory.json` is generated from the production sources
+and ownership manifests, so its line-number and signature churn does not by
+itself select runtime tests; the mandatory inventory check still rejects a
+stale or manually inconsistent file. Schema, runner, selector, framework, and
+workflow changes remain complete-suite changes.
+
 The selector writes exact `(source, function)` owners. Both `run.py` and
 `turbo_generate.py` accept that document with `--selection`; they do not turn
 its source and function sets into a cross-product. Shared support beneath one

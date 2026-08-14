@@ -1,4 +1,4 @@
-#define UT_CUSTOM_MOCK_ODSyncAPIActiveOnOwnerThread
+#define UT_CUSTOM_MOCK_ODSyncAPILevelActive
 #define UT_CUSTOM_MOCK_ODSyncAPIRelease
 #define UT_CUSTOM_MOCK_ODSyncAPIReacquire
 #define UT_CUSTOM_MOCK_MessageBoxA
@@ -6,7 +6,7 @@ static BOOL ut_api_active;
 static unsigned ut_release_calls;
 static unsigned ut_reacquire_calls;
 static unsigned ut_message_calls;
-BOOL utm_ODSyncAPIActiveOnOwnerThread(void) { return(ut_api_active); }
+BOOL utm_ODSyncAPILevelActive(void) { return(ut_api_active); }
 unsigned utm_ODSyncAPIRelease(void) { ++ut_release_calls; return(3); }
 void utm_ODSyncAPIReacquire(unsigned level)
 {

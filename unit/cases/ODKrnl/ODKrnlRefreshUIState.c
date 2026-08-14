@@ -1,14 +1,11 @@
 #ifdef ODPLAT_WIN32
-#define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
 #define UT_CUSTOM_MOCK_ODFrameControlStateChanged
 #define UT_CUSTOM_MOCK_memcpy
 
-static BOOL ut_owner;
 static unsigned ut_notifications;
 
-BOOL utm_ODSyncIsOwnerThread(void) { return(ut_owner); }
 void utm_ODMutexLock(tODMutex *pMutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, pMutex); }
 void utm_ODMutexUnlock(tODMutex *pMutex) { UT_ASSERT_EQ_PTR(&KernelStateLock, pMutex); }
 void utm_ODFrameControlStateChanged(void) { ++ut_notifications; }
@@ -22,7 +19,7 @@ void *utm_memcpy(void *destination, const void *source, size_t size)
    return(destination);
 }
 
-static void caches_owner_state_only_when_the_queue_is_empty(void)
+static void caches_application_state_only_when_the_queue_is_empty(void)
 {
    tODUIChange queued;
 
@@ -35,16 +32,11 @@ static void caches_owner_state_only_when_the_queue_is_empty(void)
    od_control.od_user_keyboard_on = TRUE;
    bKernelStateLockInitialized = TRUE;
    pPendingUIHead = pPendingUITail = NULL;
-   ut_owner = TRUE;
    ut_notifications = 0;
 
    bKernelStateLockInitialized = FALSE;
    UT_ASSERT(!utt_ODKrnlRefreshUIState());
    bKernelStateLockInitialized = TRUE;
-   ut_owner = FALSE;
-   UT_ASSERT(!utt_ODKrnlRefreshUIState());
-   ut_owner = TRUE;
-
    UT_ASSERT(utt_ODKrnlRefreshUIState());
    UT_ASSERT(strcmp(UIState.szProgramName, "Test Door") == 0);
    UT_ASSERT(strcmp(UIState.szUserName, "Alice") == 0);
@@ -63,7 +55,7 @@ static void caches_owner_state_only_when_the_queue_is_empty(void)
 }
 
 static const UTTestCase ut_cases[] = {
-   {"empty queue merge", caches_owner_state_only_when_the_queue_is_empty}
+   {"empty queue merge", caches_application_state_only_when_the_queue_is_empty}
 };
 #else
 static void unavailable_outside_windows(void) { UT_ASSERT(TRUE); }

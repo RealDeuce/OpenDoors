@@ -61,7 +61,7 @@ static void stops_when_the_callback_exits_or_a_reason_forces_shutdown(void)
    UT_ASSERT_EQ_UINT(7, ut_force_reason);
 }
 
-static void callback_policy_does_not_defer_owner_thread_delivery(void)
+static void callback_policy_does_not_defer_application_flow_delivery(void)
 {
    reset_delivery();
    od_control.od_time_msg_func = ut_message_callback;
@@ -77,5 +77,5 @@ static void callback_policy_does_not_defer_owner_thread_delivery(void)
 static const UTTestCase ut_cases[] = {
    {"immediate", displays_or_calls_back_immediately},
    {"stop", stops_when_the_callback_exits_or_a_reason_forces_shutdown},
-   {"callback policy", callback_policy_does_not_defer_owner_thread_delivery}
+   {"callback policy", callback_policy_does_not_defer_application_flow_delivery}
 };

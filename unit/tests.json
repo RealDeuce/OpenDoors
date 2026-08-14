@@ -184,7 +184,7 @@
     {"source":"ODCom.c","function":"ODComGetByte","case":"unit/cases/ODCom/ODComGetByte.c","platforms":["unix","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
     {"source":"ODCom.c","function":"ODComGetBuffer","case":"unit/cases/ODCom/ODComGetBuffer.c","platforms":["unix","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["_disable=UTDisable","_enable=UTEnable"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm"}]},
     {"source":"ODCom.c","function":"ODComSendBuffer","case":"unit/cases/ODCom/ODComSendBuffer.c","platforms":["unix","windows","dos16","dos32"],"configurations":[{"name":"isolated-io","defines":["inp=UTInp","outp=UTOutp","_disable=UTDisable","_enable=UTEnable"],"dos_tsr_fixture":"tests/fossil_tsr.asm","turbo_tsr_fixture":"tests/fossil_tsr.asm","turbo_late_declarations":["int utm_UTInp(unsigned);","int utm_UTOutp(unsigned, unsigned);"]}]},
-    {"source":"ODInEx2.c","function":"ODOwnerThreadSleep","case":"unit/cases/ODInEx2/ODOwnerThreadSleep.c","platforms":["windows"]},
+    {"source":"ODInEx2.c","function":"ODAPISleep","case":"unit/cases/ODInEx2/ODAPISleep.c","platforms":["windows"]},
     {"source":"ODInEx2.c","function":"ODDiagnosticMessage","case":"unit/cases/ODInEx2/ODDiagnosticMessage.c","platforms":["windows"],"configurations":[{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"]}]},
     {"source":"ODInEx2.c","function":"ODInExDisableDTR","case":"unit/cases/ODInEx2/ODInExDisableDTR.c","platforms":["windows"],"configurations":[{"name":"release"},{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"]}]},
     {"source":"ODInEx2.c","function":"ODAtExitCallback","case":"unit/cases/ODInEx2/ODAtExitCallback.c","platforms":["unix","dos16","dos32"]},
@@ -450,7 +450,7 @@
     {"source":"ODKrnl.c","function":"ODKrnlRequestTimeAdjustment","case":"unit/cases/ODKrnl/ODKrnlRequestTimeAdjustment.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlRequestLockout","case":"unit/cases/ODKrnl/ODKrnlRequestLockout.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlRequestExit","case":"unit/cases/ODKrnl/ODKrnlRequestExit.c","platforms":["unix","windows","dos16","dos32"]},
-    {"source":"ODKrnl.c","function":"ODKrnlQueueShutdown","case":"unit/cases/ODKrnl/ODKrnlQueueShutdown.c","platforms":["windows"]},
+    {"source":"ODKrnl.c","function":"ODKrnlRequestShutdown","case":"unit/cases/ODKrnl/ODKrnlRequestShutdown.c","platforms":["windows"]},
     {"source":"ODKrnl.c","function":"ODKrnlQueueUIChange","case":"unit/cases/ODKrnl/ODKrnlQueueUIChange.c","platforms":["windows"]},
     {"source":"ODKrnl.c","function":"ODKrnlRefreshUIState","case":"unit/cases/ODKrnl/ODKrnlRefreshUIState.c","platforms":["windows"]},
     {"source":"ODKrnl.c","function":"ODKrnlGetUIState","case":"unit/cases/ODKrnl/ODKrnlGetUIState.c","platforms":["windows"]},
@@ -1696,14 +1696,8 @@
     },
     {
       "source": "ODSync.c",
-      "function": "ODSyncIsOwnerThread",
-      "case": "unit/cases/ODSync/ODSyncIsOwnerThread.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODSyncAPIActiveOnOwnerThread",
-      "case": "unit/cases/ODSync/ODSyncAPIActiveOnOwnerThread.c",
+      "function": "ODSyncAPILevelActive",
+      "case": "unit/cases/ODSync/ODSyncAPILevelActive.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
     },
     {
@@ -1752,12 +1746,6 @@
       "source": "ODSync.c",
       "function": "ODSyncSessionInitialize",
       "case": "unit/cases/ODSync/ODSyncSessionInitialize.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
-    },
-    {
-      "source": "ODSync.c",
-      "function": "ODSyncInitializationComplete",
-      "case": "unit/cases/ODSync/ODSyncInitializationComplete.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
     },
     {

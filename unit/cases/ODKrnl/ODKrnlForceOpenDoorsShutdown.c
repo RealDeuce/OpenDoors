@@ -1,17 +1,8 @@
 #define UT_CUSTOM_MOCK_od_exit
-#ifdef OD_THREAD_SUPPORT
-#define UT_CUSTOM_MOCK_ODSyncIsOwnerThread
-#define UT_CUSTOM_MOCK_ODKrnlQueueShutdown
-#endif
 
 static unsigned ut_exit_calls;
 static INT ut_exit_level;
 static BOOL ut_exit_hangup;
-#ifdef OD_THREAD_SUPPORT
-static BOOL ut_owner;
-static unsigned ut_queue_calls;
-static BYTE ut_queued_reason;
-#endif
 
 void ODCALL utm_od_exit(INT error_level, BOOL hangup)
 {
@@ -19,26 +10,12 @@ void ODCALL utm_od_exit(INT error_level, BOOL hangup)
    ut_exit_level = error_level;
    ut_exit_hangup = hangup;
 }
-#ifdef OD_THREAD_SUPPORT
-BOOL utm_ODSyncIsOwnerThread(void) { return(ut_owner); }
-void utm_ODKrnlQueueShutdown(BYTE reason)
-{
-   ++ut_queue_calls;
-   ut_queued_reason = reason;
-}
-#endif
-
 static void reset_shutdown(void)
 {
    memset(od_control.od_errorlevel, 0, sizeof(od_control.od_errorlevel));
    ut_exit_calls = 0;
    ut_exit_level = -1;
    ut_exit_hangup = FALSE;
-#ifdef OD_THREAD_SUPPORT
-   ut_owner = TRUE;
-   ut_queue_calls = 0;
-   ut_queued_reason = 0;
-#endif
 }
 
 static void maps_default_reasons_and_hangup_policy(void)
@@ -71,22 +48,7 @@ static void uses_the_client_errorlevel_table_when_enabled(void)
    UT_ASSERT(!ut_exit_hangup);
 }
 
-#ifdef OD_THREAD_SUPPORT
-static void defers_shutdown_from_a_worker_thread(void)
-{
-   reset_shutdown();
-   ut_owner = FALSE;
-   utt_ODKrnlForceOpenDoorsShutdown(ERRORLEVEL_NOCARRIER);
-   UT_ASSERT_EQ_UINT(1, ut_queue_calls);
-   UT_ASSERT_EQ_UINT(ERRORLEVEL_NOCARRIER, ut_queued_reason);
-   UT_ASSERT_EQ_UINT(0, ut_exit_calls);
-}
-#endif
-
 static const UTTestCase ut_cases[] = {
    {"default mapping", maps_default_reasons_and_hangup_policy},
-   {"client mapping", uses_the_client_errorlevel_table_when_enabled},
-#ifdef OD_THREAD_SUPPORT
-   {"worker", defers_shutdown_from_a_worker_thread}
-#endif
+   {"client mapping", uses_the_client_errorlevel_table_when_enabled}
 };

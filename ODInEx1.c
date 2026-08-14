@@ -2680,7 +2680,7 @@ no_default:
       return;
    }
 
-   /* Start the Windows command UI after the owner dispatcher is ready. */
+   /* Start the Windows command UI after the application dispatcher is ready. */
    if(!od_control.od_silent_mode)
    {
       HANDLE h = GetModuleHandle(OD_DLL_NAME);
@@ -2712,7 +2712,6 @@ no_default:
    }
 #endif /* ODPLAT_WIN32 */
 
-   ODSyncInitializationComplete();
 }
 
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -151,6 +152,125 @@ static int second(void)
             result = select("base", "head", False)
         self.assertEqual(result["sources"], {"sample.c": ["door"]})
         self.assertEqual(result["platforms"], {"windows": ["sample.c"]})
+
+    def test_test_manifest_change_selects_only_changed_current_owners(self):
+        inventory = {"sources": [{
+            "path": "sample.c", "platforms": ["unix", "windows"],
+            "functions": [{"name": "one"}, {"name": "two"},
+                          {"name": "three"}]
+        }]}
+        old_tests = {"tests": [
+            {"source": "sample.c", "function": "one",
+             "case": "old-one.c", "platforms": ["unix"]},
+            {"source": "sample.c", "function": "two",
+             "case": "two.c", "platforms": ["unix"]},
+            {"source": "sample.c", "function": "removed",
+             "case": "removed.c", "platforms": ["unix"]},
+        ]}
+        new_tests = [
+            {"source": "sample.c", "function": "one",
+             "case": "new-one.c", "platforms": ["windows"]},
+            {"source": "sample.c", "function": "two",
+             "case": "two.c", "platforms": ["unix"]},
+            {"source": "sample.c", "function": "three",
+             "case": "three.c", "platforms": ["unix"]},
+        ]
+
+        def manifest_at(revision, path):
+            self.assertEqual(path, "unit/tests.json")
+            document = old_tests if revision == "base" else {"tests": new_tests}
+            return json.dumps(document)
+
+        with patch("selector.build_inventory", return_value=inventory), \
+                patch("selector.registered_tests", return_value=new_tests), \
+                patch("selector.changed_files",
+                      return_value=["unit/tests.json"]), \
+                patch("selector.file_at", side_effect=manifest_at):
+            result = select("base", "head", False)
+        self.assertEqual(result["mode"], "affected")
+        self.assertEqual(result["sources"],
+                         {"sample.c": ["one", "three"]})
+        self.assertEqual(result["platforms"], {
+            "unix": ["sample.c"], "windows": ["sample.c"]})
+
+    def test_source_manifest_change_selects_only_changed_current_sources(self):
+        inventory = {"sources": [{
+            "path": "first.c", "platforms": ["unix"],
+            "functions": [{"name": "one"}, {"name": "two"}]
+        }, {
+            "path": "second.c", "platforms": ["unix"],
+            "functions": [{"name": "three"}]
+        }]}
+        tests = [
+            {"source": "first.c", "function": "one", "platforms": ["unix"]},
+            {"source": "first.c", "function": "two", "platforms": ["unix"]},
+            {"source": "second.c", "function": "three", "platforms": ["unix"]},
+        ]
+        old_sources = {"sources": [
+            {"path": "first.c", "platforms": ["unix"]},
+            {"path": "second.c", "platforms": ["unix"]},
+            {"path": "removed.c", "platforms": ["unix"]},
+        ]}
+        new_sources = {"sources": [
+            {"path": "first.c", "platforms": ["unix"],
+             "function_platforms": {"two": ["unix"]}},
+            {"path": "second.c", "platforms": ["unix"]},
+        ]}
+
+        def manifest_at(revision, path):
+            self.assertEqual(path, "unit/sources.json")
+            document = old_sources if revision == "base" else new_sources
+            return json.dumps(document)
+
+        with patch("selector.build_inventory", return_value=inventory), \
+                patch("selector.registered_tests", return_value=tests), \
+                patch("selector.changed_files",
+                      return_value=["unit/sources.json"]), \
+                patch("selector.file_at", side_effect=manifest_at):
+            result = select("base", "head", False)
+        self.assertEqual(result["mode"], "affected")
+        self.assertEqual(result["sources"], {"first.c": ["one", "two"]})
+
+    def test_generated_inventory_change_does_not_select_runtime_tests(self):
+        inventory = {"sources": [{
+            "path": "sample.c", "platforms": ["unix"],
+            "functions": [{"name": "one"}]
+        }]}
+        tests = [{"source": "sample.c", "function": "one",
+                  "platforms": ["unix"]}]
+        with patch("selector.build_inventory", return_value=inventory), \
+                patch("selector.registered_tests", return_value=tests), \
+                patch("selector.changed_files",
+                      return_value=["unit/inventory.json"]):
+            result = select("base", "head", False)
+        self.assertEqual(result["mode"], "affected")
+        self.assertFalse(result["run"])
+        self.assertEqual(result["sources"], {})
+
+    def test_manifest_schema_change_selects_complete_inventory(self):
+        inventory = {"sources": [{
+            "path": "sample.c", "platforms": ["unix"],
+            "functions": [{"name": "one"}, {"name": "two"}]
+        }]}
+        tests = [
+            {"source": "sample.c", "function": name,
+             "platforms": ["unix"]}
+            for name in ("one", "two")
+        ]
+
+        def manifest_at(revision, path):
+            self.assertEqual(path, "unit/tests.json")
+            version = 1 if revision == "base" else 2
+            return json.dumps({"version": version, "tests": tests})
+
+        with patch("selector.build_inventory", return_value=inventory), \
+                patch("selector.registered_tests", return_value=tests), \
+                patch("selector.changed_files",
+                      return_value=["unit/tests.json"]), \
+                patch("selector.file_at", side_effect=manifest_at):
+            result = select("base", "head", False)
+        self.assertEqual(result["mode"], "unit-infrastructure")
+        self.assertEqual(result["sources"], {"sample.c": ["one", "two"]})
 
     def test_build_manifest_change_selects_the_complete_inventory(self):
         inventory = {"sources": [{

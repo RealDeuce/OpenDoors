@@ -164,7 +164,7 @@ static void ODScrnScrollUpAndInvalidate(void);
 /* Handle to the screen window. */
 static HWND hwndScreenWindow;
 
-/* The session owner writes one buffer while the frame thread presents the
+/* The application flow writes one buffer while the frame thread presents the
  * other. The presentation mutex is held only while ownership is exchanged or
  * while GDI reads the display buffer. */
 static void *pDisplayBuffer;
@@ -311,7 +311,7 @@ static HWND ODScrnCreateWin(HWND hwndFrame, HANDLE hInstance)
       return(NULL);
    }
 
-   /* Publish the UI-owned handle to the session owner. */
+   /* Publish the UI-owned handle to the application flow. */
    ODMutexLock(&ScreenPresentationMutex);
    hwndScreenWindow = hwndScreen;
    ODMutexUnlock(&ScreenPresentationMutex);
@@ -522,7 +522,7 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
    ASSERT(nBottom >= nTop);
 
    /* The display buffer remains owned by the frame thread until painting is
-    * complete. The session owner may continue changing its other buffer, but
+    * complete. The application flow may continue changing its other buffer, but
     * cannot publish a replacement while GDI is reading this one. */
    ODMutexLock(&ScreenPresentationMutex);
 
@@ -600,8 +600,8 @@ static void ODScrnPaint(HDC hdc, INT nLeft, INT nTop, INT nRight, INT nBottom)
 /* ----------------------------------------------------------------------------
  * ODScrnInvalidate()                                  *** PRIVATE FUNCTION ***
  *
- * Marks the owner screen generation dirty. The complete generation is
- * published at the next outer API ownership boundary.
+ * Marks the application screen generation dirty. The complete generation is
+ * published at the next outer API boundary.
  *
  * Parameters: btLeft   - The left most column to invalidate.
  *
@@ -627,8 +627,8 @@ static void ODScrnInvalidate(BYTE btLeft, BYTE btTop, BYTE btRight,
 /* ----------------------------------------------------------------------------
  * ODScrnPublish()
  *
- * Publishes the session owner's completed screen state to the Windows frame
- * thread. This is called only at an owner-thread API ownership boundary.
+ * Publishes the application's completed screen state to the Windows frame
+ * thread. This is called only at a serialized API boundary.
  */
 void ODScrnPublish(void)
 {
@@ -1089,7 +1089,7 @@ tODResult ODScrnInitialize(void)
 #endif /* ODPLAT_DOS/NIX */
 
 #ifdef ODPLAT_WIN32
-   /* Allocate the owner and presenter screen buffers. */
+   /* Allocate the application and presenter screen buffers. */
    pScrnBuffer = malloc(SCREEN_BUFFER_SIZE);
 
    if(pScrnBuffer == NULL)
@@ -1137,7 +1137,7 @@ tODResult ODScrnInitialize(void)
    ODScrnEnableCaret(TRUE);
 
 #ifdef ODPLAT_WIN32
-   /* Before the UI exists, make both ownership buffers represent the same
+   /* Before the UI exists, make both presentation buffers represent the same
     * initial generation. Later generations are exchanged by ODScrnPublish. */
    memcpy(pDisplayBuffer, pScrnBuffer, SCREEN_BUFFER_SIZE);
    btDisplayCursorColumn = btCursorColumn + btLeftBoundary;

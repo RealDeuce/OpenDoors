@@ -243,8 +243,8 @@ one.
 OpenDoors enforces remaining time and carrier state while its kernel runs. Most
 API calls run it automatically. Application code which performs long CPU work,
 blocking file access, or its own wait loop without calling OpenDoors must call
-[`od_kernel()`](../reference/api/od_kernel.md) periodically from the session's
-owning thread.
+[`od_kernel()`](../reference/api/od_kernel.md) periodically while holding the
+application's OpenDoors serialization lock.
 
 Compare the BBS-provided time limit with
 [`od_control.od_maxtime`](../reference/control/customization.md#od_maxtime) and

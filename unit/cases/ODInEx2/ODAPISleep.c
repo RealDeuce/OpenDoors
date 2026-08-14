@@ -33,13 +33,13 @@ void ODCALL utm_od_sleep(tODMilliSec milliseconds)
 }
 #endif
 
-static void sleeps_without_dispatching_owner_work(void)
+static void sleeps_without_dispatching_api_work(void)
 {
    ut_sleep_calls = 0;
 #ifdef OD_THREAD_SUPPORT
    ut_release_calls = ut_reacquire_calls = ut_checkpoint_calls = 0;
 #endif
-   utt_ODOwnerThreadSleep(125);
+   utt_ODAPISleep(125);
    UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
 #ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_UINT(1, ut_release_calls);
@@ -49,5 +49,5 @@ static void sleeps_without_dispatching_owner_work(void)
 }
 
 static const UTTestCase ut_cases[] = {
-   {"owner sleep", sleeps_without_dispatching_owner_work}
+   {"API sleep", sleeps_without_dispatching_api_work}
 };

@@ -485,7 +485,7 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
 
 #ifdef OD_THREAD_SUPPORT
 
-   ASSERT(Timeout == 0 || !ODSyncAPIActiveOnOwnerThread());
+   ASSERT(Timeout == 0 || !ODSyncAPILevelActive());
 
    /* In multithreaded implementations, we wait for there to be an item in  */
    /* the queue by decrementing the queue size semaphore. This will cause   */
