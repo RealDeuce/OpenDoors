@@ -44,6 +44,8 @@
 #define UT_CUSTOM_MOCK_ODFrameShutdown
 #define UT_CUSTOM_MOCK_ODFrameRequestShutdown
 #define UT_CUSTOM_MOCK_ODInExDisableDTR
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+#define UT_CUSTOM_MOCK_ODScrnPublish
 #ifdef OD_DIAGNOSTICS
 #define UT_CUSTOM_MOCK_ODDiagnosticMessage
 #endif
@@ -70,6 +72,11 @@ static tExitInfoRecord ut_exitinfo_record;
 static tExtendedExitInfo ut_extended_record;
 static unsigned ut_ra2_endian_calls;
 static unsigned ut_extended_endian_calls;
+#ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem;
+static unsigned ut_frame_request_calls;
+static unsigned ut_console_publish_calls;
+#endif
 
 void utm_ODExitInfoRA2Endian(tRA2ExitInfoRecord *record,
    BOOL from_little_endian)
@@ -152,9 +159,10 @@ void utm_ODSessionScreenShutdown(void) {}
 void utm_ODScrnShutdown(void) {}
 void utm_ODScrnSetBoundary(BYTE left, BYTE top, BYTE right, BYTE bottom)
 { (void)left; (void)top; (void)right; (void)bottom; }
-void utm_ODScrnSetAttribute(BYTE attribute) { (void)attribute; }
+void ODCALL utm_ODScrnSetAttribute(BYTE attribute) { (void)attribute; }
 void utm_ODScrnClear(void) {}
-void utm_ODScrnSetCursorPos(BYTE column, BYTE row) { (void)column; (void)row; }
+void ODCALL utm_ODScrnSetCursorPos(BYTE column, BYTE row)
+{ (void)column; (void)row; }
 #ifdef OD_THREAD_SUPPORT
 unsigned utm_ODSyncAPIRelease(void) { return(3); }
 void utm_ODSyncAPIReacquire(unsigned level) { UT_ASSERT_EQ_UINT(3, level); }
@@ -163,8 +171,11 @@ void utm_ODThreadSleep(tODMilliSec milliseconds) { (void)milliseconds; }
 #ifdef ODPLAT_WIN32
 void utm_ODFrameShutdown(tODThreadHandle *thread) { (void)thread; }
 BOOL utm_ODFrameRequestShutdown(tODThreadHandle thread)
-{ (void)thread; return(TRUE); }
+{ (void)thread; ++ut_frame_request_calls; return(TRUE); }
 void utm_ODInExDisableDTR(void) {}
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{ return(ut_subsystem); }
+void utm_ODScrnPublish(void) { ++ut_console_publish_calls; }
 #ifdef OD_DIAGNOSTICS
 void utm_ODDiagnosticMessage(const char *message, const char *title) { (void)message; (void)title; }
 #endif
@@ -212,6 +223,10 @@ static void reset_exit(void)
    ut_nested_api = FALSE;
    ut_init_succeeds = TRUE;
    ut_init_ends_session = FALSE;
+#ifdef ODPLAT_WIN32
+   ut_subsystem = kODWindowsSubsystemGUI;
+   ut_frame_request_calls = ut_console_publish_calls = 0;
+#endif
 }
 
 static void defers_nested_noexit_teardown(void)
@@ -225,6 +240,15 @@ static void defers_nested_noexit_teardown(void)
    UT_ASSERT_EQ_INT(FALSE, bODPendingExitTermCall);
    UT_ASSERT_EQ_UINT(1, ut_api_entry_calls);
    UT_ASSERT_EQ_UINT(1, ut_api_exit_calls);
+#ifdef ODPLAT_WIN32
+   UT_ASSERT_EQ_UINT(1, ut_frame_request_calls);
+
+   reset_exit();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   ut_nested_api = TRUE;
+   utt_od_exit(23, FALSE);
+   UT_ASSERT_EQ_UINT(0, ut_frame_request_calls);
+#endif
 }
 
 static void saves_an_initialization_exit_request_once(void)
@@ -416,7 +440,19 @@ static void covers_disconnect_and_screen_cleanup(void)
    reset_exit(); od_control.od_noexit = TRUE; dwFileBPS = 9600;
    ut_carrier = TRUE; ut_time_step = 10; utt_od_exit(7, TRUE);
    reset_exit(); od_control.od_noexit = TRUE; dwFileBPS = 9600;
-   od_control.od_clear_on_exit = TRUE; utt_od_exit(7, FALSE);
+   od_control.od_clear_on_exit = TRUE;
+#ifdef ODPLAT_WIN32
+   ut_subsystem = kODWindowsSubsystemConsole;
+#endif
+   utt_od_exit(7, FALSE);
+#ifdef ODPLAT_WIN32
+   UT_ASSERT_EQ_UINT(1, ut_console_publish_calls);
+   reset_exit(); od_control.od_noexit = TRUE;
+   ut_subsystem = kODWindowsSubsystemConsole;
+   od_control.od_clear_on_exit = FALSE;
+   utt_od_exit(7, FALSE);
+   UT_ASSERT_EQ_UINT(1, ut_console_publish_calls);
+#endif
 }
 
 static const UTTestCase ut_cases[] = {

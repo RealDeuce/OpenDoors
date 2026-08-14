@@ -1,5 +1,6 @@
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_ODKrnlGetUIState
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
 #endif
 #define UT_CUSTOM_MOCK_ODKrnlHandleReceivedChar
 #define UT_CUSTOM_MOCK_ODInQueueAddEvents
@@ -12,9 +13,12 @@ static unsigned ut_add_events_calls;
 static INT ut_add_event_count;
 static tODInputEvent ut_added_events[2];
 #ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem;
 static WORD ut_disable;
 void utm_ODKrnlGetUIState(tODUIState *state)
 { memset(state, 0, sizeof(*state)); state->wDisable = ut_disable; }
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{ return(ut_subsystem); }
 #endif
 void utm_ODKrnlHandleReceivedChar(char character, BOOL remote)
 {
@@ -37,6 +41,7 @@ static void ignores_local_keys_when_local_input_is_disabled(void)
 {
    memset(&od_control, 0, sizeof(od_control));
 #ifdef ODPLAT_WIN32
+   ut_subsystem = kODWindowsSubsystemGUI;
    ut_disable = DIS_LOCAL_INPUT;
 #else
    od_control.od_disable = DIS_LOCAL_INPUT; ut_calls = 0;
@@ -49,6 +54,7 @@ static void queues_an_extended_key_as_two_local_characters(void)
    memset(&od_control, 0, sizeof(od_control)); ut_calls = 0;
    ut_add_events_calls = 0; ut_add_event_count = 0;
 #ifdef ODPLAT_WIN32
+   ut_subsystem = kODWindowsSubsystemGUI;
    ut_disable = 0;
 #endif
    utt_ODKrnlHandleLocalKey((WORD)((WORD)OD_KEY_LEFT << 8));
@@ -65,14 +71,32 @@ static void queues_an_ordinary_key_as_one_local_character(void)
 {
    memset(&od_control, 0, sizeof(od_control)); ut_calls = 0;
 #ifdef ODPLAT_WIN32
+   ut_subsystem = kODWindowsSubsystemGUI;
    ut_disable = 0;
 #endif
    utt_ODKrnlHandleLocalKey((WORD)(((WORD)0x1e << 8) | (WORD)'A'));
    UT_ASSERT_EQ_UINT(1, ut_calls); UT_ASSERT_EQ_INT('A', ut_characters[0]);
    UT_ASSERT(!ut_remote[0]);
 }
+#ifdef ODPLAT_WIN32
+static void console_uses_the_public_disable_bits(void)
+{
+   memset(&od_control, 0, sizeof(od_control)); ut_calls = 0;
+   ut_subsystem = kODWindowsSubsystemConsole;
+   od_control.od_disable = DIS_LOCAL_INPUT;
+   utt_ODKrnlHandleLocalKey((WORD)'A');
+   UT_ASSERT_EQ_UINT(0, ut_calls);
+
+   od_control.od_disable = 0;
+   utt_ODKrnlHandleLocalKey((WORD)'A');
+   UT_ASSERT_EQ_UINT(1, ut_calls);
+}
+#endif
 static const UTTestCase ut_cases[] = {
    {"disabled", ignores_local_keys_when_local_input_is_disabled},
    {"extended", queues_an_extended_key_as_two_local_characters},
    {"ordinary", queues_an_ordinary_key_as_one_local_character}
+#ifdef ODPLAT_WIN32
+   ,{"console disable", console_uses_the_public_disable_bits}
+#endif
 };

@@ -14,6 +14,7 @@ static BOOL ut_first_info_result;
 static BOOL ut_second_info_result;
 static COORD ut_buffer_size;
 static SMALL_RECT ut_window;
+static SMALL_RECT ut_windows[2];
 
 COORD WINAPI utm_GetLargestConsoleWindowSize(HANDLE handle)
 { (void)handle; return(ut_largest); }
@@ -41,6 +42,8 @@ BOOL WINAPI utm_SetConsoleWindowInfo(HANDLE handle, BOOL absolute,
    const SMALL_RECT *window)
 {
    (void)handle; UT_ASSERT(absolute); UT_ASSERT_NOT_NULL(window);
+   UT_ASSERT(ut_window_calls < 2);
+   ut_windows[ut_window_calls] = *window;
    ++ut_window_calls; ut_window = *window; return(ut_window_result);
 }
 
@@ -52,6 +55,7 @@ static void reset_fixture(void)
    ut_largest.X = 120; ut_largest.Y = 60;
    memset(&ut_buffer_size, 0, sizeof(ut_buffer_size));
    memset(&ut_window, 0, sizeof(ut_window));
+   memset(ut_windows, 0, sizeof(ut_windows));
    ut_info_calls = ut_window_calls = ut_buffer_calls = 0;
    ut_buffer_result = ut_window_result = TRUE;
    ut_first_info_result = ut_second_info_result = TRUE;
@@ -118,9 +122,13 @@ static void handles_console_queries_and_each_shrink_dimension(void)
    reset_fixture();
    utt_ODConsoleSetSize(40, 30, &width, &height);
    UT_ASSERT_EQ_UINT(2, ut_window_calls);
+   UT_ASSERT_EQ_INT(39, ut_windows[0].Right);
+   UT_ASSERT_EQ_INT(24, ut_windows[0].Bottom);
    reset_fixture();
    utt_ODConsoleSetSize(100, 10, &width, &height);
    UT_ASSERT_EQ_UINT(2, ut_window_calls);
+   UT_ASSERT_EQ_INT(79, ut_windows[0].Right);
+   UT_ASSERT_EQ_INT(9, ut_windows[0].Bottom);
 
    reset_fixture(); ut_buffer_result = FALSE;
    ut_second_info_result = FALSE;

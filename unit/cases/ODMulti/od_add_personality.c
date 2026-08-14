@@ -24,15 +24,21 @@ static void rejects_a_terminal_session(void)
 #ifdef OD_PERSONALITY_SUPPORT
 #define UT_CUSTOM_MOCK_strncpy
 #define UT_CUSTOM_MOCK_strupr
+#define UT_CUSTOM_MOCK_ODMultiResolvePersonality
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
-#define UT_CUSTOM_MOCK_ODMultiResolvePersonality
 #endif
 
 #include <string.h>
 
 static unsigned ut_copy_calls;
 static unsigned ut_upper_calls;
+
+#ifdef ODPLAT_DOS32
+#define UT_PERSONALITY_CALL ODCALL
+#else
+#define UT_PERSONALITY_CALL
+#endif
 
 void ODCALL pdef_opendoors(BYTE operation) { (void)operation; }
 void ODCALL pdef_ra(BYTE operation) { (void)operation; }
@@ -60,17 +66,18 @@ char *utm_strupr(char *text)
    return text;
 }
 
-static void ut_personality(BYTE operation)
+static void UT_PERSONALITY_CALL ut_personality(BYTE operation)
 {
    (void)operation;
 }
 
-#ifdef ODPLAT_WIN32
-static tODWindowsSubsystem ut_subsystem = kODWindowsSubsystemConsole;
-tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void) { return(ut_subsystem); }
 OD_PERSONALITY_CALLBACK *utm_ODMultiResolvePersonality(
    OD_PERSONALITY_PROC *personality)
 { return((OD_PERSONALITY_CALLBACK *)personality); }
+
+#ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem = kODWindowsSubsystemConsole;
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void) { return(ut_subsystem); }
 #endif
 
 static void stores_uppercase_truncated_metadata(void)

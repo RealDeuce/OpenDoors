@@ -4,6 +4,7 @@
 #define UT_CUSTOM_MOCK_ODScrnDisplayChar
 #define UT_CUSTOM_MOCK_ODInQueueGetNextEvent
 #ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
 #define UT_CUSTOM_MOCK_ODScrnPublish
 #endif
 
@@ -64,6 +65,9 @@ tODResult utm_ODInQueueGetNextEvent(tODInQueueHandle queue,
 }
 
 #ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem;
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{ return(ut_subsystem); }
 void utm_ODScrnPublish(void) { ++ut_publish_calls; }
 #endif
 
@@ -76,6 +80,9 @@ static void reset_input(void)
    ut_publish_calls = 0;
    ut_queue_calls = 0;
    ut_queue_result = kODRCSuccess;
+#ifdef ODPLAT_WIN32
+   ut_subsystem = kODWindowsSubsystemConsole;
+#endif
    for(index = 0; index < DIM(ut_chars); ++index) ut_chars[index] = 0;
 }
 
@@ -95,6 +102,19 @@ static void stops_without_reusing_an_event_after_queue_failure(void)
    UT_ASSERT_EQ_UINT(1, ut_queue_calls);
    UT_ASSERT_EQ_UINT(0, ut_event_index);
 }
+
+#ifdef ODPLAT_WIN32
+static void gui_input_does_not_publish_directly(void)
+{
+   char value[8];
+   reset_input();
+   ut_subsystem = kODWindowsSubsystemGUI;
+   strcpy(value, "OLD");
+   ut_queue_result = kODRCGeneralFailure;
+   utt_ODScrnLocalInput(10, 5, value, 3);
+   UT_ASSERT_EQ_UINT(0, ut_publish_calls);
+}
+#endif
 
 static void edits_replaces_limits_and_handles_extended_input(void)
 {
@@ -137,4 +157,7 @@ static const UTTestCase ut_cases[] = {
    {"edit input", edits_replaces_limits_and_handles_extended_input},
    {"newline", accepts_newline_with_an_initial_value_longer_than_the_limit},
    {"queue failure", stops_without_reusing_an_event_after_queue_failure}
+#ifdef ODPLAT_WIN32
+   ,{"GUI input", gui_input_does_not_publish_directly}
+#endif
 };

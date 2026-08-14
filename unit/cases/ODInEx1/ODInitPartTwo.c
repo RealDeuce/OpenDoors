@@ -1,5 +1,11 @@
 #include <setjmp.h>
 
+#ifdef ODPLAT_DOS32
+#define UT_PERSONALITY_CALL ODCALL
+#else
+#define UT_PERSONALITY_CALL
+#endif
+
 #define UT_CUSTOM_MOCK_GetModuleHandleA
 #define UT_CUSTOM_MOCK_ODAtExitCallback
 #define UT_CUSTOM_MOCK_ODComAlloc
@@ -24,6 +30,8 @@
 #define UT_CUSTOM_MOCK_ODKrnlInitialize
 #define UT_CUSTOM_MOCK_ODKrnlRefreshUIState
 #define UT_CUSTOM_MOCK_ODKrnlShutdown
+#define UT_CUSTOM_MOCK_ODMultiResolvePersonality
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
 #define UT_CUSTOM_MOCK_ODScrnCreateWindow
 #define UT_CUSTOM_MOCK_ODScrnDestroyWindow
 #define UT_CUSTOM_MOCK_ODScrnDisplayString
@@ -85,6 +93,7 @@ static int ut_rx_size;
 static int ut_tx_size;
 static BYTE ut_fifo;
 static BYTE ut_boundary_bottom;
+static INT ut_session_width;
 static INT ut_session_height;
 static const char *ut_error_text;
 static jmp_buf ut_exit_target;
@@ -103,6 +112,7 @@ static int ut_module_token;
 static HMODULE ut_module = (HMODULE)&ut_module_token;
 static BOOL ut_first_module_missing;
 static BOOL ut_cancel_during_frame_start;
+static tODWindowsSubsystem ut_subsystem;
 #endif
 
 #if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
@@ -267,7 +277,7 @@ void utm_ODScrnSetBoundary(BYTE left, BYTE top, BYTE right, BYTE bottom)
 
 void utm_ODSessionScreenInitialize(INT width, INT height)
 {
-   UT_ASSERT_EQ_INT(80, width);
+   ut_session_width = width;
    ut_session_height = height;
 }
 
@@ -471,11 +481,27 @@ void ODCALL utm_pdef_opendoors(BYTE operation)
    ++ut_personality_calls;
 }
 
-static void ODCALL ut_test_personality(BYTE operation)
+static void UT_PERSONALITY_CALL ut_test_personality(BYTE operation)
 {
    UT_ASSERT_EQ_INT(20, operation);
    ++ut_personality_calls;
 }
+
+OD_PERSONALITY_CALLBACK *utm_ODMultiResolvePersonality(
+   OD_PERSONALITY_PROC *personality)
+{
+#ifdef ODPLAT_WIN32
+   if(personality == NULL) return(ut_test_personality);
+#endif
+   return((OD_PERSONALITY_CALLBACK *)personality);
+}
+
+#ifdef ODPLAT_WIN32
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{
+   return(ut_subsystem);
+}
+#endif
 
 static BOOL ODCALL ut_set_personality(const char *name)
 {
@@ -548,6 +574,7 @@ static void reset_part_two_fixture(void)
    ut_tx_size = 0;
    ut_fifo = 0;
    ut_boundary_bottom = 0;
+   ut_session_width = 0;
    ut_session_height = 0;
    ut_error_text = NULL;
    ut_exit_expected = FALSE;
@@ -558,6 +585,8 @@ static void reset_part_two_fixture(void)
    nInitialRemaining = 0;
    bPromptForUserName = FALSE;
    bSysopNameSet = FALSE;
+   od_control.user_screenwidth = 80;
+   od_control.user_screen_length = 23;
    szForcedSysopName[0] = '\0';
    for(index = 0; index < DIM(apszLogMessages); ++index)
       od_control.od_logfile_messages[index] = NULL;
@@ -573,6 +602,7 @@ static void reset_part_two_fixture(void)
 #ifdef ODPLAT_WIN32
    ut_first_module_missing = FALSE;
    ut_cancel_during_frame_start = FALSE;
+   ut_subsystem = kODWindowsSubsystemConsole;
    od_control.od_silent_mode = TRUE;
 #endif
 #if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
@@ -619,11 +649,13 @@ static void initializes_defaults_and_a_serial_session(void)
    UT_ASSERT_EQ_INT(TRUE, od_control.od_list_pause);
    UT_ASSERT(strcmp("DOOR.LOG", od_control.od_logfile_name) == 0);
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
-#ifdef OD_TEXTMODE
+#if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
    UT_ASSERT_EQ_INT(23, ut_boundary_bottom);
+   UT_ASSERT_EQ_INT(80, ut_session_width);
    UT_ASSERT_EQ_INT(23, ut_session_height);
 #else
    UT_ASSERT_EQ_INT(25, ut_boundary_bottom);
+   UT_ASSERT_EQ_INT(80, ut_session_width);
    UT_ASSERT_EQ_INT(25, ut_session_height);
 #endif
 }
@@ -924,9 +956,19 @@ static void exercises_unix_local_account_and_terminal_paths(void)
 #endif
 
 #ifdef ODPLAT_WIN32
-static void exercises_windows_frame_startup(void)
+static void reset_windows_gui_fixture(void)
 {
    reset_part_two_fixture();
+   ut_subsystem = kODWindowsSubsystemGUI;
+}
+
+static void exercises_windows_frame_startup(void)
+{
+   reset_windows_gui_fixture();
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(0, ut_frame_calls);
+
+   reset_windows_gui_fixture();
    ut_refresh_result = FALSE;
    bODInitialized = TRUE;
    utt_ODInitPartTwo();
@@ -935,28 +977,28 @@ static void exercises_windows_frame_startup(void)
    UT_ASSERT_EQ_INT(FALSE, bODInitialized);
    UT_ASSERT_EQ_UINT(1, ut_error_calls);
 
-   reset_part_two_fixture();
+   reset_windows_gui_fixture();
    od_control.od_silent_mode = FALSE;
    utt_ODInitPartTwo();
    UT_ASSERT_EQ_UINT(1, ut_refresh_calls);
    UT_ASSERT_EQ_UINT(1, ut_frame_calls);
    UT_ASSERT_EQ_UINT(1, ut_publish_calls);
 
-   reset_part_two_fixture();
+   reset_windows_gui_fixture();
    od_control.od_silent_mode = FALSE;
    ut_first_module_missing = TRUE;
    utt_ODInitPartTwo();
    UT_ASSERT_EQ_UINT(1, ut_frame_calls);
    UT_ASSERT_EQ_UINT(1, ut_publish_calls);
 
-   reset_part_two_fixture();
+   reset_windows_gui_fixture();
    od_control.od_silent_mode = FALSE;
    bPromptForUserName = TRUE;
    utm_strcpy(szWindowsStartupUserName, "Prompted User");
    utt_ODInitPartTwo();
    UT_ASSERT_EQ_UINT(2, ut_refresh_calls);
 
-   reset_part_two_fixture();
+   reset_windows_gui_fixture();
    od_control.od_silent_mode = FALSE;
    ut_frame_result = kODRCGeneralFailure;
    bODInitialized = TRUE;
@@ -966,7 +1008,7 @@ static void exercises_windows_frame_startup(void)
    UT_ASSERT_EQ_INT(FALSE, bODInitialized);
    UT_ASSERT_EQ_UINT(1, ut_error_calls);
 
-   reset_part_two_fixture();
+   reset_windows_gui_fixture();
    od_control.od_silent_mode = FALSE;
    ut_frame_result = kODRCGeneralFailure;
    ut_cancel_during_frame_start = TRUE;
@@ -980,6 +1022,54 @@ static void exercises_windows_frame_startup(void)
    UT_ASSERT_EQ_UINT(1, ut_kernel_shutdown_calls);
    UT_ASSERT_EQ_UINT(1, ut_exit_calls);
    UT_ASSERT_EQ_UINT(0, ut_error_calls);
+}
+
+static void exercises_windows_console_prompt_and_personality_paths(void)
+{
+   reset_part_two_fixture();
+   od_control.user_screenwidth = 100;
+   od_control.user_screen_length = 30;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_INT(100, ut_session_width);
+   UT_ASSERT_EQ_INT(30, ut_session_height);
+
+   reset_part_two_fixture();
+   od_control.od_silent_mode = FALSE;
+   bPromptForUserName = TRUE;
+   ut_window_available = FALSE;
+   utt_ODInitPartTwo();
+
+   reset_part_two_fixture();
+   od_control.od_silent_mode = FALSE;
+   bPromptForUserName = TRUE;
+   ut_window_available = TRUE;
+   utt_ODInitPartTwo();
+   UT_ASSERT(strcmp("Local User", od_control.user_name) == 0);
+   UT_ASSERT(strcmp("Local User", od_control.user_handle) == 0);
+
+   reset_part_two_fixture();
+   bRAStatus = TRUE;
+   btRAStatusToSet = 2;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_INT(2, ut_status_value);
+
+   reset_part_two_fixture();
+   od_control.od_default_personality = ut_test_personality;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(1, ut_personality_calls);
+
+   reset_part_two_fixture();
+   pfSetPersonality = ut_set_personality;
+   ut_set_personality_result = TRUE;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(0, ut_personality_calls);
+
+   reset_part_two_fixture();
+   pfSetPersonality = ut_set_personality;
+   ut_set_personality_result = FALSE;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(1, ut_personality_calls);
+   UT_ASSERT_EQ_INT(0, ut_status_value);
 }
 #endif
 
@@ -1040,6 +1130,7 @@ static const UTTestCase ut_cases[] = {
 #endif
 #ifdef ODPLAT_WIN32
    ,{"Windows frame", exercises_windows_frame_startup}
+   ,{"Windows console", exercises_windows_console_prompt_and_personality_paths}
 #endif
 #ifdef OD_TEXTMODE
    ,{"DOS local and personality", exercises_dos_local_prompt_and_personality_paths}

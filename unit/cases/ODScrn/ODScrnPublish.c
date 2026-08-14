@@ -2,6 +2,8 @@
 #define UT_CUSTOM_MOCK_ODMutexUnlock
 #define UT_CUSTOM_MOCK_memcpy
 #define UT_CUSTOM_MOCK_InvalidateRect
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+#define UT_CUSTOM_MOCK_ODScrnPublishConsole
 
 static BYTE ut_owner[OD_SCREEN_WIDTH * OD_SCREEN_HEIGHT * 2];
 static BYTE ut_display[OD_SCREEN_WIDTH * OD_SCREEN_HEIGHT * 2];
@@ -9,6 +11,9 @@ static unsigned ut_locks;
 static unsigned ut_unlocks;
 static unsigned ut_copies;
 static unsigned ut_invalidates;
+static tODWindowsSubsystem ut_subsystem;
+static BOOL ut_console_result;
+static unsigned ut_console_calls;
 
 void utm_ODMutexLock(tODMutex *mutex)
 {
@@ -42,6 +47,10 @@ BOOL WINAPI utm_InvalidateRect(HWND window, const RECT *rectangle, BOOL erase)
    ++ut_invalidates;
    return(TRUE);
 }
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{ return(ut_subsystem); }
+BOOL utm_ODScrnPublishConsole(void)
+{ ++ut_console_calls; return(ut_console_result); }
 
 static void reset_publish(void)
 {
@@ -52,6 +61,9 @@ static void reset_publish(void)
    bScreenPresentationActive = TRUE;
    bScreenDirty = FALSE;
    hwndScreenWindow = (HWND)(UINT_PTR)7;
+   ut_subsystem = kODWindowsSubsystemGUI;
+   ut_console_result = TRUE;
+   ut_console_calls = 0;
    ut_locks = ut_unlocks = ut_copies = ut_invalidates = 0;
 }
 
@@ -107,8 +119,28 @@ static void publishes_before_the_window_exists(void)
    UT_ASSERT_EQ_INT(FALSE, bScreenDirty);
 }
 
+static void publishes_directly_to_a_console(void)
+{
+   reset_publish();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   bScreenDirty = TRUE;
+   utt_ODScrnPublish();
+   UT_ASSERT_EQ_UINT(1, ut_console_calls);
+   UT_ASSERT_EQ_INT(FALSE, bScreenDirty);
+   UT_ASSERT_EQ_UINT(0, ut_locks);
+
+   reset_publish();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   ut_console_result = FALSE;
+   bScreenDirty = TRUE;
+   utt_ODScrnPublish();
+   UT_ASSERT_EQ_UINT(1, ut_console_calls);
+   UT_ASSERT_EQ_INT(TRUE, bScreenDirty);
+}
+
 static const UTTestCase ut_cases[] = {
    {"clean state", ignores_a_clean_or_inactive_screen},
    {"generation exchange", exchanges_complete_generations},
-   {"no window", publishes_before_the_window_exists}
+   {"no window", publishes_before_the_window_exists},
+   {"console", publishes_directly_to_a_console}
 };

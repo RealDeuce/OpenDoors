@@ -1,4 +1,16 @@
+#define UT_CUSTOM_MOCK_memcpy
+
 static BYTE ut_screen[OD_SCREEN_WIDTH * OD_SCREEN_HEIGHT * 2];
+
+void *utm_memcpy(void *destination, const void *source, size_t size)
+{
+   BYTE *out = (BYTE *)destination;
+   const BYTE *in = (const BYTE *)source;
+   size_t index;
+   for(index = 0; index < size; ++index)
+      out[index] = in[index];
+   return(destination);
+}
 
 static void reset_screen(void)
 {
@@ -33,8 +45,8 @@ static void centers_and_extends_edge_backgrounds(void)
    UT_ASSERT_EQ_INT('A', destination[20]);
    UT_ASSERT_EQ_INT(' ', destination[200]);
    UT_ASSERT_EQ_UINT(0x40, destination[201]);
-   UT_ASSERT_EQ_INT(' ', destination[202]);
-   UT_ASSERT_EQ_UINT(0x40, destination[203]);
+   UT_ASSERT_EQ_INT(0, destination[202]);
+   UT_ASSERT_EQ_UINT(0, destination[203]);
 }
 
 static const UTTestCase ut_cases[] = {

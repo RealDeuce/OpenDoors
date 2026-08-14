@@ -170,6 +170,8 @@ void ODConsoleSetSize(INT nWidth, INT nHeight, INT *pnActualWidth,
    COORD Size;
    CONSOLE_SCREEN_BUFFER_INFO Info;
    SMALL_RECT Window;
+   INT nCurrentWindowWidth;
+   INT nCurrentWindowHeight;
    INT nWindowWidth;
    INT nWindowHeight;
 
@@ -200,14 +202,17 @@ void ODConsoleSetSize(INT nWidth, INT nHeight, INT *pnActualWidth,
 
    if(GetConsoleScreenBufferInfo(hConsoleOutput, &Info))
    {
-      if(Info.srWindow.Right - Info.srWindow.Left + 1 > nWidth
-         || Info.srWindow.Bottom - Info.srWindow.Top + 1 > nHeight)
+      nCurrentWindowWidth = Info.srWindow.Right - Info.srWindow.Left + 1;
+      nCurrentWindowHeight = Info.srWindow.Bottom - Info.srWindow.Top + 1;
+      if(nCurrentWindowWidth > nWidth || nCurrentWindowHeight > nHeight)
       {
          SMALL_RECT SmallWindow;
          SmallWindow.Left = 0;
          SmallWindow.Top = 0;
-         SmallWindow.Right = 0;
-         SmallWindow.Bottom = 0;
+         SmallWindow.Right = (SHORT)((nCurrentWindowWidth > nWidth
+            ? nWidth : nCurrentWindowWidth) - 1);
+         SmallWindow.Bottom = (SHORT)((nCurrentWindowHeight > nHeight
+            ? nHeight : nCurrentWindowHeight) - 1);
          SetConsoleWindowInfo(hConsoleOutput, TRUE, &SmallWindow);
       }
    }

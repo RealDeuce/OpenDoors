@@ -7,6 +7,7 @@ static unsigned ut_record_count;
 static unsigned ut_record_index;
 static BOOL ut_peek_succeeds;
 static BOOL ut_read_succeeds;
+static BOOL ut_read_is_empty;
 
 BYTE utm_ODConsoleShiftStatus(DWORD state)
 {
@@ -26,6 +27,7 @@ BOOL WINAPI utm_ReadConsoleInputA(HANDLE handle, PINPUT_RECORD record,
 {
    (void)handle; UT_ASSERT_EQ_UINT(1, length);
    if(!ut_read_succeeds) return(FALSE);
+   if(ut_read_is_empty) { *read_count = 0; return(TRUE); }
    if(ut_record_index >= ut_record_count) { *read_count = 0; return(TRUE); }
    *record = ut_records[ut_record_index++]; *read_count = 1; return(TRUE);
 }
@@ -35,6 +37,7 @@ static void reset_fixture(void)
    memset(ut_records, 0, sizeof(ut_records));
    ut_record_count = ut_record_index = 0;
    ut_peek_succeeds = ut_read_succeeds = TRUE;
+   ut_read_is_empty = FALSE;
    bConsoleActive = TRUE; hConsoleInput = (HANDLE)(UINT_PTR)1;
    wRepeatCount = 0;
 }
@@ -94,6 +97,8 @@ static void handles_read_failure_and_zero_repeat(void)
 {
    WORD key; BYTE shift;
    reset_fixture(); ut_record_count = 1; ut_read_succeeds = FALSE;
+   UT_ASSERT(!utt_ODConsoleReadKey(&key, &shift));
+   reset_fixture(); ut_record_count = 1; ut_read_is_empty = TRUE;
    UT_ASSERT(!utt_ODConsoleReadKey(&key, &shift));
    reset_fixture(); ut_record_count = 1;
    ut_records[0].EventType = KEY_EVENT;

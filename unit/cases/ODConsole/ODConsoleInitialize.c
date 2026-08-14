@@ -206,6 +206,17 @@ static void rejects_each_unavailable_allocated_console_resource(void)
    }
 }
 
+static void reports_failed_attached_console_replacement(void)
+{
+   reset_fixture();
+   ut_failure_step = 2;
+   ut_alloc_failures = 1;
+   UT_ASSERT(!utt_ODConsoleInitialize());
+   UT_ASSERT_EQ_UINT(1, ut_alloc_calls);
+   UT_ASSERT_EQ_UINT(1, ut_shutdown_calls);
+   UT_ASSERT_EQ_UINT(1, ut_free_calls);
+}
+
 static const UTTestCase ut_cases[] = {
    {"success", initializes_and_preserves_console_state},
    {"allocate console", allocates_a_console_when_none_is_attached},
@@ -215,5 +226,7 @@ static const UTTestCase ut_cases[] = {
    {"already active", active_console_is_idempotent},
    {"replace unusable attachment", replaces_an_unusable_attached_console},
    {"allocated resource failures",
-      rejects_each_unavailable_allocated_console_resource}
+      rejects_each_unavailable_allocated_console_resource},
+   {"replacement allocation failure",
+      reports_failed_attached_console_replacement}
 };

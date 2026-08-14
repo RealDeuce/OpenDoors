@@ -15,7 +15,14 @@ void ODCALL pdef_ra(BYTE operation) { (void)operation; }
 void ODCALL pdef_wildcat(BYTE operation) { (void)operation; }
 #endif
 
-static void ut_custom_personality(BYTE operation) { (void)operation; }
+#ifdef ODPLAT_DOS32
+#define UT_PERSONALITY_CALL ODCALL
+#else
+#define UT_PERSONALITY_CALL
+#endif
+
+static void UT_PERSONALITY_CALL ut_custom_personality(BYTE operation)
+{ (void)operation; }
 
 static void preserves_public_callbacks(void)
 {

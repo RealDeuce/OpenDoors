@@ -1,6 +1,8 @@
 #define UT_CUSTOM_MOCK_free
 #ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODConsoleShutdown
 #define UT_CUSTOM_MOCK_ODMutexDestroy
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
 #endif
 
 static unsigned ut_free_calls;
@@ -12,17 +14,23 @@ void utm_free(void *memory)
 }
 
 #ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem;
+static unsigned ut_console_calls;
 static unsigned ut_destroy_calls;
+void utm_ODConsoleShutdown(void) { ++ut_console_calls; }
 void utm_ODMutexDestroy(tODMutex *mutex)
 {
    ++ut_destroy_calls; UT_ASSERT(mutex == &ScreenPresentationMutex);
 }
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{ return(ut_subsystem); }
 
 static void releases_both_screen_generations_when_active(void)
 {
    static BYTE owner[2];
    static BYTE display[2];
-   ut_free_calls = ut_destroy_calls = 0;
+   ut_free_calls = ut_destroy_calls = ut_console_calls = 0;
+   ut_subsystem = kODWindowsSubsystemGUI;
    pScrnBuffer = owner; pDisplayBuffer = display;
    bScreenPresentationActive = FALSE; bScreenDirty = TRUE;
    utt_ODScrnShutdown();
@@ -35,6 +43,15 @@ static void releases_both_screen_generations_when_active(void)
    UT_ASSERT_EQ_PTR(NULL, pScrnBuffer); UT_ASSERT_EQ_PTR(NULL, pDisplayBuffer);
    UT_ASSERT_EQ_INT(FALSE, bScreenPresentationActive);
    UT_ASSERT_EQ_INT(FALSE, bScreenDirty); UT_ASSERT_EQ_UINT(1, ut_destroy_calls);
+
+   ut_free_calls = ut_destroy_calls = ut_console_calls = 0;
+   pScrnBuffer = owner; pDisplayBuffer = display;
+   bScreenPresentationActive = TRUE; bScreenDirty = TRUE;
+   ut_subsystem = kODWindowsSubsystemConsole;
+   utt_ODScrnShutdown();
+   UT_ASSERT_EQ_UINT(2, ut_free_calls);
+   UT_ASSERT_EQ_UINT(1, ut_console_calls);
+   UT_ASSERT_EQ_UINT(0, ut_destroy_calls);
 }
 
 static const UTTestCase ut_cases[] = {

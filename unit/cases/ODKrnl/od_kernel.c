@@ -222,7 +222,8 @@ BOOL utm_ODConsoleReadKey(WORD *key, BYTE *shift)
    *shift = ut_bios_shifts[ut_bios_index++];
    return(TRUE);
 }
-#elif defined(__WATCOMC__)
+#else /* !ODPLAT_WIN32 */
+#if defined(__WATCOMC__)
 unsigned short utm__bios_keybrd(unsigned command)
 {
    if(command == _KEYBRD_READY)
@@ -233,7 +234,8 @@ unsigned short utm__bios_keybrd(unsigned command)
    UT_ASSERT_EQ_UINT(_KEYBRD_SHIFTSTATUS, command);
    return((unsigned short)ut_bios_shifts[ut_bios_index++]);
 }
-#endif
+#endif /* __WATCOMC__ */
+#endif /* !ODPLAT_WIN32 */
 
 static void queue_bios_key(WORD key, BYTE shift)
 {

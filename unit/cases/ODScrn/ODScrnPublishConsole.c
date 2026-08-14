@@ -5,8 +5,9 @@
 #define UT_CUSTOM_MOCK_ODSessionScreenCell
 #define UT_CUSTOM_MOCK_free
 #define UT_CUSTOM_MOCK_malloc
+#define UT_CUSTOM_MOCK_memcpy
 
-static BYTE ut_allocation[128];
+static BYTE ut_allocation[512];
 static BYTE ut_remote[12];
 static BOOL ut_console_available;
 static BOOL ut_allocate;
@@ -14,12 +15,30 @@ static BOOL ut_write_result;
 static BOOL ut_local_composition;
 static unsigned ut_personality_rows;
 static unsigned ut_free_calls;
+static INT ut_actual_width;
+static INT ut_actual_height;
+static INT ut_expected_width;
+static INT ut_expected_height;
+static INT ut_expected_cursor_column;
+static INT ut_expected_cursor_row;
+static BOOL ut_check_cells;
+
+void *utm_memcpy(void *destination, const void *source, size_t size)
+{
+   BYTE *out = (BYTE *)destination;
+   const BYTE *in = (const BYTE *)source;
+   size_t index;
+   for(index = 0; index < size; ++index)
+      out[index] = in[index];
+   return(destination);
+}
 
 BOOL utm_ODConsoleAvailable(void) { return(ut_console_available); }
 void utm_ODConsoleSetSize(INT requested_width, INT requested_height,
    INT *width, INT *height)
 {
-   *width = requested_width; *height = requested_height;
+   *width = ut_actual_width != 0 ? ut_actual_width : requested_width;
+   *height = ut_actual_height != 0 ? ut_actual_height : requested_height;
 }
 void *utm_malloc(size_t size)
 {
@@ -44,18 +63,16 @@ BYTE *utm_ODSessionScreenCell(INT column, INT row)
 BOOL utm_ODConsoleWrite(const BYTE *cells, INT width, INT height,
    INT cursor_column, INT cursor_row, BOOL cursor_on)
 {
-   UT_ASSERT_EQ_INT(3, width); UT_ASSERT_EQ_INT(4, height);
-   UT_ASSERT_EQ_INT('P', cells[0]);
-   UT_ASSERT_EQ_INT(ut_local_composition ? 'P' : 'R', cells[6]);
-   UT_ASSERT_EQ_INT('P', cells[18]);
-   if(ut_local_composition)
+   UT_ASSERT_EQ_INT(ut_expected_width, width);
+   UT_ASSERT_EQ_INT(ut_expected_height, height);
+   if(ut_check_cells)
    {
-      UT_ASSERT_EQ_INT(2, cursor_column); UT_ASSERT_EQ_INT(3, cursor_row);
+      UT_ASSERT_EQ_INT('P', cells[0]);
+      UT_ASSERT_EQ_INT(ut_local_composition ? 'P' : 'R', cells[6]);
+      UT_ASSERT_EQ_INT('P', cells[18]);
    }
-   else
-   {
-      UT_ASSERT_EQ_INT(1, cursor_column); UT_ASSERT_EQ_INT(2, cursor_row);
-   }
+   UT_ASSERT_EQ_INT(ut_expected_cursor_column, cursor_column);
+   UT_ASSERT_EQ_INT(ut_expected_cursor_row, cursor_row);
    UT_ASSERT(cursor_on);
    return(ut_write_result);
 }
@@ -68,7 +85,11 @@ static void reset_fixture(void)
    ut_remote[0] = ut_remote[6] = 'R';
    ut_console_available = ut_allocate = ut_write_result = TRUE;
    ut_local_composition = FALSE;
+   ut_check_cells = TRUE;
    ut_personality_rows = ut_free_calls = 0;
+   ut_actual_width = ut_actual_height = 0;
+   ut_expected_width = 3; ut_expected_height = 4;
+   ut_expected_cursor_column = 1; ut_expected_cursor_row = 2;
    od_control.user_screenwidth = 3; od_control.user_screen_length = 2;
    btOutputTop = 2; btOutputBottom = 24;
    bSessionScreenAvailable = TRUE;
@@ -84,6 +105,7 @@ static void composes_the_fixed_local_screen_without_a_session_buffer(void)
    bSessionScreenAvailable = FALSE;
    btCursorColumn = 2; btCursorRow = 3;
    ut_local_composition = TRUE;
+   ut_expected_cursor_column = 2; ut_expected_cursor_row = 3;
    UT_ASSERT(utt_ODScrnPublishConsole());
    UT_ASSERT_EQ_UINT(4, ut_personality_rows);
    UT_ASSERT_EQ_UINT(1, ut_free_calls);
@@ -113,10 +135,42 @@ static void reports_allocation_and_write_failures(void)
    UT_ASSERT(!utt_ODScrnPublishConsole()); UT_ASSERT_EQ_UINT(1, ut_free_calls);
 }
 
+static void covers_console_dimension_boundaries(void)
+{
+   reset_fixture();
+   btOutputTop = 0; btOutputBottom = OD_SCREEN_HEIGHT;
+   ut_expected_height = 2;
+   ut_expected_cursor_row = 1;
+   ut_check_cells = FALSE;
+   UT_ASSERT(utt_ODScrnPublishConsole());
+
+   reset_fixture();
+   ut_actual_width = 2;
+   ut_expected_width = 2;
+   ut_check_cells = FALSE;
+   UT_ASSERT(utt_ODScrnPublishConsole());
+
+   reset_fixture();
+   bSessionScreenAvailable = FALSE;
+   od_control.user_screen_length = 30;
+   ut_expected_height = 32;
+   ut_expected_cursor_column = 0;
+   ut_expected_cursor_row = 0;
+   ut_check_cells = FALSE;
+   UT_ASSERT(utt_ODScrnPublishConsole());
+
+   reset_fixture();
+   ut_actual_height = 5;
+   ut_expected_height = 5;
+   ut_check_cells = FALSE;
+   UT_ASSERT(utt_ODScrnPublishConsole());
+}
+
 static const UTTestCase ut_cases[] = {
    {"inactive presentation", unavailable_or_silent_console_needs_no_write},
    {"composition", composes_remote_and_personality_rows},
    {"local composition",
       composes_the_fixed_local_screen_without_a_session_buffer},
-   {"failures", reports_allocation_and_write_failures}
+   {"failures", reports_allocation_and_write_failures},
+   {"dimension boundaries", covers_console_dimension_boundaries}
 };

@@ -9,7 +9,11 @@
 #endif
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_MessageBoxA
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+#define UT_CUSTOM_MOCK___acrt_iob_func
 #define UT_CUSTOM_MOCK_free
+#define UT_CUSTOM_MOCK_fprintf
+#define UT_CUSTOM_MOCK_fputs
 #define UT_CUSTOM_MOCK_malloc
 #define UT_CUSTOM_MOCK_sprintf
 #endif
@@ -96,6 +100,43 @@ static unsigned ut_free_calls;
 static unsigned ut_format_calls;
 static unsigned ut_message_calls;
 static const char *ut_message_text;
+static tODWindowsSubsystem ut_subsystem;
+static unsigned ut_console_error_calls;
+static unsigned ut_console_help_calls;
+static FILE *ut_stderr_stream = (FILE *)(void *)&ut_console_error_calls;
+
+FILE *utm___acrt_iob_func(unsigned int index)
+{
+   UT_ASSERT_EQ_UINT(2, index);
+   return(ut_stderr_stream);
+}
+
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{
+   return(ut_subsystem);
+}
+
+int utm_fprintf(FILE *stream, const char *format, ...)
+{
+   va_list arguments;
+   va_start(arguments, format);
+   UT_ASSERT_EQ_PTR(ut_stderr_stream, stream);
+   UT_ASSERT_EQ_INT(0, strcmp("%s: %s\n", format));
+   UT_ASSERT_EQ_PTR(od_control.od_prog_name, va_arg(arguments, char *));
+   UT_ASSERT_EQ_INT(0, strcmp("Initialization failed",
+      va_arg(arguments, char *)));
+   va_end(arguments);
+   ++ut_console_error_calls;
+   return(0);
+}
+
+int utm_fputs(const char *text, FILE *stream)
+{
+   UT_ASSERT_EQ_PTR(ut_stderr_stream, stream);
+   UT_ASSERT(strstr(text, "-HELP") != NULL);
+   ++ut_console_help_calls;
+   return(0);
+}
 
 void *utm_malloc(size_t size)
 {
@@ -147,6 +188,8 @@ static void reset_windows_error(void)
    ut_message_calls = 0;
    ut_message_text = NULL;
    ut_length_calls = 0;
+   ut_subsystem = kODWindowsSubsystemGUI;
+   ut_console_error_calls = ut_console_help_calls = 0;
    memset(ut_message_storage, 0, sizeof(ut_message_storage));
 }
 
@@ -186,6 +229,25 @@ static void appends_help_to_an_allocated_message_and_releases_it(void)
    UT_ASSERT(strstr(ut_message_storage, "-HELP") != NULL);
    UT_ASSERT_EQ_UINT(1, ut_free_calls);
 }
+
+static void writes_console_errors_and_optional_help(void)
+{
+   reset_windows_error();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   bParsedCmdLine = FALSE;
+   utt_ODInitError("Initialization failed");
+   UT_ASSERT_EQ_UINT(1, ut_console_error_calls);
+   UT_ASSERT_EQ_UINT(0, ut_console_help_calls);
+   UT_ASSERT_EQ_UINT(0, ut_message_calls);
+
+   reset_windows_error();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   bParsedCmdLine = TRUE;
+   utt_ODInitError("Initialization failed");
+   UT_ASSERT_EQ_UINT(1, ut_console_error_calls);
+   UT_ASSERT_EQ_UINT(1, ut_console_help_calls);
+   UT_ASSERT_EQ_UINT(0, ut_message_calls);
+}
 #endif
 
 static const UTTestCase ut_cases[] = {
@@ -195,7 +257,8 @@ static const UTTestCase ut_cases[] = {
 #ifdef ODPLAT_WIN32
    {"unparsed message", displays_the_original_message_without_parsed_arguments},
    {"allocation failure", allocation_failure_falls_back_to_the_original_message},
-   {"message with help", appends_help_to_an_allocated_message_and_releases_it}
+   {"message with help", appends_help_to_an_allocated_message_and_releases_it},
+   {"console message", writes_console_errors_and_optional_help}
 #else
    {"DOS output", prints_command_help_only_after_parsing}
 #endif

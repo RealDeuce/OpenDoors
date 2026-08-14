@@ -958,7 +958,7 @@
           "name": "ODConsoleSetSize",
           "signature_line": 164,
           "body_line": 168,
-          "end_line": 225,
+          "end_line": 230,
           "platforms": [
             "windows"
           ],
@@ -966,9 +966,9 @@
         },
         {
           "name": "ODConsoleWrite",
-          "signature_line": 225,
-          "body_line": 229,
-          "end_line": 280,
+          "signature_line": 230,
+          "body_line": 234,
+          "end_line": 285,
           "platforms": [
             "windows"
           ],
@@ -976,9 +976,9 @@
         },
         {
           "name": "ODConsoleReadKey",
-          "signature_line": 280,
-          "body_line": 283,
-          "end_line": 322,
+          "signature_line": 285,
+          "body_line": 288,
+          "end_line": 327,
           "platforms": [
             "windows"
           ],
