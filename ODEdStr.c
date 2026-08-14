@@ -119,6 +119,7 @@ ODAPIDEF WORD ODCALL od_edit_str(char *pszInput, char *pszFormat, INT nRow,
    INT nKeysPressed = 0;
    WORD wToReturn;
    BOOL bInsertMode = TRUE;
+   BOOL bCheckAutoEnter = FALSE;
    char chAddAtEnd = '\0';
    tODInputEvent InputEvent;
    INT nWindowWidth;
@@ -333,13 +334,10 @@ ODAPIDEF WORD ODCALL od_edit_str(char *pszInput, char *pszFormat, INT nRow,
    /* Set the cursor to appropriate position. */
    od_set_cursor(nRow, nColumn + nCursorPos);
 
-   /* Start the input loop at the keep_going tag. */
-   goto keep_going;
-
    for(;;)
    {
       /* If auto-accept mode has been specified ... */
-      if(nFlags & EDIT_FLAG_AUTO_ENTER)
+      if(bCheckAutoEnter && (nFlags & EDIT_FLAG_AUTO_ENTER))
       {
          /* ... then check whether we have reached the end of the string. */
          if(strlen(pszCurrentInput) == nCurrentStringLength)
@@ -351,6 +349,8 @@ ODAPIDEF WORD ODCALL od_edit_str(char *pszInput, char *pszFormat, INT nRow,
             goto try_to_accept;
          }
       }
+
+      bCheckAutoEnter = TRUE;
 
 keep_going:
       /* Check whether we have reached a literal character in permaliteral */
