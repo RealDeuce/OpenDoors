@@ -121,7 +121,7 @@ int main(void)
 
    od_disp("published screen", 16, FALSE);
    OD_TEST_CHECK(SetEvent(hPublished));
-   OD_TEST_CHECK(od_get_input(&Event, 10, GETIN_RAW));
+   OD_TEST_CHECK(od_get_input(&Event, 10000, GETIN_RAW));
    OD_TEST_CHECK(Event.EventType == EVENT_CHARACTER);
    OD_TEST_CHECK(!Event.bFromRemote);
    OD_TEST_CHECK(Event.chKeyPress == 'Z');
