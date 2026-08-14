@@ -161,6 +161,20 @@ class CoverageWaiverTests(unittest.TestCase):
             model, records, generated, "sample.c"),
             [{"id": 3, "line": 30, "conditions": 3}])
 
+    def test_ignores_llvm_mcdc_records_from_other_files(self):
+        model = {"decisions": [
+            {"id": 1, "line": 10, "conditions": 2},
+        ]}
+        generated = [
+            '#line 1 "sample.c"',
+            *['line'] * 9,
+            'compound decision',
+        ]
+        records = [[11, 0, 11, 20, 0, 1, 2, 0, [True, True]]]
+        self.assertEqual(missing_llvm_mcdc_records(
+            model, records, generated, "sample.c"),
+            [{"id": 1, "line": 10, "conditions": 2}])
+
     def test_maps_generated_lines_through_repeated_line_directives(self):
         generated = [
             '/* support */', '#line 1 "sample.c"', 'first', 'second',
@@ -183,23 +197,29 @@ class CoverageWaiverTests(unittest.TestCase):
         ]
         records = [
             [2, 3, 2, 20, 0, 1, 1, 0, 4],
-            [4, 3, 4, 20, 1, 1, 1, 0, 4],
+            [4, 3, 4, 20, 1, 1, 0, 0, 4],
         ]
         self.assertEqual(map_llvm_record_lines(
             records, generated, "sample.c"),
-            [[40, 3, 4, 20, 1, 1, 1, 0, 4]])
+            [[40, 3, 4, 20, 1, 1, 0, 0, 4]])
 
     def test_discards_unreachable_do_while_zero_branch_records(self):
         generated = [
             '#line 40 "sample.c"', 'source decision', '} while(0)',
         ]
         records = [
-            [2, 3, 2, 20, 1, 1, 1, 0, 4],
-            [3, 1, 3, 11, 0, 2, 1, 0, 4],
+            [2, 3, 2, 20, 1, 1, 0, 0, 4],
+            [3, 1, 3, 11, 0, 2, 0, 0, 4],
         ]
         self.assertEqual(map_llvm_record_lines(
             records, generated, "sample.c"),
-            [[40, 3, 2, 20, 1, 1, 1, 0, 4]])
+            [[40, 3, 2, 20, 1, 1, 0, 0, 4]])
+
+    def test_discards_zero_width_macro_branch_records(self):
+        generated = ['#line 40 "sample.c"', 'FD_ZERO(&set);']
+        records = [[2, 4, 2, 4, 0, 1, 0, 0, 4]]
+        self.assertEqual(map_llvm_record_lines(
+            records, generated, "sample.c"), [])
 
     def test_approved_and_proposed_waivers_have_distinct_dispositions(self):
         entries = [{

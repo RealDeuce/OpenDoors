@@ -329,6 +329,16 @@ def map_llvm_record_lines(records: list, generated_lines: list[str],
     """Return relevant LLVM records with physical lines mapped to the source."""
     result = []
     for record in records:
+        # File zero is the generated translation itself.  Other file IDs are
+        # virtual files used for macro expansions (or included headers), whose
+        # decisions are not part of the isolated source function's model.
+        if (len(record) > 6 and isinstance(record[6], int) and
+                record[6] != 0):
+            continue
+        # A zero-width region has no source expression.  LLVM 22 produces
+        # these for branches internal to macros such as FD_ZERO().
+        if record[0] == record[2] and record[1] == record[3]:
+            continue
         mapped = original_source_line(generated_lines, record[0], source)
         if mapped is None:
             continue
@@ -640,6 +650,9 @@ def missing_llvm_mcdc_records(model: dict[str, object],
     """Return modeled compound decisions absent from LLVM's MC/DC map."""
     available = []
     for record in records:
+        if (len(record) > 6 and isinstance(record[6], int) and
+                record[6] != 0):
+            continue
         line = original_source_line(generated_lines, record[0], source)
         if line is not None:
             available.append(line)
