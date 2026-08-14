@@ -209,6 +209,58 @@ class UnitXvfbTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr.decode())
 
+    def test_dos32_build_mode_uses_watcom_and_ninja(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            marker = directory / "xvfb-started"
+            configure_marker = directory / "configured"
+            watcom = directory / "watcom"
+            (watcom / "binl").mkdir(parents=True)
+            xvfb = directory / "Xvfb"
+            xdpyinfo = directory / "xdpyinfo"
+            cmake = directory / "cmake"
+            xvfb.write_text(
+                "#!/bin/sh\n"
+                ": >\"$UNIT_XVFB_TEST_MARKER\"\n"
+                "while :; do sleep 1; done\n",
+                encoding="ascii")
+            xdpyinfo.write_text(
+                "#!/bin/sh\n"
+                "test -f \"$UNIT_XVFB_TEST_MARKER\"\n",
+                encoding="ascii")
+            cmake.write_text(
+                "#!/bin/sh\n"
+                "test \"$CC\" = wcl386\n"
+                "if test \"$1\" = -S; then\n"
+                "  test \"$2\" = dos\n"
+                "  test \"$3\" = -B\n"
+                "  test \"$4\" = /test/build32\n"
+                "  test \"$5\" = -G\n"
+                "  test \"$6\" = Ninja\n"
+                "  test \"$8\" = CMAKE_SYSTEM_NAME=DOS\n"
+                "  test \"$10\" = CMAKE_SYSTEM_PROCESSOR=I386\n"
+                "  : >\"$UNIT_XVFB_CONFIGURE_MARKER\"\n"
+                "else\n"
+                "  test \"$1\" = --build\n"
+                "  test \"$2\" = /test/build32\n"
+                "  test -f \"$UNIT_XVFB_CONFIGURE_MARKER\"\n"
+                "fi\n",
+                encoding="ascii")
+            for executable in (xvfb, xdpyinfo, cmake):
+                executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
+            environment = os.environ.copy()
+            environment["PATH"] = str(directory) + os.pathsep + os.environ["PATH"]
+            environment["UNIT_XVFB_TEST_MARKER"] = str(marker)
+            environment["UNIT_XVFB_CONFIGURE_MARKER"] = str(configure_marker)
+
+            result = subprocess.run(
+                [str(ROOT / "tools" / "unit-xvfb"), "--display", ":194",
+                 "--watcom", str(watcom), "dos32-build", "/test/build32"],
+                cwd=ROOT, env=environment, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, timeout=5)
+
+            self.assertEqual(result.returncode, 0, result.stderr.decode())
+
 
 if __name__ == "__main__":
     unittest.main()

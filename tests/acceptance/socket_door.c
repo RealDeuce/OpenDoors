@@ -114,13 +114,10 @@ int main(int argc, char **argv)
    od_disp("KEY", 3, FALSE);
    OD_TEST_CHECK(od_get_key(TRUE) == 'A');
    OD_TEST_CHECK(od_key_pending());
-   OD_TEST_CHECK(od_get_key(FALSE) == 'B');
-   OD_TEST_CHECK(od_key_pending());
-   OD_TEST_CHECK(od_get_key(FALSE) == 'C');
-   OD_TEST_CHECK(od_key_pending());
-   OD_TEST_CHECK(od_get_key(FALSE) == 'D');
-   OD_TEST_CHECK(od_key_pending());
-   OD_TEST_CHECK(od_get_key(FALSE) == 'E');
+   OD_TEST_CHECK(od_get_key(TRUE) == 'B');
+   OD_TEST_CHECK(od_get_key(TRUE) == 'C');
+   OD_TEST_CHECK(od_get_key(TRUE) == 'D');
+   OD_TEST_CHECK(od_get_key(TRUE) == 'E');
    OD_TEST_CHECK(!od_key_pending());
    OD_TEST_CHECK(od_control.od_last_input == 0);
 

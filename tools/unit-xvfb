@@ -6,7 +6,7 @@
 
 set -eu
 
-usage='usage: tools/unit-xvfb --display :N [--watcom ROOT] run|turbo|dos16-build|serial|debug [arguments ...]'
+usage='usage: tools/unit-xvfb --display :N [--watcom ROOT] run|turbo|dos16-build|dos32-build|serial|debug [arguments ...]'
 
 if [ "${1-}" != "--display" ] || [ "$#" -lt 3 ]; then
    echo "$usage" >&2
@@ -103,6 +103,20 @@ case "$command_name" in
       cmake -S dos -B "$1" -G Ninja \
          -D CMAKE_SYSTEM_NAME=DOS \
          -D CMAKE_SYSTEM_PROCESSOR=I86 \
+         -D CMAKE_BUILD_TYPE=Release \
+         -D OPENDOORS_WARNINGS_AS_ERRORS=ON
+      cmake --build "$1"
+      ;;
+   dos32-build)
+      if [ "$#" -ne 1 ]; then
+         echo "tools/unit-xvfb: dos32-build requires a build directory" >&2
+         exit 2
+      fi
+      CC=wcl386
+      export CC
+      cmake -S dos -B "$1" -G Ninja \
+         -D CMAKE_SYSTEM_NAME=DOS \
+         -D CMAKE_SYSTEM_PROCESSOR=I386 \
          -D CMAKE_BUILD_TYPE=Release \
          -D OPENDOORS_WARNINGS_AS_ERRORS=ON
       cmake --build "$1"
