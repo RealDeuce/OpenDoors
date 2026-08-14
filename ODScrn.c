@@ -84,6 +84,7 @@
 #include "ODSync.h"
 #include "ODVScrn.h"
 #ifdef ODPLAT_WIN32
+#include "ODConsole.h"
 #include "ODKrnl.h"
 #include "ODRes.h"
 #endif /* ODPLAT_WIN32 */
@@ -174,6 +175,7 @@ static BOOL bScreenDirty;
 static BYTE btDisplayCursorColumn;
 static BYTE btDisplayCursorRow;
 static BOOL bDisplayCaretOn;
+static BOOL ODScrnPublishConsole(void);
 
 /* Does the screen window currently have input focus? */
 BOOL bScreenHasFocus;
@@ -636,6 +638,12 @@ void ODScrnPublish(void)
 
    if(!bScreenPresentationActive || !bScreenDirty)
       return;
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
+   {
+      if(ODScrnPublishConsole())
+         bScreenDirty = FALSE;
+      return;
+   }
 
    ODMutexLock(&ScreenPresentationMutex);
    pOldDisplayBuffer = pDisplayBuffer;
@@ -1089,27 +1097,43 @@ tODResult ODScrnInitialize(void)
 #endif /* ODPLAT_DOS/NIX */
 
 #ifdef ODPLAT_WIN32
-   /* Allocate the application and presenter screen buffers. */
+   /* Allocate the application screen buffer used by both presenters. */
    pScrnBuffer = malloc(SCREEN_BUFFER_SIZE);
 
    if(pScrnBuffer == NULL)
    {
       return(kODRCNoMemory);
    }
-   pDisplayBuffer = malloc(SCREEN_BUFFER_SIZE);
-   if(pDisplayBuffer == NULL)
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
    {
-      free(pScrnBuffer);
-      pScrnBuffer = NULL;
-      return(kODRCNoMemory);
+      if(!od_control.od_silent_mode && !ODConsoleInitialize())
+      {
+         if(od_control.baud == 0)
+         {
+            free(pScrnBuffer);
+            pScrnBuffer = NULL;
+            return(kODRCGeneralFailure);
+         }
+         od_control.od_silent_mode = TRUE;
+      }
    }
-   if(ODMutexInitialize(&ScreenPresentationMutex) != kODRCSuccess)
+   else
    {
-      free(pDisplayBuffer);
-      free(pScrnBuffer);
-      pDisplayBuffer = NULL;
-      pScrnBuffer = NULL;
-      return(kODRCGeneralFailure);
+      pDisplayBuffer = malloc(SCREEN_BUFFER_SIZE);
+      if(pDisplayBuffer == NULL)
+      {
+         free(pScrnBuffer);
+         pScrnBuffer = NULL;
+         return(kODRCNoMemory);
+      }
+      if(ODMutexInitialize(&ScreenPresentationMutex) != kODRCSuccess)
+      {
+         free(pDisplayBuffer);
+         free(pScrnBuffer);
+         pDisplayBuffer = NULL;
+         pScrnBuffer = NULL;
+         return(kODRCGeneralFailure);
+      }
    }
    bScreenPresentationActive = TRUE;
    bScreenDirty = FALSE;
@@ -1137,13 +1161,15 @@ tODResult ODScrnInitialize(void)
    ODScrnEnableCaret(TRUE);
 
 #ifdef ODPLAT_WIN32
-   /* Before the UI exists, make both presentation buffers represent the same
-    * initial generation. Later generations are exchanged by ODScrnPublish. */
-   memcpy(pDisplayBuffer, pScrnBuffer, SCREEN_BUFFER_SIZE);
+   /* Before the GUI exists, make both presentation buffers represent the
+    * same initial generation. Console output is first published after the
+    * dynamically sized session screen has been initialized. */
+   if(pDisplayBuffer != NULL)
+      memcpy(pDisplayBuffer, pScrnBuffer, SCREEN_BUFFER_SIZE);
    btDisplayCursorColumn = btCursorColumn + btLeftBoundary;
    btDisplayCursorRow = btCursorRow + btTopBoundary;
    bDisplayCaretOn = bCaretOn;
-   bScreenDirty = FALSE;
+   bScreenDirty = ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole;
 #endif
 
    /* Return with success. */
@@ -1173,7 +1199,10 @@ void ODScrnShutdown(void)
       free(pDisplayBuffer);
       pScrnBuffer = NULL;
       pDisplayBuffer = NULL;
-      ODMutexDestroy(&ScreenPresentationMutex);
+      if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
+         ODConsoleShutdown();
+      else
+         ODMutexDestroy(&ScreenPresentationMutex);
    }
 #else /* !ODPLAT_WIN32 */
    /* In silent mode, we must deallocate screen buffer memory. */
@@ -2465,7 +2494,7 @@ void ODScrnClearToEndOfLine(void)
  *
  *     Return: void
  */
-#if defined(OD_TEXTMODE) || defined (OD_HEADLESS)
+#if defined(OD_TEXTMODE) || defined(OD_HEADLESS) || defined(ODPLAT_WIN32)
 void *ODScrnCreateWindow(BYTE btLeft, BYTE btTop, BYTE btRight,
    BYTE btBottom, BYTE btAttribute, char *pszTitle, BYTE btTitleAttribute)
 {
@@ -2549,7 +2578,7 @@ void *ODScrnCreateWindow(BYTE btLeft, BYTE btTop, BYTE btRight,
    /* return pointer to buffer */
    return(pUnder);
 }
-#endif /* OD_TEXTMODE */
+#endif /* OD_TEXTMODE || OD_HEADLESS || ODPLAT_WIN32 */
 
 
 /* ----------------------------------------------------------------------------
@@ -2562,7 +2591,7 @@ void *ODScrnCreateWindow(BYTE btLeft, BYTE btTop, BYTE btRight,
  *
  *     Return: void
  */
-#if defined(OD_TEXTMODE) || defined(OD_HEADLESS)
+#if defined(OD_TEXTMODE) || defined(OD_HEADLESS) || defined(ODPLAT_WIN32)
 void ODScrnDestroyWindow(void *pWindow)
 {
    BYTE btLeft;
@@ -2585,7 +2614,7 @@ void ODScrnDestroyWindow(void *pWindow)
    /* Deallocate window buffer. */
    free(pWindow);
 }
-#endif /* OD_TEXTMODE */
+#endif /* OD_TEXTMODE || OD_HEADLESS || ODPLAT_WIN32 */
 
 
 /* ----------------------------------------------------------------------------
@@ -2606,7 +2635,7 @@ void ODScrnDestroyWindow(void *pWindow)
  *
  *     Return: void
  */
-#ifdef OD_TEXTMODE
+#if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
 void ODScrnLocalInput(BYTE btLeft, BYTE btRow, char *pszString,
    BYTE btMaxChars)
 {
@@ -2632,8 +2661,20 @@ void ODScrnLocalInput(BYTE btLeft, BYTE btRow, char *pszString,
       /* Position the cursor at the appropriate location. */
       ODScrnSetCursorPos((BYTE)(btLeft + btCurrentPos), btRow);
 
+#ifdef ODPLAT_WIN32
+      /* Console local input runs during od_init(), before the normal outer
+       * API-exit publication point exists.  Present the completed field
+       * before waiting for the cooperative keyboard poll. */
+      if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
+         ODScrnPublish();
+#endif
+
       /* Obtain the next input event. */
-      ODInQueueGetNextEvent(hODInputQueue, &InputEvent, OD_NO_TIMEOUT);
+      if(ODInQueueGetNextEvent(hODInputQueue, &InputEvent, OD_NO_TIMEOUT)
+         != kODRCSuccess)
+      {
+         return;
+      }
 
       switch(InputEvent.chKeyPress)
       {
@@ -2701,7 +2742,7 @@ void ODScrnLocalInput(BYTE btLeft, BYTE btRow, char *pszString,
       bAnyKeysPressed = TRUE;
    }
 }
-#endif /* OD_TEXTMODE */
+#endif /* OD_TEXTMODE || ODPLAT_WIN32 */
 
 
 /* ----------------------------------------------------------------------------
@@ -2732,26 +2773,24 @@ void *ODScrnShowMessage(char *pszText, int nFlags)
    if(od_control.od_silent_mode) return(NULL);
 
 #ifdef ODPLAT_WIN32
-   char *pszMessageCopy;
-   size_t nMessageLength;
-
-   nMessageLength = strlen(pszText) + 1;
-   pszMessageCopy = (char *)malloc(nMessageLength);
-   if(pszMessageCopy == NULL)
-      return(NULL);
-   memcpy(pszMessageCopy, pszText, nMessageLength);
-
-   /* Place a message in the frame window's message queue, asking it to  */
-   /* create the message window.                                         */
-   if(!PostMessage(GetParent(hwndScreenWindow), WM_SHOW_MESSAGE,
-      (WPARAM)nFlags, (LPARAM)pszMessageCopy))
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemGUI)
    {
-      free(pszMessageCopy);
+      char *pszMessageCopy;
+      size_t nMessageLength;
+
+      nMessageLength = strlen(pszText) + 1;
+      pszMessageCopy = (char *)malloc(nMessageLength);
+      if(pszMessageCopy == NULL)
+         return(NULL);
+      memcpy(pszMessageCopy, pszText, nMessageLength);
+      if(!PostMessage(GetParent(hwndScreenWindow), WM_SHOW_MESSAGE,
+         (WPARAM)nFlags, (LPARAM)pszMessageCopy))
+      {
+         free(pszMessageCopy);
+      }
+      return(NULL);
    }
-
-   return(NULL);
-
-#else /* !ODPLAT_WIN32 */
+#endif /* ODPLAT_WIN32 */
    {
       int nWindowWidth;
       int nLeftColumn;
@@ -2782,7 +2821,6 @@ void *ODScrnShowMessage(char *pszText, int nFlags)
 
       return(pWindow);
    }
-#endif /* !ODPLAT_WIN32 */
 }
 
 
@@ -2802,10 +2840,12 @@ void ODScrnRemoveMessage(void *pMessageInfo)
    if(od_control.od_silent_mode) return;
 
 #ifdef ODPLAT_WIN32
-   /* Place a message in the frame window's message queue, asking it to  */
-   /* remove the message window.                                         */
-   PostMessage(GetParent(hwndScreenWindow), WM_REMOVE_MESSAGE, 0, 0L);
-#else /* !ODPLAT_WIN32 */
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemGUI)
+   {
+      PostMessage(GetParent(hwndScreenWindow), WM_REMOVE_MESSAGE, 0, 0L);
+      return;
+   }
+#endif /* ODPLAT_WIN32 */
    /* If pMessageInfo is NULL, then we do nothing. */
    if(pMessageInfo == NULL) return;
 
@@ -2813,7 +2853,6 @@ void ODScrnRemoveMessage(void *pMessageInfo)
    ODScrnDestroyWindow(pMessageInfo);
    ODRestoreTextInfo();
    ODScrnEnableCaret(TRUE);
-#endif /* !ODPLAT_WIN32 */
 }
 
 
@@ -2869,6 +2908,114 @@ static BYTE ODFAR *ODSessionScreenCell(INT nColumn, INT nRow)
    nCell = ((size_t)nRow * (size_t)SessionScreen.nWidth) + (size_t)nColumn;
    return(SessionScreen.pCells + nCell * 2U);
 }
+
+#ifdef ODPLAT_WIN32
+static void ODScrnConsoleCopyPersonalityRow(BYTE *pDestination, INT nWidth,
+   INT nSourceRow)
+{
+   BYTE *pSource;
+   BYTE btLeftAttribute;
+   BYTE btRightAttribute;
+   INT nCopyWidth;
+   INT nOffset;
+   INT nColumn;
+
+   pSource = (BYTE *)pScrnBuffer + nSourceRow * BUFFER_LINE_BYTES;
+   nCopyWidth = nWidth < OD_SCREEN_WIDTH ? nWidth : OD_SCREEN_WIDTH;
+   nOffset = nWidth > OD_SCREEN_WIDTH ? (nWidth - OD_SCREEN_WIDTH) / 2 : 0;
+   btLeftAttribute = pSource[1] & 0xf0;
+   btRightAttribute = pSource[(OD_SCREEN_WIDTH - 1) * 2 + 1] & 0xf0;
+   for(nColumn = 0; nColumn < nOffset; ++nColumn)
+   {
+      pDestination[nColumn * 2] = ' ';
+      pDestination[nColumn * 2 + 1] = btLeftAttribute;
+   }
+   memcpy(pDestination + nOffset * 2, pSource, (size_t)nCopyWidth * 2U);
+   for(nColumn = nOffset + nCopyWidth; nColumn < nWidth; ++nColumn)
+   {
+      pDestination[nColumn * 2] = ' ';
+      pDestination[nColumn * 2 + 1] = btRightAttribute;
+   }
+}
+
+static BOOL ODScrnPublishConsole(void)
+{
+   BYTE *pCells;
+   BYTE *pDestination;
+   BYTE *pSource;
+   INT nRequestedWidth;
+   INT nRequestedHeight;
+   INT nWidth;
+   INT nHeight;
+   INT nRemoteHeight;
+   INT nTopRows;
+   INT nBottomRows;
+   INT nRow;
+   INT nColumn;
+   INT nCursorColumn;
+   INT nCursorRow;
+
+   if(!ODConsoleAvailable() || od_control.od_silent_mode)
+      return(TRUE);
+   nRequestedWidth = bSessionScreenAvailable ? SessionScreen.nWidth
+      : od_control.user_screenwidth;
+   nRemoteHeight = bSessionScreenAvailable ? SessionScreen.nHeight
+      : od_control.user_screen_length;
+   nTopRows = btOutputTop > 0 ? btOutputTop - 1 : 0;
+   nBottomRows = btOutputBottom < OD_SCREEN_HEIGHT
+      ? OD_SCREEN_HEIGHT - btOutputBottom : 0;
+   nRequestedHeight = nRemoteHeight + nTopRows + nBottomRows;
+   ODConsoleSetSize(nRequestedWidth, nRequestedHeight, &nWidth, &nHeight);
+   pCells = (BYTE *)malloc((size_t)nWidth * (size_t)nHeight * 2U);
+   if(pCells == NULL)
+      return(FALSE);
+   for(nRow = 0; nRow < nHeight; ++nRow)
+   {
+      pDestination = pCells + (size_t)nRow * (size_t)nWidth * 2U;
+      for(nColumn = 0; nColumn < nWidth; ++nColumn)
+      {
+         pDestination[nColumn * 2] = ' ';
+         pDestination[nColumn * 2 + 1] = 0x07;
+      }
+      if(!bSessionScreenAvailable && nRow < OD_SCREEN_HEIGHT)
+      {
+         /* Local mode uses the same fixed 80x25 buffer as DOS. */
+         ODScrnConsoleCopyPersonalityRow(pDestination, nWidth, nRow);
+      }
+      else if(nRow < nTopRows)
+         ODScrnConsoleCopyPersonalityRow(pDestination, nWidth, nRow);
+      else if(nRow < nTopRows + nRemoteHeight
+         && bSessionScreenAvailable)
+      {
+         nColumn = nWidth < SessionScreen.nWidth
+            ? nWidth : SessionScreen.nWidth;
+         pSource = ODSessionScreenCell(0, nRow - nTopRows);
+         memcpy(pDestination, pSource, (size_t)nColumn * 2U);
+      }
+      else if(nRow >= nTopRows + nRemoteHeight)
+      {
+         INT nPersonalityRow = btOutputBottom
+            + nRow - nTopRows - nRemoteHeight;
+         if(nPersonalityRow < OD_SCREEN_HEIGHT)
+            ODScrnConsoleCopyPersonalityRow(pDestination, nWidth,
+               nPersonalityRow);
+      }
+   }
+   nCursorColumn = bSessionScreenAvailable
+      ? SessionScreen.nLeft + SessionScreen.nCursorColumn : btCursorColumn;
+   nCursorRow = bSessionScreenAvailable
+      ? nTopRows + SessionScreen.nTop + SessionScreen.nCursorRow
+      : btCursorRow;
+   if(!ODConsoleWrite(pCells, nWidth, nHeight, nCursorColumn, nCursorRow,
+      bCaretOn))
+   {
+      free(pCells);
+      return(FALSE);
+   }
+   free(pCells);
+   return(TRUE);
+}
+#endif /* ODPLAT_WIN32 */
 
 static void ODSessionScreenMarkDirty(INT nLeft, INT nTop, INT nRight,
    INT nBottom)

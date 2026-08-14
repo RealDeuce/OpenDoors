@@ -1,6 +1,13 @@
 #define UT_CUSTOM_MOCK_od_set_personality
 #define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
 
+#ifdef ODPLAT_WIN32
+static void ODPersonalityOpenDoors(BYTE operation) { (void)operation; }
+static void ODPersonalityPCBoard(BYTE operation) { (void)operation; }
+static void ODPersonalityRemoteAccess(BYTE operation) { (void)operation; }
+static void ODPersonalityWildcat(BYTE operation) { (void)operation; }
+#endif
+
 static unsigned ut_set_calls;
 static const char ut_test_name[] = "TEST";
 static BOOL ut_public_call_allowed = TRUE;
@@ -10,7 +17,7 @@ BOOL utm_ODSyncPublicCallAllowed(void)
    return(ut_public_call_allowed);
 }
 
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
 void ODCALL pdef_opendoors(BYTE operation) { (void)operation; }
 void ODCALL pdef_ra(BYTE operation) { (void)operation; }
 void ODCALL pdef_wildcat(BYTE operation) { (void)operation; }

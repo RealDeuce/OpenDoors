@@ -1,4 +1,10 @@
 #define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+static tODWindowsSubsystem ut_subsystem = kODWindowsSubsystemConsole;
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{ return(ut_subsystem); }
+#endif
 static BOOL ut_public_call_allowed = TRUE;
 BOOL utm_ODSyncPublicCallAllowed(void)
 {
@@ -12,7 +18,7 @@ static void rejects_a_terminal_session(void)
    ut_public_call_allowed = TRUE;
 }
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 #define UT_CUSTOM_MOCK_ODScrnDisplayString
 #define UT_CUSTOM_MOCK_ODScrnPrintf
 #define UT_CUSTOM_MOCK_ODScrnPutText
@@ -240,6 +246,16 @@ static void ignores_an_unknown_operation(void)
    UT_ASSERT_EQ_UINT(0, ut_string_calls);
 }
 
+#ifdef ODPLAT_WIN32
+static void ignores_gui_subsystem(void)
+{
+   reset_personality(); ut_subsystem = kODWindowsSubsystemGUI;
+   utt_pdef_opendoors(PEROP_DISPLAY1);
+   UT_ASSERT_EQ_UINT(0, ut_string_calls);
+   ut_subsystem = kODWindowsSubsystemConsole;
+}
+#endif
+
 static const UTTestCase ut_cases[] = {
    {"primary indicators", displays_each_optional_primary_indicator},
    {"primary omitted indicators", displays_large_node_and_omits_optional_indicators},
@@ -247,6 +263,9 @@ static const UTTestCase ut_cases[] = {
    {"indicator updates", updates_both_states_of_each_indicator},
    {"key-map initialization", initializes_the_standard_key_map},
    {"unknown operation", ignores_an_unknown_operation},
+#ifdef ODPLAT_WIN32
+   {"GUI subsystem", ignores_gui_subsystem},
+#endif
    {"terminal session", rejects_a_terminal_session}
 };
 

@@ -46,6 +46,13 @@ target_link_libraries(mydoor PRIVATE OpenDoors::Static)
 
 Use the `Shared` component and `OpenDoors::Shared` target for dynamic linking.
 Requesting a component which was not built causes `find_package()` to fail.
+Windows packages also expose `SharedConsole`, `StaticConsole`, and, when
+enabled, `StaticMTConsole`. Each Console target links the corresponding same
+binary and propagates `OD_WINDOWS_CONSOLE`, which selects the `argc`/`argv`
+spelling of [`od_parse_cmd_line()`](../reference/api/od_parse_cmd_line.md). A
+program may instead link the ordinary target and call
+[`od_parse_cmd_line_cons()`](../reference/api/od_parse_cmd_line_cons.md)
+explicitly.
 On Windows, `OpenDoors::Static` also supplies the required
 [`OD_WIN32_STATIC`](../reference/constants/general.md) definition. Projects
 which link `ODoors-static.lib` without the CMake target must define it

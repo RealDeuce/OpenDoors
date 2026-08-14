@@ -60,6 +60,17 @@
 /* odplat.c initialization function prototype */
 void ODPlatInit(void);
 
+#ifdef ODPLAT_WIN32
+typedef enum
+{
+   kODWindowsSubsystemUnknown,
+   kODWindowsSubsystemGUI,
+   kODWindowsSubsystemConsole
+} tODWindowsSubsystem;
+
+tODWindowsSubsystem ODPlatGetWindowsSubsystem(void);
+#endif
+
 
 /* ========================================================================= */
 /* Millisecond timer functions.                                              */

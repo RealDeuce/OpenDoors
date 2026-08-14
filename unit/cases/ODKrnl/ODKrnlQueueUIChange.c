@@ -5,6 +5,7 @@
 #define UT_CUSTOM_MOCK_malloc
 #define UT_CUSTOM_MOCK_free
 #define UT_CUSTOM_MOCK_MessageBeep
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
 
 static unsigned ut_locks;
 static unsigned ut_unlocks;
@@ -12,6 +13,12 @@ static unsigned ut_notifications;
 static unsigned ut_allocations;
 static BOOL ut_fail_allocation;
 static tODUIChange ut_changes[8];
+static tODWindowsSubsystem ut_subsystem;
+
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{
+   return(ut_subsystem);
+}
 
 BOOL WINAPI utm_MessageBeep(UINT type)
 {
@@ -53,6 +60,7 @@ static void queues_ordered_changes_and_updates_the_cache(void)
    tODUIChange *pSecond;
 
    memset(&UIState, 0, sizeof(UIState));
+   ut_subsystem = kODWindowsSubsystemGUI;
    eODLifecycleState = kODLifecycleActive;
    pPendingUIHead = NULL;
    pPendingUITail = NULL;
@@ -99,8 +107,25 @@ static void queues_ordered_changes_and_updates_the_cache(void)
    pPendingUIHead = pPendingUITail = NULL;
 }
 
+static void rejects_console_mode_changes_without_synchronization(void)
+{
+   memset(&UIState, 0, sizeof(UIState));
+   eODLifecycleState = kODLifecycleActive;
+   pPendingUIHead = pPendingUITail = NULL;
+   ut_subsystem = kODWindowsSubsystemConsole;
+   ut_locks = ut_unlocks = ut_notifications = ut_allocations = 0;
+   ut_fail_allocation = FALSE;
+
+   UT_ASSERT(!utt_ODKrnlQueueUIChange(kODUIChangeChat, 0, 0));
+   UT_ASSERT_EQ_UINT(0, ut_allocations);
+   UT_ASSERT_EQ_UINT(0, ut_locks);
+   UT_ASSERT_EQ_UINT(0, ut_unlocks);
+   UT_ASSERT_EQ_UINT(0, ut_notifications);
+}
+
 static const UTTestCase ut_cases[] = {
-   {"ordered FIFO", queues_ordered_changes_and_updates_the_cache}
+   {"ordered FIFO", queues_ordered_changes_and_updates_the_cache},
+   {"console rejection", rejects_console_mode_changes_without_synchronization}
 };
 #else
 static void unavailable_without_thread_support(void) { UT_ASSERT(TRUE); }

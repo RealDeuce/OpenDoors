@@ -390,7 +390,8 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
       {
          eODLifecycleState = kODLifecycleExitPending;
 #ifdef ODPLAT_WIN32
-         ODFrameRequestShutdown(hFrameThread);
+         if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemGUI)
+            ODFrameRequestShutdown(hFrameThread);
 #endif
          bExiting = FALSE;
          OD_API_EXIT();
@@ -945,7 +946,7 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    /* or hanging up.                                                     */
    ODScrnRemoveMessage(pWindow);
 
-#ifndef ODPLAT_WIN32
+#if !defined(ODPLAT_WIN32)
    /* Reset output area boundary to the entire screen. */
    ODScrnSetBoundary(1,1,80,25);
 
@@ -962,6 +963,18 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
       ODScrnSetCursorPos(1, 1);
    }
 #endif /* !ODPLAT_WIN32 */
+#ifdef ODPLAT_WIN32
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
+   {
+      ODScrnSetBoundary(1, 1, 80, 25);
+      ODScrnSetAttribute(0x07);
+      if(od_control.od_clear_on_exit)
+         ODScrnClear();
+      else
+         ODScrnSetCursorPos(1, 1);
+      ODScrnPublish();
+   }
+#endif
 
    /* Drop the API nesting level while stopping and joining the Windows UI. */
 #ifdef OD_THREAD_SUPPORT
@@ -979,7 +992,8 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 #ifdef ODPLAT_WIN32
    /* Stop the only producer of deferred UI changes before destroying the
     * queue and its mutex. */
-   ODFrameShutdown(&hFrameThread);
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemGUI)
+      ODFrameShutdown(&hFrameThread);
 #endif /* ODPLAT_WIN32 */
 
    /* Shutdown the OpenDoors kernel. */

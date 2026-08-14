@@ -1,11 +1,11 @@
-# DOS personalities
+# Console personalities
 
-The DOS version of OpenDoors can replace its local status display and sysop
+The DOS and Windows-console versions of OpenDoors can replace their local status display and sysop
 function keys as a unit. Each such unit is called a *personality*. OpenDoors
 includes Standard, PCBoard, RemoteAccess, and Wildcat personalities; a door may
 also supply its own.
 
-Personality support is local to the DOS console. Output produced through the
+Personality support is local to the DOS or Windows console. Output produced through the
 personality screen functions is never sent to the caller's remote terminal.
 
 ## Writing a personality
@@ -79,7 +79,9 @@ through 23 leave lines 24 and 25 for the personality.
 
 ## Detailed reference
 
-The personality SDK is supported by the DOS platform. Current public declarations are in [`ODStat.h`](../reference/personality/index.md); the operational description below is the complete original reference.
+The personality SDK is supported by DOS and by Windows console applications
+that define `OD_WINDOWS_CONSOLE` (directly or through a Console CMake target).
+Current public declarations are in [`ODStat.h`](../reference/personality/index.md); the operational description below is the complete original reference.
 
 The OpenDoors Multiple Personality System allows  the DOS version of OpenDoors to support multiple sysop function key / status line "personalities". Most commonly, you will use this feature in conjunction with the "Personality" setting in the OpenDoors configuration file, to allow the sysop to choose one of the built-in personalities that most closely mimics the BBS software they are using. OpenDoors includes the following personalities:
 

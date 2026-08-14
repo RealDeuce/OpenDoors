@@ -139,3 +139,5 @@ EXPORTS
    od_save_screen_size=_od_save_screen_size@0 @131
    _od_set_port@4=_od_set_port@4 @132
    od_set_port=_od_set_port@4 @133
+   _od_parse_cmd_line_cons@8=_od_parse_cmd_line_cons@8 @134
+   od_parse_cmd_line_cons=_od_parse_cmd_line_cons@8 @135

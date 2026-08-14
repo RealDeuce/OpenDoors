@@ -178,10 +178,10 @@ void ODCALL ODStatGetUserAge(char *pszAge)
  *
  *     Return: void
  */
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 void ODCALL ODStatForceStatusUpdate(void)
 {
    bForceStatusUpdate = TRUE;
    od_kernel();
 }
-#endif /* ODPLAT_DOS || ODPLAT_DOS32 */
+#endif /* DOS text or Windows console capability */

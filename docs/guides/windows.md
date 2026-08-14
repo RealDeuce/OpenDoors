@@ -16,8 +16,8 @@ A console program normally begins in `main()` and receives an `argc`/`argv`
 array. A graphical Windows program may instead begin in `WinMain()` and receive
 the command line as one string. OpenDoors supports both arrangements.
 
-For a console entry point, pass the argument vector directly to
-[`od_parse_cmd_line()`](../reference/api/od_parse_cmd_line.md):
+For a console entry point, pass the argument vector to the explicit
+[`od_parse_cmd_line_cons()`](../reference/api/od_parse_cmd_line_cons.md) interface:
 
 ```c
 #include <OpenDoor.h>
@@ -26,7 +26,7 @@ int
 main(int argc, char **argv)
 {
     od_control.od_prog_name = "Example Door";
-    od_parse_cmd_line(argc, argv);
+    od_parse_cmd_line_cons(argc, argv);
     od_init();
 
     od_printf("Welcome, %s!\n\r", od_control.user_name);
@@ -36,9 +36,29 @@ main(int argc, char **argv)
 }
 ```
 
-The console form is generally the simplest choice. It works with MSVC and
-MinGW, is easy to launch from a terminal while testing, and does not prevent
-OpenDoors from creating its Windows local interface.
+As an equally supported alternative, define `OD_WINDOWS_CONSOLE` before
+including [`OpenDoor.h`](../reference/api/index.md); the header then aliases
+[`od_parse_cmd_line()`](../reference/api/od_parse_cmd_line.md) to
+[`od_parse_cmd_line_cons()`](../reference/api/od_parse_cmd_line_cons.md),
+allowing the usual portable spelling:
+
+```c
+#define OD_WINDOWS_CONSOLE
+#include <OpenDoor.h>
+
+int main(int argc, char **argv)
+{
+    od_parse_cmd_line(argc, argv);
+    /* ... */
+}
+```
+
+The installed `OpenDoors::SharedConsole`, `OpenDoors::StaticConsole`, and
+`OpenDoors::StaticMTConsole` CMake targets propagate that definition. They
+link the same library binaries as their non-Console counterparts; the target
+only selects the source-level parser spelling. Explicitly calling
+[`od_parse_cmd_line_cons()`](../reference/api/od_parse_cmd_line_cons.md) works
+with either target.
 
 If the application uses `WinMain()`, pass the raw command-line string to the
 single-argument form of [`od_parse_cmd_line()`](../reference/api/od_parse_cmd_line.md).
@@ -72,6 +92,13 @@ WinMain(HINSTANCE instance, HINSTANCE previous,
 Do not call both command-line forms for the same launch. The parser applies
 standard OpenDoors switches and then invokes any application callbacks, so
 parsing the same input twice can process an application option twice.
+
+OpenDoors checks the executable subsystem at run time. Calling the GUI parser
+from a console executable, or the console parser from a GUI executable, writes
+a diagnostic to standard error and the debugger and terminates with failure
+before processing any arguments. Calling
+[`od_init()`](../reference/api/od_init.md) directly needs no compile definition:
+it detects the subsystem and selects the matching local interface.
 
 Portable sources can use `main()` on every current target. Code which has a
 specific need for `WinMain()` can guard only the entry-point wrapper with
@@ -194,11 +221,24 @@ local, and it does not suppress output to the caller. Conversely,
 selects a local session and ignores a remote drop-file connection. These
 settings solve different problems.
 
+A console-subsystem application which requests the local interface first uses
+its inherited Windows console. If it has none, OpenDoors allocates a console
+and releases that console during shutdown. A non-silent local-mode session
+terminates with the configured error level if no usable console can be
+inherited or allocated; it is never allowed to continue with a missing local
+display. A remote session may instead fall back to silent operation when
+console creation fails.
+[`od_control.od_silent_mode`](../reference/control/runtime.md#od_silent_mode)
+continues to bypass console creation and console state management.
+
 ## Threads and serialized API access
 
-OpenDoors uses a Windows UI worker and internal synchronization to keep the
-local interface responsive. Communications, status, and timers use the same
-cooperative application flow as other platforms. The public API and ABI are
+The GUI-subsystem interface uses one Windows frame/UI worker. A
+console-subsystem application starts no OpenDoors worker: console keyboard
+input, status handling, communications, and timers all run in the same
+cooperative application flow as DOS. Internal synchronization remains compiled
+into both modes because the same library binary and input-queue implementation
+also serve GUI producer/consumer operation. The public API and ABI are
 process-global and are not internally serialized.
 
 An application may hand the session between its threads, but only one thread
@@ -209,8 +249,8 @@ application lock. On Windows, a `CRITICAL_SECTION` is a convenient choice
 because it permits recursive entry by the same thread. The lock must remain
 held for the complete public call, including while that call waits internally.
 
-OpenDoors publishes the fields needed by its UI at API boundaries. Its private
-UI worker does not make concurrent application access safe.
+In GUI mode, OpenDoors publishes the fields needed by its UI at API boundaries.
+The private UI worker does not make concurrent application access safe.
 
 Callbacks configured through [`od_control`](../reference/control/index.md)
 normally run synchronously on the application thread making the active API

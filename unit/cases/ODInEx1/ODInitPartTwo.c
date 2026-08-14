@@ -58,6 +58,7 @@ static tODResult ut_open_result;
 static tODResult ut_existing_result;
 static tODResult ut_kernel_result;
 static tODResult ut_frame_result;
+static tODResult ut_screen_result;
 static tComMethod ut_com_method;
 static unsigned ut_alloc_calls;
 static unsigned ut_open_calls;
@@ -104,7 +105,7 @@ static BOOL ut_first_module_missing;
 static BOOL ut_cancel_during_frame_start;
 #endif
 
-#ifdef OD_TEXTMODE
+#if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
 static int ut_window_token;
 static BOOL ut_window_available;
 static unsigned ut_personality_calls;
@@ -253,7 +254,7 @@ void ODCALL utm_od_kernel(void)
 
 tODResult utm_ODScrnInitialize(void)
 {
-   return kODRCSuccess;
+   return ut_screen_result;
 }
 
 void utm_ODScrnSetBoundary(BYTE left, BYTE top, BYTE right, BYTE bottom)
@@ -421,7 +422,7 @@ void utm_ODScrnPublish(void)
 }
 #endif
 
-#ifdef OD_TEXTMODE
+#if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
 void *utm_ODScrnCreateWindow(BYTE left, BYTE top, BYTE right, BYTE bottom,
    BYTE attribute, char *title, BYTE title_attribute)
 {
@@ -512,6 +513,7 @@ static void reset_part_two_fixture(void)
    ut_existing_result = kODRCSuccess;
    ut_kernel_result = kODRCSuccess;
    ut_frame_result = kODRCSuccess;
+   ut_screen_result = kODRCSuccess;
 #ifdef ODPLAT_NIX
    ut_com_method = kComMethodStdIO;
 #else
@@ -573,7 +575,7 @@ static void reset_part_two_fixture(void)
    ut_cancel_during_frame_start = FALSE;
    od_control.od_silent_mode = TRUE;
 #endif
-#ifdef OD_TEXTMODE
+#if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
    ut_window_available = FALSE;
    ut_personality_calls = 0;
    ut_status_calls = 0;
@@ -736,7 +738,11 @@ static void exercises_forced_local_name_and_bps_decisions(void)
    dwForcedBPS = 4800;
    utt_ODInitPartTwo();
    UT_ASSERT_EQ_INT(0, od_control.baud);
+#ifdef ODPLAT_WIN32
+   UT_ASSERT_EQ_INT(TRUE, od_control.od_silent_mode);
+#else
    UT_ASSERT_EQ_INT(FALSE, od_control.od_silent_mode);
+#endif
 
    reset_part_two_fixture();
    od_control.baud = 0;
@@ -886,6 +892,15 @@ static void handles_kernel_failure_and_exit_registration(void)
 #endif
 }
 
+static void rejects_local_screen_initialization_failure(void)
+{
+   reset_part_two_fixture();
+   ut_screen_result = kODRCGeneralFailure;
+   run_expecting_fatal_exit();
+   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_kernel_calls);
+}
+
 #ifdef ODPLAT_NIX
 static void exercises_unix_local_account_and_terminal_paths(void)
 {
@@ -1018,6 +1033,7 @@ static const UTTestCase ut_cases[] = {
    {"serial configuration", exercises_serial_configuration_matrix},
    {"serial failures", exercises_serial_failure_results},
    {"reported methods", exercises_reported_com_methods},
+   {"screen failure", rejects_local_screen_initialization_failure},
    {"kernel and exit registration", handles_kernel_failure_and_exit_registration}
 #ifdef ODPLAT_NIX
    ,{"UNIX local account", exercises_unix_local_account_and_terminal_paths}

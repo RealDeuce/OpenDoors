@@ -52,7 +52,9 @@
 #define OD_DLL_NAME "ODOORS63"
 #endif /* ODPLAT_WIN32 */
 
-/* Internal thread/synchronization support is required by the Windows UI. */
+/* Windows always needs synchronization primitives; GUI applications also
+ * use the internal frame thread. This capability does not select the input
+ * or presentation policy. */
 #ifdef ODPLAT_WIN32
 #define OD_THREAD_SUPPORT 1
 #endif /* ODPLAT_WIN32 */
@@ -61,6 +63,12 @@
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 #define OD_TEXTMODE
 #endif /* ODPLAT_DOS || ODPLAT_DOS32 */
+
+/* Platforms that can present DOS-style local personalities. Windows selects
+ * this capability at run time for console-subsystem applications. */
+#if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
+#define OD_PERSONALITY_SUPPORT
+#endif
 
 /* Headless mode specific definitions. */
 #if defined(ODPLAT_NIX)

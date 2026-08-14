@@ -8384,6 +8384,17 @@
     },
     {
       "kind": "function",
+      "name": "od_parse_cmd_line_cons",
+      "platforms": [
+        "windows"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "command-line.behavior"
+      ]
+    },
+    {
+      "kind": "function",
       "name": "od_popup_menu",
       "platforms": [
         "windows",

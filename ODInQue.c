@@ -485,15 +485,66 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
 
 #ifdef OD_THREAD_SUPPORT
 
-   ASSERT(Timeout == 0 || !ODSyncAPILevelActive());
+#ifdef ODPLAT_WIN32
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
+   {
+      tODTimer Timer;
 
-   /* In multithreaded implementations, we wait for there to be an item in  */
-   /* the queue by decrementing the queue size semaphore. This will cause   */
-   /* this thread to be blocked until an event is added to the queue, if it */
-   /* is currently empty.                                                   */
+      if(Timeout != 0 && Timeout != OD_NO_TIMEOUT)
+         ODTimerStart(&Timer, Timeout);
 
-   if(ODSemaphoreDown(pInputQueueInfo->hItemCountSemaphore, Timeout)==kODRCTimeout)
-      return(kODRCTimeout);
+      for(;;)
+      {
+         /* Console mode must never block on this semaphore: keyboard and
+          * communications producers run in the cooperative kernel below. */
+         if(ODSemaphoreDown(pInputQueueInfo->hItemCountSemaphore, 0)
+            == kODRCSuccess)
+         {
+            break;
+         }
+         /* Console mode has no keyboard producer thread.  Poll the same
+          * cooperative kernel as DOS, then check the semaphore again so a
+         * newly queued event can be consumed without an extra yield. */
+         CALL_KERNEL_IF_NEEDED();
+         if(ODSemaphoreDown(pInputQueueInfo->hItemCountSemaphore, 0)
+            == kODRCSuccess)
+         {
+            break;
+         }
+         if(eODLifecycleState >= kODLifecycleExitPending)
+            return(kODRCGeneralFailure);
+         if(Timeout == 0)
+            return(kODRCTimeout);
+         if(Timeout != OD_NO_TIMEOUT && ODTimerElapsed(&Timer))
+            return(kODRCTimeout);
+
+         od_sleep(0);
+         if(Timeout == OD_NO_TIMEOUT)
+         {
+            ODMaxMSToWait = 250;
+         }
+         else
+         {
+            ODMaxMSToWait = ODTimerLeft(&Timer);
+            if(ODMaxMSToWait == 0)
+               ODMaxMSToWait = 1;
+         }
+         CALL_KERNEL_IF_NEEDED();
+         ODMaxMSToWait = 1;
+      }
+   }
+   else
+#endif /* ODPLAT_WIN32 */
+   {
+      ASSERT(Timeout == 0 || !ODSyncAPILevelActive());
+
+      /* Where a producer thread exists, block on the queue item count. */
+      if(ODSemaphoreDown(pInputQueueInfo->hItemCountSemaphore, Timeout)
+         == kODRCTimeout)
+      {
+         return(kODRCTimeout);
+      }
+   }
 
 #else /* !OD_THREAD_SUPPORT */
 
@@ -522,7 +573,7 @@ tODResult ODInQueueGetNextEvent(tODInQueueHandle hInQueue,
       /* processes, and then giving od_kernel() a chance to run.        */
       while(pInputQueueInfo->nInIndex == pInputQueueInfo->nOutIndex)
       {
-         if(eODLifecycleState != kODLifecycleActive)
+         if(eODLifecycleState >= kODLifecycleExitPending)
             return(kODRCGeneralFailure);
 
          /* If a timeout has been specified, then ensure that the maximum */

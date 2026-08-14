@@ -411,14 +411,14 @@
     {"source":"ODScrn.c","function":"ODScrnPutText","case":"unit/cases/ODScrn/ODScrnPutText.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnCopyText","case":"unit/cases/ODScrn/ODScrnCopyText.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnScrollUpOneLine","case":"unit/cases/ODScrn/ODScrnScrollUpOneLine.c","platforms":["unix","windows","dos16","dos32"]},
-    {"source":"ODScrn.c","function":"ODScrnDestroyWindow","case":"unit/cases/ODScrn/ODScrnDestroyWindow.c","platforms":["unix","dos16","dos32"]},
-    {"source":"ODScrn.c","function":"ODScrnCreateWindow","case":"unit/cases/ODScrn/ODScrnCreateWindow.c","platforms":["unix","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnDestroyWindow","case":"unit/cases/ODScrn/ODScrnDestroyWindow.c","platforms":["unix","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnCreateWindow","case":"unit/cases/ODScrn/ODScrnCreateWindow.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnRemoveMessage","case":"unit/cases/ODScrn/ODScrnRemoveMessage.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnShowMessage","case":"unit/cases/ODScrn/ODScrnShowMessage.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnPrintf","case":"unit/cases/ODScrn/ODScrnPrintf.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnDisplayChar","case":"unit/cases/ODScrn/ODScrnDisplayChar.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnDisplayBuffer","case":"unit/cases/ODScrn/ODScrnDisplayBuffer.c","platforms":["unix","windows","dos16","dos32"]},
-    {"source":"ODScrn.c","function":"ODScrnLocalInput","case":"unit/cases/ODScrn/ODScrnLocalInput.c","platforms":["dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnLocalInput","case":"unit/cases/ODScrn/ODScrnLocalInput.c","platforms":["windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnGetCursorPos","case":"unit/cases/ODScrn/ODScrnGetCursorPos.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnUpdateCaretPos","case":"unit/cases/ODScrn/ODScrnUpdateCaretPos.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnEnableCaret","case":"unit/cases/ODScrn/ODScrnEnableCaret.c","platforms":["unix","windows","dos16","dos32"]},
@@ -657,7 +657,7 @@
     {
       "source": "ODCmdLn.c",
       "function": "od_parse_cmd_line",
-      "case": "unit/cases/ODCmdLn/od_parse_cmd_line.c",
+      "case": "unit/cases/ODCmdLn/od_parse_cmd_line_wrapper.c",
       "platforms": ["unix", "windows", "dos16", "dos32"],
       "configurations": [{
         "name": "default",
@@ -1112,7 +1112,7 @@
       "source": "ODStat.c",
       "function": "ODStatForceStatusUpdate",
       "case": "unit/cases/ODStat/ODStatForceStatusUpdate.c",
-      "platforms": ["dos16", "dos32"]
+      "platforms": ["windows", "dos16", "dos32"]
     },
     {
       "source": "ODEdStr.c",
@@ -1653,25 +1653,25 @@
       "source": "ODRA.c",
       "function": "ODRADisplayPageInfo",
       "case": "unit/cases/ODRA/ODRADisplayPageInfo.c",
-      "platforms": ["dos16", "dos32"]
+      "platforms": ["windows", "dos16", "dos32"]
     },
     {
       "source": "ODRA.c",
       "function": "ODRADisplayTime",
       "case": "unit/cases/ODRA/ODRADisplayTime.c",
-      "platforms": ["dos16", "dos32"]
+      "platforms": ["windows", "dos16", "dos32"]
     },
     {
       "source": "ODRA.c",
       "function": "ODRADisplayDate",
       "case": "unit/cases/ODRA/ODRADisplayDate.c",
-      "platforms": ["dos16", "dos32"]
+      "platforms": ["windows", "dos16", "dos32"]
     },
     {
       "source": "ODRA.c",
       "function": "ODRADisplayFlags",
       "case": "unit/cases/ODRA/ODRADisplayFlags.c",
-      "platforms": ["dos16", "dos32"]
+      "platforms": ["windows", "dos16", "dos32"]
     },
     {
       "source": "ODRA.c",
@@ -2038,6 +2038,96 @@
       "function": "__xspawn",
       "case": "unit/cases/ODSwap/__xspawn.c",
       "platforms": ["dos16"]
+    },
+    {
+      "source": "ODCmdLn.c", "function": "ODCommandLineInterfaceMismatch",
+      "case": "unit/cases/ODCmdLn/ODCommandLineInterfaceMismatch.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODCmdLn.c", "function": "ODParseCommandLineArguments",
+      "case": "unit/cases/ODCmdLn/od_parse_cmd_line.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODCmdLn.c", "function": "od_parse_cmd_line_cons",
+      "case": "unit/cases/ODCmdLn/od_parse_cmd_line_cons.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODConsole.c", "function": "ODConsoleShiftStatus",
+      "case": "unit/cases/ODConsole/ODConsoleShiftStatus.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODConsole.c", "function": "ODConsoleInitialize",
+      "case": "unit/cases/ODConsole/ODConsoleInitialize.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODConsole.c", "function": "ODConsoleShutdown",
+      "case": "unit/cases/ODConsole/ODConsoleShutdown.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODConsole.c", "function": "ODConsoleAvailable",
+      "case": "unit/cases/ODConsole/ODConsoleAvailable.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODConsole.c", "function": "ODConsoleSetSize",
+      "case": "unit/cases/ODConsole/ODConsoleSetSize.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODConsole.c", "function": "ODConsoleWrite",
+      "case": "unit/cases/ODConsole/ODConsoleWrite.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODConsole.c", "function": "ODConsoleReadKey",
+      "case": "unit/cases/ODConsole/ODConsoleReadKey.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODMulti.c", "function": "ODMultiResolvePersonality",
+      "case": "unit/cases/ODMulti/ODMultiResolvePersonality.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODMulti.c", "function": "ODPersonalityOpenDoors",
+      "case": "unit/cases/ODMulti/ODPersonalityOpenDoors.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODMulti.c", "function": "ODPersonalityPCBoard",
+      "case": "unit/cases/ODMulti/ODPersonalityPCBoard.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODMulti.c", "function": "ODPersonalityRemoteAccess",
+      "case": "unit/cases/ODMulti/ODPersonalityRemoteAccess.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODMulti.c", "function": "ODPersonalityWildcat",
+      "case": "unit/cases/ODMulti/ODPersonalityWildcat.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODPlatGetWindowsSubsystem",
+      "case": "unit/cases/ODPlat/ODPlatGetWindowsSubsystem.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODScrnConsoleCopyPersonalityRow",
+      "case": "unit/cases/ODScrn/ODScrnConsoleCopyPersonalityRow.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "ODScrn.c", "function": "ODScrnPublishConsole",
+      "case": "unit/cases/ODScrn/ODScrnPublishConsole.c",
+      "platforms": ["windows"]
     }
   ]
 }

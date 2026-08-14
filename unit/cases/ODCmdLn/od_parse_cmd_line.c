@@ -304,13 +304,7 @@ static void reset_fixture(void)
 
 static void invoke_parser(INT count, char **arguments)
 {
-#ifdef ODPLAT_WIN32
-   ut_windows_argument_count = count;
-   ut_windows_arguments = arguments;
-   utt_od_parse_cmd_line("ignored");
-#else
-   utt_od_parse_cmd_line(count, arguments);
-#endif
+   utt_ODParseCommandLineArguments(count, arguments);
 }
 
 static void parses_standard_value_and_flag_options(void)
@@ -443,15 +437,9 @@ static void help_callback_and_builtin_help_exit(void)
 static void rejects_missing_argument_vector_or_failed_split(void)
 {
    reset_fixture();
-#ifdef ODPLAT_WIN32
-   ut_split_fails = TRUE;
-   utt_od_parse_cmd_line("ignored");
-   UT_ASSERT_EQ_INT(FALSE, bParsedCmdLine);
-#else
-   utt_od_parse_cmd_line(0, NULL);
+   utt_ODParseCommandLineArguments(0, NULL);
    UT_ASSERT_EQ_INT(ERR_PARAMETER, od_control.od_error);
    UT_ASSERT_EQ_INT(FALSE, bParsedCmdLine);
-#endif
 }
 
 static void rejects_a_terminal_session(void)

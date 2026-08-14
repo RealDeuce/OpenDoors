@@ -34,7 +34,9 @@
 
 #include "OpenDoor.h"
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) \
+   || (defined(ODPLAT_WIN32) \
+      && (defined(OD_WINDOWS_CONSOLE) || defined(BUILDING_OPENDOORS)))
 
 #ifdef __cplusplus
 extern "C" {

@@ -45,6 +45,7 @@
 #include "OpenDoor.h"
 #include "ODStat.h"
 #include "ODSync.h"
+#include "ODPlat.h"
 
 
 /* ----------------------------------------------------------------------------
@@ -59,10 +60,13 @@
  */
 ODAPIDEF void ODCALL pdef_wildcat(BYTE btOperation)
 {
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
    static char abtGreyBlock[2] = {' ', 0x70};
    BYTE btInfoType = od_control.od_info_type;
 
+#ifdef ODPLAT_WIN32
+   if(ODPlatGetWindowsSubsystem() != kODWindowsSubsystemConsole) return;
+#endif
    if(!ODSyncPublicCallAllowed()) return;
 
    switch(btOperation)

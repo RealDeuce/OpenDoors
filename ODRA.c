@@ -49,8 +49,9 @@
 #include "OpenDoor.h"
 #include "ODStat.h"
 #include "ODSync.h"
+#include "ODPlat.h"
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 
 /* Private variables, local to this module. */
 static BOOL bRAPersHasBeenOn = FALSE;
@@ -76,10 +77,13 @@ static void ODRADisplayTime(void);
  */
 ODAPIDEF void ODCALL pdef_ra(BYTE btOperation)
 {
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
    static char abtGreyBlock[2] = {' ', 0x70};
    BYTE btInfoType = od_control.od_info_type;
 
+#ifdef ODPLAT_WIN32
+   if(ODPlatGetWindowsSubsystem() != kODWindowsSubsystemConsole) return;
+#endif
    if(!ODSyncPublicCallAllowed()) return;
 
    switch(btOperation)
@@ -462,7 +466,7 @@ ODAPIDEF void ODCALL pdef_ra(BYTE btOperation)
 #endif /* !ODPLAT_DOS && !ODPLAT_DOS32 */
 }
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 
 /* ----------------------------------------------------------------------------
  * ODRADisplayPageInfo()                               *** PRIVATE FUNCTION ***

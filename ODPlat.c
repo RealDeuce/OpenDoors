@@ -56,6 +56,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <string.h>
+#include <stddef.h>
 
 #include "OpenDoor.h"
 #if (defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)) \
@@ -92,6 +93,47 @@
 tODMultitasker ODMultitasker = kMultitaskerNone;
 static void ODPlatYield(void);
 #endif /* ODPLAT_DOS */
+
+#ifdef ODPLAT_WIN32
+/* ----------------------------------------------------------------------------
+ * ODPlatGetWindowsSubsystem()
+ *
+ * Returns the subsystem declared by the executable which created this
+ * process. The executable and this library necessarily have the same
+ * architecture, so IMAGE_NT_HEADERS selects the matching PE32/PE32+ layout.
+ */
+tODWindowsSubsystem ODPlatGetWindowsSubsystem(void)
+{
+   const BYTE *pImage;
+   const IMAGE_DOS_HEADER *pDOSHeader;
+   const IMAGE_NT_HEADERS *pNTHeaders;
+   size_t nSubsystemEnd;
+
+   pImage = (const BYTE *)GetModuleHandle(NULL);
+   if(pImage == NULL)
+      return(kODWindowsSubsystemUnknown);
+
+   pDOSHeader = (const IMAGE_DOS_HEADER *)pImage;
+   if(pDOSHeader->e_magic != IMAGE_DOS_SIGNATURE || pDOSHeader->e_lfanew <= 0)
+      return(kODWindowsSubsystemUnknown);
+
+   pNTHeaders = (const IMAGE_NT_HEADERS *)(pImage + pDOSHeader->e_lfanew);
+   nSubsystemEnd = offsetof(IMAGE_OPTIONAL_HEADER, Subsystem)
+      + sizeof(pNTHeaders->OptionalHeader.Subsystem);
+   if(pNTHeaders->Signature != IMAGE_NT_SIGNATURE
+      || pNTHeaders->FileHeader.SizeOfOptionalHeader < nSubsystemEnd
+      || pNTHeaders->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR_MAGIC)
+   {
+      return(kODWindowsSubsystemUnknown);
+   }
+
+   if(pNTHeaders->OptionalHeader.Subsystem == IMAGE_SUBSYSTEM_WINDOWS_GUI)
+      return(kODWindowsSubsystemGUI);
+   if(pNTHeaders->OptionalHeader.Subsystem == IMAGE_SUBSYSTEM_WINDOWS_CUI)
+      return(kODWindowsSubsystemConsole);
+   return(kODWindowsSubsystemUnknown);
+}
+#endif /* ODPLAT_WIN32 */
 
 /* ----------------------------------------------------------------------------
  * ODPlatInit()

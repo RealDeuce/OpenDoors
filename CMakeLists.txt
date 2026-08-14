@@ -77,7 +77,7 @@ set(OPENDOORS_SOURCES
 )
 
 if(WIN32)
-    list(APPEND OPENDOORS_SOURCES ODFrame.c ODRes.rc)
+    list(APPEND OPENDOORS_SOURCES ODConsole.c ODFrame.c ODRes.rc)
 endif()
 
 set(OPENDOORS_PUBLIC_HEADERS
@@ -87,6 +87,7 @@ set(OPENDOORS_PUBLIC_HEADERS
 
 set(OPENDOORS_PRIVATE_HEADERS
     ODCom.h
+    ODConsole.h
     ODCore.h
     ODFormat.h
     ODFrame.h
@@ -94,6 +95,7 @@ set(OPENDOORS_PRIVATE_HEADERS
     ODInEx.h
     ODInQue.h
     ODKrnl.h
+    ODMulti.h
     ODPlat.h
     ODRes.h
     ODSafe.h
@@ -161,6 +163,7 @@ function(opendoors_configure_library target)
 endfunction()
 
 set(OPENDOORS_LIBRARY_TARGETS)
+set(OPENDOORS_INTERFACE_TARGETS)
 
 if(OPENDOORS_BUILD_SHARED)
     add_library(opendoors_shared SHARED
@@ -195,6 +198,44 @@ if(OPENDOORS_BUILD_MSVC_STATIC_MT)
         EXPORT_NAME StaticMT
         MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     list(APPEND OPENDOORS_LIBRARY_TARGETS opendoors_static_mt)
+endif()
+
+if(WIN32)
+    if(OPENDOORS_BUILD_SHARED)
+        add_library(opendoors_shared_console INTERFACE)
+        add_library(OpenDoors::SharedConsole ALIAS opendoors_shared_console)
+        target_link_libraries(opendoors_shared_console
+            INTERFACE opendoors_shared)
+        target_compile_definitions(opendoors_shared_console
+            INTERFACE OD_WINDOWS_CONSOLE)
+        set_target_properties(opendoors_shared_console PROPERTIES
+            EXPORT_NAME SharedConsole)
+        list(APPEND OPENDOORS_INTERFACE_TARGETS opendoors_shared_console)
+    endif()
+    if(OPENDOORS_BUILD_STATIC)
+        add_library(opendoors_static_console INTERFACE)
+        add_library(OpenDoors::StaticConsole ALIAS opendoors_static_console)
+        target_link_libraries(opendoors_static_console
+            INTERFACE opendoors_static)
+        target_compile_definitions(opendoors_static_console
+            INTERFACE OD_WINDOWS_CONSOLE)
+        set_target_properties(opendoors_static_console PROPERTIES
+            EXPORT_NAME StaticConsole)
+        list(APPEND OPENDOORS_INTERFACE_TARGETS opendoors_static_console)
+    endif()
+    if(OPENDOORS_BUILD_MSVC_STATIC_MT)
+        add_library(opendoors_static_mt_console INTERFACE)
+        add_library(OpenDoors::StaticMTConsole ALIAS
+            opendoors_static_mt_console)
+        target_link_libraries(opendoors_static_mt_console
+            INTERFACE opendoors_static_mt)
+        target_compile_definitions(opendoors_static_mt_console
+            INTERFACE OD_WINDOWS_CONSOLE)
+        set_target_properties(opendoors_static_mt_console PROPERTIES
+            EXPORT_NAME StaticMTConsole)
+        list(APPEND OPENDOORS_INTERFACE_TARGETS
+            opendoors_static_mt_console)
+    endif()
 endif()
 
 if(WIN32)
@@ -251,7 +292,7 @@ foreach(target IN LISTS OPENDOORS_LIBRARY_TARGETS)
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endforeach()
 
-install(TARGETS ${OPENDOORS_LIBRARY_TARGETS}
+install(TARGETS ${OPENDOORS_LIBRARY_TARGETS} ${OPENDOORS_INTERFACE_TARGETS}
     EXPORT OpenDoorsTargets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -605,7 +646,8 @@ if(BUILD_TESTING)
             target_link_libraries(opendoors_windows_chat_failure_test
                 PRIVATE OpenDoors::Static)
             set_target_properties(opendoors_windows_chat_failure_test PROPERTIES
-                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+                WIN32_EXECUTABLE TRUE)
             add_test(NAME windows_chat_failure
                 COMMAND opendoors_windows_chat_failure_test)
         endif()

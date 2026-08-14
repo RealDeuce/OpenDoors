@@ -33,8 +33,19 @@ int main(void)
 
    OD_TEST_CHECK(od_control.od_info_type == NO_DOOR_FILE);
    OD_TEST_CHECK(od_control.od_force_local == TRUE);
-   /* Local operation always enables the local display. */
+   /* Local operation uses an attached Windows console when one is available;
+    * a console-subsystem process without one deliberately stays silent. */
+#ifdef ODPLAT_WIN32
+   {
+      HANDLE output = CreateFileA("CONOUT$", GENERIC_READ,
+         FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+      OD_TEST_CHECK(od_control.od_silent_mode ==
+         (output == INVALID_HANDLE_VALUE));
+      if(output != INVALID_HANDLE_VALUE) CloseHandle(output);
+   }
+#else
    OD_TEST_CHECK(od_control.od_silent_mode == FALSE);
+#endif
    OD_TEST_CHECK(strcmp(od_control.od_prog_name, "Acceptance Door") == 0);
    OD_TEST_CHECK(od_control.user_screenwidth == 100);
    OD_TEST_CHECK(od_control.user_screen_length == 30);
@@ -46,7 +57,7 @@ int main(void)
 
    od_set_statusline(STATUS_NONE);
    od_set_statusline(STATUS_NORMAL);
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
    OD_TEST_CHECK(od_control.od_error == ERR_NONE);
 #else
    OD_TEST_CHECK(od_control.od_error == ERR_UNSUPPORTED);

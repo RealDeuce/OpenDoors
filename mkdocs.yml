@@ -103,6 +103,7 @@ nav:
           - od_log_open: reference/api/od_log_open.md
           - od_log_write: reference/api/od_log_write.md
           - od_parse_cmd_line: reference/api/od_parse_cmd_line.md
+          - od_parse_cmd_line_cons: reference/api/od_parse_cmd_line_cons.md
           - od_split_cmd_line: reference/api/od_split_cmd_line.md
           - od_free_split_cmd_line: reference/api/od_free_split_cmd_line.md
       - Special control:

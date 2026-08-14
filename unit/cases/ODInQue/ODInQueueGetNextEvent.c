@@ -1,8 +1,14 @@
 #define UT_CUSTOM_MOCK_memcpy
 #ifdef OD_THREAD_SUPPORT
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
 #define UT_CUSTOM_MOCK_ODSemaphoreDown
+#define UT_CUSTOM_MOCK_ODTimerElapsed
+#define UT_CUSTOM_MOCK_ODTimerLeft
+#define UT_CUSTOM_MOCK_ODTimerStart
+#define UT_CUSTOM_MOCK_od_kernel
+#define UT_CUSTOM_MOCK_od_sleep
 #else
 #define UT_CUSTOM_MOCK_ODTimerElapsed
 #define UT_CUSTOM_MOCK_ODTimerLeft
@@ -29,15 +35,57 @@ void *utm_memcpy(void *output, const void *input, size_t size)
 #ifdef OD_THREAD_SUPPORT
 static tODResult ut_semaphore_result;
 static tODMilliSec ut_seen_timeout;
+static tODWindowsSubsystem ut_subsystem;
+static unsigned ut_semaphore_calls;
+static unsigned ut_semaphore_success_call;
 static unsigned ut_locks;
 static unsigned ut_unlocks;
+static unsigned ut_kernel_calls;
+static unsigned ut_sleep_calls;
+
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{
+   return(ut_subsystem);
+}
 
 tODResult utm_ODSemaphoreDown(tODSemaphoreHandle semaphore,
    tODMilliSec timeout)
 {
    UT_ASSERT(semaphore == ut_queue.hItemCountSemaphore);
+   ++ut_semaphore_calls;
    ut_seen_timeout = timeout;
+   if(ut_semaphore_success_call != 0
+      && ut_semaphore_calls == ut_semaphore_success_call)
+      return(kODRCSuccess);
    return ut_semaphore_result;
+}
+
+void utm_ODTimerStart(tODTimer *timer, tODMilliSec timeout)
+{
+   UT_ASSERT(timer != NULL); (void)timeout;
+}
+BOOL utm_ODTimerElapsed(tODTimer *timer)
+{
+   UT_ASSERT(timer != NULL); return(FALSE);
+}
+tODMilliSec utm_ODTimerLeft(tODTimer *timer)
+{
+   UT_ASSERT(timer != NULL); return(25);
+}
+void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
+void ODCALL utm_od_sleep(tODMilliSec milliseconds)
+{
+   UT_ASSERT_EQ_UINT(0, milliseconds); ++ut_sleep_calls;
+}
+
+static void reset_threaded_wait(void)
+{
+   eODLifecycleState = kODLifecycleActive;
+   ut_subsystem = kODWindowsSubsystemGUI;
+   ut_semaphore_result = kODRCTimeout;
+   ut_semaphore_calls = ut_semaphore_success_call = 0;
+   ut_kernel_calls = ut_sleep_calls = 0;
+   ut_copy_calls = ut_locks = ut_unlocks = 0;
 }
 
 void utm_ODMutexLock(tODMutex *mutex)
@@ -56,8 +104,7 @@ static void reports_semaphore_timeout(void)
 {
    tODInputEvent output;
    tODInQueueHandle handle = ut_queue_handle(4, 0, 0);
-   ut_semaphore_result = kODRCTimeout;
-   ut_copy_calls = ut_locks = ut_unlocks = 0;
+   reset_threaded_wait();
    UT_ASSERT_EQ_INT(kODRCTimeout,
       utt_ODInQueueGetNextEvent(handle, &output, 123));
    UT_ASSERT_EQ_INT(123, ut_seen_timeout);
@@ -72,8 +119,8 @@ static void removes_event_after_semaphore_wait(void)
    tODInQueueHandle handle = ut_queue_handle(4, 0, 3);
    ut_events[3].EventType = EVENT_CHARACTER;
    ut_events[3].chKeyPress = 'q';
+   reset_threaded_wait();
    ut_semaphore_result = kODRCSuccess;
-   ut_copy_calls = ut_locks = ut_unlocks = 0;
    UT_ASSERT_EQ_INT(kODRCSuccess,
       utt_ODInQueueGetNextEvent(handle, &output, OD_NO_TIMEOUT));
    UT_ASSERT_EQ_INT('q', output.chKeyPress);
@@ -83,9 +130,51 @@ static void removes_event_after_semaphore_wait(void)
    UT_ASSERT_EQ_INT(1, ut_unlocks);
 }
 
+static void console_wait_polls_the_cooperative_kernel(void)
+{
+   tODInputEvent output;
+   tODInQueueHandle handle = ut_queue_handle(4, 1, 0);
+   ut_events[0].EventType = EVENT_CHARACTER;
+   ut_events[0].chKeyPress = 'c';
+   reset_threaded_wait();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   ut_semaphore_success_call = 2;
+
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODInQueueGetNextEvent(handle, &output, OD_NO_TIMEOUT));
+   UT_ASSERT_EQ_INT('c', output.chKeyPress);
+   UT_ASSERT_EQ_UINT(2, ut_semaphore_calls);
+   UT_ASSERT_EQ_UINT(0, ut_seen_timeout);
+   UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
+   UT_ASSERT_EQ_UINT(0, ut_sleep_calls);
+   UT_ASSERT_EQ_UINT(1, ut_locks);
+   UT_ASSERT_EQ_UINT(1, ut_unlocks);
+}
+
+static void console_wait_continues_during_initialization(void)
+{
+   tODInputEvent output;
+   tODInQueueHandle handle = ut_queue_handle(4, 1, 0);
+   ut_events[0].EventType = EVENT_CHARACTER;
+   ut_events[0].chKeyPress = 'i';
+   reset_threaded_wait();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   eODLifecycleState = kODLifecycleInitializing;
+   ut_semaphore_success_call = 3;
+
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODInQueueGetNextEvent(handle, &output, OD_NO_TIMEOUT));
+   UT_ASSERT_EQ_INT('i', output.chKeyPress);
+   UT_ASSERT_EQ_UINT(3, ut_semaphore_calls);
+   UT_ASSERT_EQ_UINT(2, ut_kernel_calls);
+   UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
+}
+
 static const UTTestCase ut_cases[] = {
    {"semaphore timeout", reports_semaphore_timeout},
-   {"threaded dequeue", removes_event_after_semaphore_wait}
+   {"threaded dequeue", removes_event_after_semaphore_wait},
+   {"console cooperative wait", console_wait_polls_the_cooperative_kernel},
+   {"console initialization wait", console_wait_continues_during_initialization}
 };
 
 #else
@@ -156,6 +245,21 @@ static void an_inactive_session_aborts_the_wait(void)
    UT_ASSERT_EQ_INT(kODRCGeneralFailure,
       utt_ODInQueueGetNextEvent(handle, &output, OD_NO_TIMEOUT));
    UT_ASSERT_EQ_UINT(0, ut_sleep_calls);
+}
+
+static void initializing_session_continues_waiting(void)
+{
+   tODInputEvent output;
+   tODInQueueHandle handle = ut_queue_handle(4, 0, 0);
+   reset_wait_mocks();
+   eODLifecycleState = kODLifecycleInitializing;
+   ut_events[0].chKeyPress = 'i';
+   ut_enqueue_on_kernel = 2;
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODInQueueGetNextEvent(handle, &output, OD_NO_TIMEOUT));
+   UT_ASSERT_EQ_INT('i', output.chKeyPress);
+   UT_ASSERT_EQ_UINT(1, ut_sleep_calls);
+   UT_ASSERT_EQ_UINT(2, ut_kernel_calls);
 }
 
 static void removes_immediately_waiting_event_and_wraps(void)
@@ -242,6 +346,7 @@ static const UTTestCase ut_cases[] = {
    {"finite timeout", finite_timeout_can_expire},
    {"finite wait", finite_wait_uses_positive_and_minimum_kernel_periods},
    {"unlimited wait", unlimited_wait_uses_kernel_period},
+   {"initializing session", initializing_session_continues_waiting},
    {"inactive session", an_inactive_session_aborts_the_wait}
 };
 #endif

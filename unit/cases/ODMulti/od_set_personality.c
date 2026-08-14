@@ -2,13 +2,20 @@
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
 #define UT_CUSTOM_MOCK_od_init
 
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
 #define UT_CUSTOM_MOCK_ODScrnSetBoundary
 #define UT_CUSTOM_MOCK_od_set_statusline
 #define UT_CUSTOM_MOCK_strcmp
 #define UT_CUSTOM_MOCK_strlen
 #define UT_CUSTOM_MOCK_strncpy
 #define UT_CUSTOM_MOCK_strupr
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+#define UT_CUSTOM_MOCK_ODPersonalityOpenDoors
+#define UT_CUSTOM_MOCK_ODPersonalityPCBoard
+#define UT_CUSTOM_MOCK_ODPersonalityRemoteAccess
+#define UT_CUSTOM_MOCK_ODPersonalityWildcat
+#endif
 #endif
 
 #include <string.h>
@@ -27,7 +34,7 @@ void ODCALL utm_od_init(void)
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
 void utm_ODSyncAPIExit(void) { ++ut_exits; }
 
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
 static unsigned ut_status_calls;
 static BYTE ut_status_values[2];
 static unsigned ut_boundary_calls;
@@ -35,6 +42,18 @@ static unsigned ut_standard_calls;
 static unsigned ut_ra_calls;
 static BYTE ut_standard_operation;
 static BYTE ut_ra_operation;
+#ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem = kODWindowsSubsystemConsole;
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void) { return(ut_subsystem); }
+static void ODPersonalityOpenDoors(BYTE operation)
+{ ut_standard_operation = operation; ++ut_standard_calls; }
+static void ODPersonalityRemoteAccess(BYTE operation)
+{ ut_ra_operation = operation; ++ut_ra_calls; }
+static void ODPersonalityWildcat(BYTE operation)
+{ (void)operation; UT_ASSERT(FALSE); }
+static void ODPersonalityPCBoard(BYTE operation)
+{ (void)operation; UT_ASSERT(FALSE); }
+#endif
 
 size_t utm_strlen(const char *text)
 {
@@ -194,11 +213,25 @@ static void deinitializes_old_and_initializes_later_match(void)
       pfCurrentPersonality);
 }
 
+#ifdef ODPLAT_WIN32
+static void rejects_gui_subsystem(void)
+{
+   reset_selector(); ut_subsystem = kODWindowsSubsystemGUI;
+   UT_ASSERT(!utt_od_set_personality("standard"));
+   UT_ASSERT_EQ_INT(ERR_UNSUPPORTED, od_control.od_error);
+   UT_ASSERT_EQ_UINT(1, ut_exits);
+   ut_subsystem = kODWindowsSubsystemConsole;
+}
+#endif
+
 static const UTTestCase ut_cases[] = {
    {"invalid names", rejects_empty_and_unknown_names},
    {"first selection", selects_first_personality_without_old_deinitialization},
    {"same selection", leaves_current_personality_unchanged_on_repeat},
    {"switch selection", deinitializes_old_and_initializes_later_match},
+#ifdef ODPLAT_WIN32
+   {"GUI subsystem", rejects_gui_subsystem},
+#endif
    {"terminal session", terminal_session_is_rejected}
 };
 #else

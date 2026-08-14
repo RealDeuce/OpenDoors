@@ -152,9 +152,10 @@ OpenDoors user interface, including the local presentation and sysop command
 handling. It defaults to [`FALSE`](../constants/general.md#false) and can be enabled by the `-SILENT`
 command-line option.
 
-On DOS and Windows, conventional local mode has `baud == 0`; initialization
-forces `od_silent_mode` back to false in that case because the local display is
-the only user interface. Unix-like standard-I/O sessions use different
+On DOS and Windows, conventional local mode has `baud == 0`. Windows preserves
+an explicitly enabled silent mode, so a silent local session neither creates
+nor manages a console. Traditional non-Windows local initialization forces
+this field back to false. Unix-like standard-I/O sessions use different
 transport conventions and do not necessarily pass through that zero-baud
 case. OpenDoors reads the value throughout local-screen and kernel operation.
 Changing it after initialization does not reconstruct resources omitted at

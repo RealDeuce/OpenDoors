@@ -34,6 +34,7 @@ od_log_write
 od_multiline_edit
 od_page
 od_parse_cmd_line
+od_parse_cmd_line_cons [windows]
 od_popup_menu
 od_printf
 od_putch

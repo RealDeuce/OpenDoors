@@ -14,7 +14,11 @@
 #define UT_CUSTOM_MOCK_ODKrnlForceOpenDoorsShutdown
 #define UT_CUSTOM_MOCK_ODKrnlTimeUpdate
 #define UT_CUSTOM_MOCK_ODTimerStart
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODConsoleReadKey
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+#endif
 #ifdef __WATCOMC__
 #define UT_CUSTOM_MOCK__bios_keybrd
 #endif
@@ -32,12 +36,19 @@
 #define UT_CUSTOM_MOCK_ODScrnEnableCaret
 #endif
 
+#ifdef ODPLAT_DOS32
+#define UT_APPLICATION_CALLBACK ODCALL
+#else
+#define UT_APPLICATION_CALLBACK
+#endif
+
 static unsigned ut_init_calls;
 static BOOL ut_init_succeeds;
 static unsigned ut_entry_calls;
 static unsigned ut_exit_calls;
 static unsigned ut_exec_calls;
 static BOOL ut_exec_ends_session;
+static BOOL ut_exec_uninitializes_session;
 static BOOL ut_carrier;
 static unsigned ut_carrier_calls;
 static char ut_remote_bytes[4];
@@ -53,7 +64,7 @@ static BYTE ut_shutdown_reason;
 static unsigned ut_time_update_calls;
 static BOOL ut_time_update_callbacks;
 static unsigned ut_timer_calls;
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 #define UT_KERNEL_MAX_KEYS 16
 static WORD ut_bios_keys[UT_KERNEL_MAX_KEYS];
 static BYTE ut_bios_shifts[UT_KERNEL_MAX_KEYS];
@@ -87,6 +98,9 @@ static BOOL ut_caret_values[2];
 static unsigned ut_personality_calls;
 static BYTE ut_personality_operations[4];
 static unsigned ut_hot_callback_calls;
+#ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem;
+#endif
 #endif
 
 tODMilliSec ODMaxMSToWait;
@@ -107,6 +121,8 @@ static void ODCALL ut_kernel_exec(void)
    ++ut_exec_calls;
    if(ut_exec_ends_session)
       eODLifecycleState = kODLifecycleExitPending;
+   if(ut_exec_uninitializes_session)
+      bODInitialized = FALSE;
 }
 #else
 static void ut_kernel_exec(void)
@@ -114,6 +130,8 @@ static void ut_kernel_exec(void)
    ++ut_exec_calls;
    if(ut_exec_ends_session)
       eODLifecycleState = kODLifecycleExitPending;
+   if(ut_exec_uninitializes_session)
+      bODInitialized = FALSE;
 }
 #endif
 
@@ -189,8 +207,22 @@ void utm_ODTimerStart(tODTimer *timer, tODMilliSec duration)
    ++ut_timer_calls;
 }
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
-#ifdef __WATCOMC__
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
+#ifdef ODPLAT_WIN32
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{
+   return(ut_subsystem);
+}
+
+BOOL utm_ODConsoleReadKey(WORD *key, BYTE *shift)
+{
+   if(ut_bios_index >= ut_bios_count)
+      return(FALSE);
+   *key = ut_bios_keys[ut_bios_index];
+   *shift = ut_bios_shifts[ut_bios_index++];
+   return(TRUE);
+}
+#elif defined(__WATCOMC__)
 unsigned short utm__bios_keybrd(unsigned command)
 {
    if(command == _KEYBRD_READY)
@@ -238,7 +270,7 @@ void utm_ODKrnlHandleLocalKey(WORD key)
    ut_local_key = key;
 }
 
-static void ODCALL ut_local_input(INT16 key)
+static void UT_APPLICATION_CALLBACK ut_local_input(INT16 key)
 {
    ++ut_local_callback_calls;
    ut_local_callback_key = (WORD)key;
@@ -251,13 +283,13 @@ static BOOL ODCALL ut_log(INT event)
    return(TRUE);
 }
 
-static void ODCALL ut_before_shell_callback(void)
+static void UT_APPLICATION_CALLBACK ut_before_shell_callback(void)
 {
    ++ut_before_shell_callback_calls;
    UT_ASSERT(bShellChatActive);
 }
 
-static void ODCALL ut_after_shell_callback(void)
+static void UT_APPLICATION_CALLBACK ut_after_shell_callback(void)
 {
    ++ut_after_shell_callback_calls;
    UT_ASSERT(bShellChatActive);
@@ -320,13 +352,13 @@ void utm_ODScrnEnableCaret(BOOL enable)
    ut_caret_values[ut_caret_calls++] = enable;
 }
 
-static void ODCALL ut_personality(BYTE operation)
+static void UT_APPLICATION_CALLBACK ut_personality(BYTE operation)
 {
    UT_ASSERT(ut_personality_calls < sizeof(ut_personality_operations));
    ut_personality_operations[ut_personality_calls++] = operation;
 }
 
-static void ODCALL ut_hot_callback(void)
+static void UT_APPLICATION_CALLBACK ut_hot_callback(void)
 {
    ++ut_hot_callback_calls;
 }
@@ -338,6 +370,7 @@ static void reset_kernel(void)
    ut_init_calls = ut_entry_calls = ut_exit_calls = ut_exec_calls = 0;
    ut_init_succeeds = TRUE;
    ut_exec_ends_session = FALSE;
+   ut_exec_uninitializes_session = FALSE;
    bODInitialized = TRUE;
    eODLifecycleState = kODLifecycleActive;
    bKernelActive = FALSE;
@@ -358,7 +391,7 @@ static void reset_kernel(void)
    od_control.od_user_keyboard_on = TRUE;
    for(index = 0; index < sizeof(ut_remote_bytes); ++index)
       ut_remote_bytes[index] = ut_received_bytes[index] = 0;
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
    ut_bios_count = ut_bios_index = 0;
    ut_local_key_calls = ut_local_callback_calls = 0;
    ut_local_key = ut_local_callback_key = 0;
@@ -409,6 +442,9 @@ static void reset_kernel(void)
    od_control.key_lesstime = 0x1109;
    for(index = 0; index < 9; ++index)
       od_control.key_status[index] = (WORD)(0x1200 + index);
+#ifdef ODPLAT_WIN32
+   ut_subsystem = kODWindowsSubsystemConsole;
+#endif
 #endif
 }
 
@@ -456,6 +492,28 @@ static void runs_the_optional_hook_inside_the_api_boundary(void)
    reset_kernel();
    od_control.od_ker_exec = ut_kernel_exec;
    ut_exec_ends_session = TRUE;
+   utt_od_kernel();
+   UT_ASSERT_EQ_UINT(1, ut_exec_calls);
+   UT_ASSERT_EQ_UINT(0, ut_time_update_calls);
+   UT_ASSERT_EQ_UINT(1, ut_exit_calls);
+   UT_ASSERT(!bKernelActive);
+}
+
+static void continues_initialization_after_the_optional_hook(void)
+{
+   reset_kernel();
+   eODLifecycleState = kODLifecycleInitializing;
+   od_control.od_ker_exec = ut_kernel_exec;
+   utt_od_kernel();
+   UT_ASSERT_EQ_UINT(0, ut_exec_calls);
+   UT_ASSERT_EQ_UINT(1, ut_time_update_calls);
+   UT_ASSERT_EQ_UINT(1, ut_timer_calls);
+   UT_ASSERT_EQ_UINT(1, ut_exit_calls);
+   UT_ASSERT(!bKernelActive);
+
+   reset_kernel();
+   od_control.od_ker_exec = ut_kernel_exec;
+   ut_exec_uninitializes_session = TRUE;
    utt_od_kernel();
    UT_ASSERT_EQ_UINT(1, ut_exec_calls);
    UT_ASSERT_EQ_UINT(0, ut_time_update_calls);
@@ -533,7 +591,7 @@ static void discards_remote_input_while_the_user_keyboard_is_disabled(void)
    UT_ASSERT_EQ_UINT(0, ut_cancel_calls);
 }
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 static void prepare_keyboard(void)
 {
    od_control.od_disable = 0;
@@ -879,17 +937,33 @@ static void updates_status_only_when_requested_or_due(void)
    btCurrentStatusLine = 0;
    utt_od_kernel();
    UT_ASSERT_EQ_UINT(0, ut_store_calls);
+
 }
+
+#ifdef ODPLAT_WIN32
+static void gui_mode_skips_the_cooperative_text_interface(void)
+{
+   reset_kernel();
+   ut_subsystem = kODWindowsSubsystemGUI;
+   od_control.od_status_on = TRUE;
+   utt_od_kernel();
+   UT_ASSERT_EQ_UINT(0, ut_bios_index);
+   UT_ASSERT_EQ_UINT(0, ut_status_calls);
+   UT_ASSERT_EQ_UINT(0, ut_personality_calls);
+   UT_ASSERT_EQ_UINT(1, ut_time_update_calls);
+}
+#endif
 #endif
 
 static const UTTestCase ut_cases[] = {
    {"initialization and recursion", initializes_before_rejecting_a_recursive_call},
    {"API boundary", runs_the_optional_hook_inside_the_api_boundary},
+   {"initialization hook", continues_initialization_after_the_optional_hook},
    {"carrier", applies_carrier_detection_policy_in_remote_mode},
    {"remote input", drains_all_available_remote_input},
    {"remote backpressure", leaves_remote_input_at_the_source_when_the_queue_is_full},
    {"disabled remote input", discards_remote_input_while_the_user_keyboard_is_disabled},
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
    {"keyboard policy", covers_pending_and_keyboard_suppression_policy},
    {"arrow keys", routes_arrow_keys_only_under_the_arrow_policy},
    {"shutdown keys", handles_hangup_and_drop_keys},
@@ -900,5 +974,8 @@ static const UTTestCase ut_cases[] = {
    {"status keys", selects_status_lines_under_the_documented_policy},
    {"hotkeys", dispatches_hotkeys_or_routes_unmatched_local_input},
    {"status updates", updates_status_only_when_requested_or_due}
+#ifdef ODPLAT_WIN32
+   ,{"GUI skips text interface", gui_mode_skips_the_cooperative_text_interface}
+#endif
 #endif
 };

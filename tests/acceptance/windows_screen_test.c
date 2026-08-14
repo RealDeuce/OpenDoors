@@ -89,7 +89,7 @@ static DWORD WINAPI ODTestScreenThread(void *pParameter)
    return(pContext->bPainted && pContext->bPostedKey ? 0 : 4);
 }
 
-int main(void)
+static int ODTestMain(void)
 {
    SOCKET hDoorSocket;
    SOCKET hPeerSocket;
@@ -136,4 +136,14 @@ int main(void)
    closesocket(hPeerSocket);
    WSACleanup();
    return(0);
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance,
+   LPSTR pszCommandLine, int nShowCommand)
+{
+   (void)hInstance;
+   (void)hPreviousInstance;
+   (void)pszCommandLine;
+   (void)nShowCommand;
+   return(ODTestMain());
 }

@@ -101,6 +101,7 @@
 #include "ODVScrn.h"
 #include "ODInQue.h"
 #include "ODKrnl.h"
+#include "ODMulti.h"
 #include "ODInEx.h"
 #include "ODUtil.h"
 #ifdef ODPLAT_WIN32
@@ -475,13 +476,18 @@ ODAPIDEF void ODCALL od_init(void)
          }
       }
 
-      /* Enable multiple personality system if it has been installed. */
-#ifdef OD_TEXTMODE
-      if(od_control.od_mps != NULL)
+      /* Enable the DOS-style multiple personality system where the local
+       * presenter supports it. The Windows GUI keeps its native frame. */
+#ifdef OD_PERSONALITY_SUPPORT
+      if(od_control.od_mps != NULL
+#ifdef ODPLAT_WIN32
+         && ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole
+#endif
+         )
       {
          (*(OD_COMPONENT_CALLBACK *)od_control.od_mps)();
       }
-#endif /* !OD_TEXTMODE */
+#endif /* OD_PERSONALITY_SUPPORT */
 
       /* If baud rate has been set in od_control, then remember the forced */
       /* rate for later use.                                               */
@@ -505,6 +511,8 @@ ODAPIDEF void ODCALL od_init(void)
       if(od_control.config_file != NULL)
       {
          (*(OD_COMPONENT_CALLBACK *)od_control.config_file)();
+         if(!bODInitialized)
+            return;
          eODLifecycleState = kODLifecycleActive;
          if(bODExitRequestedDuringInitialization)
          {
@@ -1570,6 +1578,8 @@ DropFileFail:
    }
 
    ODInitPartTwo();
+   if(!bODInitialized)
+      return;
    if(!bCalledFromConfig)
    {
       eODLifecycleState = kODLifecycleActive;
@@ -2507,15 +2517,33 @@ malloc_error:
       }
    }
 
-   /* If we are operating in local mode, then disable silent mode. */
+#ifndef ODPLAT_WIN32
+   /* Traditional non-Windows local mode always has a local display. */
    if(od_control.baud == 0)
-   {
       od_control.od_silent_mode = FALSE;
-   }
+#endif
 
    /* Setup local screen. */
-   ODScrnInitialize();
-#ifdef OD_TEXTMODE
+   Result = ODScrnInitialize();
+   if(Result != kODRCSuccess)
+   {
+      od_control.od_error = ERR_GENERALFAILURE;
+      ODInitError("Unable to initialize the OpenDoors local display.");
+      exit(od_control.od_errorlevel[1]);
+   }
+#ifdef ODPLAT_WIN32
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
+   {
+      ODScrnSetBoundary(1, 1, 80, 23);
+      ODSessionScreenInitialize(od_control.user_screenwidth,
+         od_control.user_screen_length);
+   }
+   else
+   {
+      ODScrnSetBoundary(1, 1, 80, 25);
+      ODSessionScreenInitialize(80, 25);
+   }
+#elif defined(OD_TEXTMODE)
    ODScrnSetBoundary(1, 1, 80, 23);
    ODSessionScreenInitialize(80, 23);
 #else /* !OD_TEXTMODE */
@@ -2548,7 +2576,6 @@ malloc_error:
       return;
    }
 
-#ifndef ODPLAT_WIN32
 #ifdef ODPLAT_NIX
    if(bPromptForUserName)
    {
@@ -2565,7 +2592,12 @@ malloc_error:
       ODInitApplyUserInfo(uinfo);
    }
 #else
-   if(bPromptForUserName)
+   if(bPromptForUserName
+#ifdef ODPLAT_WIN32
+      && ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole
+      && !od_control.od_silent_mode
+#endif
+      )
    {
       void *pWindow = ODScrnCreateWindow(10, 8, 70, 15,
          od_control.od_local_win_col, od_control.od_prog_name,
@@ -2592,20 +2624,28 @@ malloc_error:
       }
    }
 #endif /* !ODPLAT_NIX */
-#endif /* !ODPLAT_WIN32 */
 
-#ifdef OD_TEXTMODE
+#if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
+#ifdef ODPLAT_WIN32
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
+   {
+#endif
    /* Setup sysop status line/function key personality. */
    if(pfSetPersonality == NULL)
    {
 no_default:
       if (od_control.od_default_personality == NULL)
       {
+#ifdef ODPLAT_WIN32
+         pfCurrentPersonality = ODMultiResolvePersonality(NULL);
+#else
          pfCurrentPersonality = pdef_opendoors;
+#endif
       }
       else
       {
-         pfCurrentPersonality = od_control.od_default_personality;
+         pfCurrentPersonality = ODMultiResolvePersonality(
+            od_control.od_default_personality);
       }
       (*pfCurrentPersonality)(20);
       if(bRAStatus)
@@ -2624,7 +2664,10 @@ no_default:
          goto no_default;
       }
    }
-#endif /* OD_TEXTMODE */
+#ifdef ODPLAT_WIN32
+   }
+#endif
+#endif /* OD_TEXTMODE || ODPLAT_WIN32 */
 
    /* If connect speed has not been set yet, then set it to the */
    /* serial port speed.                                        */
@@ -2673,7 +2716,13 @@ no_default:
       sizeof(szWindowsStartupUserName));
    bWindowsStartupCancelled = FALSE;
 
-   if(!ODKrnlRefreshUIState())
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
+   {
+      /* od_init() is not enclosed by an API boundary, so publish the first
+       * completed console generation explicitly. */
+      ODScrnPublish();
+   }
+   else if(!ODKrnlRefreshUIState())
    {
       ODKrnlShutdown();
       od_control.od_error = ERR_GENERALFAILURE;
@@ -2683,7 +2732,8 @@ no_default:
    }
 
    /* Start the Windows command UI after the application dispatcher is ready. */
-   if(!od_control.od_silent_mode)
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemGUI
+      && !od_control.od_silent_mode)
    {
       HANDLE h = GetModuleHandle(OD_DLL_NAME);
       if(h == NULL)
@@ -2739,6 +2789,14 @@ void ODInitError(char *pszErrorText)
 #endif
 #ifdef ODPLAT_WIN32
    char *pszMessage;
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
+   {
+      fprintf(stderr, "%s: %s\n", od_control.od_prog_name, pszErrorText);
+      if(bParsedCmdLine)
+         fputs("Use the -HELP command line option for help, or -LOCAL for local mode.\n",
+            stderr);
+      return;
+   }
    if(!bParsedCmdLine ||
       (pszMessage = malloc(strlen(pszErrorText) + 80)) == NULL)
    {

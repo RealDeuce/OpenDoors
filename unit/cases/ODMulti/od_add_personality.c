@@ -1,4 +1,10 @@
 #define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
+#ifdef ODPLAT_WIN32
+static void ODPersonalityOpenDoors(BYTE operation) { (void)operation; }
+static void ODPersonalityPCBoard(BYTE operation) { (void)operation; }
+static void ODPersonalityRemoteAccess(BYTE operation) { (void)operation; }
+static void ODPersonalityWildcat(BYTE operation) { (void)operation; }
+#endif
 static BOOL ut_public_call_allowed = TRUE;
 
 BOOL utm_ODSyncPublicCallAllowed(void)
@@ -15,9 +21,13 @@ static void rejects_a_terminal_session(void)
    ut_public_call_allowed = TRUE;
 }
 
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
 #define UT_CUSTOM_MOCK_strncpy
 #define UT_CUSTOM_MOCK_strupr
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+#define UT_CUSTOM_MOCK_ODMultiResolvePersonality
+#endif
 
 #include <string.h>
 
@@ -50,10 +60,18 @@ char *utm_strupr(char *text)
    return text;
 }
 
-static void ODCALL ut_personality(BYTE operation)
+static void ut_personality(BYTE operation)
 {
    (void)operation;
 }
+
+#ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem = kODWindowsSubsystemConsole;
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void) { return(ut_subsystem); }
+OD_PERSONALITY_CALLBACK *utm_ODMultiResolvePersonality(
+   OD_PERSONALITY_PROC *personality)
+{ return((OD_PERSONALITY_CALLBACK *)personality); }
+#endif
 
 static void stores_uppercase_truncated_metadata(void)
 {
@@ -82,9 +100,23 @@ static void rejects_the_thirteenth_personality(void)
    UT_ASSERT_EQ_INT(ERR_LIMIT, od_control.od_error);
 }
 
+#ifdef ODPLAT_WIN32
+static void rejects_gui_subsystem(void)
+{
+   memset(&od_control, 0, sizeof(od_control));
+   ut_subsystem = kODWindowsSubsystemGUI;
+   UT_ASSERT(!utt_od_add_personality("name", 1, 23, ut_personality));
+   UT_ASSERT_EQ_INT(ERR_UNSUPPORTED, od_control.od_error);
+   ut_subsystem = kODWindowsSubsystemConsole;
+}
+#endif
+
 static const UTTestCase ut_cases[] = {
    {"stored metadata", stores_uppercase_truncated_metadata},
    {"capacity", rejects_the_thirteenth_personality},
+#ifdef ODPLAT_WIN32
+   {"GUI subsystem", rejects_gui_subsystem},
+#endif
    {"terminal session", rejects_a_terminal_session}
 };
 #else

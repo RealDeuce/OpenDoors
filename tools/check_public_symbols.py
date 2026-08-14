@@ -99,12 +99,21 @@ def main() -> int:
     parser.add_argument("library", type=Path)
     parser.add_argument("--linker")
     parser.add_argument("--personality", action="store_true")
+    parser.add_argument("--platform", choices=("unix", "windows"))
     args = parser.parse_args()
     names_path = ROOT / "tests" / "acceptance" / (
         "dos-personality-symbols.txt" if args.personality else "public-symbols.txt"
     )
-    names = [line for line in names_path.read_text(encoding="utf-8").splitlines()
-             if line]
+    names = []
+    for line in names_path.read_text(encoding="utf-8").splitlines():
+        if not line:
+            continue
+        parts = line.split()
+        if len(parts) > 1:
+            platforms = {item.strip("[],") for item in parts[1:]}
+            if args.platform is not None and args.platform not in platforms:
+                continue
+        names.append(parts[0])
     try:
         symbols = defined_symbols(args.library, args.linker)
     except RuntimeError as error:

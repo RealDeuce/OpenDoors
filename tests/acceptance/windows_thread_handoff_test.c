@@ -49,7 +49,7 @@ static BOOL ODTestRunHandoff(CRITICAL_SECTION *pLock, BOOL bExit)
    return(Context.bSucceeded);
 }
 
-int main(void)
+static int ODTestMain(void)
 {
    CRITICAL_SECTION Lock;
    BOOL bNormalCallSucceeded;
@@ -80,4 +80,14 @@ int main(void)
    OD_TEST_CHECK(bNormalCallSucceeded);
    OD_TEST_CHECK(bExitSucceeded);
    return(0);
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance,
+   LPSTR pszCommandLine, int nShowCommand)
+{
+   (void)hInstance;
+   (void)hPreviousInstance;
+   (void)pszCommandLine;
+   (void)nShowCommand;
+   return(ODTestMain());
 }

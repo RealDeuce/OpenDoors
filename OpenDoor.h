@@ -1110,6 +1110,8 @@ ODAPIDEF INT ODCALL    od_multiline_edit(char *pszBufferToEdit,
 ODAPIDEF void ODCALL   od_page(void);
 #ifdef ODPLAT_WIN32
 ODAPIDEF void ODCALL   od_parse_cmd_line(LPSTR pszCmdLine);
+ODAPIDEF void ODCALL   od_parse_cmd_line_cons(INT nArgCount,
+                          char *papszArguments[]);
 #else /* !ODPLAT_WIN32 */
 ODAPIDEF void ODCALL   od_parse_cmd_line(INT nArgCount,
                           char *papszArguments[]);
@@ -1147,6 +1149,11 @@ ODAPIDEF void * ODCALL od_window_create(INT nLeft, INT nTop, INT nRight,
                           INT nBottom, char *pszTitle, BYTE btBorderCol,
                           BYTE btTitleCol, BYTE btInsideCol, INT nReserved);
 ODAPIDEF BOOL ODCALL   od_window_remove(void *pWinInfo);
+
+#if defined(ODPLAT_WIN32) && defined(OD_WINDOWS_CONSOLE) \
+   && !defined(BUILDING_OPENDOORS)
+#define od_parse_cmd_line od_parse_cmd_line_cons
+#endif
 
 
 /* ========================================================================= */

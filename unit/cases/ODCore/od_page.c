@@ -17,7 +17,10 @@
 #define UT_CUSTOM_MOCK_od_sleep
 #endif
 #define UT_CUSTOM_MOCK_od_kernel
-#ifdef OD_TEXTMODE
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+#endif
+#ifdef OD_PERSONALITY_SUPPORT
 #define UT_CUSTOM_MOCK_od_set_statusline
 #endif
 
@@ -55,9 +58,16 @@ static BOOL ut_shutdown_on_sleep;
 #endif
 static unsigned ut_kernel_calls;
 static BOOL ut_init_succeeds;
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
 static unsigned ut_status_calls;
 static INT ut_status_setting;
+#endif
+#ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem;
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{
+   return(ut_subsystem);
+}
 #endif
 
 static void ut_copy(char *destination, const char *source)
@@ -165,7 +175,7 @@ void ODCALL utm_od_sleep(tODMilliSec duration)
 void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
 
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
 void ODCALL utm_od_set_statusline(INT setting)
 {
    ++ut_status_calls;
@@ -223,9 +233,12 @@ static void reset_page(void)
    ut_shutdown_on_sleep = FALSE;
 #endif
    ut_kernel_calls = 0;
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
    ut_status_calls = 0;
    ut_status_setting = -1;
+#endif
+#ifdef ODPLAT_WIN32
+   ut_subsystem = kODWindowsSubsystemConsole;
 #endif
    ut_init_succeeds = TRUE;
 }
@@ -330,7 +343,7 @@ static void successful_paging_updates_hooks_status_and_timeout_message(void)
    reset_page();
    set_reason("why");
    pfLogWrite = ut_log_write;
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
    od_control.od_page_statusline = 3;
    btCurrentStatusLine = 7;
 #endif
@@ -343,14 +356,14 @@ static void successful_paging_updates_hooks_status_and_timeout_message(void)
    UT_ASSERT_EQ_UINT(1, ut_no_response_calls);
    UT_ASSERT_EQ_UINT(1, ut_answer_calls);
    UT_ASSERT(ut_kernel_calls > 0);
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
    UT_ASSERT_EQ_UINT(1, ut_status_calls);
    UT_ASSERT_EQ_INT(3, ut_status_setting);
 #endif
 }
 
-#ifdef OD_TEXTMODE
-static void text_status_line_conditions_are_independent(void)
+#ifdef OD_PERSONALITY_SUPPORT
+static void personality_status_line_conditions_are_independent(void)
 {
    reset_page();
    set_reason("why");
@@ -358,6 +371,14 @@ static void text_status_line_conditions_are_independent(void)
    btCurrentStatusLine = 8;
    utt_od_page();
    UT_ASSERT_EQ_UINT(0, ut_status_calls);
+#ifdef ODPLAT_WIN32
+   reset_page();
+   set_reason("why");
+   od_control.od_page_statusline = 3;
+   ut_subsystem = kODWindowsSubsystemGUI;
+   utt_od_page();
+   UT_ASSERT_EQ_UINT(0, ut_status_calls);
+#endif
 }
 #endif
 
@@ -426,8 +447,9 @@ static const UTTestCase ut_cases[] = {
    {"page policy", explicit_page_policy_overrides_or_disables_hours},
    {"local time failure", handles_a_failed_local_time_conversion},
    {"successful page", successful_paging_updates_hooks_status_and_timeout_message},
-#ifdef OD_TEXTMODE
-   {"page status condition", text_status_line_conditions_are_independent},
+#ifdef OD_PERSONALITY_SUPPORT
+   {"page status condition",
+      personality_status_line_conditions_are_independent},
 #endif
    {"answered page", chat_response_after_period_or_beep_stops_immediately},
    {"page timeout", unanswered_page_waits_for_the_timer_and_times_out},

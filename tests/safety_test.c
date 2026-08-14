@@ -46,10 +46,13 @@ static int Format(char *buffer, size_t size, const char *format, ...)
 static void ParseHandleOption(char *option, char *value)
 {
 #ifdef ODPLAT_WIN32
-   char command_line[64];
+   char program[] = "door";
+   char *arguments[3];
 
-   (void)Format(command_line, sizeof(command_line), "%s %s", option, value);
-   od_parse_cmd_line(command_line);
+   arguments[0] = program;
+   arguments[1] = option;
+   arguments[2] = value;
+   od_parse_cmd_line_cons(3, arguments);
 #else
    char program[] = "door";
    char *arguments[3];
@@ -73,8 +76,11 @@ int main(void)
    char filename[32];
    tODInQueueHandle queue;
 #ifdef ODPLAT_WIN32
-   char port_command_line[] = "-P 0";
-   char com1_command_line[] = "-P COM1";
+   char argument_zero[] = "door";
+   char argument_port[] = "-P";
+   char argument_value[] = "0";
+   char argument_com1[] = "COM1";
+   char *port_arguments[3];
 #else
    char argument_zero[] = "door";
    char argument_port[] = "-P";
@@ -177,7 +183,10 @@ int main(void)
 
    wPreSetInfo = 0;
 #ifdef ODPLAT_WIN32
-   od_parse_cmd_line(port_command_line);
+   port_arguments[0] = argument_zero;
+   port_arguments[1] = argument_port;
+   port_arguments[2] = argument_value;
+   od_parse_cmd_line_cons(3, port_arguments);
 #else
    port_arguments[0] = argument_zero;
    port_arguments[1] = argument_port;
@@ -190,7 +199,8 @@ int main(void)
 
    CHECK(od_set_port(2));
 #ifdef ODPLAT_WIN32
-   od_parse_cmd_line(com1_command_line);
+   port_arguments[2] = argument_com1;
+   od_parse_cmd_line_cons(3, port_arguments);
 #else
    port_arguments[2] = argument_com1;
    od_parse_cmd_line(3, port_arguments);

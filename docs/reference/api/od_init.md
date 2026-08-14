@@ -64,6 +64,11 @@ value 1. Fatal initialization failures, such as inability to allocate required
 storage or establish the selected communications method, display an
 initialization error and terminate with the configured value in
 [`od_control.od_errorlevel`](../control/customization.md#od_errorlevel).
+For a Windows console-subsystem application with local presentation enabled,
+initialization uses an inherited console or allocates one when necessary. An
+inability to obtain a usable console is fatal in local mode; a remote session
+may fall back to silent operation. Silent mode performs no console allocation
+or console state management.
 
 Initialization is not reentrant. If an OpenDoors callback is currently active,
 [`od_init()`](od_init.md) returns without doing anything. Applications must not use such a

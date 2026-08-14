@@ -7,6 +7,7 @@ Processes the command-line options understood by OpenDoors.
 ```c
 #ifdef ODPLAT_WIN32
 void od_parse_cmd_line(LPSTR pszCmdLine);
+void od_parse_cmd_line_cons(INT nArgCount, char *papszArguments[]);
 #else
 void od_parse_cmd_line(INT nArgCount, char *papszArguments[]);
 #endif
@@ -21,6 +22,23 @@ the executable name. OpenDoors applies the Windows `CommandLineToArgvW` quote
 and backslash grammar before parsing it. See
 [`od_split_cmd_line()`](od_split_cmd_line.md) for the exact platform-specific
 rules.
+
+Console-subsystem applications may call
+[`od_parse_cmd_line_cons(argc, argv)`](od_parse_cmd_line_cons.md) explicitly.
+Alternatively, define `OD_WINDOWS_CONSOLE` before including
+[`OpenDoor.h`](index.md); the header aliases this function to
+[`od_parse_cmd_line_cons()`](od_parse_cmd_line_cons.md), so the
+`od_parse_cmd_line(argc, argv)` spelling has the same
+effect. CMake's `OpenDoors::SharedConsole`, `OpenDoors::StaticConsole`, and
+`OpenDoors::StaticMTConsole` targets provide that definition automatically.
+These are two equivalent source interfaces, not different library binaries.
+
+The raw-string interface is valid only in a GUI-subsystem executable and the
+argument-vector interface only in a console-subsystem executable. A mismatch
+is diagnosed on standard error and through the debugger, sets
+[`od_control.od_error`](../control/runtime.md#od_error) to
+[`ERR_PARAMETER`](../constants/errors.md#err_parameter), and terminates before
+the arguments or application callbacks are processed.
 
 ### DOS
 

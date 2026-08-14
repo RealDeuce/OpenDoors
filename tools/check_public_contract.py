@@ -123,7 +123,7 @@ def main() -> int:
         set(check_api_docs.compatibility_aliases()))
     compare_list(failures, "public-symbols.txt",
         listed_names(acceptance / "public-symbols.txt",
-                     r"^([A-Za-z_][A-Za-z0-9_]*)$"),
+                     r"^([A-Za-z_][A-Za-z0-9_]*)(?:\s|$)"),
         exported_functions() | {"od_control"})
     compare_list(failures, "dos-personality-symbols.txt",
         listed_names(acceptance / "dos-personality-symbols.txt",

@@ -110,10 +110,14 @@ static void ODAdvanceToNextArg(INT *pnCurrentArg, INT nArgCount,
 static void ODGetNextArgName(INT *pnCurrentArg, INT nArgCount,
    char *papszArguments[], char *pszString, size_t nStringSize);
 static tCommandLineParameter ODGetCommandLineParameter(char *pszArgument);
+static void ODParseCommandLineArguments(INT nArgCount,
+   char *papszArguments[]);
 #if defined(ODPLAT_WIN32) || defined(ODPLAT_NIX)
 static BOOL ODParseOpenHandle(const char *pszValue, DWORD_PTR *pdwValue);
 #endif
 #ifdef ODPLAT_WIN32
+static void ODCommandLineInterfaceMismatch(const char *pszFunction,
+   tODWindowsSubsystem Expected, tODWindowsSubsystem Actual);
 typedef LPWSTR *(WINAPI *tODCommandLineToArgvW)(LPCWSTR, INT *);
 static LPWSTR *ODWindowsCommandLineToArgvFallback(LPCWSTR pszCommandLine,
    INT *pnArgCount);
@@ -527,6 +531,49 @@ ODAPIDEF void ODCALL od_free_split_cmd_line(char **papszArguments)
 }
 
 /* ----------------------------------------------------------------------------
+ * ODCommandLineInterfaceMismatch()
+ *
+ * Reports a Windows command-line interface mismatch without opening an
+ * interactive dialog, then terminates before either parser touches its input.
+ */
+#ifdef ODPLAT_WIN32
+static void ODCommandLineInterfaceMismatch(const char *pszFunction,
+   tODWindowsSubsystem Expected, tODWindowsSubsystem Actual)
+{
+   char szMessage[512];
+   const char *pszExpected;
+   const char *pszActual;
+   const char *pszCorrectFunction;
+   const char *pszTarget;
+
+   pszExpected = Expected == kODWindowsSubsystemGUI
+      ? "Windows GUI" : "Windows console";
+   if(Actual == kODWindowsSubsystemGUI)
+      pszActual = "Windows GUI";
+   else if(Actual == kODWindowsSubsystemConsole)
+      pszActual = "Windows console";
+   else
+      pszActual = "an unknown";
+   pszCorrectFunction = Expected == kODWindowsSubsystemGUI
+      ? "od_parse_cmd_line_cons(argc, argv)"
+      : "od_parse_cmd_line(command_line)";
+   pszTarget = Expected == kODWindowsSubsystemGUI
+      ? "OpenDoors::SharedConsole/OpenDoors::StaticConsole or define "
+        "OD_WINDOWS_CONSOLE"
+      : "a non-Console OpenDoors target";
+
+   sprintf(szMessage,
+      "OpenDoors: %s() requires a %s executable, but the host uses %s. "
+      "Use %s and %s.\n",
+      pszFunction, pszExpected, pszActual, pszCorrectFunction, pszTarget);
+   od_control.od_error = ERR_PARAMETER;
+   fputs(szMessage, stderr);
+   OutputDebugStringA(szMessage);
+   exit(EXIT_FAILURE);
+}
+#endif /* ODPLAT_WIN32 */
+
+/* ----------------------------------------------------------------------------
  * od_parse_cmd_line()
  *
  * Function to parse an OpenDoors program's command-line, interpreting
@@ -555,37 +602,62 @@ ODAPIDEF void ODCALL od_free_split_cmd_line(char **papszArguments)
  */
 #ifdef ODPLAT_WIN32
 ODAPIDEF void ODCALL od_parse_cmd_line(LPSTR pszCmdLine)
+{
+   INT nArgCount;
+   char **papszArguments;
+
+   if(ODPlatGetWindowsSubsystem() != kODWindowsSubsystemGUI)
+   {
+      ODCommandLineInterfaceMismatch("od_parse_cmd_line",
+         kODWindowsSubsystemGUI, ODPlatGetWindowsSubsystem());
+   }
+
+   papszArguments = od_split_cmd_line(pszCmdLine, &nArgCount);
+   if(papszArguments == NULL)
+      return;
+   ODParseCommandLineArguments(nArgCount, papszArguments);
+   od_free_split_cmd_line(papszArguments);
+}
+
+ODAPIDEF void ODCALL od_parse_cmd_line_cons(INT nArgCount,
+   char *papszArguments[])
+{
+   if(ODPlatGetWindowsSubsystem() != kODWindowsSubsystemConsole)
+   {
+      ODCommandLineInterfaceMismatch("od_parse_cmd_line_cons",
+         kODWindowsSubsystemConsole, ODPlatGetWindowsSubsystem());
+   }
+   ODParseCommandLineArguments(nArgCount, papszArguments);
+}
 #else /* !ODPLAT_WIN32 */
 ODAPIDEF void ODCALL od_parse_cmd_line(INT nArgCount, char *papszArguments[])
+{
+   ODParseCommandLineArguments(nArgCount, papszArguments);
+}
 #endif /* !ODPLAT_WIN32 */
+
+/* ----------------------------------------------------------------------------
+ * ODParseCommandLineArguments()
+ *
+ * Applies standard OpenDoors options from a caller-owned argument vector.
+ */
+static void ODParseCommandLineArguments(INT nArgCount,
+   char *papszArguments[])
 {
    char *pszCurrentArg;
    INT nCurrentArg;
    INT n;
-#ifdef ODPLAT_WIN32
-   INT nArgCount;
-   char **papszArguments;
-#endif /* ODPLAT_WIN32 */
 
-   /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_parse_cmd_line()");
 
    if(!ODSyncPublicCallAllowed()) return;
 
-#ifdef ODPLAT_WIN32
-   papszArguments = od_split_cmd_line(pszCmdLine, &nArgCount);
-   if (papszArguments == NULL)
-      return;
-#endif /* ODPLAT_WIN32 */
-
-#ifndef ODPLAT_WIN32
    /* Check validity of parameters. */
    if(papszArguments == NULL)
    {
       od_control.od_error = ERR_PARAMETER;
       return;
    }
-#endif /* !ODPLAT_WIN32 */
 
    /* Record that od_parse_cmd_line() has been called. */
    bParsedCmdLine = TRUE;
@@ -850,9 +922,6 @@ ODAPIDEF void ODCALL od_parse_cmd_line(INT nArgCount, char *papszArguments[])
       }
    }
 
-#ifdef ODPLAT_WIN32
-   od_free_split_cmd_line(papszArguments);
-#endif /* ODPLAT_WIN32 */
 }
 
 

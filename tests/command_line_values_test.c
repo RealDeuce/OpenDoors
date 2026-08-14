@@ -20,17 +20,6 @@ static void CustomOptionHandler(char *pszKeyword, char *pszOptions)
 
 static void ParseTestCommandLine(void)
 {
-#ifdef ODPLAT_WIN32
-   char szCommandLine[] =
-      "-USERNAME 012345678901234567890123456789 ABCDEFGHIJ unused-user-word "
-      "-LOCATION 01234567890123456789 abcdefghij unused-location-word "
-      "-BBSNAME 012345678901234567890123456789 abcdefghijklmnop "
-      "unused-bbs-word -CUSTOM 111111111111111111111111111111 "
-      "222222222222222222222222222222 333333333333333333333333333333 "
-      "unused-custom-word -NODE 7";
-
-   od_parse_cmd_line(szCommandLine);
-#else
    char *papszArguments[] = {
       "door",
       "-USERNAME", "012345678901234567890123456789", "ABCDEFGHIJ",
@@ -45,9 +34,13 @@ static void ParseTestCommandLine(void)
       "-NODE", "7"
    };
 
-   od_parse_cmd_line((INT)(sizeof(papszArguments) / sizeof(papszArguments[0])),
-      papszArguments);
+#ifdef ODPLAT_WIN32
+   od_parse_cmd_line_cons(
+#else
+   od_parse_cmd_line(
 #endif
+      (INT)(sizeof(papszArguments) / sizeof(papszArguments[0])),
+      papszArguments);
 }
 
 static int TestSplitter(void)

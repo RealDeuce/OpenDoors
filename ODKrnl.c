@@ -92,6 +92,7 @@
 #include "ODInEx.h"
 #include "ODSync.h"
 #ifdef ODPLAT_WIN32
+#include "ODConsole.h"
 #include "ODFrame.h"
 #endif /* ODPLAT_WIN32 */
 
@@ -239,7 +240,8 @@ tODResult ODKrnlInitialize(void)
    bKernelActive = FALSE;
 
 #ifdef ODPLAT_WIN32
-   if(!bKernelStateLockInitialized)
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemGUI
+      && !bKernelStateLockInitialized)
    {
       if(ODMutexInitialize(&KernelStateLock) != kODRCSuccess)
          return(kODRCGeneralFailure);
@@ -309,9 +311,10 @@ ODAPIDEF void ODCALL od_kernel(void)
    char ch;
    tODInputEvent InputEvent;
    tODResult InputResult;
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
    WORD wKey;
    BYTE btShiftStatus;
+   INT nKeyIndex;
    char *pszShellName;
 #endif
    BOOL bCarrier;
@@ -334,10 +337,11 @@ ODAPIDEF void ODCALL od_kernel(void)
    bKernelActive = TRUE;
 
    /* Call od_ker_exec function if required. */
-   if(od_control.od_ker_exec != NULL)
+   if(eODLifecycleState == kODLifecycleActive
+      && od_control.od_ker_exec != NULL)
    {
       (*od_control.od_ker_exec)();
-      if(eODLifecycleState != kODLifecycleActive)
+      if(!bODInitialized || eODLifecycleState >= kODLifecycleExitPending)
          goto kernel_finished;
    }
 
@@ -382,8 +386,12 @@ ODAPIDEF void ODCALL od_kernel(void)
       }
    }
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 check_keyboard_again:
+#ifdef ODPLAT_WIN32
+   if(ODPlatGetWindowsSubsystem() != kODWindowsSubsystemConsole)
+      goto after_console_text_interface;
+#endif
     if(nKrnlFuncPending && !bShellChatActive)
     {
        if(nKrnlFuncPending & KERNEL_FUNC_CHATTOGGLE)
@@ -401,7 +409,10 @@ check_keyboard_again:
       goto after_key_check;
    }
 
-#ifdef __WATCOMC__
+#ifdef ODPLAT_WIN32
+   if(!ODConsoleReadKey(&wKey, &btShiftStatus))
+      goto after_key_check;
+#elif defined(__WATCOMC__)
    if(_bios_keybrd(_KEYBRD_READY) == 0)
       goto after_key_check;
    wKey = _bios_keybrd(_KEYBRD_READ);
@@ -602,23 +613,24 @@ chat_pressed:
 
       else
       {
-         for(ch = 0; ch < 9; ++ch)
+         for(nKeyIndex = 0; nKeyIndex < 9; ++nKeyIndex)
          {
-            if(wKey == od_control.key_status[ch])
+            if(wKey == od_control.key_status[nKeyIndex])
             {
-               if(btCurrentStatusLine != ch && od_control.od_status_on)
+               if(btCurrentStatusLine != nKeyIndex
+                  && od_control.od_status_on)
                {
-                  od_set_statusline(ch);
+                  od_set_statusline(nKeyIndex);
                }
                goto check_keyboard_again;
             }
          }
 
          /* Look for user-defined hotkeys. */
-         for(ch=0; ch<od_control.od_num_keys; ++ch)
+         for(nKeyIndex = 0; nKeyIndex < od_control.od_num_keys; ++nKeyIndex)
          {
             /* If it matches. */
-            if(wKey == (WORD)od_control.od_hot_key[ch])
+            if(wKey == (WORD)od_control.od_hot_key[nKeyIndex])
             {
                /* Record keypress. */
                od_control.od_last_hot = wKey;
@@ -627,10 +639,10 @@ chat_pressed:
                (*pfCurrentPersonality)(21);
 
                /* Check for a hotkey function. */
-               if(od_control.od_hot_function[ch] != NULL)
+               if(od_control.od_hot_function[nKeyIndex] != NULL)
                {
                   /* Call it if it exists. */
-                  (*od_control.od_hot_function[ch])();
+                  (*od_control.od_hot_function[nKeyIndex])();
                }
 
                /* Stop searching. */
@@ -639,7 +651,7 @@ chat_pressed:
          }
 
          /* If no hotkeys found. */
-         if(ch >= od_control.od_num_keys)
+         if(nKeyIndex >= od_control.od_num_keys)
          {
             /* Pass key on to od_local_input, if it is defined. */
             if(od_control.od_local_input != NULL)
@@ -694,6 +706,9 @@ statup:
    }
 #endif
 
+#ifdef ODPLAT_WIN32
+after_console_text_interface:
+#endif
    ODKrnlTimeUpdate(TRUE);
 
    ODTimerStart(&RunKernelTimer, 250);
@@ -721,9 +736,14 @@ void ODKrnlHandleLocalKey(WORD wKeyCode)
    BOOL bLocalInputDisabled;
 
 #ifdef ODPLAT_WIN32
-   tODUIState State;
-   ODKrnlGetUIState(&State);
-   bLocalInputDisabled = (State.wDisable & DIS_LOCAL_INPUT) != 0;
+   if(ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole)
+      bLocalInputDisabled = (od_control.od_disable & DIS_LOCAL_INPUT) != 0;
+   else
+   {
+      tODUIState State;
+      ODKrnlGetUIState(&State);
+      bLocalInputDisabled = (State.wDisable & DIS_LOCAL_INPUT) != 0;
+   }
 #else
    bLocalInputDisabled = (od_control.od_disable & DIS_LOCAL_INPUT) != 0;
 #endif
@@ -927,7 +947,8 @@ static BOOL ODKrnlQueueUIChange(tODUIChangeType Type, INT nValue,
 {
    tODUIChange *pChange;
 
-   if(eODLifecycleState != kODLifecycleActive)
+   if(ODPlatGetWindowsSubsystem() != kODWindowsSubsystemGUI
+      || eODLifecycleState != kODLifecycleActive)
       return(FALSE);
    pChange = malloc(sizeof(*pChange));
 

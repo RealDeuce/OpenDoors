@@ -12,6 +12,9 @@
 #define UT_CUSTOM_MOCK_ODInitReadSFDoorsDAT
 #define UT_CUSTOM_MOCK_ODMakeFilename
 #define UT_CUSTOM_MOCK_ODPlatInit
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+#endif
 #define UT_CUSTOM_MOCK_ODSearchForDropFile
 #define UT_CUSTOM_MOCK_ODStringCopy
 #define UT_CUSTOM_MOCK_ODStringHasTail
@@ -80,6 +83,8 @@ static unsigned ut_od_exit_calls;
 static INT ut_od_exit_error;
 static BOOL ut_od_exit_term;
 static BOOL ut_config_requests_exit;
+static BOOL ut_config_fails;
+static BOOL ut_part_two_succeeds;
 static BOOL ut_sfdoors_result;
 static const char *ut_error_text;
 static const char *ut_task_value;
@@ -90,6 +95,16 @@ static BOOL ut_no_file_forces_local;
 static BOOL ut_no_file_supplies_info;
 static jmp_buf ut_exit_target;
 static BOOL ut_exit_expected;
+#ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem;
+#endif
+
+#ifdef ODPLAT_WIN32
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{
+   return(ut_subsystem);
+}
+#endif
 
 size_t utm_strlen(const char *text)
 {
@@ -440,6 +455,8 @@ BOOL utm_ODInitReadSFDoorsDAT(void)
 void utm_ODInitPartTwo(void)
 {
    ++ut_part_two_calls;
+   if(!ut_part_two_succeeds)
+      bODInitialized = FALSE;
 }
 
 void utm_ODInitError(char *text)
@@ -480,6 +497,8 @@ static void ut_config_callback(void)
 #endif
 {
    ++ut_config_calls;
+   if(ut_config_fails)
+      bODInitialized = FALSE;
    if(ut_config_requests_exit)
    {
       bODExitRequestedDuringInitialization = TRUE;
@@ -495,6 +514,13 @@ static void ut_mps_callback(void)
 #endif
 {
    ++ut_mps_calls;
+}
+
+static void accepts_public_mps_callback_type(void)
+{
+   OD_COMPONENT_CALLBACK *pCallback = ut_mps_callback;
+
+   UT_ASSERT_EQ_PTR(ut_mps_callback, pCallback);
 }
 
 #ifdef ODPLAT_DOS32
@@ -552,6 +578,8 @@ static void reset_init_fixture(void)
    ut_sfdoors_calls = 0;
    ut_od_exit_calls = 0;
    ut_config_requests_exit = FALSE;
+   ut_config_fails = FALSE;
+   ut_part_two_succeeds = TRUE;
    ut_sfdoors_result = TRUE;
    ut_error_text = NULL;
    ut_task_value = NULL;
@@ -561,6 +589,9 @@ static void reset_init_fixture(void)
    ut_no_file_forces_local = FALSE;
    ut_no_file_supplies_info = FALSE;
    ut_exit_expected = FALSE;
+#ifdef ODPLAT_WIN32
+   ut_subsystem = kODWindowsSubsystemConsole;
+#endif
    bODInitialized = FALSE;
    eODLifecycleState = kODLifecycleNeverStarted;
    bODExitRequestedDuringInitialization = FALSE;
@@ -641,6 +672,24 @@ static void completes_initialization_before_processing_an_exit_request(void)
    UT_ASSERT_EQ_UINT(0, ut_sync_calls);
 }
 
+static void does_not_publish_a_failed_initialization(void)
+{
+   reset_init_fixture();
+   ut_part_two_succeeds = FALSE;
+   utt_od_init();
+   UT_ASSERT_EQ_INT(FALSE, bODInitialized);
+   UT_ASSERT_EQ_INT(kODLifecycleInitializing, eODLifecycleState);
+   UT_ASSERT_EQ_UINT(1, ut_part_two_calls);
+
+   reset_init_fixture();
+   od_control.config_file = ut_config_callback;
+   ut_config_fails = TRUE;
+   utt_od_init();
+   UT_ASSERT_EQ_INT(FALSE, bODInitialized);
+   UT_ASSERT_EQ_INT(kODLifecycleInitializing, eODLifecycleState);
+   UT_ASSERT_EQ_UINT(1, ut_config_calls);
+}
+
 static void initializes_tables_allocations_and_local_defaults(void)
 {
    reset_init_fixture();
@@ -703,7 +752,7 @@ static void preserves_tables_and_delegates_to_configuration(void)
    od_control.baud = 38400;
    od_control.port = 2;
    od_control.config_file = ut_config_callback;
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
    od_control.od_mps = ut_mps_callback;
 #endif
    utt_od_init();
@@ -714,10 +763,19 @@ static void preserves_tables_and_delegates_to_configuration(void)
    UT_ASSERT_EQ_INT(38400, dwForcedBPS);
    UT_ASSERT_EQ_INT(2, nForcedPort);
    UT_ASSERT_EQ_UINT(1, ut_config_calls);
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
    UT_ASSERT_EQ_UINT(1, ut_mps_calls);
 #endif
    UT_ASSERT_EQ_UINT(0, ut_platform_calls);
+
+#ifdef ODPLAT_WIN32
+   reset_init_fixture();
+   ut_subsystem = kODWindowsSubsystemGUI;
+   od_control.config_file = ut_config_callback;
+   od_control.od_mps = ut_mps_callback;
+   utt_od_init();
+   UT_ASSERT_EQ_UINT(0, ut_mps_calls);
+#endif
 
    reset_init_fixture();
    od_control.config_file = ut_config_callback;
@@ -823,6 +881,7 @@ static void resumes_after_configuration_callback(void)
 {
    reset_init_fixture();
    bCalledFromConfig = TRUE;
+   bODInitialized = TRUE;
    utt_od_init();
    UT_ASSERT_EQ_UINT(0, ut_sync_calls);
    UT_ASSERT_EQ_UINT(1, ut_platform_calls);
@@ -1496,8 +1555,10 @@ static void handles_no_file_callback_outcomes(void)
 
 static const UTTestCase ut_cases[] = {
 #if UT_TURBO_SHARD == 0 || UT_TURBO_SHARD == 1
+   {"MPS callback type", accepts_public_mps_callback_type},
    {"entry guards", honors_entry_guards_and_sync_failure},
    {"initialization exit", completes_initialization_before_processing_an_exit_request},
+   {"failed initialization", does_not_publish_a_failed_initialization},
    {"initial defaults", initializes_tables_allocations_and_local_defaults},
    {"configured screen dimensions", preserves_configured_screen_dimensions},
    {"configuration delegation", preserves_tables_and_delegates_to_configuration},

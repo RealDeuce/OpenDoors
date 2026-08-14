@@ -2,7 +2,7 @@
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
 #define UT_CUSTOM_MOCK_od_init
 
-#ifdef OD_TEXTMODE
+#if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
 #define UT_CUSTOM_MOCK_ODScrnCopyText
 #define UT_CUSTOM_MOCK_ODScrnDisplayString
 #define UT_CUSTOM_MOCK_ODScrnEnableCaret
@@ -12,6 +12,16 @@
 #define UT_CUSTOM_MOCK_ODScrnSetBoundary
 #define UT_CUSTOM_MOCK_ODScrnSetCursorPos
 #define UT_CUSTOM_MOCK_ODStoreTextInfo
+#endif
+
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+#endif
+
+#ifdef ODPLAT_DOS32
+#define UT_APPLICATION_CALLBACK ODCALL
+#else
+#define UT_APPLICATION_CALLBACK
 #endif
 
 static unsigned ut_init_calls;
@@ -28,7 +38,7 @@ void ODCALL utm_od_init(void)
 void utm_ODSyncAPIEntry(void) { ++ut_entries; }
 void utm_ODSyncAPIExit(void) { ++ut_exits; }
 
-#ifndef OD_TEXTMODE
+#if !defined(OD_TEXTMODE) && !defined(ODPLAT_WIN32)
 
 static void reports_status_lines_as_unsupported(void)
 {
@@ -68,6 +78,15 @@ static const UTTestCase ut_cases[] = {
 };
 
 #else
+
+#ifdef ODPLAT_WIN32
+static tODWindowsSubsystem ut_subsystem;
+
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{
+   return(ut_subsystem);
+}
+#endif
 
 static tODScrnTextInfo ut_stored_info;
 static unsigned ut_store_calls;
@@ -144,7 +163,7 @@ void utm_ODScrnEnableScrolling(BOOL enabled)
    ut_scrolling_values[ut_scrolling_calls++] = enabled;
 }
 
-static void ODCALL ut_personality(BYTE setting)
+static void UT_APPLICATION_CALLBACK ut_personality(BYTE setting)
 {
    ++ut_personality_calls;
    ut_personality_setting = setting;
@@ -152,6 +171,9 @@ static void ODCALL ut_personality(BYTE setting)
 
 static void reset_status(void)
 {
+#ifdef ODPLAT_WIN32
+   ut_subsystem = kODWindowsSubsystemConsole;
+#endif
    bODInitialized = TRUE;
    od_control.od_status_on = TRUE;
    od_control.od_update_status_now = FALSE;
@@ -175,6 +197,20 @@ static void reset_status(void)
    ut_personality_setting = 255;
    ut_init_succeeds = TRUE;
 }
+
+#ifdef ODPLAT_WIN32
+static void gui_status_lines_remain_unsupported(void)
+{
+   reset_status();
+   ut_subsystem = kODWindowsSubsystemGUI;
+   od_control.od_error = ERR_NONE;
+   utt_od_set_statusline(2);
+   UT_ASSERT_EQ_INT(ERR_UNSUPPORTED, od_control.od_error);
+   UT_ASSERT_EQ_UINT(0, ut_store_calls);
+   UT_ASSERT_EQ_UINT(1, ut_entries);
+   UT_ASSERT_EQ_UINT(1, ut_exits);
+}
+#endif
 
 static void terminal_session_is_rejected(void)
 {
@@ -270,6 +306,9 @@ static const UTTestCase ut_cases[] = {
    {"forced status", forced_updates_redraw_an_unchanged_status_line},
    {"cursor repair", enabling_from_none_repairs_each_cursor_position},
    {"clear status", setting_eight_clears_every_area_outside_the_output_window},
+#ifdef ODPLAT_WIN32
+   {"GUI unsupported", gui_status_lines_remain_unsupported},
+#endif
    {"terminal session", terminal_session_is_rejected}
 };
 

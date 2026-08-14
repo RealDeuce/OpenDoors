@@ -1,4 +1,10 @@
 #define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
+#ifdef ODPLAT_WIN32
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+static tODWindowsSubsystem ut_subsystem = kODWindowsSubsystemConsole;
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{ return(ut_subsystem); }
+#endif
 static BOOL ut_public_call_allowed = TRUE;
 BOOL utm_ODSyncPublicCallAllowed(void)
 {
@@ -12,7 +18,7 @@ static void rejects_a_terminal_session(void)
    ut_public_call_allowed = TRUE;
 }
 
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
 #define UT_CUSTOM_MOCK_ODScrnDisplayChar
 #define UT_CUSTOM_MOCK_ODScrnDisplayString
 #define UT_CUSTOM_MOCK_ODScrnPrintf
@@ -299,6 +305,15 @@ static void unknown_operations_and_hotkeys_are_ignored(void)
    UT_ASSERT_EQ_INT(0x1234, od_control.od_last_hot);
    UT_ASSERT_EQ_UINT(0, ut_force_updates);
 }
+#ifdef ODPLAT_WIN32
+static void ignores_gui_subsystem(void)
+{
+   reset_pcboard(); ut_subsystem = kODWindowsSubsystemGUI;
+   utt_pdef_pcboard(PEROP_DISPLAY1);
+   UT_ASSERT(!ut_saw_upper_name);
+   ut_subsystem = kODWindowsSubsystemConsole;
+}
+#endif
 
 static const UTTestCase ut_cases[] = {
    {"display information sources", covers_display_information_sources_and_modes},
@@ -307,6 +322,9 @@ static const UTTestCase ut_cases[] = {
    {"add-time boundaries", add_time_covers_each_boundary},
    {"subtract-time boundaries", subtract_time_covers_each_boundary},
    {"unknown operations", unknown_operations_and_hotkeys_are_ignored},
+#ifdef ODPLAT_WIN32
+   {"GUI subsystem", ignores_gui_subsystem},
+#endif
    {"terminal session", rejects_a_terminal_session}
 };
 

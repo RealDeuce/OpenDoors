@@ -31,7 +31,7 @@ static void TimeMessage(char *pszMessage)
       && od_control_get() == &od_control;
 }
 
-int main(void)
+static int ODTestMain(void)
 {
    memset(&od_control, 0, sizeof(od_control));
    dwOwnerThread = GetCurrentThreadId();
@@ -78,4 +78,14 @@ int main(void)
    hODInputQueue = NULL;
    ODSyncSessionShutdown();
    return(0);
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreviousInstance,
+   LPSTR pszCommandLine, int nShowCommand)
+{
+   (void)hInstance;
+   (void)hPreviousInstance;
+   (void)pszCommandLine;
+   (void)nShowCommand;
+   return(ODTestMain());
 }

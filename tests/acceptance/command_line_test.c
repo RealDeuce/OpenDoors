@@ -24,9 +24,10 @@ int main(void)
    od_control.od_cmd_line_handler = CustomHandler;
 #ifdef ODPLAT_WIN32
    {
-      char command[] = "-USERNAME Jane Smith -LOCATION Test Lab "
-         "-BBSNAME Acceptance BBS -CUSTOM alpha beta -NODE 7";
-      od_parse_cmd_line(command);
+      char *argv[] = { "door", "-USERNAME", "Jane", "Smith",
+         "-LOCATION", "Test", "Lab", "-BBSNAME", "Acceptance", "BBS",
+         "-CUSTOM", "alpha", "beta", "-NODE", "7" };
+      od_parse_cmd_line_cons((INT)(sizeof(argv) / sizeof(argv[0])), argv);
    }
 #else
    {

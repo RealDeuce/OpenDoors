@@ -3,7 +3,9 @@
 #define UT_CUSTOM_MOCK_ODScrnEnableCaret
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_free
+#define UT_CUSTOM_MOCK_ODConsoleInitialize
 #define UT_CUSTOM_MOCK_ODMutexInitialize
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
 #define UT_CUSTOM_MOCK_memcpy
 #endif
 
@@ -23,6 +25,9 @@ static unsigned ut_caret_calls;
 #ifdef ODPLAT_WIN32
 static BYTE ut_display_buffer[SCREEN_BUFFER_SIZE];
 static unsigned ut_free_calls;
+static unsigned ut_console_calls;
+static BOOL ut_console_result;
+static tODWindowsSubsystem ut_subsystem;
 static tODResult ut_mutex_result;
 static unsigned ut_mutex_calls;
 #endif
@@ -61,6 +66,17 @@ void utm_free(void *memory)
 {
    ++ut_free_calls;
    UT_ASSERT(memory == ut_buffer || memory == ut_display_buffer);
+}
+
+BOOL utm_ODConsoleInitialize(void)
+{
+   ++ut_console_calls;
+   return(ut_console_result);
+}
+
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{
+   return(ut_subsystem);
 }
 
 tODResult utm_ODMutexInitialize(tODMutex *mutex)
@@ -163,7 +179,12 @@ static void reset_initialize(void)
    ut_fill(ut_display_buffer, 0xa5, sizeof(ut_display_buffer));
    pDisplayBuffer = NULL; bScreenPresentationActive = FALSE;
    bScreenDirty = TRUE; hwndScreenWindow = (HWND)1;
-   ut_free_calls = ut_mutex_calls = 0; ut_mutex_result = kODRCSuccess;
+   ut_free_calls = ut_console_calls = ut_mutex_calls = 0;
+   ut_console_result = TRUE;
+   ut_subsystem = kODWindowsSubsystemGUI;
+   ut_mutex_result = kODRCSuccess;
+   od_control.baud = 9600;
+   od_control.od_silent_mode = FALSE;
 #endif
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_NIX)
    pAllocatedBufferMemory = NULL;
@@ -212,6 +233,52 @@ static void releases_both_buffers_when_mutex_initialization_fails(void)
    UT_ASSERT_EQ_UINT(2, ut_malloc_calls); UT_ASSERT_EQ_UINT(2, ut_free_calls);
    UT_ASSERT_EQ_PTR(NULL, pScrnBuffer); UT_ASSERT_EQ_PTR(NULL, pDisplayBuffer);
    UT_ASSERT_EQ_UINT(1, ut_mutex_calls);
+}
+
+static void initializes_or_rejects_a_requested_console(void)
+{
+   reset_initialize();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   od_control.od_silent_mode = FALSE;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODScrnInitialize());
+   UT_ASSERT_EQ_UINT(1, ut_console_calls);
+   UT_ASSERT_EQ_UINT(1, ut_malloc_calls);
+   UT_ASSERT_EQ_UINT(0, ut_mutex_calls);
+   UT_ASSERT_NULL(pDisplayBuffer);
+
+   reset_initialize();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   od_control.baud = 0;
+   od_control.od_silent_mode = FALSE;
+   ut_console_result = FALSE;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODScrnInitialize());
+   UT_ASSERT_EQ_UINT(1, ut_console_calls);
+   UT_ASSERT_EQ_UINT(1, ut_free_calls);
+   UT_ASSERT_NULL(pScrnBuffer);
+   UT_ASSERT_EQ_INT(FALSE, bScreenPresentationActive);
+}
+
+static void remote_console_failure_falls_back_to_silent_mode(void)
+{
+   reset_initialize();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   ut_console_result = FALSE;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODScrnInitialize());
+   UT_ASSERT_EQ_UINT(1, ut_console_calls);
+   UT_ASSERT_EQ_INT(TRUE, od_control.od_silent_mode);
+   UT_ASSERT_EQ_UINT(0, ut_free_calls);
+   UT_ASSERT_EQ_PTR(ut_buffer, pScrnBuffer);
+}
+
+static void silent_console_mode_does_not_manage_a_console(void)
+{
+   reset_initialize();
+   ut_subsystem = kODWindowsSubsystemConsole;
+   od_control.od_silent_mode = TRUE;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODScrnInitialize());
+   UT_ASSERT_EQ_UINT(0, ut_console_calls);
+   UT_ASSERT_EQ_UINT(1, ut_malloc_calls);
+   UT_ASSERT_EQ_UINT(0, ut_mutex_calls);
 }
 #endif
 
@@ -333,6 +400,9 @@ static const UTTestCase ut_cases[] = {
 #ifdef ODPLAT_WIN32
    {"display allocation failure", releases_the_owner_buffer_when_display_allocation_fails},
    {"mutex failure", releases_both_buffers_when_mutex_initialization_fails},
+   {"console availability", initializes_or_rejects_a_requested_console},
+   {"remote console fallback", remote_console_failure_falls_back_to_silent_mode},
+   {"silent console", silent_console_mode_does_not_manage_a_console},
 #endif
    {"memory screen", initializes_a_memory_backed_screen},
 #ifdef ODPLAT_DOS32

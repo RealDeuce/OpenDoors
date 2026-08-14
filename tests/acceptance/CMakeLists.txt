@@ -57,9 +57,90 @@ opendoors_acceptance_test(screen screen_test.c)
 if(WIN32)
     target_link_libraries(opendoors_acceptance_screen PRIVATE ws2_32)
     opendoors_acceptance_test(windows_screen windows_screen_test.c)
+    set_target_properties(opendoors_acceptance_windows_screen PROPERTIES
+        WIN32_EXECUTABLE TRUE)
     target_link_libraries(opendoors_acceptance_windows_screen PRIVATE ws2_32)
     opendoors_acceptance_test(windows_thread_handoff
         windows_thread_handoff_test.c)
+    set_target_properties(opendoors_acceptance_windows_thread_handoff
+        PROPERTIES WIN32_EXECUTABLE TRUE)
+
+    add_executable(opendoors_acceptance_windows_gui_parser_mismatch
+        windows_gui_parser_mismatch_test.c)
+    target_link_libraries(opendoors_acceptance_windows_gui_parser_mismatch
+        PRIVATE "${OPENDOORS_ACCEPTANCE_LIBRARY}")
+    set(_opendoors_windows_launcher)
+    foreach(_opendoors_launcher_arg IN LISTS CMAKE_CROSSCOMPILING_EMULATOR)
+        list(APPEND _opendoors_windows_launcher
+            --launcher "${_opendoors_launcher_arg}")
+    endforeach()
+    add_test(NAME acceptance.windows_gui_parser_mismatch
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/expect_failure.py"
+            ${_opendoors_windows_launcher}
+            --expected "od_parse_cmd_line() requires a Windows GUI executable"
+            "$<TARGET_FILE:opendoors_acceptance_windows_gui_parser_mismatch>")
+    set_tests_properties(acceptance.windows_gui_parser_mismatch PROPERTIES
+        TIMEOUT 20)
+    opendoors_acceptance_library_path(
+        acceptance.windows_gui_parser_mismatch)
+
+    add_executable(opendoors_acceptance_windows_console_parser_mismatch
+        WIN32 windows_console_parser_mismatch_test.c)
+    target_link_libraries(opendoors_acceptance_windows_console_parser_mismatch
+        PRIVATE "${OPENDOORS_ACCEPTANCE_LIBRARY}")
+    add_test(NAME acceptance.windows_console_parser_mismatch
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/expect_failure.py"
+            ${_opendoors_windows_launcher}
+            --expected "od_parse_cmd_line_cons() requires a Windows console executable"
+            "$<TARGET_FILE:opendoors_acceptance_windows_console_parser_mismatch>")
+    set_tests_properties(acceptance.windows_console_parser_mismatch PROPERTIES
+        TIMEOUT 20)
+    opendoors_acceptance_library_path(
+        acceptance.windows_console_parser_mismatch)
+
+    add_executable(opendoors_acceptance_windows_console
+        windows_console_test.c)
+    target_link_libraries(opendoors_acceptance_windows_console
+        PRIVATE OpenDoors::StaticConsole)
+    target_include_directories(opendoors_acceptance_windows_console
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    set_target_properties(opendoors_acceptance_windows_console PROPERTIES
+        C_STANDARD 90
+        C_STANDARD_REQUIRED TRUE
+        C_EXTENSIONS TRUE)
+    add_test(NAME acceptance.windows_console
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/expect_success.py"
+            ${_opendoors_windows_launcher}
+            --marker "OPENDOORS_WINDOWS_CONSOLE_ACCEPTANCE_OK"
+            "$<TARGET_FILE:opendoors_acceptance_windows_console>")
+    set_tests_properties(acceptance.windows_console PROPERTIES TIMEOUT 20)
+
+    if(TARGET OpenDoors::SharedConsole)
+        add_executable(opendoors_acceptance_windows_console_shared
+            windows_console_test.c)
+        target_link_libraries(opendoors_acceptance_windows_console_shared
+            PRIVATE OpenDoors::SharedConsole)
+        target_include_directories(opendoors_acceptance_windows_console_shared
+            PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+        set_target_properties(opendoors_acceptance_windows_console_shared
+            PROPERTIES
+                C_STANDARD 90
+                C_STANDARD_REQUIRED TRUE
+                C_EXTENSIONS TRUE)
+        add_test(NAME acceptance.windows_console_shared
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/expect_success.py"
+                ${_opendoors_windows_launcher}
+                --marker "OPENDOORS_WINDOWS_CONSOLE_ACCEPTANCE_OK"
+                "$<TARGET_FILE:opendoors_acceptance_windows_console_shared>")
+        set_tests_properties(acceptance.windows_console_shared PROPERTIES
+            TIMEOUT 20)
+        opendoors_acceptance_library_path(
+            acceptance.windows_console_shared)
+    endif()
 endif()
 opendoors_acceptance_test(components components_test.c)
 
@@ -101,7 +182,8 @@ add_test(NAME acceptance.symbols
     COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/check_public_symbols.py"
         "$<TARGET_FILE:${OPENDOORS_ACCEPTANCE_LIBRARY}>"
-        --linker "${CMAKE_LINKER}")
+        --linker "${CMAKE_LINKER}"
+        --platform "$<IF:$<BOOL:${WIN32}>,windows,unix>")
 
 if(OPENDOORS_ACCEPTANCE_EXTENDED)
     add_executable(opendoors_acceptance_socket_door socket_door.c)

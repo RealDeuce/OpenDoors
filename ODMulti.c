@@ -54,6 +54,8 @@
 #include "ODScrn.h"
 #include "ODInEx.h"
 #include "ODKrnl.h"
+#include "ODMulti.h"
+#include "ODPlat.h"
 
 
 /* Maximum number of personalities that may be installed at once. */
@@ -66,22 +68,68 @@ typedef struct
    char szName[33];
    INT nStatusTopLine;
    INT nStatusBottomLine;
-   OD_PERSONALITY_PROC *pfPersonalityFunction;
+   OD_PERSONALITY_CALLBACK *pfPersonalityFunction;
 } tPersonalityInfo;
 
-#ifdef OD_TEXTMODE
+#ifdef ODPLAT_WIN32
+static void ODPersonalityOpenDoors(BYTE btOperation)
+{
+   pdef_opendoors(btOperation);
+}
+
+static void ODPersonalityRemoteAccess(BYTE btOperation)
+{
+   pdef_ra(btOperation);
+}
+
+static void ODPersonalityWildcat(BYTE btOperation)
+{
+   pdef_wildcat(btOperation);
+}
+
+static void ODPersonalityPCBoard(BYTE btOperation)
+{
+   pdef_pcboard(btOperation);
+}
+#endif
+
+#ifdef OD_PERSONALITY_SUPPORT
 static tPersonalityInfo aPersonalityInfo[MAX_PERSONALITIES]=
 {
+#ifdef ODPLAT_WIN32
+   {"STANDARD", 1, 23, ODPersonalityOpenDoors},
+   {"REMOTEACCESS", 1, 23, ODPersonalityRemoteAccess},
+   {"WILDCAT", 1, 23, ODPersonalityWildcat},
+   {"PCBOARD", 1, 23, ODPersonalityPCBoard}
+#else
    {"STANDARD", 1, 23, pdef_opendoors},
    {"REMOTEACCESS", 1, 23, pdef_ra},
    {"WILDCAT", 1, 23, pdef_wildcat},
    {"PCBOARD", 1, 23, pdef_pcboard}
+#endif
 };
 
 /* Private variables. */
 static INT nPersonalities = 4;
 static INT nCurrentPersonality = 255;
 #endif
+
+OD_PERSONALITY_CALLBACK *ODMultiResolvePersonality(
+   OD_PERSONALITY_PROC *pfPersonality)
+{
+#ifdef ODPLAT_WIN32
+   if(pfPersonality == NULL) return(ODPersonalityOpenDoors);
+   if(pfPersonality == (OD_PERSONALITY_PROC *)pdef_opendoors)
+      return(ODPersonalityOpenDoors);
+   if(pfPersonality == (OD_PERSONALITY_PROC *)pdef_ra)
+      return(ODPersonalityRemoteAccess);
+   if(pfPersonality == (OD_PERSONALITY_PROC *)pdef_wildcat)
+      return(ODPersonalityWildcat);
+   if(pfPersonality == (OD_PERSONALITY_PROC *)pdef_pcboard)
+      return(ODPersonalityPCBoard);
+#endif
+   return((OD_PERSONALITY_CALLBACK *)pfPersonality);
+}
 
 
 /* ----------------------------------------------------------------------------
@@ -112,11 +160,11 @@ ODAPIDEF void ODCALL ODMPSEnable(void)
  */
 ODAPIDEF BOOL ODCALL od_set_personality(const char *pszName)
 {
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
    BYTE btNewPersonality;
    char szNameToMatch[33];
    tPersonalityInfo *pNewPersonalityInfo;
-#endif /* OD_TEXTMODE */
+#endif /* OD_PERSONALITY_SUPPORT */
 
    /* Log function entry if running in trace mode */
    TRACE(TRACE_API, "od_set_personality()");
@@ -127,7 +175,15 @@ ODAPIDEF BOOL ODCALL od_set_personality(const char *pszName)
 
    OD_API_ENTRY();
    
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
+#ifdef ODPLAT_WIN32
+   if(ODPlatGetWindowsSubsystem() != kODWindowsSubsystemConsole)
+   {
+      od_control.od_error = ERR_UNSUPPORTED;
+      OD_API_EXIT();
+      return(FALSE);
+   }
+#endif
    /* Check for valid parameters. */
    if(strlen(pszName) == 0)
    {
@@ -159,12 +215,10 @@ ODAPIDEF BOOL ODCALL od_set_personality(const char *pszName)
             od_control.od_page_statusline = -1;
             pNewPersonalityInfo = 
                &aPersonalityInfo[nCurrentPersonality=btNewPersonality];
-            (*(OD_PERSONALITY_CALLBACK *)pNewPersonalityInfo
-               ->pfPersonalityFunction)(20);
+            (*pNewPersonalityInfo->pfPersonalityFunction)(20);
             ODScrnSetBoundary(1, (BYTE)pNewPersonalityInfo->nStatusTopLine, 80,
                (BYTE)pNewPersonalityInfo->nStatusBottomLine);
-            pfCurrentPersonality
-               = pNewPersonalityInfo->pfPersonalityFunction;
+            pfCurrentPersonality = pNewPersonalityInfo->pfPersonalityFunction;
             btCurrentStatusLine = 255;
 
             /* Update output area. */
@@ -184,7 +238,7 @@ ODAPIDEF BOOL ODCALL od_set_personality(const char *pszName)
    od_control.od_error = ERR_LIMIT;
    return(FALSE);
 
-#else /* !OD_TEXTMODE */
+#else /* !OD_PERSONALITY_SUPPORT */
 
    /* The multiple personality system is not supported under this platform. */
    od_control.od_error = ERR_UNSUPPORTED;
@@ -193,7 +247,7 @@ ODAPIDEF BOOL ODCALL od_set_personality(const char *pszName)
    OD_API_EXIT();
    return(FALSE);
 
-#endif /* !OD_TEXTMODE */
+#endif /* OD_PERSONALITY_SUPPORT */
 }
 
 
@@ -222,7 +276,14 @@ ODAPIDEF BOOL ODCALL od_add_personality(const char *pszName, BYTE btOutputTop,
    /* Log function entry if running in trace mode */
    TRACE(TRACE_API, "od_add_personality()");
 
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
+#ifdef ODPLAT_WIN32
+   if(ODPlatGetWindowsSubsystem() != kODWindowsSubsystemConsole)
+   {
+      od_control.od_error = ERR_UNSUPPORTED;
+      return(FALSE);
+   }
+#endif
 
    /* Check that we haven't exceeded the limit on the total number of */
    /* installed personalities.                                        */
@@ -238,7 +299,8 @@ ODAPIDEF BOOL ODCALL od_add_personality(const char *pszName, BYTE btOutputTop,
    strupr(aPersonalityInfo[nPersonalities].szName);
    aPersonalityInfo[nPersonalities].nStatusTopLine = btOutputTop;
    aPersonalityInfo[nPersonalities].nStatusBottomLine = btOutputBottom;
-   aPersonalityInfo[nPersonalities].pfPersonalityFunction = pfPerFunc;
+   aPersonalityInfo[nPersonalities].pfPersonalityFunction =
+      ODMultiResolvePersonality(pfPerFunc);
 
    /* Increment total number of personalities. */
    ++nPersonalities;
@@ -246,7 +308,7 @@ ODAPIDEF BOOL ODCALL od_add_personality(const char *pszName, BYTE btOutputTop,
    /* Return with success. */
    return(TRUE);
 
-#else /* !OD_TEXTMODE */
+#else /* !OD_PERSONALITY_SUPPORT */
 
    /* The multiple personality system is not supported under this platform. */
    od_control.od_error = ERR_UNSUPPORTED;
@@ -254,5 +316,5 @@ ODAPIDEF BOOL ODCALL od_add_personality(const char *pszName, BYTE btOutputTop,
    /* Return with failure. */
    return(FALSE);
 
-#endif /* !OD_TEXTMODE */
+#endif /* OD_PERSONALITY_SUPPORT */
 }

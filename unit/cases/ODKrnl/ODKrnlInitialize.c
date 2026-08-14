@@ -8,6 +8,7 @@
 #define UT_CUSTOM_MOCK_ODMutexInitialize
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
+#define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
 #endif
 
 static time_t ut_times[2];
@@ -22,6 +23,7 @@ static tODResult ut_mutex_result;
 static unsigned ut_initialize_calls;
 static unsigned ut_lock_calls;
 static unsigned ut_unlock_calls;
+static tODWindowsSubsystem ut_subsystem;
 #endif
 
 time_t utm_time(time_t *storage)
@@ -58,6 +60,11 @@ int utm_sigprocmask(int operation, const sigset_t *set, sigset_t *old_set)
 #endif
 
 #ifdef ODPLAT_WIN32
+tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
+{
+   return(ut_subsystem);
+}
+
 tODResult utm_ODMutexInitialize(tODMutex *mutex)
 {
    UT_ASSERT_EQ_PTR(&KernelStateLock, mutex);
@@ -87,6 +94,7 @@ static void reset_initialization(void)
    ut_empty_calls = ut_add_calls = ut_mask_calls = 0;
 #endif
 #ifdef OD_THREAD_SUPPORT
+   ut_subsystem = kODWindowsSubsystemGUI;
    ut_mutex_result = kODRCSuccess;
    ut_initialize_calls = ut_lock_calls = ut_unlock_calls = 0;
    bKernelStateLockInitialized = FALSE;
@@ -125,6 +133,18 @@ static void initializes_cooperative_kernel_state(void)
 }
 
 #ifdef ODPLAT_WIN32
+static void console_mode_uses_only_cooperative_kernel_state(void)
+{
+   reset_initialization();
+   ut_subsystem = kODWindowsSubsystemConsole;
+
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODKrnlInitialize());
+   UT_ASSERT_EQ_UINT(0, ut_initialize_calls);
+   UT_ASSERT(!bKernelStateLockInitialized);
+   UT_ASSERT_NULL(pPendingUIHead);
+   UT_ASSERT_NULL(pPendingUITail);
+}
+
 static void reports_state_lock_initialization_failure_and_reuses_the_lock(void)
 {
    reset_initialization();
@@ -155,6 +175,7 @@ static void reports_state_lock_initialization_failure_and_reuses_the_lock(void)
 static const UTTestCase ut_cases[] = {
    {"state", initializes_cooperative_kernel_state},
 #ifdef ODPLAT_WIN32
+   {"console state", console_mode_uses_only_cooperative_kernel_state},
    {"state lock", reports_state_lock_initialization_failure_and_reuses_the_lock}
 #endif
 };

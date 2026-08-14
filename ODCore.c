@@ -867,14 +867,18 @@ ODAPIDEF void ODCALL od_page(void)
       od_set_attrib(od_control.od_chat_color1);
       od_disp_str(od_control.od_paging);
 
-#ifdef OD_TEXTMODE
+#ifdef OD_PERSONALITY_SUPPORT
       /* Display sysop page status line if it exists and the sysop status */
       /* line is currently active.                                        */
-      if(od_control.od_page_statusline != -1 && btCurrentStatusLine != 8)
+      if(od_control.od_page_statusline != -1 && btCurrentStatusLine != 8
+#ifdef ODPLAT_WIN32
+         && ODPlatGetWindowsSubsystem() == kODWindowsSubsystemConsole
+#endif
+         )
       {
          od_set_statusline(od_control.od_page_statusline);
       }
-#endif /* OD_TEXTMODE */
+#endif /* OD_PERSONALITY_SUPPORT */
 
       /* Increment the total number of times that the user has paged */
       /* the sysop.                                                  */
@@ -1054,10 +1058,10 @@ ODAPIDEF void ODCALL od_disp_str(const char *pszToDisplay)
  */
 ODAPIDEF void ODCALL od_set_statusline(INT nSetting)
 {
-#ifdef OD_TEXTMODE
+#if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
    INT nDistance;
    BYTE btCount
-#endif /* OD_TEXTMODE */
+#endif /* OD_TEXTMODE || ODPLAT_WIN32 */
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_set_statusline()");
@@ -1068,7 +1072,16 @@ ODAPIDEF void ODCALL od_set_statusline(INT nSetting)
 
    OD_API_ENTRY()
 
-#ifdef OD_TEXTMODE
+#if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
+
+#ifdef ODPLAT_WIN32
+   if(ODPlatGetWindowsSubsystem() != kODWindowsSubsystemConsole)
+   {
+      od_control.od_error = ERR_UNSUPPORTED;
+      OD_API_EXIT();
+      return;
+   }
+#endif
 
    /* If status line is disabled, then don't do anything. */
    if(!od_control.od_status_on)
@@ -1158,11 +1171,11 @@ ODAPIDEF void ODCALL od_set_statusline(INT nSetting)
       ODScrnSetCursorPos(ODTextInfo.curx, ODTextInfo.cury);
    }
 
-#else /* !OD_TEXTMODE */
+#else /* !OD_TEXTMODE && !ODPLAT_WIN32 */
 
    od_control.od_error = ERR_UNSUPPORTED;
 
-#endif /* !OD_TEXTMODE */
+#endif /* OD_TEXTMODE || ODPLAT_WIN32 */
 
    OD_API_EXIT();
 }
