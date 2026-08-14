@@ -128,6 +128,7 @@ char ODCALL utm_od_get_key(BOOL wait)
 }
 int utm_tolower(int value)
 {
+   UT_ASSERT_EQ_INT((int)(unsigned char)value, value);
    if(value >= 'A' && value <= 'Z') return(value - 'A' + 'a');
    return(value);
 }
@@ -401,6 +402,8 @@ static void sends_rip_without_local_emulation_and_drains_remote_output(void)
 
 static void handles_hotkeys_during_transmission(void)
 {
+   char high_hotkeys[] = {(char)0x80, '\0'};
+
    reset_send();
    pszCurrentHotkeys = (char *)"AB";
    ut_keys[0] = 'x'; ut_keys[1] = 0; ut_key_count = 2;
@@ -422,6 +425,12 @@ static void handles_hotkeys_during_transmission(void)
    UT_ASSERT(utt_od_send_file("screen.ans"));
    UT_ASSERT_EQ_INT('A', chHotkeyPressed);
    UT_ASSERT_EQ_UINT(0, ut_clear_outbound_calls);
+
+   reset_send();
+   pszCurrentHotkeys = high_hotkeys;
+   ut_keys[0] = (char)0x80; ut_key_count = 1;
+   UT_ASSERT(utt_od_send_file("screen.ans"));
+   UT_ASSERT_EQ_UINT(0x80, (unsigned char)chHotkeyPressed);
 }
 
 static void honors_stop_pause_and_other_control_keys(void)

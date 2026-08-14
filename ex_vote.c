@@ -923,7 +923,7 @@ int ChooseQuestion(int nFromWhichQuestions, char *pszTitle, int *nLocation)
       {      
          /* Get input from user */
          chCurrent = (char)od_get_key(TRUE);
-         chCurrent = (char)toupper(chCurrent);
+         chCurrent = (char)toupper((unsigned char)chCurrent);
       
          /* Respond to user's input. */
       

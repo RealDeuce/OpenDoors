@@ -218,7 +218,7 @@
           "name": "ODCfgGetWordHex",
           "signature_line": 859,
           "body_line": 877,
-          "end_line": 894,
+          "end_line": 895,
           "platforms": [
             "unix",
             "windows",
@@ -229,9 +229,9 @@
         },
         {
           "name": "ODCfgGetNextTime",
-          "signature_line": 894,
-          "body_line": 910,
-          "end_line": 944,
+          "signature_line": 895,
+          "body_line": 911,
+          "end_line": 945,
           "platforms": [
             "unix",
             "windows",
@@ -242,9 +242,9 @@
         },
         {
           "name": "ODCfgIsTrue",
-          "signature_line": 944,
-          "body_line": 959,
-          "end_line": 980,
+          "signature_line": 945,
+          "body_line": 960,
+          "end_line": 981,
           "platforms": [
             "unix",
             "windows",
@@ -1213,7 +1213,7 @@
           "name": "ODPagePrompt",
           "signature_line": 1727,
           "body_line": 1742,
-          "end_line": 1817,
+          "end_line": 1821,
           "platforms": [
             "unix",
             "windows",
@@ -1224,9 +1224,9 @@
         },
         {
           "name": "od_control_get",
-          "signature_line": 1817,
-          "body_line": 1832,
-          "end_line": 1839,
+          "signature_line": 1821,
+          "body_line": 1836,
+          "end_line": 1843,
           "platforms": [
             "unix",
             "windows",
@@ -1753,7 +1753,7 @@
           "name": "ODEditAsCharForPos",
           "signature_line": 1128,
           "body_line": 1149,
-          "end_line": 1206,
+          "end_line": 1208,
           "platforms": [
             "unix",
             "windows",
@@ -1764,9 +1764,9 @@
         },
         {
           "name": "ODEditDisplayPermaliteral",
-          "signature_line": 1206,
-          "body_line": 1221,
-          "end_line": 1254,
+          "signature_line": 1208,
+          "body_line": 1223,
+          "end_line": 1256,
           "platforms": [
             "unix",
             "windows",
@@ -1777,9 +1777,9 @@
         },
         {
           "name": "ODEditGetWindowSize",
-          "signature_line": 1254,
-          "body_line": 1263,
-          "end_line": 1279,
+          "signature_line": 1256,
+          "body_line": 1265,
+          "end_line": 1281,
           "platforms": [
             "unix",
             "windows",
@@ -3761,7 +3761,7 @@
           "name": "ODPopupCheckForKey",
           "signature_line": 516,
           "body_line": 535,
-          "end_line": 654,
+          "end_line": 656,
           "platforms": [
             "unix",
             "windows",
@@ -3772,9 +3772,9 @@
         },
         {
           "name": "ODPopupDisplayMenuItem",
-          "signature_line": 654,
-          "body_line": 688,
-          "end_line": 733,
+          "signature_line": 656,
+          "body_line": 690,
+          "end_line": 735,
           "platforms": [
             "unix",
             "windows",

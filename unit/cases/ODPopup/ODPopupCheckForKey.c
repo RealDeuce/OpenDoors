@@ -31,6 +31,7 @@ void ODCALL utm_od_kernel(void)
 
 int utm_toupper(int value)
 {
+   UT_ASSERT_EQ_INT((int)(unsigned char)value, value);
    if(value >= 'a' && value <= 'z')
       return value - ('a' - 'A');
    return value;
@@ -212,6 +213,15 @@ static void selects_hotkeys_case_insensitively_at_any_position(void)
    UT_ASSERT_EQ_INT(NO_COMMAND, nCommand);
 }
 
+static void selects_a_high_bit_hotkey_without_invalid_ctype_input(void)
+{
+   reset_input();
+   ut_items[0].szItemText[0] = (char)0x80;
+   add_event(EVENT_CHARACTER, (char)0x80);
+   utt_ODPopupCheckForKey(FALSE);
+   UT_ASSERT_EQ_INT(1, nCommand);
+}
+
 static void maps_numeric_navigation_aliases(void)
 {
    reset_input();
@@ -247,5 +257,6 @@ static const UTTestCase ut_cases[] = {
    {"enter keys", accepts_both_enter_characters},
    {"escape", allows_escape_only_when_configured},
    {"hotkeys", selects_hotkeys_case_insensitively_at_any_position},
+   {"high-bit hotkey", selects_a_high_bit_hotkey_without_invalid_ctype_input},
    {"numeric aliases", maps_numeric_navigation_aliases}
 };

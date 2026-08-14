@@ -620,9 +620,11 @@ right_arrow:
             /* Check whether key is a menu "hot key" */
             for(btCount = 0; btCount < btCurrentNumMenuItems; ++btCount)
             {
-               if(toupper(MenuLevelInfo[nCurrentLevel].paMenuItems[btCount]
+               if(toupper((unsigned char)MenuLevelInfo[nCurrentLevel]
+                  .paMenuItems[btCount]
                   .szItemText[MenuLevelInfo[nCurrentLevel].paMenuItems[btCount]
-                  .btKeyIndex]) == toupper(InputEvent.chKeyPress))
+                  .btKeyIndex]) ==
+                  toupper((unsigned char)InputEvent.chKeyPress))
                {
                   btCorrectItem = btCount;
                   nCommand = btCorrectItem + 1;

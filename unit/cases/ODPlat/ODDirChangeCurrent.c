@@ -1,8 +1,10 @@
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 #define UT_CUSTOM_MOCK_toupper
+static int ut_expected_toupper;
 int utm_toupper(int character)
 {
-   UT_ASSERT_EQ_INT('c', character);
+   UT_ASSERT_EQ_INT(ut_expected_toupper, character);
+   UT_ASSERT_EQ_INT((int)(unsigned char)character, character);
    return('C');
 }
 #endif
@@ -63,20 +65,29 @@ int utm_chdir(const char *path)
 static void changes_paths_with_and_without_drive_designators(void)
 {
    char drive_path[] = "c:\\tmp";
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   char high_drive_path[] = {(char)0x80, ':', '\\', 't', 'm', 'p', '\0'};
+#endif
    char relative_path[] = "tmp";
    ut_change_calls = 0;
 #ifdef ODPLAT_DOS
    ut_expected_drive = 2;
+   ut_expected_toupper = 'c';
    utt_ODDirChangeCurrent(drive_path);
+   ut_expected_toupper = 0x80;
+   utt_ODDirChangeCurrent(high_drive_path);
    ut_expected_drive = 0;
    utt_ODDirChangeCurrent(relative_path);
-   UT_ASSERT_EQ_UINT(2, ut_change_calls);
+   UT_ASSERT_EQ_UINT(3, ut_change_calls);
 #elif defined(ODPLAT_DOS32)
    ut_drive_calls = 0;
+   ut_expected_toupper = 'c';
    utt_ODDirChangeCurrent(drive_path);
+   ut_expected_toupper = 0x80;
+   utt_ODDirChangeCurrent(high_drive_path);
    utt_ODDirChangeCurrent(relative_path);
-   UT_ASSERT_EQ_UINT(1, ut_drive_calls);
-   UT_ASSERT_EQ_UINT(2, ut_change_calls);
+   UT_ASSERT_EQ_UINT(2, ut_drive_calls);
+   UT_ASSERT_EQ_UINT(3, ut_change_calls);
 #elif defined(ODPLAT_WIN32)
    utt_ODDirChangeCurrent(drive_path);
    UT_ASSERT_EQ_UINT(1, ut_change_calls);

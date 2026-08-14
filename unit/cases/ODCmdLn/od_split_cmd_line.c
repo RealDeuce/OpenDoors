@@ -8,9 +8,7 @@
 #define UT_CUSTOM_MOCK_ODWindowsCommandLineToArgv
 #define UT_CUSTOM_MOCK_WideCharToMultiByte
 #endif
-#if defined(ODPLAT_NIX) || defined(ODPLAT_WIN32)
 #define UT_CUSTOM_MOCK_isspace
-#endif
 #define UT_CUSTOM_MOCK_malloc
 #define UT_CUSTOM_MOCK_memcpy
 #define UT_CUSTOM_MOCK_realloc
@@ -95,13 +93,12 @@ char *utm_strdup(const char *text)
    return destination;
 }
 
-#if defined(ODPLAT_NIX) || defined(ODPLAT_WIN32)
 int utm_isspace(int value)
 {
+   UT_ASSERT_EQ_INT((int)(unsigned char)value, value);
    return value == ' ' || value == '\t' || value == '\n' ||
       value == '\r' || value == '\f' || value == '\v';
 }
-#endif
 
 #ifdef ODPLAT_WIN32
 LPSTR WINAPI utm_GetCommandLineA(void)
@@ -427,6 +424,20 @@ static void stops_at_the_documented_argument_limit(void)
    UT_ASSERT_EQ_INT(4096, count);
 }
 
+static void preserves_high_bit_argument_bytes(void)
+{
+   char command[] = {(char)0x80, 'x', '\0'};
+   INT count;
+   char **result;
+   reset_fixture();
+   result = utt_od_split_cmd_line(command, &count);
+   UT_ASSERT_NOT_NULL(result);
+   UT_ASSERT_EQ_INT(2, count);
+   UT_ASSERT_EQ_UINT(0x80, (unsigned char)result[1][0]);
+   UT_ASSERT_EQ_INT('x', result[1][1]);
+   UT_ASSERT_EQ_INT('\0', result[1][2]);
+}
+
 #ifdef ODPLAT_WIN32
 static void parses_windows_quotes_and_empty_arguments(void)
 {
@@ -487,6 +498,7 @@ static const UTTestCase ut_cases[] = {
    {"terminal session", rejects_a_terminal_session},
    {"invalid parameters and allocations", rejects_invalid_parameters_and_allocation_failures},
    {"split whitespace", splits_whitespace_and_handles_realloc_failure},
+   {"high-bit argument", preserves_high_bit_argument_bytes},
    {"argument limit", stops_at_the_documented_argument_limit},
 #ifdef ODPLAT_WIN32
    {"Windows grammar", parses_windows_quotes_and_empty_arguments},

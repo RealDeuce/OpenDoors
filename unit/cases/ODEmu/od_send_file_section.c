@@ -152,6 +152,8 @@ static void finds_the_section_while_finishing_a_local_fallback_file(void)
 
 static void handles_hotkeys_and_control_keys(void)
 {
+   char high_hotkeys[] = {(char)0x80, '\0'};
+
    reset_send();
    pszCurrentHotkeys = (char *)"AB";
    ut_keys[0] = 'x'; ut_keys[1] = 0; ut_key_count = 2;
@@ -165,6 +167,13 @@ static void handles_hotkeys_and_control_keys(void)
    UT_ASSERT(!utt_od_send_file_section((char *)"screen.ans", (char *)"SEC"));
    UT_ASSERT_EQ_INT('B', chHotkeyPressed);
    UT_ASSERT_EQ_UINT(1, ut_clear_outbound_calls);
+
+   reset_send();
+   pszCurrentHotkeys = high_hotkeys;
+   ut_keys[0] = (char)0x80; ut_key_count = 1;
+   UT_ASSERT(!utt_od_send_file_section((char *)"screen.ans",
+      (char *)"SEC"));
+   UT_ASSERT_EQ_UINT(0x80, (unsigned char)chHotkeyPressed);
 
    reset_send();
    ut_control_after_emulate = 's';

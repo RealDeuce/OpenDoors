@@ -17,6 +17,7 @@ static int ut_upper(int value)
 
 int utm_toupper(int value)
 {
+   UT_ASSERT_EQ_INT((int)(unsigned char)value, value);
    return ut_upper(value);
 }
 
@@ -69,6 +70,15 @@ static void hexadecimal_word_rejects_missing_number(void)
    UT_ASSERT_EQ_UINT(99, value);
 }
 
+static void hexadecimal_word_skips_high_bit_bytes(void)
+{
+   char text[] = {(char)0x80, '1', '\0'};
+   WORD value = 0;
+   reset_fixture();
+   UT_ASSERT_EQ_INT(TRUE, utt_ODCfgGetWordHex(text, &value));
+   UT_ASSERT_EQ_UINT(0x12ab, value);
+}
+
 static void hexadecimal_word_reports_conversion_failure(void)
 {
    char text[] = "1";
@@ -82,6 +92,7 @@ static void hexadecimal_word_reports_conversion_failure(void)
 static const UTTestCase ut_cases[] = {
    {"skip non-hexadecimal", hexadecimal_word_finds_first_digit},
    {"hexadecimal letters", hexadecimal_word_finds_letters_regardless_of_case},
+   {"high-bit prefix", hexadecimal_word_skips_high_bit_bytes},
    {"no hexadecimal value", hexadecimal_word_rejects_missing_number},
    {"conversion failure", hexadecimal_word_reports_conversion_failure}
 };

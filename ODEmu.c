@@ -292,7 +292,7 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
    INT nFileLevel;
    BYTE btCount;
    BOOL bPausing;
-   char chKey;
+   INT nKey;
    char *pchParsing;
    char szMessage[74];
    char chControlKey;
@@ -418,14 +418,14 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
       if(pszCurrentHotkeys != NULL)
       {
          /* If a key is waiting in buffer. */
-         while((chKey = (char)tolower(od_get_key(FALSE))) != 0)
+         while((nKey = tolower((unsigned char)od_get_key(FALSE))) != 0)
          {
             /* Check for key in hotkey string. */
             pchParsing = (char *)pszCurrentHotkeys;
             while(*pchParsing)
             {
                /* If key is found. */
-               if(tolower(*pchParsing) == chKey)
+               if(tolower((unsigned char)*pchParsing) == nKey)
                {
                   /* Return, indicating that hotkey was pressed. */
                   chHotkeyPressed = *pchParsing;
@@ -634,7 +634,7 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
    INT nFileLevel;
    BYTE btCount;
    BOOL bPausing;
-   char chKey;
+   INT nKey;
    char *pchParsing;
    char szMessage[74];
    char szFullSectionName[256];
@@ -780,14 +780,14 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
       if(pszCurrentHotkeys != NULL)
       {
          /* If a key is waiting in buffer. */
-         while((chKey = (char)tolower(od_get_key(FALSE))) != 0)
+         while((nKey = tolower((unsigned char)od_get_key(FALSE))) != 0)
          {
             /* Check for key in hotkey string. */
             pchParsing = (char *)pszCurrentHotkeys;
             while(*pchParsing)
             {
                /* If key is found. */
-               if(tolower(*pchParsing) == chKey)
+               if(tolower((unsigned char)*pchParsing) == nKey)
                {
                   /* Return, indicating that hotkey was pressed. */
                   chHotkeyPressed = *pchParsing;

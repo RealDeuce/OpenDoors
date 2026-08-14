@@ -484,14 +484,14 @@ windows_memory_error:
       papszArguments[*nArgCount] = pchCurrent;
 
       /* Skip forward to the next white space. */
-      while(*pchCurrent != '\0' && !isspace(*pchCurrent))
+      while(*pchCurrent != '\0' && !isspace((unsigned char)*pchCurrent))
       {
          ++pchCurrent;
       }
 
       /* Replace white space characters with '\0' string terminators, until */
       /* we reach the next command line argument, or the end of the string. */
-      while(*pchCurrent != '\0' && isspace(*pchCurrent))
+      while(*pchCurrent != '\0' && isspace((unsigned char)*pchCurrent))
       {
          *pchCurrent = '\0';
          ++pchCurrent;

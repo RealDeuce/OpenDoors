@@ -1234,7 +1234,7 @@ void ODStringToName(char *pszToConvert)
    }
 
    /* Change the first character to lower case. */
-   *pszToConvert = toupper(*pszToConvert);
+   *pszToConvert = (char)toupper((unsigned char)*pszToConvert);
 
    /* Loop through the rest of the string, capitalizing any other words */
    /* in the string.                                                    */
@@ -1247,7 +1247,7 @@ void ODStringToName(char *pszToConvert)
          case ',':
          case '.':
          case '-':
-            *pszToConvert = toupper(*pszToConvert);
+            *pszToConvert = (char)toupper((unsigned char)*pszToConvert);
             break;
       }
    }
@@ -1584,7 +1584,7 @@ void ODCoreSetDTRResult(tODResult Result)
 ODAPIDEF char ODCALL od_get_answer(const char *pszOptions)
 {
    char *pchPossibleOption;
-   char chPressed;
+   INT nPressed;
 
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_get_answer()");
@@ -1598,20 +1598,20 @@ ODAPIDEF char ODCALL od_get_answer(const char *pszOptions)
    for(;;)
    {
       /* Wait for the next key press by the user. */
-      chPressed = od_get_key(TRUE);
+      nPressed = (unsigned char)od_get_key(TRUE);
       if(!bODInitialized)
       {
          OD_API_EXIT();
          return('\0');
       }
-      chPressed = tolower(chPressed);
+      nPressed = tolower((unsigned char)nPressed);
 
       /* Loop through list of possible options. */
       pchPossibleOption = (char *)pszOptions;
       while(*pchPossibleOption)
       {
          /* If the key pressed matches this possible option. */
-         if(tolower(*pchPossibleOption) == chPressed)
+         if(tolower((unsigned char)*pchPossibleOption) == nPressed)
          {
             /* Then return the character in the case originally specified */
             /* by the caller.                                             */
@@ -1743,7 +1743,7 @@ BOOL ODPagePrompt(BOOL *pbPausing)
    INT nPromptLength = strlen(od_control.od_continue);
    tODScrnTextInfo TextInfo;
    BOOL bToReturn = FALSE;
-   char chKeyPressed;
+   INT nKeyPressed;
    BYTE btCount;
 
    /* Return right away if page pausing is disabled. */
@@ -1765,21 +1765,23 @@ BOOL ODPagePrompt(BOOL *pbPausing)
    for(;;)
    {
       /* Obtain the next key from the user. */
-      chKeyPressed = od_get_key(TRUE);
+      nKeyPressed = (unsigned char)od_get_key(TRUE);
       if(!bODInitialized) return(TRUE);
 
       /* If user chooses to continue. */
-      if(chKeyPressed == tolower(od_control.od_continue_yes) ||
-         chKeyPressed == toupper(od_control.od_continue_yes) ||
-         chKeyPressed == 13 ||
-         chKeyPressed == ' ')
+      if(nKeyPressed == tolower((unsigned char)od_control.od_continue_yes) ||
+         nKeyPressed == toupper((unsigned char)od_control.od_continue_yes) ||
+         nKeyPressed == 13 ||
+         nKeyPressed == ' ')
       {
          break;
       }
 
       /* If user requested nonstop display. */
-      else if(chKeyPressed == tolower(od_control.od_continue_nonstop) ||
-              chKeyPressed == toupper(od_control.od_continue_nonstop))
+      else if(nKeyPressed ==
+              tolower((unsigned char)od_control.od_continue_nonstop) ||
+              nKeyPressed ==
+              toupper((unsigned char)od_control.od_continue_nonstop))
       {
          /* Disable page pausing. */
          *pbPausing = FALSE;
@@ -1788,15 +1790,17 @@ BOOL ODPagePrompt(BOOL *pbPausing)
       }
 
       /* If user chooses to stop display. */
-      else if(chKeyPressed == tolower(od_control.od_continue_no) ||
-              chKeyPressed == toupper(od_control.od_continue_no) ||
-              chKeyPressed == 's' || chKeyPressed == 'S' || chKeyPressed == 3
-              || chKeyPressed == 11)
+      else if(nKeyPressed ==
+              tolower((unsigned char)od_control.od_continue_no) ||
+              nKeyPressed ==
+              toupper((unsigned char)od_control.od_continue_no) ||
+              nKeyPressed == 's' || nKeyPressed == 'S' || nKeyPressed == 3
+              || nKeyPressed == 11)
       {
          bToReturn = TRUE;
          break;
       }
-      else if(chKeyPressed == 0x18)
+      else if(nKeyPressed == 0x18)
       {
          bToReturn = TRUE;
          break;

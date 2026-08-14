@@ -1161,22 +1161,22 @@ static char ODEditAsCharForPos(char chEntered, INT nPosition)
       /* If Yes/No characters are required. */
       case 'Y':
       case 'y':
-         return(toupper(chEntered));
+         return((char)toupper((unsigned char)chEntered));
 
       /* If filename characters are required. */
       case 'F':                                       
       case 'f':
-         return(toupper(chEntered));
+         return((char)toupper((unsigned char)chEntered));
 
       /* If lower case characters are required. */
       case 'L':
       case 'l':
-         return(tolower(chEntered));
+         return((char)tolower((unsigned char)chEntered));
 
       /* If upper case characters are required. */
       case 'U':
       case 'u':
-         return(toupper(chEntered));
+         return((char)toupper((unsigned char)chEntered));
 
       /* If automatic capitalization is required. */
       case 'M':
@@ -1184,10 +1184,12 @@ static char ODEditAsCharForPos(char chEntered, INT nPosition)
       case 'C':
       case 'c':
          /* First character is always upper case. */
-         if(nPosition == 0) return(toupper(chEntered));
+         if(nPosition == 0)
+            return((char)toupper((unsigned char)chEntered));
 
          /* Check for other base cases. */
-         if(abCurrentFormatLiteral[nPosition-1]) return(toupper(chEntered));
+         if(abCurrentFormatLiteral[nPosition-1])
+            return((char)toupper((unsigned char)chEntered));
          /* If previous character is a word delimiter, then this character */
          /* should be uppper case.                                         */
          if(pszCurrentInput[nPosition-1] == ' '
@@ -1195,11 +1197,11 @@ static char ODEditAsCharForPos(char chEntered, INT nPosition)
             || pszCurrentInput[nPosition-1] == ','
             || pszCurrentInput[nPosition-1] == '-')
          {
-            return(toupper(chEntered));                                             /* Otherwise, this should be lower */
+            return((char)toupper((unsigned char)chEntered));
          }
 
          /* Otherwise, this character should be lower-case. */
-         return(tolower(chEntered));
+         return((char)tolower((unsigned char)chEntered));
    }
 
    return(chEntered);

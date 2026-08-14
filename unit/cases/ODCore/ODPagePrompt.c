@@ -27,12 +27,14 @@ size_t utm_strlen(const char *text)
 
 int utm_tolower(int value)
 {
+   UT_ASSERT_EQ_INT((int)(unsigned char)value, value);
    if(value >= 'A' && value <= 'Z') return value - 'A' + 'a';
    return value;
 }
 
 int utm_toupper(int value)
 {
+   UT_ASSERT_EQ_INT((int)(unsigned char)value, value);
    if(value >= 'a' && value <= 'z') return value - 'a' + 'A';
    return value;
 }
@@ -183,6 +185,16 @@ static void invalid_keys_are_ignored_until_a_valid_choice(void)
    assert_normal_prompt_cleanup();
 }
 
+static void accepts_a_high_bit_configured_response(void)
+{
+   BOOL pausing = TRUE;
+   reset_prompt();
+   od_control.od_continue_yes = (char)0x80;
+   UT_ASSERT_EQ_INT(FALSE, run_prompt_key((char)0x80, &pausing));
+   UT_ASSERT_EQ_INT(TRUE, pausing);
+   assert_normal_prompt_cleanup();
+}
+
 static void shutdown_aborts_without_erasing_the_prompt(void)
 {
    BOOL pausing = TRUE;
@@ -202,5 +214,6 @@ static const UTTestCase ut_cases[] = {
    {"nonstop keys", every_nonstop_key_disables_pausing},
    {"abort keys", every_abort_key_stops_display},
    {"invalid key", invalid_keys_are_ignored_until_a_valid_choice},
+   {"high-bit response", accepts_a_high_bit_configured_response},
    {"session shutdown", shutdown_aborts_without_erasing_the_prompt}
 };

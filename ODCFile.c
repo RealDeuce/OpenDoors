@@ -880,7 +880,8 @@ static BOOL ODCfgGetWordHex(char *pszConfigText, WORD *pwValue)
 
    /* Skip any initial non-hexadecimal characters. */
    while(*pszConfigText && (*pszConfigText < '0' || *pszConfigText > '9')
-      && (toupper(*pszConfigText) < 'A' || toupper(*pszConfigText) > 'F'))
+      && (toupper((unsigned char)*pszConfigText) < 'A'
+         || toupper((unsigned char)*pszConfigText) > 'F'))
    {
       ++pszConfigText;
    }

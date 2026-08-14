@@ -33,6 +33,7 @@ char ODCALL utm_od_get_key(BOOL wait)
 
 int utm_tolower(int value)
 {
+   UT_ASSERT_EQ_INT((int)(unsigned char)value, value);
    if(value >= 'A' && value <= 'Z') return value - 'A' + 'a';
    return value;
 }
@@ -82,8 +83,19 @@ static void returns_nul_if_the_session_ends_while_waiting(void)
    UT_ASSERT_EQ_UINT(1, ut_exits);
 }
 
+static void matches_high_bit_options_without_invalid_ctype_input(void)
+{
+   char options[] = {(char)0x80, 'Y', '\0'};
+   reset_answer();
+   ut_keys[0] = (char)0x80;
+   ut_key_count = 1;
+   UT_ASSERT_EQ_UINT(0x80, (unsigned char)utt_od_get_answer(options));
+   UT_ASSERT_EQ_UINT(1, ut_key_index);
+}
+
 static const UTTestCase ut_cases[] = {
    {"matching answer", ignores_invalid_keys_and_returns_the_option_spelling},
+   {"high-bit answer", matches_high_bit_options_without_invalid_ctype_input},
    {"session shutdown", returns_nul_if_the_session_ends_while_waiting},
    {"terminal session", terminal_session_is_rejected}
 };

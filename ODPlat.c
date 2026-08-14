@@ -1446,7 +1446,7 @@ void ODDirChangeCurrent(char *pszPath)
 
    if(pszPath[1] == ':')
    {
-      nDrive = (toupper(pszPath[0]) - 'A');
+      nDrive = (toupper((unsigned char)pszPath[0]) - 'A');
    }
 
    _setdrvcd(nDrive, (char *)pszPath);
@@ -1454,7 +1454,7 @@ void ODDirChangeCurrent(char *pszPath)
 
 #ifdef ODPLAT_DOS32
    if(pszPath[1] == ':')
-      _chdrive(toupper(pszPath[0]) - 'A' + 1);
+      _chdrive(toupper((unsigned char)pszPath[0]) - 'A' + 1);
    chdir(pszPath);
 #endif /* ODPLAT_DOS32 */
 

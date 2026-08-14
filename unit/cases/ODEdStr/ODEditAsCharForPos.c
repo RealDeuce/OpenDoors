@@ -3,6 +3,7 @@
 
 int utm_toupper(int character)
 {
+   UT_ASSERT_EQ_INT((int)(unsigned char)character, character);
    if(character >= 'a' && character <= 'z')
       return(character - 'a' + 'A');
    return(character);
@@ -10,6 +11,7 @@ int utm_toupper(int character)
 
 int utm_tolower(int character)
 {
+   UT_ASSERT_EQ_INT((int)(unsigned char)character, character);
    if(character >= 'A' && character <= 'Z')
       return(character - 'A' + 'a');
    return(character);
@@ -85,8 +87,17 @@ static void applies_word_capitalization(void)
    UT_ASSERT_EQ_INT('a', convert_at('M', 'A', 1));
 }
 
+static void preserves_high_bit_bytes_during_case_conversion(void)
+{
+   UT_ASSERT_EQ_UINT(0x80,
+      (unsigned char)convert_at('U', (char)0x80, 0));
+   UT_ASSERT_EQ_UINT(0x80,
+      (unsigned char)convert_at('L', (char)0x80, 0));
+}
+
 static const UTTestCase ut_cases[] = {
    {"literal and identity conversion", returns_literal_and_unconverted_values},
    {"simple case conversion", applies_simple_case_formats},
+   {"high-bit byte", preserves_high_bit_bytes_during_case_conversion},
    {"word capitalization", applies_word_capitalization}
 };
