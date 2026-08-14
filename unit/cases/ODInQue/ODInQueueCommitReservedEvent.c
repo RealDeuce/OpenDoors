@@ -45,6 +45,7 @@ static void rejects_invalid_or_unreserved_commits(void)
 {
    tODInputEvent event;
    tODInQueueHandle handle = ut_queue_handle(4, 0, 0);
+   memset(&event, 0, sizeof(event));
    UT_ASSERT_EQ_INT(kODRCInvalidCall,
       utt_ODInQueueCommitReservedEvent((tODInQueueHandle)0, &event));
    UT_ASSERT_EQ_INT(kODRCInvalidCall,

@@ -102,10 +102,24 @@ static void quits_a_windowless_thread_without_self_joining(void)
    UT_ASSERT_EQ_UINT(1, ut_close_started_calls);
 }
 
+static void cleans_up_without_a_startup_event(void)
+{
+   tODThreadHandle thread;
+   reset_shutdown(&thread);
+   hFrameStartedEvent = NULL;
+   utt_ODFrameShutdown(&thread);
+   UT_ASSERT_EQ_UINT(1, ut_request_calls);
+   UT_ASSERT_EQ_UINT(1, ut_wait_calls);
+   UT_ASSERT_EQ_UINT(1, ut_close_frame_calls);
+   UT_ASSERT_EQ_UINT(0, ut_close_started_calls);
+   UT_ASSERT_NULL(thread);
+}
+
 static const UTTestCase ut_cases[] = {
    {"absent thread", ignores_an_absent_frame_thread},
    {"joined shutdown", posts_shutdown_and_joins},
    {"delivery failure", does_not_wait_or_release_state_after_delivery_failure},
-   {"self shutdown", quits_a_windowless_thread_without_self_joining}
+   {"self shutdown", quits_a_windowless_thread_without_self_joining},
+   {"no startup event", cleans_up_without_a_startup_event}
 };
 #endif

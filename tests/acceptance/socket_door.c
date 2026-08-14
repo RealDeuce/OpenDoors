@@ -29,8 +29,6 @@ int main(int argc, char **argv)
    char edit_input[4];
    char edit_format[2];
    char menu_choice;
-   const char *burst;
-   int burst_index;
 #if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
    DWORD_PTR handle;
 #endif
@@ -114,14 +112,15 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(strcmp(input, "socket") == 0);
 
    od_disp("KEY", 3, FALSE);
-   od_sleep(250);
-   od_kernel();
-   burst = "ABCDE";
-   for(burst_index = 0; burst[burst_index] != '\0'; ++burst_index)
-   {
-      OD_TEST_CHECK(od_key_pending());
-      OD_TEST_CHECK(od_get_key(FALSE) == burst[burst_index]);
-   }
+   OD_TEST_CHECK(od_get_key(TRUE) == 'A');
+   OD_TEST_CHECK(od_key_pending());
+   OD_TEST_CHECK(od_get_key(FALSE) == 'B');
+   OD_TEST_CHECK(od_key_pending());
+   OD_TEST_CHECK(od_get_key(FALSE) == 'C');
+   OD_TEST_CHECK(od_key_pending());
+   OD_TEST_CHECK(od_get_key(FALSE) == 'D');
+   OD_TEST_CHECK(od_key_pending());
+   OD_TEST_CHECK(od_get_key(FALSE) == 'E');
    OD_TEST_CHECK(!od_key_pending());
    OD_TEST_CHECK(od_control.od_last_input == 0);
 
