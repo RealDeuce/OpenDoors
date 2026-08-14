@@ -60,7 +60,7 @@ def drive_session(peer: socket.socket, timeout: int = 10) -> bytearray:
     receive_until(peer, b"STRING", transcript, timeout)
     peer.sendall(b"socket\r")
     receive_until(peer, b"KEY", transcript, timeout)
-    peer.sendall(b"K")
+    peer.sendall(b"ABCDE")
     receive_until(peer, b"WAITKEY", transcript, timeout)
     peer.sendall(b"W")
     receive_until(peer, b"CLEAR", transcript, timeout)

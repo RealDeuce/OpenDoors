@@ -109,7 +109,7 @@
 #endif /* ODPLAT_WIN32 */
 
 /* Default size of local/remote combined keyboard buffer. */
-#define DEFAULT_EVENT_QUEUE_SIZE    128
+#define DEFAULT_EVENT_QUEUE_SIZE    256
 
 
 /* Local private helper functions. */

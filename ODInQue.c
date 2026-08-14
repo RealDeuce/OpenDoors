@@ -56,12 +56,33 @@ typedef struct
    INT nQueueEntries;
    INT nInIndex;
    INT nOutIndex;
+   INT nReservedEntries;
    time_t nLastActivityTime;
 #ifdef OD_THREAD_SUPPORT
    tODSemaphoreHandle hItemCountSemaphore;
    tODMutex QueueMutex;
 #endif /* OD_THREAD_SUPPORT */
 } tInputQueueInfo;
+
+#define OD_IN_QUEUE_USED(pQueue) \
+   (((pQueue)->nInIndex - (pQueue)->nOutIndex \
+      + (pQueue)->nQueueEntries) % (pQueue)->nQueueEntries)
+#define OD_IN_QUEUE_AVAILABLE(pQueue) \
+   ((pQueue)->nQueueEntries - 1 - OD_IN_QUEUE_USED(pQueue) \
+      - (pQueue)->nReservedEntries)
+#define OD_IN_QUEUE_RECORD_CONTROL_KEY(pEvent) \
+   do { \
+      if((pEvent)->EventType == EVENT_CHARACTER) { \
+         switch((pEvent)->chKeyPress) { \
+            case 's': case 'S': case 3: case 11: case 0x18: \
+               chLastControlKey = 's'; \
+               break; \
+            case 'p': case 'P': \
+               chLastControlKey = 'p'; \
+               break; \
+         } \
+      } \
+   } while(0)
 
 
 /* ----------------------------------------------------------------------------
@@ -130,6 +151,7 @@ tODResult ODInQueueAlloc(tODInQueueHandle *phInQueue, INT nInitialQueueSize)
    pInputQueueInfo->nQueueEntries = nInitialQueueSize;
    pInputQueueInfo->nInIndex = 0;
    pInputQueueInfo->nOutIndex = 0;
+   pInputQueueInfo->nReservedEntries = 0;
 
    /* Convert intut queue information structure pointer to a handle. */
    *phInQueue = ODPTR2HANDLE(pInputQueueInfo, tInputQueueInfo);
@@ -240,8 +262,6 @@ tODResult ODInQueueAddEvent(tODInQueueHandle hInQueue,
    tODInputEvent *pEvent)
 {
    tInputQueueInfo *pInputQueueInfo = ODHANDLE2PTR(hInQueue, tInputQueueInfo);
-   INT nNextInPos;
-
    ASSERT(pInputQueueInfo != NULL);
    ASSERT(pEvent != NULL);
    if(pInputQueueInfo == NULL || pEvent == NULL) return(kODRCInvalidCall);
@@ -254,18 +274,15 @@ tODResult ODInQueueAddEvent(tODInQueueHandle hInQueue,
    /* Reset the time of the last activity. */
    pInputQueueInfo->nLastActivityTime = time(NULL);
 
-   /* Determine what the next in index would be after this addition to the */
-   /* queue.                                                               */
-   nNextInPos = (pInputQueueInfo->nInIndex + 1)
-      % pInputQueueInfo->nQueueEntries;
-
    /* If the queue is full, then return an out of space error. */
-   if(nNextInPos == pInputQueueInfo->nOutIndex)
+   if(OD_IN_QUEUE_AVAILABLE(pInputQueueInfo) < 1)
    {
       /* Allow further access to input queue. */
 #ifdef OD_THREAD_SUPPORT
       ODMutexUnlock(&pInputQueueInfo->QueueMutex);
 #endif /* OD_THREAD_SUPPORT */
+
+      ODPlatRingBell();
 
       return(kODRCNoMemory);
    }
@@ -274,26 +291,11 @@ tODResult ODInQueueAddEvent(tODInQueueHandle hInQueue,
    memcpy(&pInputQueueInfo->paEvents[pInputQueueInfo->nInIndex], pEvent,
       sizeof(tODInputEvent));
 
-   if(pEvent->EventType == EVENT_CHARACTER)
-   {
-      switch(pEvent->chKeyPress)
-      {
-         case 's':
-         case 'S':
-         case 3:
-         case 11:
-         case 0x18:
-            chLastControlKey = 's';
-            break;
-         case 'p':
-         case 'P':
-            chLastControlKey = 'p';
-            break;
-      }
-   }
+   OD_IN_QUEUE_RECORD_CONTROL_KEY(pEvent);
 
    /* Update queue in index. */
-   pInputQueueInfo->nInIndex = nNextInPos;
+   pInputQueueInfo->nInIndex = (pInputQueueInfo->nInIndex + 1)
+      % pInputQueueInfo->nQueueEntries;
 
    /* Increment queue items count semaphore. */
 #ifdef OD_THREAD_SUPPORT
@@ -305,6 +307,126 @@ tODResult ODInQueueAddEvent(tODInQueueHandle hInQueue,
    ODMutexUnlock(&pInputQueueInfo->QueueMutex);
 #endif /* OD_THREAD_SUPPORT */
 
+   return(kODRCSuccess);
+}
+
+
+/* Atomically adds one or more events, or rejects the complete group. */
+tODResult ODInQueueAddEvents(tODInQueueHandle hInQueue,
+   const tODInputEvent *paEvents, INT nEvents)
+{
+   tInputQueueInfo *pInputQueueInfo = ODHANDLE2PTR(hInQueue, tInputQueueInfo);
+   INT nEvent;
+
+   ASSERT(pInputQueueInfo != NULL);
+   ASSERT(paEvents != NULL);
+   ASSERT(nEvents > 0);
+   if(pInputQueueInfo == NULL || paEvents == NULL || nEvents <= 0)
+      return(kODRCInvalidCall);
+
+#ifdef OD_THREAD_SUPPORT
+   ODMutexLock(&pInputQueueInfo->QueueMutex);
+#endif
+   pInputQueueInfo->nLastActivityTime = time(NULL);
+   if(OD_IN_QUEUE_AVAILABLE(pInputQueueInfo) < nEvents)
+   {
+#ifdef OD_THREAD_SUPPORT
+      ODMutexUnlock(&pInputQueueInfo->QueueMutex);
+#endif
+      ODPlatRingBell();
+      return(kODRCNoMemory);
+   }
+
+   for(nEvent = 0; nEvent < nEvents; ++nEvent)
+   {
+      memcpy(&pInputQueueInfo->paEvents[pInputQueueInfo->nInIndex],
+         &paEvents[nEvent], sizeof(tODInputEvent));
+      OD_IN_QUEUE_RECORD_CONTROL_KEY(&paEvents[nEvent]);
+      pInputQueueInfo->nInIndex = (pInputQueueInfo->nInIndex + 1)
+         % pInputQueueInfo->nQueueEntries;
+   }
+#ifdef OD_THREAD_SUPPORT
+   ODSemaphoreUp(pInputQueueInfo->hItemCountSemaphore, nEvents);
+   ODMutexUnlock(&pInputQueueInfo->QueueMutex);
+#endif
+   return(kODRCSuccess);
+}
+
+
+/* Atomically reserves room for one event without making it readable. */
+tODResult ODInQueueReserveEvent(tODInQueueHandle hInQueue)
+{
+   tInputQueueInfo *pInputQueueInfo = ODHANDLE2PTR(hInQueue, tInputQueueInfo);
+   tODResult Result = kODRCNoMemory;
+
+   ASSERT(pInputQueueInfo != NULL);
+   if(pInputQueueInfo == NULL) return(kODRCInvalidCall);
+#ifdef OD_THREAD_SUPPORT
+   ODMutexLock(&pInputQueueInfo->QueueMutex);
+#endif
+   if(OD_IN_QUEUE_AVAILABLE(pInputQueueInfo) > 0)
+   {
+      ++pInputQueueInfo->nReservedEntries;
+      Result = kODRCSuccess;
+   }
+#ifdef OD_THREAD_SUPPORT
+   ODMutexUnlock(&pInputQueueInfo->QueueMutex);
+#endif
+   return(Result);
+}
+
+
+/* Releases an unused event reservation. */
+void ODInQueueCancelReservedEvent(tODInQueueHandle hInQueue)
+{
+   tInputQueueInfo *pInputQueueInfo = ODHANDLE2PTR(hInQueue, tInputQueueInfo);
+
+   ASSERT(pInputQueueInfo != NULL);
+   if(pInputQueueInfo == NULL) return;
+#ifdef OD_THREAD_SUPPORT
+   ODMutexLock(&pInputQueueInfo->QueueMutex);
+#endif
+   ASSERT(pInputQueueInfo->nReservedEntries > 0);
+   if(pInputQueueInfo->nReservedEntries > 0)
+      --pInputQueueInfo->nReservedEntries;
+#ifdef OD_THREAD_SUPPORT
+   ODMutexUnlock(&pInputQueueInfo->QueueMutex);
+#endif
+}
+
+
+/* Commits an event into a slot previously reserved by this subsystem. */
+tODResult ODInQueueCommitReservedEvent(tODInQueueHandle hInQueue,
+   const tODInputEvent *pEvent)
+{
+   tInputQueueInfo *pInputQueueInfo = ODHANDLE2PTR(hInQueue, tInputQueueInfo);
+
+   ASSERT(pInputQueueInfo != NULL);
+   ASSERT(pEvent != NULL);
+   if(pInputQueueInfo == NULL || pEvent == NULL) return(kODRCInvalidCall);
+#ifdef OD_THREAD_SUPPORT
+   ODMutexLock(&pInputQueueInfo->QueueMutex);
+#endif
+   ASSERT(pInputQueueInfo->nReservedEntries > 0);
+   if(pInputQueueInfo->nReservedEntries <= 0)
+   {
+#ifdef OD_THREAD_SUPPORT
+      ODMutexUnlock(&pInputQueueInfo->QueueMutex);
+#endif
+      return(kODRCInvalidCall);
+   }
+
+   --pInputQueueInfo->nReservedEntries;
+   pInputQueueInfo->nLastActivityTime = time(NULL);
+   memcpy(&pInputQueueInfo->paEvents[pInputQueueInfo->nInIndex], pEvent,
+      sizeof(tODInputEvent));
+   OD_IN_QUEUE_RECORD_CONTROL_KEY(pEvent);
+   pInputQueueInfo->nInIndex = (pInputQueueInfo->nInIndex + 1)
+      % pInputQueueInfo->nQueueEntries;
+#ifdef OD_THREAD_SUPPORT
+   ODSemaphoreUp(pInputQueueInfo->hItemCountSemaphore, 1);
+   ODMutexUnlock(&pInputQueueInfo->QueueMutex);
+#endif
    return(kODRCSuccess);
 }
 

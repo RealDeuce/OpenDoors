@@ -36,14 +36,12 @@ an issue is not treated as a contract change until it is resolved deliberately.
   shutdown. Nested no-exit shutdown now becomes pending, cooperative waits
   unwind, and the outermost API-exit boundary performs teardown exactly once.
 
-- [ ] Report or prevent input-event loss when the common queue is full.
-  `ODInQueueAddEvent()` returns `kODRCNoMemory` when the ring has no free slot,
-  but `ODKrnlHandleReceivedChar()` ignores that result, silently dropping the
-  local or remote character. A caller waiting for a terminator or complete
-  response can consequently wait indefinitely. Also reconcile capacity: the
-  implementation allocates 128 entries by default and the ring reserves one
-  slot, while the current reference says that zero selects a capacity of 256
-  events.
+- [x] Prevent input-event loss when the common queue is full. Remote input now
+  reserves capacity before reading from the communications source, allowing
+  its existing backpressure to retain unread bytes. Local overflow rejects an
+  entire ordinary or extended key and rings the local bell. The default ring
+  now allocates 256 entries, providing the documented usable capacity of 255
+  events after its reserved slot.
 
 ## Door-information files
 

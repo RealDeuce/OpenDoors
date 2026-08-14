@@ -16,10 +16,12 @@ N/A
 
 OpenDoors maintains a common type-ahead queue for caller input and ordinary
 keys entered at the local console. This permits a caller to begin entering a
-command before a menu or other output has finished. The queue can hold the
-number of events configured by
-[`od_control.od_in_buf_size`](../control/customization.md#od_in_buf_size); when
-that field is zero, OpenDoors uses its default queue size.
+command before a menu or other output has finished. The queue allocates the
+number of ring entries configured by
+[`od_control.od_in_buf_size`](../control/customization.md#od_in_buf_size), with
+one entry reserved to distinguish full and empty states. When that field is
+zero, OpenDoors allocates the default 256 entries, providing room for 255
+events.
 
 [`od_clear_keybuffer()`](od_clear_keybuffer.md) first gives the OpenDoors kernel an opportunity to move
 newly received input into the common queue. It then empties that queue. In a

@@ -29,6 +29,8 @@ int main(int argc, char **argv)
    char edit_input[4];
    char edit_format[2];
    char menu_choice;
+   const char *burst;
+   int burst_index;
 #if !defined(ODPLAT_DOS) && !defined(ODPLAT_DOS32)
    DWORD_PTR handle;
 #endif
@@ -82,6 +84,7 @@ int main(int argc, char **argv)
    od_control.od_silent_mode = TRUE;
    od_control.od_nocopyright = TRUE;
    od_control.od_noexit = TRUE;
+   od_control.od_in_buf_size = 4;
    od_control.user_ansi = TRUE;
    od_init();
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
@@ -113,8 +116,13 @@ int main(int argc, char **argv)
    od_disp("KEY", 3, FALSE);
    od_sleep(250);
    od_kernel();
-   OD_TEST_CHECK(od_key_pending());
-   OD_TEST_CHECK(od_get_key(FALSE) == 'K');
+   burst = "ABCDE";
+   for(burst_index = 0; burst[burst_index] != '\0'; ++burst_index)
+   {
+      OD_TEST_CHECK(od_key_pending());
+      OD_TEST_CHECK(od_get_key(FALSE) == burst[burst_index]);
+   }
+   OD_TEST_CHECK(!od_key_pending());
    OD_TEST_CHECK(od_control.od_last_input == 0);
 
    od_disp("WAITKEY", 7, FALSE);

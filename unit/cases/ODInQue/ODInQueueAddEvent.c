@@ -1,5 +1,6 @@
 #define UT_CUSTOM_MOCK_memcpy
 #define UT_CUSTOM_MOCK_time
+#define UT_CUSTOM_MOCK_ODPlatRingBell
 #ifdef OD_THREAD_SUPPORT
 #define UT_CUSTOM_MOCK_ODMutexLock
 #define UT_CUSTOM_MOCK_ODMutexUnlock
@@ -11,6 +12,8 @@
 char chLastControlKey;
 
 static unsigned ut_copy_calls;
+static unsigned ut_bell_calls;
+void utm_ODPlatRingBell(void) { ++ut_bell_calls; }
 #ifdef OD_THREAD_SUPPORT
 static unsigned ut_locks;
 static unsigned ut_unlocks;
@@ -53,6 +56,7 @@ void *utm_memcpy(void *output, const void *input, size_t size)
 static void reset_counts(void)
 {
    ut_copy_calls = 0;
+   ut_bell_calls = 0;
 #ifdef OD_THREAD_SUPPORT
    ut_locks = ut_unlocks = ut_semaphore_ups = 0;
 #endif
@@ -74,10 +78,14 @@ static void reports_full_queue_after_recording_activity(void)
 {
    tODInputEvent event;
    tODInQueueHandle handle = ut_queue_handle(3, 1, 2);
+   memset(&event, 0, sizeof(event));
+   event.EventType = EVENT_CHARACTER;
+   event.bFromRemote = FALSE;
    reset_counts();
    UT_ASSERT_EQ_INT(kODRCNoMemory, utt_ODInQueueAddEvent(handle, &event));
    UT_ASSERT_EQ_INT(99, ut_queue.nLastActivityTime);
    UT_ASSERT_EQ_INT(0, ut_copy_calls);
+   UT_ASSERT_EQ_UINT(1, ut_bell_calls);
 #ifdef OD_THREAD_SUPPORT
    UT_ASSERT_EQ_INT(1, ut_locks);
    UT_ASSERT_EQ_INT(1, ut_unlocks);

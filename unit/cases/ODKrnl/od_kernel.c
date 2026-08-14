@@ -7,6 +7,9 @@
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
 #define UT_CUSTOM_MOCK_ODComCarrier
 #define UT_CUSTOM_MOCK_ODComGetByte
+#define UT_CUSTOM_MOCK_ODInQueueReserveEvent
+#define UT_CUSTOM_MOCK_ODInQueueCancelReservedEvent
+#define UT_CUSTOM_MOCK_ODInQueueCommitReservedEvent
 #define UT_CUSTOM_MOCK_ODKrnlHandleReceivedChar
 #define UT_CUSTOM_MOCK_ODKrnlForceOpenDoorsShutdown
 #define UT_CUSTOM_MOCK_ODKrnlTimeUpdate
@@ -40,6 +43,9 @@ static unsigned ut_carrier_calls;
 static char ut_remote_bytes[4];
 static unsigned ut_remote_count;
 static unsigned ut_remote_index;
+static tODResult ut_reserve_result;
+static unsigned ut_reserve_calls;
+static unsigned ut_cancel_calls;
 static unsigned ut_received_calls;
 static char ut_received_bytes[4];
 static unsigned ut_shutdown_calls;
@@ -84,6 +90,7 @@ static unsigned ut_hot_callback_calls;
 #endif
 
 tODMilliSec ODMaxMSToWait;
+tODInQueueHandle hODInputQueue;
 
 void ODCALL utm_od_init(void)
 {
@@ -127,6 +134,31 @@ tODResult utm_ODComGetByte(tPortHandle handle, char *value, BOOL wait)
    if(ut_remote_index == ut_remote_count)
       return(kODRCNothingWaiting);
    *value = ut_remote_bytes[ut_remote_index++];
+   return(kODRCSuccess);
+}
+
+tODResult utm_ODInQueueReserveEvent(tODInQueueHandle queue)
+{
+   UT_ASSERT(queue == hODInputQueue);
+   ++ut_reserve_calls;
+   return(ut_reserve_result);
+}
+
+void utm_ODInQueueCancelReservedEvent(tODInQueueHandle queue)
+{
+   UT_ASSERT(queue == hODInputQueue);
+   ++ut_cancel_calls;
+}
+
+tODResult utm_ODInQueueCommitReservedEvent(tODInQueueHandle queue,
+   const tODInputEvent *event)
+{
+   UT_ASSERT(queue == hODInputQueue);
+   UT_ASSERT(event != NULL);
+   UT_ASSERT_EQ_INT(EVENT_CHARACTER, event->EventType);
+   UT_ASSERT(event->bFromRemote);
+   UT_ASSERT(ut_received_calls < sizeof(ut_received_bytes));
+   ut_received_bytes[ut_received_calls++] = event->chKeyPress;
    return(kODRCSuccess);
 }
 
@@ -313,6 +345,9 @@ static void reset_kernel(void)
    ut_carrier = TRUE;
    ut_carrier_calls = 0;
    ut_remote_count = ut_remote_index = ut_received_calls = 0;
+   ut_reserve_result = kODRCSuccess;
+   ut_reserve_calls = 0;
+   ut_cancel_calls = 0;
    ut_shutdown_calls = 0;
    ut_shutdown_reason = 0;
    ut_time_update_calls = ut_timer_calls = 0;
@@ -320,6 +355,7 @@ static void reset_kernel(void)
    ODMaxMSToWait = 100;
    od_control.baud = 0;
    od_control.od_disable = 0;
+   od_control.od_user_keyboard_on = TRUE;
    for(index = 0; index < sizeof(ut_remote_bytes); ++index)
       ut_remote_bytes[index] = ut_received_bytes[index] = 0;
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
@@ -362,7 +398,6 @@ static void reset_kernel(void)
    od_control.user_timelimit = 10;
    od_control.user_security = 50;
    od_control.sysop_next = FALSE;
-   od_control.od_user_keyboard_on = TRUE;
    od_control.key_hangup = 0x1101;
    od_control.key_drop2bbs = 0x1102;
    od_control.key_dosshell = 0x1103;
@@ -464,7 +499,38 @@ static void drains_all_available_remote_input(void)
    UT_ASSERT_EQ_UINT(2, ut_received_calls);
    UT_ASSERT_EQ_INT('a', ut_received_bytes[0]);
    UT_ASSERT_EQ_INT('b', ut_received_bytes[1]);
+   UT_ASSERT_EQ_UINT(3, ut_reserve_calls);
+   UT_ASSERT_EQ_UINT(1, ut_cancel_calls);
    UT_ASSERT_EQ_UINT(0, ODMaxMSToWait);
+}
+
+static void leaves_remote_input_at_the_source_when_the_queue_is_full(void)
+{
+   reset_kernel();
+   od_control.baud = 38400L;
+   od_control.od_disable = DIS_CARRIERDETECT;
+   ut_remote_bytes[0] = 'a';
+   ut_remote_count = 1;
+   ut_reserve_result = kODRCNoMemory;
+   utt_od_kernel();
+   UT_ASSERT_EQ_UINT(1, ut_reserve_calls);
+   UT_ASSERT_EQ_UINT(0, ut_remote_index);
+   UT_ASSERT_EQ_UINT(0, ut_received_calls);
+}
+
+static void discards_remote_input_while_the_user_keyboard_is_disabled(void)
+{
+   reset_kernel();
+   od_control.baud = 38400L;
+   od_control.od_disable = DIS_CARRIERDETECT;
+   od_control.od_user_keyboard_on = FALSE;
+   ut_remote_bytes[0] = 'a';
+   ut_remote_count = 1;
+   utt_od_kernel();
+   UT_ASSERT_EQ_UINT(1, ut_remote_index);
+   UT_ASSERT_EQ_UINT(0, ut_reserve_calls);
+   UT_ASSERT_EQ_UINT(0, ut_received_calls);
+   UT_ASSERT_EQ_UINT(0, ut_cancel_calls);
 }
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
@@ -821,6 +887,8 @@ static const UTTestCase ut_cases[] = {
    {"API boundary", runs_the_optional_hook_inside_the_api_boundary},
    {"carrier", applies_carrier_detection_policy_in_remote_mode},
    {"remote input", drains_all_available_remote_input},
+   {"remote backpressure", leaves_remote_input_at_the_source_when_the_queue_is_full},
+   {"disabled remote input", discards_remote_input_while_the_user_keyboard_is_disabled},
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    {"keyboard policy", covers_pending_and_keyboard_suppression_policy},
    {"arrow keys", routes_arrow_keys_only_under_the_arrow_policy},

@@ -18,6 +18,11 @@
       "platforms": ["unix", "windows", "dos16", "dos32"]
     },
     {
+      "source": "ODPlat.c", "function": "ODPlatRingBell",
+      "case": "unit/cases/ODPlat/ODPlatRingBell.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
       "source": "ODPlat.c", "function": "ODFileDelete",
       "case": "unit/cases/ODPlat/ODFileDelete.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
@@ -395,7 +400,7 @@
     {"source":"ODScrn.c","function":"ODScrnGetTextInfo","case":"unit/cases/ODScrn/ODScrnGetTextInfo.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnDisplayString","case":"unit/cases/ODScrn/ODScrnDisplayString.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnShutdown","case":"unit/cases/ODScrn/ODScrnShutdown.c","platforms":["unix","windows","dos16","dos32"]},
-    {"source":"ODScrn.c","function":"ODScrnRingBell","case":"unit/cases/ODScrn/ODScrnRingBell.c","platforms":["unix","windows","dos16","dos32"]},
+    {"source":"ODScrn.c","function":"ODScrnRingBell","case":"unit/cases/ODScrn/ODScrnRingBell.c","platforms":["unix","windows","dos16","dos32"],"configurations":[{"name":"default","turbo_late_declarations":["void utm_ODPlatRingBell(void);"]}]},
     {"source":"ODScrn.c","function":"ODScrnScrollUpAndInvalidate","case":"unit/cases/ODScrn/ODScrnScrollUpAndInvalidate.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnClearToEndOfLine","case":"unit/cases/ODScrn/ODScrnClearToEndOfLine.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODScrn.c","function":"ODScrnClear","case":"unit/cases/ODScrn/ODScrnClear.c","platforms":["unix","windows","dos16","dos32"]},
@@ -434,7 +439,7 @@
     {"source":"ODKrnl.c","function":"od_chat","case":"unit/cases/ODKrnl/od_chat.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlChatMode","case":"unit/cases/ODKrnl/ODKrnlChatMode.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlChatCleanup","case":"unit/cases/ODKrnl/ODKrnlChatCleanup.c","platforms":["unix","windows","dos16","dos32"]},
-    {"source":"ODKrnl.c","function":"od_kernel","case":"unit/cases/ODKrnl/od_kernel.c","platforms":["unix","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"od_kernel","case":"unit/cases/ODKrnl/od_kernel.c","platforms":["unix","windows","dos16","dos32"],"configurations":[{"name":"default","turbo_late_declarations":["tODResult utm_ODInQueueReserveEvent(tODInQueueHandle);","void utm_ODInQueueCancelReservedEvent(tODInQueueHandle);","tODResult utm_ODInQueueCommitReservedEvent(tODInQueueHandle, const tODInputEvent *);"]}]},
     {"source":"ODKrnl.c","function":"ODStatStartArrowUse","case":"unit/cases/ODKrnl/ODStatStartArrowUse.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODStatEndArrowUse","case":"unit/cases/ODKrnl/ODStatEndArrowUse.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODKrnl.c","function":"ODKrnlEndChatMode","case":"unit/cases/ODKrnl/ODKrnlEndChatMode.c","platforms":["unix","windows","dos16","dos32"]},
@@ -450,7 +455,7 @@
     {"source":"ODKrnl.c","function":"ODKrnlRefreshUIState","case":"unit/cases/ODKrnl/ODKrnlRefreshUIState.c","platforms":["windows"]},
     {"source":"ODKrnl.c","function":"ODKrnlGetUIState","case":"unit/cases/ODKrnl/ODKrnlGetUIState.c","platforms":["windows"]},
     {"source":"ODKrnl.c","function":"ODKrnlShutdown","case":"unit/cases/ODKrnl/ODKrnlShutdown.c","platforms":["unix","windows","dos16","dos32"],"configurations":[{"name":"default"},{"name":"diagnostics","defines":["OD_DIAGNOSTICS=1"],"platforms":["windows"]}]},
-    {"source":"ODKrnl.c","function":"ODKrnlHandleLocalKey","case":"unit/cases/ODKrnl/ODKrnlHandleLocalKey.c","platforms":["unix","windows","dos16","dos32"]},
+    {"source":"ODKrnl.c","function":"ODKrnlHandleLocalKey","case":"unit/cases/ODKrnl/ODKrnlHandleLocalKey.c","platforms":["unix","windows","dos16","dos32"],"configurations":[{"name":"default","turbo_late_declarations":["tODResult utm_ODInQueueAddEvents(tODInQueueHandle, const tODInputEvent *, INT);"]}]},
     {"source":"ODKrnl.c","function":"ODKrnlHandleReceivedChar","case":"unit/cases/ODKrnl/ODKrnlHandleReceivedChar.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODFrame.c","function":"ODFrameCopyProgramName","case":"unit/cases/ODFrame/ODFrameCopyProgramName.c","platforms":["windows"]},
     {"source":"ODFrame.c","function":"ODFrameDestroyStatusBar","case":"unit/cases/ODFrame/ODFrameDestroyStatusBar.c","platforms":["windows"]},
@@ -1380,6 +1385,42 @@
       "source": "ODInQue.c",
       "function": "ODInQueueAddEvent",
       "case": "unit/cases/ODInQue/ODInQueueAddEvent.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"],
+      "configurations": [
+        {
+          "name": "default",
+          "turbo_late_declarations": ["void utm_ODPlatRingBell(void);"]
+        }
+      ]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueAddEvents",
+      "case": "unit/cases/ODInQue/ODInQueueAddEvents.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"],
+      "configurations": [
+        {
+          "name": "default",
+          "turbo_late_declarations": ["void utm_ODPlatRingBell(void);"]
+        }
+      ]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueReserveEvent",
+      "case": "unit/cases/ODInQue/ODInQueueReserveEvent.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueCancelReservedEvent",
+      "case": "unit/cases/ODInQue/ODInQueueCancelReservedEvent.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInQue.c",
+      "function": "ODInQueueCommitReservedEvent",
+      "case": "unit/cases/ODInQue/ODInQueueCommitReservedEvent.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
     },
     {

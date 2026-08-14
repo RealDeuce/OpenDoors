@@ -308,6 +308,8 @@ extern tODMilliSec ODMaxMSToWait;
 ODAPIDEF void ODCALL od_kernel(void)
 {
    char ch;
+   tODInputEvent InputEvent;
+   tODResult InputResult;
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    WORD wKey;
    BYTE btShiftStatus;
@@ -356,9 +358,27 @@ ODAPIDEF void ODCALL od_kernel(void)
       }
       /* Loop, obtaining any new characters from the serial port and */
       /* adding them to the common local/remote input queue.         */
-      while(ODComGetByte(hSerialPort, &ch, FALSE) == kODRCSuccess)
+      for(;;)
       {
-         ODKrnlHandleReceivedChar(ch, TRUE);
+         if(od_control.od_user_keyboard_on
+            && ODInQueueReserveEvent(hODInputQueue) != kODRCSuccess)
+         {
+            break;
+         }
+         InputResult = ODComGetByte(hSerialPort, &ch, FALSE);
+         if(InputResult != kODRCSuccess)
+         {
+            if(od_control.od_user_keyboard_on)
+               ODInQueueCancelReservedEvent(hODInputQueue);
+            break;
+         }
+         if(od_control.od_user_keyboard_on)
+         {
+            InputEvent.EventType = EVENT_CHARACTER;
+            InputEvent.bFromRemote = TRUE;
+            InputEvent.chKeyPress = ch;
+            ODInQueueCommitReservedEvent(hODInputQueue, &InputEvent);
+         }
          ODMaxMSToWait = 0;
       }
    }
@@ -714,8 +734,12 @@ void ODKrnlHandleLocalKey(WORD wKeyCode)
    {
       if((wKeyCode & 0xff) == 0)
       {
-         ODKrnlHandleReceivedChar('\0', FALSE);
-         ODKrnlHandleReceivedChar((char)(wKeyCode >> 8), FALSE);
+         tODInputEvent Events[2];
+         Events[0].EventType = Events[1].EventType = EVENT_CHARACTER;
+         Events[0].bFromRemote = Events[1].bFromRemote = FALSE;
+         Events[0].chKeyPress = '\0';
+         Events[1].chKeyPress = (char)(wKeyCode >> 8);
+         ODInQueueAddEvents(hODInputQueue, Events, 2);
       }
       else
       {

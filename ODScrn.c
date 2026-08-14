@@ -1775,18 +1775,7 @@ static void ODScrnRingBell(void)
 {
    if(od_control.od_silent_mode)
       return;
-#ifdef ODPLAT_DOS
-   ASM    mov ah, 0x02
-   ASM    mov dl, 7
-   ASM    int 0x21
-#endif /* ODPLAT_DOS */
-#ifdef ODPLAT_DOS32
-   putchar('\a');
-   fflush(stdout);
-#endif /* ODPLAT_DOS32 */
-#ifdef ODPLAT_WIN32
-   MessageBeep(0xffffffff);
-#endif /* ODPLAT_WIN32 */
+   ODPlatRingBell();
 }
 
 

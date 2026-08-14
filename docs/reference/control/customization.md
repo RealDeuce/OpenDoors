@@ -643,10 +643,12 @@ remote connection into a local session.
 WORD od_control.od_in_buf_size;
 ```
 
-This is the requested capacity, in input events, of OpenDoors' combined local
-and remote inbound queue. A zero value selects 256 events. Each queue entry
-uses two bytes: one byte for the input value and one for its local/remote
-source. Assign the field before initialization; OpenDoors reads it while
+This selects the number of ring entries allocated for OpenDoors' combined
+local and remote inbound queue. The ring reserves one entry to distinguish
+the full and empty states, so the usable capacity is one less than this value.
+A zero value selects 256 ring entries and a usable capacity of 255 events.
+The internal event size varies by target and is not part of this setting's
+contract. Assign the field before initialization; OpenDoors reads it while
 allocating the queue and does not update it to report the effective capacity.
 
 This is distinct from the communications receive buffer selected by

@@ -432,6 +432,24 @@ void ODProcessExit(INT nExitCode)
 }
 
 
+/* Rings the local platform bell without consulting owner-owned state. */
+void ODPlatRingBell(void)
+{
+#ifdef ODPLAT_DOS
+   ASM    mov ah, 0x02
+   ASM    mov dl, 7
+   ASM    int 0x21
+#endif
+#ifdef ODPLAT_DOS32
+   fputc('\a', stdout);
+   fflush(stdout);
+#endif
+#ifdef ODPLAT_WIN32
+   MessageBeep(0xffffffff);
+#endif
+}
+
+
 /* ========================================================================= */
 /* Millisecond timer functions.                                              */
 /* ========================================================================= */

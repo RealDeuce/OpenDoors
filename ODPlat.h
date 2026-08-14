@@ -120,6 +120,7 @@ tODResult ODSemaphoreDown(tODSemaphoreHandle hSemaphore, tODMilliSec Timeout);
 #endif /* OD_THREAD_SUPPORT */
 
 void ODProcessExit(INT nExitCode);
+void ODPlatRingBell(void);
 
 
 /* ========================================================================= */

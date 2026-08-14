@@ -653,6 +653,7 @@ static void initializes_tables_allocations_and_local_defaults(void)
    UT_ASSERT(od_control.od_cfg_text[0][0] != '\0');
    UT_ASSERT_EQ_UINT(25, ut_malloc_count);
    UT_ASSERT_EQ_INT(1, od_control.od_node);
+   UT_ASSERT_EQ_INT(256, DEFAULT_EVENT_QUEUE_SIZE);
    UT_ASSERT_EQ_INT(DEFAULT_EVENT_QUEUE_SIZE, ut_queue_size);
    UT_ASSERT_EQ_INT(TRUE, od_control.od_user_keyboard_on);
    UT_ASSERT_EQ_INT(NO_DOOR_FILE, od_control.od_info_type);

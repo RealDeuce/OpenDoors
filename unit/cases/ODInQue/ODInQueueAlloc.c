@@ -187,6 +187,7 @@ static void initializes_a_queue(void)
    UT_ASSERT_EQ_INT(4, info->nQueueEntries);
    UT_ASSERT_EQ_INT(0, info->nInIndex);
    UT_ASSERT_EQ_INT(0, info->nOutIndex);
+   UT_ASSERT_EQ_INT(0, info->nReservedEntries);
    UT_ASSERT_EQ_UINT(1, ut_activity_resets);
    UT_ASSERT_EQ_UINT(0, ut_info_frees);
    UT_ASSERT_EQ_UINT(0, ut_event_frees);
