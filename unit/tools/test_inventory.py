@@ -160,7 +160,9 @@ void second(void) { }
     def test_discovers_every_odgetin_definition(self):
         source = (ROOT / "ODGetIn.c").read_text(encoding="latin-1")
         self.assertEqual([item.name for item in scan_c(source)], [
-            "ODGetInputWait", "od_get_input", "ODLongestFullCode",
+            "ODGetInputWait", "ODGetInputDeadlineSlice",
+            "ODGetInputWaitUntil", "ODGetInputCore", "od_get_input",
+            "od_get_input_until", "ODLongestFullCode",
             "ODHaveStartOfSequence", "ODGetCodeIfLongest", "ODShiftSeq",
         ])
 
