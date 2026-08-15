@@ -113,7 +113,7 @@ def drive_interactive(peer: socket.socket, timeout: int) -> bytearray:
     receive_until(peer, b"INTERACTIVE-PAGE-DISABLED", transcript, timeout)
     peer.sendall(b"reason\r\r")
     receive_until(peer, b"INTERACTIVE-CHAT", transcript, timeout)
-    peer.sendall(b"hello\r")
+    peer.sendall(b"A")
     finish(peer, transcript, b"INTERACTIVE-DONE", timeout)
     return transcript
 

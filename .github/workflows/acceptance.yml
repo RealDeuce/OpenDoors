@@ -186,21 +186,26 @@ jobs:
       - name: Run and report acceptance coverage
         run: |
           mkdir -p build/coverage-profiles build/acceptance-coverage-html
+          llvm_major=$(clang -dumpversion | cut -d. -f1)
+          llvm_profdata=$(command -v llvm-profdata || \
+            command -v "llvm-profdata-$llvm_major")
+          llvm_cov=$(command -v llvm-cov || \
+            command -v "llvm-cov-$llvm_major")
           LLVM_PROFILE_FILE="$PWD/build/coverage-profiles/%p-%m.profraw" \
             ctest \
               --test-dir build/coverage-acceptance \
               --output-on-failure \
               --output-junit acceptance-coverage.xml
-          llvm-profdata merge -sparse build/coverage-profiles/*.profraw \
+          "$llvm_profdata" merge -sparse build/coverage-profiles/*.profraw \
             -o build/acceptance.profdata
           library=$(find "$RUNNER_TEMP/opendoors" -type f \
             -name 'libODoors.so*' | head -n 1)
           test -n "$library"
-          llvm-cov report "$library" \
+          "$llvm_cov" report "$library" \
             -instr-profile=build/acceptance.profdata \
             -ignore-filename-regex='/(tests|third_party)/' \
             > build/acceptance-coverage.txt
-          llvm-cov show "$library" \
+          "$llvm_cov" show "$library" \
             -instr-profile=build/acceptance.profdata \
             -ignore-filename-regex='/(tests|third_party)/' \
             -format=html \

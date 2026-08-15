@@ -42,7 +42,7 @@ static void OD_ACCEPTANCE_CALLBACK AfterChat(void)
 
 static void OD_ACCEPTANCE_CALLBACK StopChat(void)
 {
-   if(++chat_kernel_calls >= 1000)
+   if(++chat_kernel_calls >= 2)
       od_control.od_chat_active = FALSE;
 }
 
@@ -221,9 +221,9 @@ static int RunInteractiveScenario(void)
 
    od_control.od_cbefore_chat = BeforeChat;
    od_control.od_cafter_chat = AfterChat;
-   od_control.od_ker_exec = StopChat;
    Marker("INTERACTIVE-CHAT");
-   od_sleep(250);
+   OD_TEST_CHECK(od_get_key(TRUE) == 'A');
+   od_control.od_ker_exec = StopChat;
    od_chat();
    od_control.od_ker_exec = NULL;
    OD_TEST_CHECK(before_chat_calls == 1);
