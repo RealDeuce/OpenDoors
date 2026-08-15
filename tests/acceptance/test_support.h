@@ -41,6 +41,7 @@ static void ODTestConfigureLocal(void)
    od_control.od_silent_mode = TRUE;
    od_control.od_nocopyright = TRUE;
    od_control.od_noexit = TRUE;
+   od_control.od_errorlevel[ERRORLEVEL_CRITICAL] = 97;
 }
 #endif
 

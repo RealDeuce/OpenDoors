@@ -149,6 +149,8 @@ if(WIN32)
     endif()
 endif()
 opendoors_acceptance_test(components components_test.c)
+opendoors_acceptance_test(custom_drop_config custom_drop_config_test.c)
+opendoors_acceptance_test(logging logging_test.c)
 
 add_executable(opendoors_acceptance_dropfiles dropfiles_test.c)
 target_link_libraries(opendoors_acceptance_dropfiles
