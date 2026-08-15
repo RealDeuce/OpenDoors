@@ -168,10 +168,10 @@ void ODConsoleSetSize(INT nWidth, INT nHeight, INT *pnActualWidth,
 {
    COORD Largest;
    COORD Size;
+   COORD ExpandedSize;
    CONSOLE_SCREEN_BUFFER_INFO Info;
    SMALL_RECT Window;
-   INT nCurrentWindowWidth;
-   INT nCurrentWindowHeight;
+   BOOL bResizeSucceeded;
    INT nWindowWidth;
    INT nWindowHeight;
 
@@ -200,24 +200,37 @@ void ODConsoleSetSize(INT nWidth, INT nHeight, INT *pnActualWidth,
    Window.Right = (SHORT)(nWindowWidth - 1);
    Window.Bottom = (SHORT)(nWindowHeight - 1);
 
+   bResizeSucceeded = TRUE;
    if(GetConsoleScreenBufferInfo(hConsoleOutput, &Info))
    {
-      nCurrentWindowWidth = Info.srWindow.Right - Info.srWindow.Left + 1;
-      nCurrentWindowHeight = Info.srWindow.Bottom - Info.srWindow.Top + 1;
-      if(nCurrentWindowWidth > nWidth || nCurrentWindowHeight > nHeight)
+      /* A mixed resize can shrink one dimension while growing the other.
+       * First make a buffer large enough for both the old and new windows,
+       * then resize the window, and only then trim the buffer. */
+      ExpandedSize.X = Info.dwSize.X > Size.X ? Info.dwSize.X : Size.X;
+      ExpandedSize.Y = Info.dwSize.Y > Size.Y ? Info.dwSize.Y : Size.Y;
+      if(ExpandedSize.X != Info.dwSize.X
+         || ExpandedSize.Y != Info.dwSize.Y)
       {
-         SMALL_RECT SmallWindow;
-         SmallWindow.Left = 0;
-         SmallWindow.Top = 0;
-         SmallWindow.Right = (SHORT)((nCurrentWindowWidth > nWidth
-            ? nWidth : nCurrentWindowWidth) - 1);
-         SmallWindow.Bottom = (SHORT)((nCurrentWindowHeight > nHeight
-            ? nHeight : nCurrentWindowHeight) - 1);
-         SetConsoleWindowInfo(hConsoleOutput, TRUE, &SmallWindow);
+         bResizeSucceeded = SetConsoleScreenBufferSize(hConsoleOutput,
+            ExpandedSize);
+      }
+      if(bResizeSucceeded)
+         bResizeSucceeded = SetConsoleWindowInfo(hConsoleOutput, TRUE,
+            &Window);
+      if(bResizeSucceeded
+         && (ExpandedSize.X != Size.X || ExpandedSize.Y != Size.Y))
+      {
+         bResizeSucceeded = SetConsoleScreenBufferSize(hConsoleOutput, Size);
       }
    }
-   if(!SetConsoleScreenBufferSize(hConsoleOutput, Size)
-      || !SetConsoleWindowInfo(hConsoleOutput, TRUE, &Window))
+   else
+   {
+      bResizeSucceeded = SetConsoleScreenBufferSize(hConsoleOutput, Size);
+      if(bResizeSucceeded)
+         bResizeSucceeded = SetConsoleWindowInfo(hConsoleOutput, TRUE,
+            &Window);
+   }
+   if(!bResizeSucceeded)
    {
       if(GetConsoleScreenBufferInfo(hConsoleOutput, &Info))
       {
