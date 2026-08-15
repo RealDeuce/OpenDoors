@@ -560,6 +560,142 @@ static int RunListingScenario(void)
    return(FinishScenario("LISTING-DONE"));
 }
 
+static int RunPopupScenario(void)
+{
+   static unsigned char original[744];
+   static unsigned char restored[744];
+   static unsigned char pattern[744];
+   static unsigned char menu_original[90];
+   static unsigned char menu_restored[90];
+   void *first_window;
+   void *second_window;
+   void *window;
+   INT result;
+   int index;
+
+   od_control.od_error = ERR_NONE;
+   OD_TEST_CHECK(od_popup_menu(NULL, NULL, 1, 1, -1, MENU_NORMAL) ==
+      POPUP_ERROR);
+   OD_TEST_CHECK(od_control.od_error == ERR_LIMIT);
+   od_control.od_error = ERR_NONE;
+   OD_TEST_CHECK(od_popup_menu(NULL, "", 1, 1, 0, MENU_NORMAL) ==
+      POPUP_ERROR);
+   OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
+
+   od_control.user_ansi = FALSE;
+   od_control.user_avatar = FALSE;
+   od_control.od_error = ERR_NONE;
+   OD_TEST_CHECK(od_popup_menu(NULL, "One", 1, 1, 0, MENU_NORMAL) ==
+      POPUP_ERROR);
+   OD_TEST_CHECK(od_control.od_error == ERR_NOGRAPHICS);
+   od_control.od_error = ERR_NONE;
+   OD_TEST_CHECK(od_window_create(2, 2, 12, 6, NULL, 0x17, 0x1e,
+      0x1f, 0) == NULL);
+   OD_TEST_CHECK(od_control.od_error == ERR_NOGRAPHICS);
+   OD_TEST_CHECK(!od_draw_box(2, 2, 12, 6));
+   OD_TEST_CHECK(od_control.od_error == ERR_NOGRAPHICS);
+   od_control.user_ansi = TRUE;
+
+   for(index = 0; index < 372; ++index)
+   {
+      pattern[index * 2] = (unsigned char)('A' + index % 26);
+      pattern[index * 2 + 1] = (unsigned char)(0x10 + index % 8);
+   }
+   OD_TEST_CHECK(od_puttext(2, 2, 32, 13, pattern));
+   OD_TEST_CHECK(od_gettext(2, 2, 32, 13, original));
+   first_window = od_window_create(2, 2, 24, 10, NULL, 0x17, 0x1e,
+      0x1f, 0);
+   OD_TEST_CHECK(first_window != NULL);
+   second_window = od_window_create(10, 5, 32, 13, "Second", 0x27,
+      0x2e, 0x2f, 0);
+   OD_TEST_CHECK(second_window != NULL);
+   OD_TEST_CHECK(od_window_remove(second_window));
+   OD_TEST_CHECK(od_window_remove(first_window));
+   OD_TEST_CHECK(od_gettext(2, 2, 32, 13, restored));
+   OD_TEST_CHECK(memcmp(original, restored, sizeof(original)) == 0);
+
+   window = od_window_create(35, 2, 39, 6, "Narrow title", 0x37,
+      0x3e, 0x3f, 0);
+   OD_TEST_CHECK(window != NULL);
+   OD_TEST_CHECK(od_window_remove(window));
+   window = od_window_create(35, 2, 50, 7,
+      "A title which must be truncated", 0x47, 0x4e, 0x4f, 0);
+   OD_TEST_CHECK(window != NULL);
+   OD_TEST_CHECK(od_window_remove(window));
+   window = od_window_create(35, 2, 50, 7, "", 0x57, 0x5e, 0x5f, 0);
+   OD_TEST_CHECK(window != NULL);
+   OD_TEST_CHECK(od_window_remove(window));
+
+   od_control.od_box_chars[BOX_BOTTOM] = 0;
+   od_control.od_box_chars[BOX_RIGHT] = 0;
+   OD_TEST_CHECK(od_draw_box(35, 9, 50, 14));
+   OD_TEST_CHECK(od_control.od_box_chars[BOX_BOTTOM] ==
+      od_control.od_box_chars[BOX_TOP]);
+   OD_TEST_CHECK(od_control.od_box_chars[BOX_RIGHT] ==
+      od_control.od_box_chars[BOX_LEFT]);
+   od_control.user_avatar = TRUE;
+   OD_TEST_CHECK(od_draw_box(52, 9, 65, 14));
+   window = od_window_create(52, 16, 68, 22, "Avatar", 0x67, 0x6e,
+      0x6f, 0);
+   OD_TEST_CHECK(window != NULL);
+   OD_TEST_CHECK(od_window_remove(window));
+   od_control.user_avatar = FALSE;
+
+   Marker("POPUP-DOWN");
+   result = od_popup_menu("Arrows", "One|Two|Three|Four", 3, 3, 0,
+      MENU_NORMAL);
+   OD_TEST_CHECK(result == 3);
+   Marker("POPUP-UP-WRAP");
+   result = od_popup_menu(NULL, "One|Two|Three|Four", 3, 3, 0,
+      MENU_NORMAL);
+   OD_TEST_CHECK(result == 4);
+   Marker("POPUP-IGNORED");
+   result = od_popup_menu("Ignored", "Alpha|Beta|Gamma", 3, 3, 0,
+      MENU_NORMAL);
+   OD_TEST_CHECK(result == 2);
+   Marker("POPUP-HOTKEY");
+   result = od_popup_menu(NULL, "Alpha|Beta", 3, 3, 0, MENU_NORMAL);
+   OD_TEST_CHECK(result == 2);
+
+   Marker("POPUP-LEFT");
+   OD_TEST_CHECK(od_popup_menu(NULL, "One|Two", 3, 3, 0,
+      MENU_PULLDOWN) == POPUP_LEFT);
+   Marker("POPUP-RIGHT");
+   OD_TEST_CHECK(od_popup_menu(NULL, "One|Two", 3, 3, 0,
+      MENU_PULLDOWN) == POPUP_RIGHT);
+   Marker("POPUP-NUMERIC-LEFT");
+   OD_TEST_CHECK(od_popup_menu(NULL, "One|Two", 3, 3, 0,
+      MENU_PULLDOWN) == POPUP_LEFT);
+   Marker("POPUP-NUMERIC-RIGHT");
+   OD_TEST_CHECK(od_popup_menu(NULL, "One|Two", 3, 3, 0,
+      MENU_PULLDOWN) == POPUP_RIGHT);
+
+   od_clr_scr();
+   OD_TEST_CHECK(od_gettext(10, 5, 18, 9, menu_original));
+   Marker("POPUP-KEEP-FIRST");
+   result = od_popup_menu("Keep", "One|Two|Three", 10, 5, 5,
+      MENU_KEEP);
+   OD_TEST_CHECK(result == 2);
+   Marker("POPUP-KEEP-RESUME");
+   result = od_popup_menu("Ignored", "Ignored", 1, 1, 5, MENU_NORMAL);
+   OD_TEST_CHECK(result == 3);
+   OD_TEST_CHECK(od_popup_menu(NULL, NULL, 0, 0, 5, MENU_DESTROY) ==
+      POPUP_ESCAPE);
+   OD_TEST_CHECK(od_gettext(10, 5, 18, 9, menu_restored));
+   OD_TEST_CHECK(memcmp(menu_original, menu_restored,
+      sizeof(menu_original)) == 0);
+
+   Marker("POPUP-CANCEL-FIRST");
+   result = od_popup_menu("Cancel", "One|Two", 20, 5, 6,
+      MENU_KEEP | MENU_ALLOW_CANCEL);
+   OD_TEST_CHECK(result == 1);
+   Marker("POPUP-CANCEL-RESUME");
+   result = od_popup_menu(NULL, NULL, 0, 0, 6, MENU_NORMAL);
+   OD_TEST_CHECK(result == POPUP_ESCAPE);
+
+   return(FinishScenario("POPUP-DONE"));
+}
+
 static int RunSessionScenario(void)
 {
    tODInputEvent event;
@@ -690,6 +826,8 @@ int main(int argc, char **argv)
       return(RunEmulationScenario());
    if(strcmp(scenario, "listing") == 0)
       return(RunListingScenario());
+   if(strcmp(scenario, "popup") == 0)
+      return(RunPopupScenario());
    if(strcmp(scenario, "session") == 0)
       return(RunSessionScenario());
 

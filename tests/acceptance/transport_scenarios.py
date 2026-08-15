@@ -17,6 +17,7 @@ SCENARIOS = (
     "display",
     "emulation",
     "listing",
+    "popup",
     "session",
 )
 
@@ -286,6 +287,38 @@ def drive_listing(peer: socket.socket, timeout: int) -> bytearray:
     return transcript
 
 
+def drive_popup(peer: socket.socket, timeout: int) -> bytearray:
+    transcript = bytearray()
+    receive_until(peer, b"POPUP-DOWN", transcript, timeout)
+    peer.sendall(b"\x1b[B\x1b[B\r")
+    receive_until(peer, b"POPUP-UP-WRAP", transcript, timeout)
+    peer.sendall(b"\x1b[A\r")
+    receive_until(peer, b"POPUP-IGNORED", transcript, timeout)
+    peer.sendall(b"\x1b")
+    time.sleep(0.3)
+    peer.sendall(b"\x1b[C\x1b[B\r")
+    receive_until(peer, b"POPUP-HOTKEY", transcript, timeout)
+    peer.sendall(b"b")
+    receive_until(peer, b"POPUP-LEFT", transcript, timeout)
+    peer.sendall(b"\x1b[D")
+    receive_until(peer, b"POPUP-RIGHT", transcript, timeout)
+    peer.sendall(b"\x1b[C")
+    receive_until(peer, b"POPUP-NUMERIC-LEFT", transcript, timeout)
+    peer.sendall(b"4")
+    receive_until(peer, b"POPUP-NUMERIC-RIGHT", transcript, timeout)
+    peer.sendall(b"6")
+    receive_until(peer, b"POPUP-KEEP-FIRST", transcript, timeout)
+    peer.sendall(b"\x1b[B\r")
+    receive_until(peer, b"POPUP-KEEP-RESUME", transcript, timeout)
+    peer.sendall(b"\x1b[B\r")
+    receive_until(peer, b"POPUP-CANCEL-FIRST", transcript, timeout)
+    peer.sendall(b"\r")
+    receive_until(peer, b"POPUP-CANCEL-RESUME", transcript, timeout)
+    peer.sendall(b"\x1b")
+    finish(peer, transcript, b"POPUP-DONE", timeout)
+    return transcript
+
+
 def drive_session(peer: socket.socket, timeout: int) -> bytearray:
     transcript = bytearray()
     receive_until(peer, b"SESSION-AUTODETECT", transcript, timeout)
@@ -310,6 +343,7 @@ DRIVERS = {
     "display": drive_display,
     "emulation": drive_emulation,
     "listing": drive_listing,
+    "popup": drive_popup,
     "session": drive_session,
 }
 
