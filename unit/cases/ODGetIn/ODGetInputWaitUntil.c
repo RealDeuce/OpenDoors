@@ -87,7 +87,7 @@ void utm_ODSyncAPIReacquire(unsigned level)
 static void reached_deadline_returns_without_touching_the_queue(void)
 {
    tODInputEvent event;
-   tODInputDeadline deadline;
+   tODInputDeadline deadline = {0, 0};
    reset_fixture();
    ut_slices[0] = 0; ut_slice_count = 1;
    UT_ASSERT_EQ_INT(kODRCTimeout,
@@ -99,7 +99,7 @@ static void reached_deadline_returns_without_touching_the_queue(void)
 static void returns_input_and_caps_a_relative_sequence_wait(void)
 {
    tODInputEvent event;
-   tODInputDeadline deadline;
+   tODInputDeadline deadline = {0, 0};
    reset_fixture();
    ut_slices[0] = 40; ut_slice_count = 1;
    ut_results[0] = kODRCSuccess; ut_result_count = 1;
@@ -129,7 +129,7 @@ static void returns_input_and_caps_a_relative_sequence_wait(void)
 static void relative_and_lifecycle_limits_abort_waiting(void)
 {
    tODInputEvent event;
-   tODInputDeadline deadline;
+   tODInputDeadline deadline = {0, 0};
    reset_fixture();
    ut_slices[0] = 40; ut_slice_count = 1;
    ut_left[0] = 0; ut_left_count = 1;
