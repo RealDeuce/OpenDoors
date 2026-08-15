@@ -90,9 +90,50 @@ static void reports_time_remaining_and_expiration(void)
    UT_ASSERT_EQ_UINT(10, utt_ODTimerLeft(&ut_timer));
    ut_time_value.tv_nsec = 20000000;
    UT_ASSERT_EQ_UINT(0, utt_ODTimerLeft(&ut_timer));
+   ut_time_value.tv_sec = 99;
+   ut_time_value.tv_nsec = 999000000;
+   UT_ASSERT_EQ_UINT(0, utt_ODTimerLeft(&ut_timer));
 #endif
 }
 
+#if defined(ODPLAT_DOS) || defined(ODPLAT_WIN32) || defined(ODPLAT_NIX)
+static void reports_time_remaining_across_counter_rollover(void)
+{
+   memset(&ut_timer, 0, sizeof(ut_timer));
+   ut_timer.Start = (tODMilliSec)0xfffffff0UL;
+   ut_timer.Duration = 32;
+
+#ifdef ODPLAT_DOS
+   ut_multiply_calls = 0;
+   ut_clock_value = (clock_t)0xfffffff8UL;
+   UT_ASSERT_EQ_UINT(1320, utt_ODTimerLeft(&ut_timer));
+   ut_clock_value = (clock_t)5;
+   UT_ASSERT_EQ_UINT(605, utt_ODTimerLeft(&ut_timer));
+   ut_clock_value = (clock_t)16;
+   UT_ASSERT_EQ_UINT(0, utt_ODTimerLeft(&ut_timer));
+   UT_ASSERT_EQ_UINT(2, ut_multiply_calls);
+#elif defined(ODPLAT_WIN32)
+   ut_clock_value = (tODMilliSec)0xfffffff8UL;
+   UT_ASSERT_EQ_UINT(24, utt_ODTimerLeft(&ut_timer));
+   ut_clock_value = 5;
+   UT_ASSERT_EQ_UINT(11, utt_ODTimerLeft(&ut_timer));
+   ut_clock_value = 16;
+   UT_ASSERT_EQ_UINT(0, utt_ODTimerLeft(&ut_timer));
+#else
+   ut_time_value.tv_sec = 4294967;
+   ut_time_value.tv_nsec = 288000000;
+   UT_ASSERT_EQ_UINT(24, utt_ODTimerLeft(&ut_timer));
+   ut_time_value.tv_nsec = 301000000;
+   UT_ASSERT_EQ_UINT(11, utt_ODTimerLeft(&ut_timer));
+   ut_time_value.tv_nsec = 312000000;
+   UT_ASSERT_EQ_UINT(0, utt_ODTimerLeft(&ut_timer));
+#endif
+}
+#endif
+
 static const UTTestCase ut_cases[] = {
-   {"time left", reports_time_remaining_and_expiration}
+   {"time left", reports_time_remaining_and_expiration},
+#if defined(ODPLAT_DOS) || defined(ODPLAT_WIN32) || defined(ODPLAT_NIX)
+   {"counter rollover", reports_time_remaining_across_counter_rollover}
+#endif
 };

@@ -558,7 +558,8 @@ void ODTimerStart(tODTimer *pTimer, tODMilliSec Duration)
 
 #ifdef ODPLAT_NIX
    clock_gettime(CLOCK_MONOTONIC, &ts);
-   pTimer->Start=ts.tv_sec*1000+ts.tv_nsec/1000000;
+   pTimer->Start = (tODMilliSec)ts.tv_sec * 1000UL
+      + (tODMilliSec)(ts.tv_nsec / 1000000L);
    pTimer->Duration = Duration;
 #endif
 }
@@ -577,23 +578,7 @@ void ODTimerStart(tODTimer *pTimer, tODMilliSec Duration)
 BOOL ODTimerElapsed(tODTimer *pTimer)
 {
    ASSERT(pTimer != NULL);
-
-#ifdef ODPLAT_DOS
-   return(clock() > pTimer->Start + pTimer->Duration
-      || clock() < pTimer->Start);
-#endif /* ODPLAT_DOS */
-
-#ifdef ODPLAT_DOS32
    return(ODTimerLeft(pTimer) == 0);
-#endif /* ODPLAT_DOS32 */
-
-#ifdef ODPLAT_WIN32
-   return(ODTimerLeft(pTimer)==0);
-#endif /* ODPLAT_WIN32 */
-
-#ifdef ODPLAT_NIX
-	return(ODTimerLeft(pTimer)==0);
-#endif
 }
 
 
@@ -661,25 +646,23 @@ tODMilliSec ODTimerLeft(tODTimer *pTimer)
 {
 #ifdef ODPLAT_NIX
    struct timespec ts;
-   time_t nowtick;
 #endif
    ASSERT(pTimer != NULL);
 
 #ifdef ODPLAT_DOS
    {
       clock_t Now = clock();
-      clock_t Left;
+      /* Unsigned subtraction preserves elapsed time across counter rollover. */
+      DWORD Elapsed = (DWORD)Now - (DWORD)pTimer->Start;
 
       /* If timer has elapsed, return 0. */
-      if(Now > pTimer->Start + pTimer->Duration
-         || Now < pTimer->Start)
+      if(Elapsed >= (DWORD)pTimer->Duration)
       {
          return(0);
       }
 
-      Left = pTimer->Start + pTimer->Duration - Now;
-
-      return(ODDWordMultiply(Left, MILLISEC_PER_TICK));
+      return(ODDWordMultiply((DWORD)pTimer->Duration - Elapsed,
+         MILLISEC_PER_TICK));
    }
 #elif defined(ODPLAT_DOS32)
    {
@@ -692,30 +675,31 @@ tODMilliSec ODTimerLeft(tODTimer *pTimer)
          return(0);
       return((pTimer->Duration - Elapsed) * 55UL);
    }
-#elif defined(ODPLAT_NIX)
-   clock_gettime(CLOCK_MONOTONIC, &ts);
-   nowtick=ts.tv_sec*1000+(ts.tv_nsec/1000000);
-   if(pTimer->Start+pTimer->Duration <= nowtick)
-      return(0);
-   return((tODMilliSec)(pTimer->Start + pTimer->Duration - nowtick));
-#else /* !ODPLAT_DOS */
+#else /* !ODPLAT_DOS && !ODPLAT_DOS32 */
    {
       tODMilliSec Now;
+      tODMilliSec Elapsed;
 
 #ifdef ODPLAT_WIN32      
       Now = GetTickCount();
 #endif /* ODPLAT_WIN32 */
+#ifdef ODPLAT_NIX
+      clock_gettime(CLOCK_MONOTONIC, &ts);
+      Now = (tODMilliSec)ts.tv_sec * 1000UL
+         + (tODMilliSec)(ts.tv_nsec / 1000000L);
+#endif /* ODPLAT_NIX */
+      /* Unsigned subtraction preserves elapsed time across counter rollover. */
+      Elapsed = Now - pTimer->Start;
 
       /* If timer has elapsed, return 0. */
-      if(Now > pTimer->Start + pTimer->Duration
-         || Now < pTimer->Start)
+      if(Elapsed >= pTimer->Duration)
       {
          return(0);
       }
 
-      return(pTimer->Start + pTimer->Duration - Now);
+      return(pTimer->Duration - Elapsed);
    }
-#endif /* !ODPLAT_DOS */
+#endif /* !ODPLAT_DOS && !ODPLAT_DOS32 */
 }
 
 
