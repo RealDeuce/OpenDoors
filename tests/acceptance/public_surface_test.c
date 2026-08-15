@@ -83,6 +83,10 @@ int main(void)
       OD_TEST_CHECK(IsZero((const unsigned char *)&od_control +
          fields[index].offset, fields[index].size));
    }
+   OD_TEST_CHECK(od_set_user_8bit(TRUE));
+   OD_TEST_CHECK(od_get_user_8bit() == TRUE);
+   OD_TEST_CHECK(od_set_user_8bit(FALSE));
+   OD_TEST_CHECK(od_get_user_8bit() == FALSE);
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    marker = fopen("APIPASS.OK", "w");
    OD_TEST_CHECK(marker != NULL);

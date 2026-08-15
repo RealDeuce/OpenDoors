@@ -2,7 +2,7 @@
 ; OpenDoors 32-bit Windows DLL exports.
 ;
 ; Keep every historical decorated and undecorated ordinal stable.  New
-; exports must be appended after ordinal 133.
+; exports must be appended after ordinal 145.
 LIBRARY ODOORS63
 VERSION 6.3
 EXPORTS
@@ -145,3 +145,7 @@ EXPORTS
    od_get_time=_od_get_time@8 @137
    _od_get_input_until@16=_od_get_input_until@16 @138
    od_get_input_until=_od_get_input_until@16 @139
+   _od_get_user_8bit@0=_od_get_user_8bit@0 @142
+   od_get_user_8bit=_od_get_user_8bit@0 @143
+   _od_set_user_8bit@4=_od_set_user_8bit@4 @144
+   od_set_user_8bit=_od_set_user_8bit@4 @145

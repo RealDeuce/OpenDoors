@@ -24,6 +24,7 @@ od_get_input
 od_get_input_until
 od_get_key
 od_get_time
+od_get_user_8bit
 od_gettext
 od_hotkey_menu
 od_init
@@ -57,6 +58,7 @@ od_set_dtr
 od_set_personality
 od_set_port
 od_set_statusline
+od_set_user_8bit
 od_sleep
 od_spawn
 od_spawnvpe

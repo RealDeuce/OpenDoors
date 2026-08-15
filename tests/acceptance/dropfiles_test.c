@@ -18,7 +18,8 @@ static int WriteLines(const char *name, const char *const *lines, size_t count)
    return(fclose(file) == 0);
 }
 
-static int RunDropFile(const char *name, BYTE type, const char *user)
+static int RunDropFile(const char *name, BYTE type, const char *user,
+   BOOL eight_bit)
 {
    memset(&od_control, 0, sizeof(od_control));
    strncpy(od_control.info_path, name, sizeof(od_control.info_path) - 1);
@@ -32,12 +33,15 @@ static int RunDropFile(const char *name, BYTE type, const char *user)
    od_init();
    fprintf(stderr, "%s: initialized\n", name);
    if(od_control.od_info_type != type ||
+      od_get_user_8bit() != eight_bit ||
       (user != NULL && strcmp(od_control.user_name, user) != 0))
    {
-      fprintf(stderr, "%s: expected type %u/user %s, got %u/%s\n", name,
+      fprintf(stderr,
+         "%s: expected type %u/user %s/8-bit %u, got %u/%s/%u\n", name,
          (unsigned)type, user == NULL ? "(not checked)" : user,
+         (unsigned)eight_bit,
          (unsigned)od_control.od_info_type,
-         od_control.user_name);
+         od_control.user_name, (unsigned)od_get_user_8bit());
       od_exit(0, FALSE);
       return(0);
    }
@@ -50,11 +54,11 @@ static int RunDropFile(const char *name, BYTE type, const char *user)
 static int TestDorinfo(void)
 {
    static const char *const lines[] = {
-      "Acceptance BBS", "Test", "Sysop", "COM0", "38400", "0",
+      "Acceptance BBS", "Test", "Sysop", "COM0", "38400", "8N1",
       "Fixture", "Caller", "Test Lab", "1", "42", "60"
    };
    return(WriteLines("dorinfo1.def", lines, sizeof(lines) / sizeof(lines[0])) &&
-      RunDropFile("dorinfo1.def", DORINFO1, "Fixture Caller"));
+      RunDropFile("dorinfo1.def", DORINFO1, "Fixture Caller", TRUE));
 }
 
 static int TestChain(void)
@@ -64,10 +68,10 @@ static int TestChain(void)
       "unused", "01-02-24", "100", "30", "42", "0", "0", "1", "0",
       "3600", "unused", "unused", "unused", "KB", "0", "unused",
       "secret", "unused", "unused", "unused", "unused", "unused", "unused",
-      "unused"
+      "N,8,1"
    };
    return(WriteLines("chain.txt", lines, sizeof(lines) / sizeof(lines[0])) &&
-      RunDropFile("chain.txt", CHAINTXT, "Fixture Caller"));
+      RunDropFile("chain.txt", CHAINTXT, "Fixture Caller", TRUE));
 }
 
 static int TestSfdoors(void)
@@ -81,7 +85,7 @@ static int TestSfdoors(void)
       "4", "1016", "unused"
    };
    return(WriteLines("sfdoors.dat", lines, sizeof(lines) / sizeof(lines[0])) &&
-      RunDropFile("sfdoors.dat", SFDOORSDAT, "Fixture Caller"));
+      RunDropFile("sfdoors.dat", SFDOORSDAT, "Fixture Caller", FALSE));
 }
 
 static int TestDoorway(void)
@@ -90,7 +94,7 @@ static int TestDoorway(void)
       "Fixture Caller", "0", "0", "60", "G"
    };
    return(WriteLines("door.sys", lines, sizeof(lines) / sizeof(lines[0])) &&
-      RunDropFile("door.sys", DOORSYS_DRWY, "Fixture Caller"));
+      RunDropFile("door.sys", DOORSYS_DRWY, "Fixture Caller", FALSE));
 }
 
 static void FillGap(const char **lines, size_t count)
@@ -122,7 +126,7 @@ static int TestGap(void)
    const char *lines[31];
    FillGap(lines, sizeof(lines) / sizeof(lines[0]));
    return(WriteLines("door.sys", lines, sizeof(lines) / sizeof(lines[0])) &&
-      RunDropFile("door.sys", DOORSYS_GAP, "Fixture Caller"));
+      RunDropFile("door.sys", DOORSYS_GAP, "Fixture Caller", TRUE));
 }
 
 static int TestWildcat(void)
@@ -142,7 +146,7 @@ static int TestWildcat(void)
    lines[52] = "Fixture comment";
    lines[54] = "9";
    return(WriteLines("door.sys", lines, sizeof(lines) / sizeof(lines[0])) &&
-      RunDropFile("door.sys", DOORSYS_WILDCAT, "Fixture Caller"));
+      RunDropFile("door.sys", DOORSYS_WILDCAT, "Fixture Caller", TRUE));
 }
 
 static int TestCallinfo(void)
@@ -162,7 +166,7 @@ static int TestCallinfo(void)
    lines[28] = "COM0";
    lines[30] = "0";
    return(WriteLines("callinfo.bbs", lines, sizeof(lines) / sizeof(lines[0])) &&
-      RunDropFile("callinfo.bbs", CALLINFO, "Fixture Caller"));
+      RunDropFile("callinfo.bbs", CALLINFO, "Fixture Caller", FALSE));
 }
 
 static int TestTribbs(void)
@@ -173,7 +177,7 @@ static int TestTribbs(void)
       "Y", "Acceptance BBS", "Test Sysop", "Fixture Alias", "Y"
    };
    return(WriteLines("tribbs.sys", lines, sizeof(lines) / sizeof(lines[0])) &&
-      RunDropFile("tribbs.sys", TRIBBSSYS, "Fixture Caller"));
+      RunDropFile("tribbs.sys", TRIBBSSYS, "Fixture Caller", FALSE));
 }
 
 static int TestDoor32(void)
@@ -183,7 +187,7 @@ static int TestDoor32(void)
       "Fixture Alias", "42", "60", "1", "3"
    };
    return(WriteLines("door32.sys", lines, sizeof(lines) / sizeof(lines[0])) &&
-      RunDropFile("door32.sys", DOOR32SYS, "Fixture Caller"));
+      RunDropFile("door32.sys", DOOR32SYS, "Fixture Caller", FALSE));
 }
 
 static int TestCustom(void)
@@ -260,7 +264,8 @@ static int TestExitInfoSize(size_t size, BYTE expected_type)
       !WriteLines("dorinfo1.def", dorinfo,
          sizeof(dorinfo) / sizeof(dorinfo[0])))
       return(0);
-   result = RunDropFile("exitinfo.bbs", expected_type, "Fixture Caller");
+   result = RunDropFile("exitinfo.bbs", expected_type, "Fixture Caller",
+      FALSE);
    if(!result || od_control.system_calls != 0x12345678UL)
       return(0);
    file = fopen("exitinfo.bbs", "rb");

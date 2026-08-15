@@ -8244,6 +8244,20 @@
     },
     {
       "kind": "function",
+      "name": "od_get_user_8bit",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "dropfiles.all"
+      ]
+    },
+    {
+      "kind": "function",
       "name": "od_gettext",
       "platforms": [
         "windows",
@@ -8699,6 +8713,20 @@
       "evidence": [
         "symbols.exports",
         "lifecycle.defaults"
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "od_set_user_8bit",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "dropfiles.all"
       ]
     },
     {

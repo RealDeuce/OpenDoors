@@ -5,6 +5,7 @@
 #endif
 
 #define UT_CUSTOM_MOCK_ODFileAccessMode
+#define UT_CUSTOM_MOCK_ODFramingIsEightBit
 #define UT_CUSTOM_MOCK_ODInQueueAlloc
 #define UT_CUSTOM_MOCK_ODInitError
 #define UT_CUSTOM_MOCK_ODInitPartTwo
@@ -32,6 +33,7 @@
 #define UT_CUSTOM_MOCK_malloc
 #define UT_CUSTOM_MOCK_od_strupr
 #define UT_CUSTOM_MOCK_od_exit
+#define UT_CUSTOM_MOCK_od_set_user_8bit
 #define UT_CUSTOM_MOCK_safe_strcat
 #define UT_CUSTOM_MOCK_safe_strcpy
 #define UT_CUSTOM_MOCK_setlocale
@@ -93,6 +95,8 @@ static const char *ut_task_value;
 static const char *ut_sbbs_node_value;
 static const char *ut_locale_value;
 static BOOL ut_exitinfo_succeeds;
+static unsigned ut_set_user_8bit_calls;
+static BOOL ut_set_user_8bit_value;
 static BOOL ut_no_file_forces_local;
 static BOOL ut_no_file_supplies_info;
 static jmp_buf ut_exit_target;
@@ -100,6 +104,22 @@ static BOOL ut_exit_expected;
 #ifdef ODPLAT_WIN32
 static tODWindowsSubsystem ut_subsystem;
 #endif
+
+BOOL utm_ODFramingIsEightBit(const char *framing)
+{
+   const char *scan;
+   while(*framing == ' ' || *framing == '\t' || *framing == '\r' ||
+      *framing == '\n')
+   {
+      ++framing;
+   }
+   if(framing[0] == '8')
+      return(TRUE);
+   for(scan = framing; scan[0] != '\0'; ++scan)
+      if(scan[0] == ',' && scan[1] == '8' && scan[2] == ',')
+         return(TRUE);
+   return(FALSE);
+}
 
 #ifdef ODPLAT_WIN32
 tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void)
@@ -488,6 +508,13 @@ void ODCALL utm_od_exit(INT error_level, BOOL term_call)
    ut_od_exit_term = term_call;
 }
 
+BOOL ODCALL utm_od_set_user_8bit(BOOL value)
+{
+   ++ut_set_user_8bit_calls;
+   ut_set_user_8bit_value = value;
+   return TRUE;
+}
+
 #ifdef ODPLAT_NIX
 char *utm_setlocale(int category, const char *locale)
 {
@@ -594,6 +621,8 @@ static void reset_init_fixture(void)
    ut_sbbs_node_value = NULL;
    ut_locale_value = "C";
    ut_exitinfo_succeeds = TRUE;
+   ut_set_user_8bit_calls = 0;
+   ut_set_user_8bit_value = FALSE;
    ut_no_file_forces_local = FALSE;
    ut_no_file_supplies_info = FALSE;
    ut_exit_expected = FALSE;
@@ -927,7 +956,7 @@ static void prepare_dorinfo(void)
    ut_set_line(2, "Sysop\n");
    ut_set_line(3, "COM1\n");
    ut_set_line(4, "38400\n");
-   ut_set_line(5, "unused\n");
+   ut_set_line(5, "8N1\n");
    ut_set_line(6, "Door\n");
    ut_set_line(7, "User\n");
    ut_set_line(8, "Somewhere\n");
@@ -954,6 +983,7 @@ static void prepare_chain(void)
    ut_set_line(19, "38400\n");
    ut_set_line(20, "2\n");
    ut_set_line(22, "secret\n");
+   ut_set_line(29, "N,8,1\n");
 }
 
 static void prepare_doorway(void)
@@ -1069,6 +1099,14 @@ static void reads_dorinfo_and_each_required_line_failure(void)
    UT_ASSERT_EQ_INT(TRUE, od_control.user_ansi);
    UT_ASSERT_EQ_INT(90, od_control.user_security);
    UT_ASSERT_EQ_INT(45, od_control.user_timelimit);
+   UT_ASSERT_EQ_UINT(1, ut_set_user_8bit_calls);
+   UT_ASSERT_EQ_INT(TRUE, ut_set_user_8bit_value);
+
+   prepare_dorinfo();
+   ut_set_line(5, "7E1\n");
+   utt_od_init();
+   UT_ASSERT_EQ_UINT(1, ut_set_user_8bit_calls);
+   UT_ASSERT_EQ_INT(FALSE, ut_set_user_8bit_value);
 
    prepare_dorinfo();
    ut_set_line(0, "Test BBS");
@@ -1109,6 +1147,14 @@ static void reads_chain_and_each_required_line_failure(void)
    UT_ASSERT_EQ_INT(60, od_control.user_timelimit);
    UT_ASSERT_EQ_INT(38400, od_control.baud);
    UT_ASSERT_EQ_INT(1, od_control.port);
+   UT_ASSERT_EQ_UINT(1, ut_set_user_8bit_calls);
+   UT_ASSERT_EQ_INT(TRUE, ut_set_user_8bit_value);
+
+   prepare_chain();
+   ut_set_line(29, "N,7,1\n");
+   utt_od_init();
+   UT_ASSERT_EQ_UINT(1, ut_set_user_8bit_calls);
+   UT_ASSERT_EQ_INT(FALSE, ut_set_user_8bit_value);
 
    prepare_chain();
    ut_set_line(19, "KB");
@@ -1424,6 +1470,14 @@ static void reads_gap_required_and_optional_lines(void)
    UT_ASSERT_EQ_INT(TRUE, od_control.user_ansi);
    UT_ASSERT_EQ_INT(TRUE, od_control.user_error_free);
    UT_ASSERT_EQ_INT(12, od_control.user_messages);
+   UT_ASSERT_EQ_UINT(1, ut_set_user_8bit_calls);
+   UT_ASSERT_EQ_INT(TRUE, ut_set_user_8bit_value);
+
+   prepare_gap();
+   ut_set_line(2, "7E1\n");
+   utt_od_init();
+   UT_ASSERT_EQ_UINT(1, ut_set_user_8bit_calls);
+   UT_ASSERT_EQ_INT(FALSE, ut_set_user_8bit_value);
 
    prepare_gap();
    ut_set_line(4, "Y\n");

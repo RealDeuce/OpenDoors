@@ -2,7 +2,7 @@
 ; OpenDoors 64-bit Windows DLL exports.
 ;
 ; Keep every ordinal from the first 64-bit release stable. New exports must
-; be appended after ordinal 73.
+; be appended after ordinal 75.
 LIBRARY ODOORS63
 VERSION 6.3
 EXPORTS
@@ -78,3 +78,5 @@ EXPORTS
    od_parse_cmd_line_cons @70
    od_get_time @71
    od_get_input_until @72
+   od_get_user_8bit @74
+   od_set_user_8bit @75

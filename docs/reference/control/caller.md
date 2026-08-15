@@ -217,6 +217,12 @@ The new value affects subsequent output and is written back only to
 door-information formats whose caller record contains a corresponding
 graphics-mode setting.
 
+Whether the connection can carry eight-bit character data is a separate
+capability available through [`od_get_user_8bit()`](../api/od_get_user_8bit.md)
+and [`od_set_user_8bit()`](../api/od_set_user_8bit.md). It is not a member of
+`tODControl`, so applications can use it without changing this structure's
+ABI.
+
 ### `user_attribute`
 
 ```c

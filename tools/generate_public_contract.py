@@ -60,6 +60,7 @@ def function_evidence(name: str) -> list[str]:
         "od_get_input_until": "input.interactive",
         "od_get_key": "input.interactive",
         "od_get_time": "input.interactive",
+        "od_get_user_8bit": "dropfiles.all",
         "od_input_str": "input.interactive",
         "od_key_pending": "input.interactive",
         "od_edit_str": "input.interactive",
@@ -77,6 +78,7 @@ def function_evidence(name: str) -> list[str]:
         "od_parse_cmd_line_cons": "command-line.behavior",
         "od_split_cmd_line": "command-line.behavior",
         "od_free_split_cmd_line": "command-line.behavior",
+        "od_set_user_8bit": "dropfiles.all",
     }
     if name.startswith("pdef_"):
         group = "personalities.builtin"

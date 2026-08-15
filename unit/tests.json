@@ -1618,6 +1618,24 @@
     },
     {
       "source": "ODInEx1.c",
+      "function": "ODFramingIsEightBit",
+      "case": "unit/cases/ODInEx1/ODFramingIsEightBit.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "od_get_user_8bit",
+      "case": "unit/cases/ODInEx1/od_get_user_8bit.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
+      "function": "od_set_user_8bit",
+      "case": "unit/cases/ODInEx1/od_set_user_8bit.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODInEx1.c",
       "function": "ODInitTerminalSpeedToBaud",
       "case": "unit/cases/ODInEx1/ODInitTerminalSpeedToBaud.c",
       "platforms": ["unix"]

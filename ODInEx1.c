@@ -118,10 +118,12 @@ static void ODInitReadExitInfo(void);
 static void ODInitPartTwo(void);
 static BOOL ODInitReadSFDoorsDAT(void);
 static void ODInitPartTwo(void);
+static BOOL ODFramingIsEightBit(const char *pszFraming);
 
 
 /* Private variables. */
 static BYTE btRAStatusToSet = 0;
+static BOOL bUserEightBit = FALSE;
 #ifndef ODPLAT_WIN32
 static BOOL bPreset = TRUE;
 #endif /* !ODPLAT_WIN32 */
@@ -130,6 +132,14 @@ static char szIFTemp[256];
 static char szWindowsStartupUserName[sizeof(od_control.user_name)];
 static BOOL bWindowsStartupCancelled;
 #endif
+
+/* Whether a drop-file framing field explicitly specifies eight data bits. */
+static BOOL ODFramingIsEightBit(const char *pszFraming)
+{
+   while(isspace((unsigned char)*pszFraming))
+      ++pszFraming;
+   return(pszFraming[0] == '8' || strstr(pszFraming, ",8,") != NULL);
+}
 
 /* Configuration file keywords. */
 static char *apszConfigText[] =
@@ -380,6 +390,33 @@ ODAPIDEF BOOL ODCALL od_set_port(INT nPort)
 
    od_control.port = (INT16)nPort;
    nForcedPort = nPort;
+   return(TRUE);
+}
+
+/* ----------------------------------------------------------------------------
+ * od_get_user_8bit()
+ *
+ * Reports whether the caller's connection supports eight-bit character data.
+ */
+ODAPIDEF BOOL ODCALL od_get_user_8bit(void)
+{
+   TRACE(TRACE_API, "od_get_user_8bit()");
+
+   if(!ODSyncPublicCallAllowed()) return(FALSE);
+   return(bUserEightBit);
+}
+
+/* ----------------------------------------------------------------------------
+ * od_set_user_8bit()
+ *
+ * Records whether the caller's connection supports eight-bit character data.
+ */
+ODAPIDEF BOOL ODCALL od_set_user_8bit(BOOL bEightBit)
+{
+   TRACE(TRACE_API, "od_set_user_8bit()");
+
+   if(!ODSyncPublicCallAllowed()) return(FALSE);
+   bUserEightBit = bEightBit ? TRUE : FALSE;
    return(TRUE);
 }
 
@@ -779,6 +816,7 @@ read_dorinfox:
 #endif
 
           if(fgets((char *)apszDropFileInfo[1],80,pfDropFile)==NULL) goto DropFileFail;
+          od_set_user_8bit(ODFramingIsEightBit(apszDropFileInfo[1]));
 
                                           /* get user's first name */
           if(fgets(szIFTemp,255,pfDropFile)==NULL) goto DropFileFail;
@@ -896,6 +934,7 @@ read_dorinfox:
           if(fgets((char *)apszDropFileInfo[10],80,pfDropFile)==NULL) goto DropFileFail;
           if(fgets((char *)apszDropFileInfo[11],80,pfDropFile)==NULL) goto DropFileFail;
           if(fgets((char *)apszDropFileInfo[12],80,pfDropFile)==NULL) goto DropFileFail;
+          od_set_user_8bit(ODFramingIsEightBit(apszDropFileInfo[12]));
 
           fclose(pfDropFile);
        }
@@ -953,6 +992,7 @@ read_dorinfox:
 
              /* Read line 3. */
              if(fgets((char *)apszDropFileInfo[1],80,pfDropFile)==NULL) goto DropFileFail;
+             od_set_user_8bit(ODFramingIsEightBit(apszDropFileInfo[1]));
 
              /* Read line 4. */
              if(fgets(szIFTemp, 255, pfDropFile) == NULL) goto DropFileFail;

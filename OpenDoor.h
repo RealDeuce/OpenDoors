@@ -1067,6 +1067,8 @@ od_control;
  *    od_chat()               - Manually starts chat mode
  *    od_sleep()              - Yield to other processes
  *    od_get_time()           - Gets elapsed session wall-clock time
+ *    od_get_user_8bit()      - Reports eight-bit caller data support
+ *    od_set_user_8bit()      - Records eight-bit caller data support
  *    od_control_get()        - Returns a pointer to the od_control structure.
  */
 ODAPIDEF BOOL ODCALL   od_add_personality(const char *pszName, BYTE btOutputTop,
@@ -1095,6 +1097,7 @@ ODAPIDEF char ODCALL   od_get_answer(const char *pszOptions);
 ODAPIDEF void ODCALL   od_get_cursor(INT *pnRow, INT *pnColumn);
 ODAPIDEF void ODCALL   od_get_time(DWORD *pdwSeconds,
                           WORD *pwMilliseconds);
+ODAPIDEF BOOL ODCALL   od_get_user_8bit(void);
 ODAPIDEF BOOL ODCALL   od_get_input(tODInputEvent *pInputEvent,
                           tODMilliSec TimeToWait, WORD wFlags);
 ODAPIDEF BOOL ODCALL   od_get_input_until(tODInputEvent *pInputEvent,
@@ -1146,6 +1149,7 @@ ODAPIDEF void ODCALL   od_set_dtr(BOOL bHigh);
 ODAPIDEF BOOL ODCALL   od_set_port(INT nPort);
 ODAPIDEF BOOL ODCALL   od_set_personality(const char *pszName);
 ODAPIDEF void ODCALL   od_set_statusline(INT nSetting);
+ODAPIDEF BOOL ODCALL   od_set_user_8bit(BOOL bEightBit);
 ODAPIDEF void ODCALL   od_sleep(tODMilliSec Milliseconds);
 ODAPIDEF BOOL ODCALL   od_spawn(const char *pszCommandLine);
 ODAPIDEF INT16 ODCALL  od_spawnvpe(INT16 nModeFlag, const char *pszPath,

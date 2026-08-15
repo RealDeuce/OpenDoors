@@ -113,6 +113,7 @@ nav:
           - od_add_personality: reference/api/od_add_personality.md
           - od_set_personality: reference/api/od_set_personality.md
           - od_set_statusline: reference/api/od_set_statusline.md
+          - od_set_user_8bit: reference/api/od_set_user_8bit.md
           - od_autodetect: reference/api/od_autodetect.md
           - od_kernel: reference/api/od_kernel.md
           - od_exit: reference/api/od_exit.md
@@ -122,6 +123,7 @@ nav:
           - od_chat: reference/api/od_chat.md
           - od_sleep: reference/api/od_sleep.md
           - od_get_time: reference/api/od_get_time.md
+          - od_get_user_8bit: reference/api/od_get_user_8bit.md
           - od_control_get: reference/api/od_control_get.md
   - Data reference:
       - Types and callbacks: reference/types.md
