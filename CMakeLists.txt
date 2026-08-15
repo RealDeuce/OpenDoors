@@ -35,7 +35,7 @@ option(OPENDOORS_BUILD_EXAMPLES "Build the OpenDoors example programs" ON)
 option(OPENDOORS_WARNINGS_AS_ERRORS
     "Treat OpenDoors compiler and linker warnings as errors" OFF)
 set(OPENDOORS_XPDEV_DIR "" CACHE PATH
-    "Path to xpdev; when empty, only ../xpdev is checked")
+    "Path to xpdev for ex_vote; when empty, only ../xpdev is checked")
 
 set(OPENDOORS_SOURCES
     ODAuto.c
@@ -337,9 +337,10 @@ if(OPENDOORS_BUILD_EXAMPLES)
     opendoors_add_example(ex_diag ex_diag.c)
     opendoors_add_example(ex_hello ex_hello.c)
     opendoors_add_example(ex_music ex_music.c)
+    opendoors_add_example(ex_ski ex_ski.c)
 
     if(WIN32)
-        set_target_properties(ex_chat ex_hello ex_music PROPERTIES
+        set_target_properties(ex_chat ex_hello ex_music ex_ski PROPERTIES
             WIN32_EXECUTABLE TRUE)
     endif()
 
@@ -363,7 +364,7 @@ if(OPENDOORS_BUILD_EXAMPLES)
         endif()
 
         if(opendoors_xpdev_source)
-            # These examples only need xpdev's file and timer wrappers.
+            # The vote example only needs xpdev's file wrappers.
             set(WITHOUT_OSS ON)
             set(WITHOUT_SDL_AUDIO ON)
             set(WITHOUT_ALSA ON)
@@ -383,18 +384,15 @@ if(OPENDOORS_BUILD_EXAMPLES)
     endif()
 
     if(OPENDOORS_HAVE_XPDEV)
-        opendoors_add_example(ex_ski ex_ski.c)
         opendoors_add_example(ex_vote ex_vote.c)
-        target_link_libraries(ex_ski PRIVATE xpdev)
         target_link_libraries(ex_vote PRIVATE xpdev)
         target_compile_definitions(ex_vote PRIVATE MULTINODE_AWARE)
         if(WIN32)
-            set_target_properties(ex_ski ex_vote PROPERTIES
-                WIN32_EXECUTABLE TRUE)
+            set_target_properties(ex_vote PROPERTIES WIN32_EXECUTABLE TRUE)
         endif()
     else()
         message(STATUS
-            "xpdev was not found at ../xpdev; skipping ex_ski and ex_vote")
+            "xpdev was not found at ../xpdev; skipping ex_vote")
     endif()
 endif()
 

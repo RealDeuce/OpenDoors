@@ -74,7 +74,7 @@ separate:
 ```
 
 Use `-Clean` when the selected build tree must be recreated. Pass
-`-XpdevDirectory` only when building the optional examples which require
+`-XpdevDirectory` only when building the optional Vote example, which requires
 Synchronet's xpdev library.
 
 ## DOS

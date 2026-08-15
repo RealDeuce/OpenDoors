@@ -204,8 +204,8 @@ instances.
 The repository includes example doors covering a minimal session, diagnostics,
 chat, music, skiing, and a voting application. They demonstrate both the basic
 API sequence and larger combinations of screen, input, data-file, and session
-services. Examples which require the optional xpdev support are kept distinct
-from those which build with OpenDoors alone.
+services. The Vote example requires optional xpdev support; the others build
+with OpenDoors alone.
 
 The remainder of this manual documents every public function, control field,
 type, callback, constant, macro, compatibility alias, and DOS personality

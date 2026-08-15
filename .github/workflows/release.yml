@@ -365,7 +365,7 @@ jobs:
           cd build/release
           cmake -E tar cf "$name.zip" --format=zip "$name"
 
-      - name: Check xpdev examples against pinned Synchronet source
+      - name: Check xpdev example against pinned Synchronet source
         uses: actions/checkout@v7
         with:
           repository: SynchronetBBS/sbbs
@@ -373,7 +373,7 @@ jobs:
           path: build/sbbs
           sparse-checkout: src/xpdev
 
-      - name: Build xpdev examples
+      - name: Build xpdev example
         env:
           ASSET_VERSION: ${{ needs.validate.outputs.asset_version }}
         run: |

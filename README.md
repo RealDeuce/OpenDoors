@@ -117,9 +117,9 @@ CMake and a compatible Visual Studio/MSVC installation. The included
 output locations; set `OpenDoorsLibraryDir` before importing it to override
 the library directory.
 
-## Optional xpdev examples
+## Optional xpdev example
 
-The `ex_ski` and `ex_vote` examples require Synchronet's xpdev target. CMake
+The `ex_vote` example requires Synchronet's xpdev target. CMake
 uses an existing `xpdev` target first, then an explicit path, and finally
 checks only the sibling directory `../xpdev`:
 
@@ -127,9 +127,9 @@ checks only the sibling directory `../xpdev`:
 cmake -S . -B build -DOPENDOORS_XPDEV_DIR=/path/to/xpdev
 ```
 
-If xpdev is unavailable, those two examples are skipped. The other examples,
-both libraries, and the tests still build. With MSVC, pass the same location
-as `-XpdevDirectory C:\path\to\xpdev`.
+If xpdev is unavailable, `ex_vote` is skipped. The other examples, including
+`ex_ski`, both libraries, and the tests still build. With MSVC, pass the same
+location as `-XpdevDirectory C:\path\to\xpdev`.
 
 ## Open Watcom DOS builds
 

@@ -121,9 +121,9 @@ cmake --build build
 ```
 
 Select `Shared`, `Static`, or, in the matching MSVC package, `StaticMT` as the
-example variant. The chat, diagnostic, hello, and music examples require only
-OpenDoors. The ski and vote examples additionally use Synchronet's xpdev
-portability wrappers. Pass `OPENDOORS_XPDEV_DIR` explicitly or place xpdev at
+example variant. The chat, diagnostic, hello, music, and ski examples require
+only OpenDoors. The Vote example additionally uses Synchronet's xpdev file
+wrappers. Pass `OPENDOORS_XPDEV_DIR` explicitly or place xpdev at
 the single documented `../xpdev` location; the build does not search the
 machine for an arbitrary checkout.
 
@@ -773,7 +773,7 @@ consistent at every point where it services the kernel.
 
 The example's wrappers are demonstrations, not a universal locking API.
 Sharing semantics differ among DOS, Windows, and Unix-like systems, which is
-why the two xpdev-dependent examples are optional. A production format may
+why the xpdev-dependent Vote example is optional. A production format may
 prefer record locks, lock files, a database transaction, or a single service
 which owns the data. Whichever mechanism is chosen, document its behavior when
 a node crashes and its policy for stale locks.
@@ -871,12 +871,12 @@ input, advances the game on a timer, narrows and moves the course, and stores a
 high-score table. Its main loop demonstrates the difference between an
 ordinary blocking menu and gameplay which must continue when no key is ready.
 
-The example depends on xpdev for portable timing and file wrappers. Its score
-file illustrates read/modify/write locking, but, like Vote's files, directly
-stored C structures are tied to the producing ABI. The hard-coded terminal art
-also assumes a traditional CP437 display. Preserve a text-mode fallback and
-define an explicit disk encoding before using the design in a door expected to
-share files across targets.
+The example uses [`od_sleep()`](../reference/api/od_sleep.md) for portable
+timing. Its score file illustrates read/modify/write locking, but, like Vote's
+files, directly stored C structures are tied to the producing ABI. The
+hard-coded terminal art also assumes a traditional CP437 display. Preserve a
+text-mode fallback and define an explicit disk encoding before using the design
+in a door expected to share files across targets.
 
 ### `ex_vote.c`
 
@@ -886,8 +886,8 @@ shared data, and multi-node locking. Its greater size makes it the most useful
 example for studying how OpenDoors fits around an application's own data and
 control flow.
 
-`ex_chat`, `ex_diag`, `ex_hello`, and `ex_music` build using only the installed
-OpenDoors SDK. `ex_ski` and `ex_vote` also require Synchronet's xpdev library;
+`ex_chat`, `ex_diag`, `ex_hello`, `ex_music`, and `ex_ski` build using only the
+installed OpenDoors SDK. `ex_vote` also requires Synchronet's xpdev library;
 pass its location as `OPENDOORS_XPDEV_DIR` or place it beside the examples
 directory. The examples package contains its own CMake project and documents
 the `Shared`, `Static`, and MSVC `StaticMT` selections.

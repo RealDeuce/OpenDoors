@@ -193,7 +193,8 @@ endif
 #
 all: ${OBJDIR} ${LIBDIR} $(EXEDIR) ${ODOORS_SHLIB}${LIB_SUFFIX} \
     ${ODOORS_LIB} $(EXEDIR)ex_chat${EXE_SUFFIX} $(EXEDIR)ex_diag${EXE_SUFFIX} \
-    $(EXEDIR)ex_hello${EXE_SUFFIX} $(EXEDIR)ex_music${EXE_SUFFIX} $(EXEDIR)ex_vote${EXE_SUFFIX}
+    $(EXEDIR)ex_hello${EXE_SUFFIX} $(EXEDIR)ex_music${EXE_SUFFIX} \
+    $(EXEDIR)ex_ski${EXE_SUFFIX} $(EXEDIR)ex_vote${EXE_SUFFIX}
 
 .PHONY: static-lib
 static-lib: ${ODOORS_LIB}
@@ -201,9 +202,6 @@ static-lib: ${ODOORS_LIB}
 .PHONY: shared-lib
 shared-lib: ${ODOORS_SHLIB}${LIB_SUFFIX}
 
-ifdef XPDEV_LIB
-all: $(EXEDIR)ex_ski${EXE_SUFFIX}
-endif
 #
 #------------------------------------------------------------------------------
 #
@@ -316,7 +314,7 @@ ${EXEDIR}ex_music${EXE_SUFFIX}: ex_music.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP
 	$(CC) $(LDFLAGS) $(CFLAGS) ex_music.c -o $@ ${ODOORS_SHLIB}
 
 ${EXEDIR}ex_ski${EXE_SUFFIX}: ex_ski.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
-	$(CC) $(LDFLAGS) $(CFLAGS) ex_ski.c -o $@ ${ODOORS_SHLIB} -lxpdev
+	$(CC) $(LDFLAGS) $(CFLAGS) ex_ski.c -o $@ ${ODOORS_SHLIB}
 
 ${EXEDIR}ex_vote${EXE_SUFFIX}: ex_vote.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
 	$(CC) $(LDFLAGS) $(CFLAGS) ex_vote.c ../xpdev/filewrap.c -o $@ ${ODOORS_SHLIB} -DMULTINODE_AWARE

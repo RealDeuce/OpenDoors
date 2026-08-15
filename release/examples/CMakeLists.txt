@@ -7,7 +7,7 @@ set(OPENDOORS_EXAMPLE_VARIANT "Shared" CACHE STRING
 set_property(CACHE OPENDOORS_EXAMPLE_VARIANT PROPERTY STRINGS
     Shared Static StaticMT)
 set(OPENDOORS_XPDEV_DIR "" CACHE PATH
-    "Path to xpdev; when empty, only ../xpdev is checked")
+    "Path to xpdev for ex_vote; when empty, only ../xpdev is checked")
 
 if(NOT OPENDOORS_EXAMPLE_VARIANT STREQUAL "Shared" AND
         NOT OPENDOORS_EXAMPLE_VARIANT STREQUAL "Static" AND
@@ -25,12 +25,12 @@ function(opendoors_example name)
         PRIVATE OpenDoors::${OPENDOORS_EXAMPLE_VARIANT})
 endfunction()
 
-foreach(example IN ITEMS ex_chat ex_diag ex_hello ex_music)
+foreach(example IN ITEMS ex_chat ex_diag ex_hello ex_music ex_ski)
     opendoors_example(${example})
 endforeach()
 
 if(WIN32)
-    set_target_properties(ex_chat ex_hello ex_music PROPERTIES
+    set_target_properties(ex_chat ex_hello ex_music ex_ski PROPERTIES
         WIN32_EXECUTABLE TRUE)
 endif()
 
@@ -61,14 +61,12 @@ if(opendoors_xpdev_source)
     if(NOT TARGET xpdev)
         message(FATAL_ERROR "The selected xpdev project did not define xpdev")
     endif()
-    foreach(example IN ITEMS ex_ski ex_vote)
-        opendoors_example(${example})
-        target_link_libraries(${example} PRIVATE xpdev)
-    endforeach()
+    opendoors_example(ex_vote)
+    target_link_libraries(ex_vote PRIVATE xpdev)
     target_compile_definitions(ex_vote PRIVATE MULTINODE_AWARE)
     if(WIN32)
-        set_target_properties(ex_ski ex_vote PROPERTIES WIN32_EXECUTABLE TRUE)
+        set_target_properties(ex_vote PROPERTIES WIN32_EXECUTABLE TRUE)
     endif()
 else()
-    message(STATUS "xpdev was not found; skipping ex_ski and ex_vote")
+    message(STATUS "xpdev was not found; skipping ex_vote")
 endif()

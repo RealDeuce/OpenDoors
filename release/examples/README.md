@@ -14,7 +14,7 @@ cmake --build build
 `Shared` and `Static` are available in every current desktop SDK.
 `StaticMT` is available in MSVC SDKs and uses Microsoft's static C runtime.
 
-The `ex_ski` and `ex_vote` examples also require Synchronet's xpdev library.
+The `ex_vote` example also requires Synchronet's xpdev library.
 Pass `-DOPENDOORS_XPDEV_DIR=/path/to/xpdev`, or place xpdev beside this
 examples directory. No other locations are searched automatically.
 

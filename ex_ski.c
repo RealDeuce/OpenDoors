@@ -13,7 +13,7 @@
 /*               - Maintain a high-score file in a game, in a multi-node     */
 /*                 compatible manner.                                        */
 /*               - How to use your own terminal control sequences.           */
-/*               - How to perform reasonably percise timing under both DOS   */
+/*               - How to perform reasonably precise timing under both DOS   */
 /*                 and Windows.                                              */
 
 
@@ -26,9 +26,6 @@
 #include <time.h>
 #include <errno.h>
 #include <stdlib.h>
-
-#include "genwrap.h"
-
 
 /* Hard-coded configurable constants - change these values to alter game */
 #define HIGH_SCORES           15       /* Number of high scores in list */
@@ -347,7 +344,6 @@ void PlayGame(void)
    FILE *pfFile;
    tHighScoreFile HighScores;
    int nBackup=0;
-   clock_t StartClock;
 
    /* Clear the Screen */
    od_set_color(L_WHITE, B_BLACK);
@@ -362,8 +358,6 @@ void PlayGame(void)
    /* Loop until game is over */
    for(;;)
    {
-      StartClock = msclock();
-
       /* Display current line */
       if(od_control.user_ansi || od_control.user_avatar)
       {
@@ -507,8 +501,7 @@ void PlayGame(void)
 
       /* Delay for about 1/10th of a second, to add a constant delay after */
       /* each line is displayed that does not depend on the connect speed. */
-      while(msclock() < StartClock + (((clock_t)MSCLOCKS_PER_SEC) / 10))
-         od_sleep(0);
+      od_sleep(100);
 
       /* Increase score */
       ++lnScore;
