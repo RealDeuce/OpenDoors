@@ -14,9 +14,8 @@ cmake --build build
 `Shared` and `Static` are available in every current desktop SDK.
 `StaticMT` is available in MSVC SDKs and uses Microsoft's static C runtime.
 
-The `ex_vote` example also requires Synchronet's xpdev library.
-Pass `-DOPENDOORS_XPDEV_DIR=/path/to/xpdev`, or place xpdev beside this
-examples directory. No other locations are searched automatically.
+The `ex_vote` target enables its multi-node sidecar locking and uses a fixed,
+little-endian data format which can be shared across supported targets.
 
 The `personalities` directory contains the standard DOS personality modules.
 They use only `OpenDoor.h` and `ODStat.h`, and are intended as examples for

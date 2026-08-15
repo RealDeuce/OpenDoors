@@ -139,7 +139,10 @@ jobs:
             tests/acceptance/test_support.h > build/turboc/SRC/ATSUP.H
           awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
             tests/acceptance/control-fields.inc > build/turboc/SRC/ATFLDS.I
-          for file in TCBUILD.BAT TCONE.BAT TCASM.BAT TCEX.BAT TCLIB.BAT; do
+          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
+            tests/vote_io_test.c > build/turboc/SRC/VOTETEST.C
+          for file in TCBUILD.BAT TCONE.BAT TCASM.BAT TCEX.BAT TCLIB.BAT \
+              TCVOTE.BAT; do
             awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
               "tools/turboc/$file" > "build/turboc/$file"
           done
@@ -181,6 +184,8 @@ jobs:
           test -s build/turboc/OUT/EX_DIAG.EXE
           test -s build/turboc/OUT/EX_HELLO.EXE
           test -s build/turboc/OUT/EX_MUSIC.EXE
+          test -s build/turboc/OUT/EX_VOTE.EXE
+          test -s build/turboc/OUT/ODVTEST.EXE
           test -s build/turboc/OUT/LINKTEST.EXE
           test -s build/turboc/OUT/APITEST.EXE
           test -s build/turboc/OBJ/APIPASS.OK

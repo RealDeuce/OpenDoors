@@ -117,19 +117,12 @@ CMake and a compatible Visual Studio/MSVC installation. The included
 output locations; set `OpenDoorsLibraryDir` before importing it to override
 the library directory.
 
-## Optional xpdev example
+## Vote example
 
-The `ex_vote` example requires Synchronet's xpdev target. CMake
-uses an existing `xpdev` target first, then an explicit path, and finally
-checks only the sibling directory `../xpdev`:
-
-```sh
-cmake -S . -B build -DOPENDOORS_XPDEV_DIR=/path/to/xpdev
-```
-
-If xpdev is unavailable, `ex_vote` is skipped. The other examples, including
-`ex_ski`, both libraries, and the tests still build. With MSVC, pass the same
-location as `-XpdevDirectory C:\path\to\xpdev`.
+The `ex_vote` example is self-contained and builds with the other examples.
+Maintained builds enable its multi-node sidecar locking. Its fixed-size,
+little-endian data files can be shared by DOS, Windows, and Unix-like builds;
+see the programming guide for the file and lock compatibility rules.
 
 ## Open Watcom DOS builds
 

@@ -34,8 +34,6 @@ option(OPENDOORS_BUILD_MSVC_STATIC_MT
 option(OPENDOORS_BUILD_EXAMPLES "Build the OpenDoors example programs" ON)
 option(OPENDOORS_WARNINGS_AS_ERRORS
     "Treat OpenDoors compiler and linker warnings as errors" OFF)
-set(OPENDOORS_XPDEV_DIR "" CACHE PATH
-    "Path to xpdev for ex_vote; when empty, only ../xpdev is checked")
 
 set(OPENDOORS_SOURCES
     ODAuto.c
@@ -325,8 +323,8 @@ else()
     set(OPENDOORS_DEFAULT_LINK_TARGET OpenDoors::Static)
 endif()
 
-function(opendoors_add_example name source)
-    add_executable(${name} ${source})
+function(opendoors_add_example name)
+    add_executable(${name} ${ARGN})
     target_link_libraries(${name} PRIVATE ${OPENDOORS_DEFAULT_LINK_TARGET})
     set_target_properties(${name} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
@@ -338,65 +336,26 @@ if(OPENDOORS_BUILD_EXAMPLES)
     opendoors_add_example(ex_hello ex_hello.c)
     opendoors_add_example(ex_music ex_music.c)
     opendoors_add_example(ex_ski ex_ski.c)
+    opendoors_add_example(ex_vote ex_vote.c ex_vote_io.c)
+    target_compile_definitions(ex_vote PRIVATE MULTINODE_AWARE)
 
     if(WIN32)
-        set_target_properties(ex_chat ex_hello ex_music ex_ski PROPERTIES
+        set_target_properties(ex_chat ex_hello ex_music ex_ski ex_vote PROPERTIES
             WIN32_EXECUTABLE TRUE)
-    endif()
-
-    set(OPENDOORS_HAVE_XPDEV FALSE)
-    if(TARGET xpdev)
-        set(OPENDOORS_HAVE_XPDEV TRUE)
-        message(STATUS "Using the existing xpdev target")
-    else()
-        set(opendoors_xpdev_source "")
-        if(OPENDOORS_XPDEV_DIR)
-            get_filename_component(opendoors_xpdev_source
-                "${OPENDOORS_XPDEV_DIR}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-            if(NOT EXISTS "${opendoors_xpdev_source}/CMakeLists.txt")
-                message(FATAL_ERROR
-                    "OPENDOORS_XPDEV_DIR does not contain CMakeLists.txt: "
-                    "${opendoors_xpdev_source}")
-            endif()
-        elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../xpdev/CMakeLists.txt")
-            get_filename_component(opendoors_xpdev_source
-                "${CMAKE_CURRENT_SOURCE_DIR}/../xpdev" ABSOLUTE)
-        endif()
-
-        if(opendoors_xpdev_source)
-            # The vote example only needs xpdev's file wrappers.
-            set(WITHOUT_OSS ON)
-            set(WITHOUT_SDL_AUDIO ON)
-            set(WITHOUT_ALSA ON)
-            set(WITHOUT_PORTAUDIO ON)
-            set(WITHOUT_PULSEAUDIO ON)
-            set(WITHOUT_PIPEWIRE ON)
-            set(WITHOUT_COREAUDIO ON)
-            add_subdirectory("${opendoors_xpdev_source}"
-                "${CMAKE_BINARY_DIR}/xpdev" EXCLUDE_FROM_ALL)
-            if(NOT TARGET xpdev)
-                message(FATAL_ERROR
-                    "The selected xpdev project did not define an xpdev target")
-            endif()
-            set(OPENDOORS_HAVE_XPDEV TRUE)
-            message(STATUS "Using xpdev from ${opendoors_xpdev_source}")
-        endif()
-    endif()
-
-    if(OPENDOORS_HAVE_XPDEV)
-        opendoors_add_example(ex_vote ex_vote.c)
-        target_link_libraries(ex_vote PRIVATE xpdev)
-        target_compile_definitions(ex_vote PRIVATE MULTINODE_AWARE)
-        if(WIN32)
-            set_target_properties(ex_vote PROPERTIES WIN32_EXECUTABLE TRUE)
-        endif()
-    else()
-        message(STATUS
-            "xpdev was not found at ../xpdev; skipping ex_vote")
     endif()
 endif()
 
 if(BUILD_TESTING)
+    add_executable(opendoors_vote_io_test
+        tests/vote_io_test.c ex_vote_io.c)
+    target_include_directories(opendoors_vote_io_test PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_compile_definitions(opendoors_vote_io_test PRIVATE
+        MULTINODE_AWARE)
+    set_target_properties(opendoors_vote_io_test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+    add_test(NAME vote_io COMMAND opendoors_vote_io_test)
+
     # These white-box tests exercise intentionally hidden implementation
     # symbols, so they require the static library.
     if(OPENDOORS_BUILD_STATIC)

@@ -121,11 +121,8 @@ cmake --build build
 ```
 
 Select `Shared`, `Static`, or, in the matching MSVC package, `StaticMT` as the
-example variant. The chat, diagnostic, hello, music, and ski examples require
-only OpenDoors. The Vote example additionally uses Synchronet's xpdev file
-wrappers. Pass `OPENDOORS_XPDEV_DIR` explicitly or place xpdev at
-the single documented `../xpdev` location; the build does not search the
-machine for an arbitrary checkout.
+example variant. All six examples require only OpenDoors. The Vote target
+enables its built-in multi-node sidecar locking.
 
 When building directly from this repository rather than from a release
 bundle, the top-level project offers the same examples. This is convenient
@@ -583,13 +580,12 @@ organized around a small number of OpenDoors features. It maintains a set of
 poll questions, answer totals, and a record of the questions on which each
 caller has voted. The program demonstrates startup customization, caller
 fields, an external menu, OpenDoors input and output, configuration callbacks,
-logging, shutdown callbacks, and optional multi-node file locking.
+logging, shutdown callbacks, portable records, and multi-node file locking.
 
 The example is older application code retained as a demonstration; its own
 displayed “Version 6.00” string is the example program's text and is not the
 version of the library being linked. Read the API reference for the current
-contract, and treat the example's fixed-size binary data files as an example
-format rather than a portable interchange format.
+contract.
 
 ### Records and limits
 
@@ -599,12 +595,13 @@ caller's name and one Boolean byte for each possible question. The current
 user record and its file index remain in memory for the session.
 
 `tQuestionRecord` contains the question text, the possible answer strings,
-counts, creator name, and creation time. These structures are written directly
-to `vote.usr` and `vote.qst`. That is simple and fast for one build of the
-example, but it ties a file to the compiler's structure layout, byte order,
-integer sizes, and `time_t` representation. A production door which must share
-data between DOS and 64-bit hosts, or preserve it across compiler changes,
-should define a fixed on-disk encoding and serialize each field deliberately.
+counts, creator name, and creation time. `ex_vote_io.c` serializes both record
+types explicitly: `vote.usr` uses 236-byte records and `vote.qst` uses the
+historical 664-byte DOS record layout. Multi-byte values are little-endian,
+and creation time is an unsigned 32-bit count of POSIX epoch seconds, covering
+dates through 2106-02-07 06:28:15 UTC. Existing files with another record size
+or invalid field values are rejected with a diagnostic; the example does not
+attempt an ambiguous in-place migration.
 
 The global `nViewResultsFrom` policy begins by allowing results for questions
 already answered by the caller. `nQuestionsVotedOn` accumulates activity for
@@ -738,13 +735,12 @@ extension must make its own capability and fallback decisions.
 
 ### Multi-node file access
 
-The release examples CMake project defines `MULTINODE_AWARE` for Vote when it
-builds the example with xpdev. In that mode, `ExclusiveFileOpen` attempts a
-share-aware open which denies simultaneous readers and writers, waits for a
-bounded interval when another node owns the file, and calls
-[`od_kernel()`](../reference/api/od_kernel.md) while waiting. Without the
-definition, it falls back to ordinary `fopen()` and does not provide
-multi-node exclusion.
+Maintained builds define `MULTINODE_AWARE` for Vote. In that mode,
+`ExclusiveFileOpen` acquires `VOTEUSR.LCK` or `VOTEQST.LCK` before opening the
+corresponding data file, waits for at most 20 seconds when another node owns
+the lock, and calls [`od_kernel()`](../reference/api/od_kernel.md) while
+waiting. A manual build which omits the definition falls back to ordinary
+`fopen()` and does not provide multi-node exclusion.
 
 The important pattern is broader than the particular wrapper. Vote acquires
 exclusive access before searching or modifying a file, performs the complete
@@ -759,11 +755,20 @@ Vote writes these fixed-size structures one record at a time. For such a call,
 or failed write and must take the error path before the caller is told that the
 update succeeded.
 
-In the multi-node wrapper, `fdopen()` transfers ownership of the share-aware
-descriptor to the returned `FILE` stream. The raw descriptor is closed
-directly only when `fdopen()` fails. After a successful conversion,
-`ExclusiveFileClose` calls `fclose()` once; closing the stream closes its
-underlying descriptor and releases the sharing lock.
+Each lock file starts with `NodeN` or `Local`, followed by a process identity
+(`PID` on Windows and Unix-like systems or `PSP` on DOS) and a unique token.
+Unix-like builds use the traditional hard-link lock-file dance and fall back
+to atomic exclusive creation when the mounted filesystem does not support
+links. Windows uses `CreateFile(..., CREATE_NEW, ...)`; DOS uses an exclusive
+create. These operations are intended to preserve exclusion on shared NFS,
+SMB/Samba, and LANMAN filesystems which implement the corresponding atomic
+operation.
+
+Vote never guesses that an existing lock is stale. On timeout it reports the
+recorded owner and leaves the lock in place. On close it removes only a lock
+whose owner text still matches its own token. After a crash, an operator must
+therefore establish that the recorded owner is gone before removing the
+sidecar manually.
 
 Calling [`od_kernel()`](../reference/api/od_kernel.md) during a bounded lock
 wait keeps carrier and time handling responsive, but it also means OpenDoors
@@ -772,8 +777,8 @@ pretend it owns a file before the open succeeds, and should keep global state
 consistent at every point where it services the kernel.
 
 The example's wrappers are demonstrations, not a universal locking API.
-Sharing semantics differ among DOS, Windows, and Unix-like systems, which is
-why the xpdev-dependent Vote example is optional. A production format may
+Sharing semantics still depend on the mounted filesystem correctly
+implementing atomic create or hard-link operations. A production format may
 prefer record locks, lock files, a database transaction, or a single service
 which owns the data. Whichever mechanism is chosen, document its behavior when
 a node crashes and its policy for stale locks.
@@ -787,11 +792,10 @@ records, menus, and validation. The application passes only the information
 needed at each boundary and performs orderly shutdown through the library.
 
 Do not copy implementation details merely because they occur in a working
-example. In particular, direct binary structure files are not portable
-serialization, fixed 80-column decoration should be adapted for the caller's
-screen, and every file-I/O result needs careful success testing. The current
-API pages and the defects recorded in this repository take precedence over
-comments inherited by the example source.
+example. In particular, fixed 80-column decoration should be adapted for the
+caller's screen, and every file-I/O result needs careful success testing. The
+current API pages and the defects recorded in this repository take precedence
+over comments inherited by the example source.
 
 ## Example programs
 
@@ -872,8 +876,8 @@ high-score table. Its main loop demonstrates the difference between an
 ordinary blocking menu and gameplay which must continue when no key is ready.
 
 The example uses [`od_sleep()`](../reference/api/od_sleep.md) for portable
-timing. Its score file illustrates read/modify/write locking, but, like Vote's
-files, directly stored C structures are tied to the producing ABI. The
+timing. Its score file illustrates read/modify/write locking, but unlike Vote's
+fixed encoding it directly stores C structures tied to the producing ABI. The
 hard-coded terminal art also assumes a traditional CP437 display. Preserve a
 text-mode fallback and define an explicit disk encoding before using the design
 in a door expected to share files across targets.
@@ -886,11 +890,9 @@ shared data, and multi-node locking. Its greater size makes it the most useful
 example for studying how OpenDoors fits around an application's own data and
 control flow.
 
-`ex_chat`, `ex_diag`, `ex_hello`, `ex_music`, and `ex_ski` build using only the
-installed OpenDoors SDK. `ex_vote` also requires Synchronet's xpdev library;
-pass its location as `OPENDOORS_XPDEV_DIR` or place it beside the examples
-directory. The examples package contains its own CMake project and documents
-the `Shared`, `Static`, and MSVC `StaticMT` selections.
+All six examples build using only the installed OpenDoors SDK. The examples
+package contains its own CMake project and documents the `Shared`, `Static`,
+and MSVC `StaticMT` selections.
 
 The DOS release builds the examples which are compatible with each DOS target.
 The personality sources are also built against only the public personality SDK

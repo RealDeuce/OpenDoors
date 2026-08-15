@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_SOURCES = (
     "ex_chat.c", "ex_diag.c", "ex_hello.c", "ex_music.c", "ex_ski.c",
-    "ex_vote.c",
+    "ex_vote.c", "ex_vote_io.c", "ex_vote_io.h",
 )
 PERSONALITY_SOURCES = ("ODStand.c", "ODPCB.c", "ODRA.c", "ODWCat.c")
 
@@ -103,7 +103,7 @@ def dos32(args):
                 f"duplicate case-insensitive DOS32 filename: {entry.name}")
         example_files[folded_name] = entry
     for name in ("ex_chat.exe", "ex_diag.exe", "ex_hello.exe",
-                 "ex_music.exe"):
+                 "ex_music.exe", "ex_vote.exe"):
         source = example_files.get(name)
         if source is None:
             raise SystemExit(

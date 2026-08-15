@@ -26,7 +26,7 @@
 /*             compiler to use the large memory model, and add the           */
 /*             ODOORL.LIB file to your project/makefile.                     */
 
-/* Uncomment the following line for multi-node compatible file access. */
+/* Manual builds may define this for multi-node compatible file access. */
 /* #define MULTINODE_AWARE */
 
 /* Include standard C header files required by Vote. */
@@ -34,17 +34,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <errno.h>
 #include <ctype.h>
 
 /* Include the OpenDoors header file. This line must be done in any program */
 /* using OpenDoors.                                                         */
 #include "OpenDoor.h"
-
-#ifdef MULTINODE_AWARE
-#include <filewrap.h>
-#endif
-#include "genwrap.h"
+#include "ex_vote_io.h"
 
 /* Manifest constants used by Vote */
 #define NO_QUESTION              -1
@@ -53,48 +48,24 @@
 #define QUESTIONS_VOTED_ON        0x0001
 #define QUESTIONS_NOT_VOTED_ON    0x0002
 
-#define MAX_QUESTIONS             200
-#define MAX_USERS                 30000
-#define MAX_ANSWERS               15
-#define QUESTION_STR_SIZE         71
-#define ANSWER_STR_SIZE           31
-
 #define USER_FILENAME             "vote.usr"
 #define QUESTION_FILENAME         "vote.qst"
+#define USER_LOCK_FILENAME        "VOTEUSR.LCK"
+#define QUESTION_LOCK_FILENAME    "VOTEQST.LCK"
 
 #define FILE_ACCESS_MAX_WAIT      20
 
 #define QUESTION_PAGE_SIZE        17
 
 
-/* Structure of records stored in the VOTE.USR file */
-typedef struct
-{
-   char szUserName[36];
-   BYTE bVotedOnQuestion[MAX_QUESTIONS];
-} tUserRecord;
-              
 tUserRecord CurrentUserRecord;
 int nCurrentUserNumber;
-
-
-/* Structure of records stored in the VOTE.QST file */
-typedef struct
-{
-   char szQuestion[72];
-   char aszAnswer[MAX_ANSWERS][32];
-   INT32 nTotalAnswers;
-   DWORD auVotesForAnswer[MAX_ANSWERS];
-   DWORD uTotalVotes;
-   DWORD bCanAddAnswers;
-   char szCreatorName[36];
-   time_t lCreationTime;
-} tQuestionRecord;
 
 
 /* Global variables. */
 int nViewResultsFrom = QUESTIONS_VOTED_ON;
 int nQuestionsVotedOn = 0;
+tVoteLockOwner VoteLockOwner;
 
 
 /* Prototypes for functions that form EX_VOTE */
@@ -108,9 +79,14 @@ int ChooseQuestion(int nFromWhichQuestions, char *pszTitle, int *nLocation);
 void DisplayQuestionResult(tQuestionRecord *pQuestionRecord);
 int ReadOrAddCurrentUser(void);
 void WriteCurrentUser(void);
-FILE *ExclusiveFileOpen(char *pszFileName, char *pszMode);
-void ExclusiveFileClose(FILE *pfFile);
+FILE *ExclusiveFileOpen(tVoteFile *pVoteFile, const char *pszFileName,
+   const char *pszMode);
+void ExclusiveFileClose(tVoteFile *pVoteFile);
 void WaitForEnter(void);
+static int CompareNoCase(const char *pszLeft, const char *pszRight);
+static BOOL ValidateVoteFiles(void);
+static const char *FormatCreationTime(DWORD uCreationTime,
+   char *pszBuffer);
 
 
 /* main() or WinMain() function - Program execution begins here. */
@@ -124,6 +100,7 @@ int main(int argc, char *argv[])
    /* Variable to store user's choice from the menu */
    char chMenuChoice = '\0';
    char chYesOrNo;
+   char szNodeLabel[16];
 
 #ifdef ODPLAT_WIN32
    /* In Windows, pass in nCmdShow value to OpenDoors. */
@@ -178,6 +155,26 @@ int main(int argc, char *argv[])
    /* OpenDoors initialization will be performed at the time of your first  */
    /* call to any OpenDoors function. */
    od_init();
+
+#if defined(ODPLAT_NIX)
+   if(od_control.od_force_local)
+#else
+   if(od_control.od_force_local || od_control.baud == 0)
+#endif
+   {
+      strcpy(szNodeLabel, "Local");
+   }
+   else
+   {
+      sprintf(szNodeLabel, "Node%u", od_control.od_node);
+   }
+   VoteLockOwnerInitialize(&VoteLockOwner, szNodeLabel);
+
+   if(!ValidateVoteFiles())
+   {
+      WaitForEnter();
+      od_exit(1, FALSE);
+   }
 
    /* Call the Vote function ReadOrAddCurrentUser() to read the current   */
    /* user's record from the Vote user file, or to add the user to the    */
@@ -287,19 +284,41 @@ int main(int argc, char *argv[])
 }
 
 
+/* Compare two strings without regard to case. */
+static int CompareNoCase(const char *pszLeft, const char *pszRight)
+{
+   while(*pszLeft != '\0' && *pszRight != '\0')
+   {
+      int nLeft = tolower((unsigned char)*pszLeft);
+      int nRight = tolower((unsigned char)*pszRight);
+
+      if(nLeft != nRight)
+      {
+         return(nLeft - nRight);
+      }
+
+      ++pszLeft;
+      ++pszRight;
+   }
+
+   return((int)(unsigned char)*pszLeft -
+      (int)(unsigned char)*pszRight);
+}
+
+
 /* CustomConfigFunction() is called by OpenDoors to process custom */
 /* configuration file keywords that Vote uses.                     */
 void CustomConfigFunction(char *pszKeyword, char *pszOptions)
 {
-   if(stricmp(pszKeyword, "ViewUnanswered") == 0)
+   if(CompareNoCase(pszKeyword, "ViewUnanswered") == 0)
    {
       /* If keyword is ViewUnanswered, set local variable based on contents */
       /* of options string.                                                 */
-      if(stricmp(pszOptions, "Yes") == 0)
+      if(CompareNoCase(pszOptions, "Yes") == 0)
       {
          nViewResultsFrom = QUESTIONS_VOTED_ON | QUESTIONS_NOT_VOTED_ON;
       }
-      else if(stricmp(pszOptions, "No") == 0)
+      else if(CompareNoCase(pszOptions, "No") == 0)
       {
          nViewResultsFrom = QUESTIONS_VOTED_ON;
       }
@@ -335,6 +354,7 @@ void VoteOnQuestion(void)
    char szNewAnswer[ANSWER_STR_SIZE];
    char szUserInput[3];
    FILE *fpFile;
+   tVoteFile VoteFile;
    int nPageLocation = 0;
 
    /* Loop until the user chooses to return to the main menu, or until */
@@ -402,13 +422,13 @@ void VoteOnQuestion(void)
          od_printf("\n\r");
    
          /* If user entered Q, return to main menu. */
-         if(stricmp(szUserInput, "Q") == 0)
+         if(CompareNoCase(szUserInput, "Q") == 0)
          {
             return;
          }
 
          /* If user enetered A, and adding answers is premitted ... */
-         else if (stricmp(szUserInput, "A") == 0
+         else if (CompareNoCase(szUserInput, "A") == 0
             && QuestionRecord.bCanAddAnswers)
          {
             /* ... Prompt for answer from user. */
@@ -448,7 +468,7 @@ void VoteOnQuestion(void)
       /* Add user's vote to question. */
    
       /* Open question file for exclusive access by this node. */
-      fpFile = ExclusiveFileOpen(QUESTION_FILENAME, "r+b");
+      fpFile = ExclusiveFileOpen(&VoteFile, QUESTION_FILENAME, "r+b");
       if(fpFile == NULL)
       {
          /* If unable to access file, display error and return. */
@@ -459,11 +479,12 @@ void VoteOnQuestion(void)
    
       /* Read the answer record from disk, because it may have been changed. */
       /* by another node. */
-      fseek(fpFile, (long)nQuestion * sizeof(tQuestionRecord), SEEK_SET);
-      if(fread(&QuestionRecord, sizeof(tQuestionRecord), 1, fpFile) != 1)
+      if(!VoteQuestionRecordSeek(fpFile, nQuestion)
+         || VoteQuestionRecordRead(fpFile, &QuestionRecord)
+            != kVoteIOSuccess)
       {
          /* If unable to access file, display error and return. */
-         ExclusiveFileClose(fpFile);
+         ExclusiveFileClose(&VoteFile);
          od_printf("Unable to read from question file.\n\r");
          WaitForEnter();
          return;
@@ -475,7 +496,7 @@ void VoteOnQuestion(void)
          /* Check that there is still room for another answer. */
          if(QuestionRecord.nTotalAnswers >= MAX_ANSWERS)
          {
-            ExclusiveFileClose(fpFile);
+            ExclusiveFileClose(&VoteFile);
             od_printf("Sorry, this question already has the maximum number of answers.\n\r");
             WaitForEnter();
             return;
@@ -497,24 +518,24 @@ void VoteOnQuestion(void)
       ++QuestionRecord.uTotalVotes;
    
       /* Write the question record back to the file. */
-      fseek(fpFile, (long)nQuestion * sizeof(tQuestionRecord), SEEK_SET);
-      if(fwrite(&QuestionRecord, sizeof(tQuestionRecord), 1, fpFile) != 1)
+      if(!VoteQuestionRecordSeek(fpFile, nQuestion)
+         || !VoteQuestionRecordWrite(fpFile, &QuestionRecord))
       {
          /* If unable to access file, display error and return. */
-         ExclusiveFileClose(fpFile);
+         ExclusiveFileClose(&VoteFile);
          od_printf("Unable to write question to file.\n\r");
          WaitForEnter();
          return;
       }
    
       /* Close the question file to allow access by other nodes. */
-      ExclusiveFileClose(fpFile);
+      ExclusiveFileClose(&VoteFile);
    
       /* Record that user has voted on this question. */
       CurrentUserRecord.bVotedOnQuestion[nQuestion] = TRUE;
    
       /* Open user file for exclusive access by this node. */
-      fpFile = ExclusiveFileOpen(USER_FILENAME, "r+b");
+      fpFile = ExclusiveFileOpen(&VoteFile, USER_FILENAME, "r+b");
       if(fpFile == NULL)
       {
          /* If unable to access file, display error and return. */
@@ -524,18 +545,18 @@ void VoteOnQuestion(void)
       }
 
       /* Update the user's record in the user file. */
-      fseek(fpFile, nCurrentUserNumber * sizeof(tUserRecord), SEEK_SET);
-      if(fwrite(&CurrentUserRecord, sizeof(tUserRecord), 1, fpFile) != 1)
+      if(!VoteUserRecordSeek(fpFile, nCurrentUserNumber)
+         || !VoteUserRecordWrite(fpFile, &CurrentUserRecord))
       {
          /* If unable to access file, display error and return. */
-         ExclusiveFileClose(fpFile);
+         ExclusiveFileClose(&VoteFile);
          od_printf("Unable to write to user file.\n\r");
          WaitForEnter();
          return;
       }
    
       /* Close the user file to allow access by other nodes. */
-      ExclusiveFileClose(fpFile);
+      ExclusiveFileClose(&VoteFile);
    
       /* Display the result of voting on this question to the user. */
       DisplayQuestionResult(&QuestionRecord);
@@ -587,9 +608,10 @@ void ViewResults(void)
 int GetQuestion(int nQuestion, tQuestionRecord *pQuestionRecord)
 {
    FILE *fpQuestionFile;
+   tVoteFile VoteFile;
 
    /* Open the question file for exculsive access by this node. */
-   fpQuestionFile = ExclusiveFileOpen(QUESTION_FILENAME, "r+b");
+   fpQuestionFile = ExclusiveFileOpen(&VoteFile, QUESTION_FILENAME, "r+b");
    if(fpQuestionFile == NULL)
    {
       /* If unable to access file, display error and return. */
@@ -598,21 +620,20 @@ int GetQuestion(int nQuestion, tQuestionRecord *pQuestionRecord)
       return(FALSE);
    }
    
-   /* Move to location of question in file. */
-   fseek(fpQuestionFile, (long)nQuestion * sizeof(tQuestionRecord), SEEK_SET);
-   
-   /* Read the question from the file. */
-   if(fread(pQuestionRecord, sizeof(tQuestionRecord), 1, fpQuestionFile) != 1)
+   /* Move to and read the requested question record. */
+   if(!VoteQuestionRecordSeek(fpQuestionFile, nQuestion)
+      || VoteQuestionRecordRead(fpQuestionFile, pQuestionRecord)
+         != kVoteIOSuccess)
    {
       /* If unable to access file, display error and return. */
-      ExclusiveFileClose(fpQuestionFile);
+      ExclusiveFileClose(&VoteFile);
       od_printf("Unable to read from question file.\n\r");
       WaitForEnter();
       return(FALSE);;
    }
    
    /* Close the question file to allow access by other nodes. */
-   ExclusiveFileClose(fpQuestionFile);
+   ExclusiveFileClose(&VoteFile);
 
    /* Return with success. */
    return(TRUE);
@@ -627,7 +648,11 @@ void AddQuestion(void)
 {
    tQuestionRecord QuestionRecord;
    FILE *fpQuestionFile;
+   tVoteFile VoteFile;
    char szLogMessage[100];
+   time_t CreationTime;
+
+   memset(&QuestionRecord, 0, sizeof(QuestionRecord));
 
    /* Clear the screen. */
    od_clr_scr();
@@ -723,10 +748,18 @@ void AddQuestion(void)
    
    /* Set creator name and creation time for this question. */
    strcpy(QuestionRecord.szCreatorName, od_control.user_name);
-   QuestionRecord.lCreationTime = time(NULL);
+   CreationTime = time(NULL);
+   if(CreationTime == (time_t)-1
+      || (time_t)(DWORD)CreationTime != CreationTime)
+   {
+      od_printf("Unable to represent the question creation time.\n\r");
+      WaitForEnter();
+      return;
+   }
+   QuestionRecord.uCreationTime = (DWORD)CreationTime;
    
    /* Open question file for exclusive access by this node. */
-   fpQuestionFile = ExclusiveFileOpen(QUESTION_FILENAME, "a+b");
+   fpQuestionFile = ExclusiveFileOpen(&VoteFile, QUESTION_FILENAME, "a+b");
    if(fpQuestionFile == NULL)
    {
       od_printf("Unable to access the question file.\n\r");
@@ -739,25 +772,25 @@ void AddQuestion(void)
    
    /* If question file is full, display message and return to main menu */
    /* after closing file.                                               */
-   if(ftell(fpQuestionFile) / sizeof(tQuestionRecord) >= MAX_QUESTIONS)
+   if(ftell(fpQuestionFile) / VOTE_QUESTION_RECORD_SIZE >= MAX_QUESTIONS)
    {
-      ExclusiveFileClose(fpQuestionFile);
+      ExclusiveFileClose(&VoteFile);
       od_printf("Cannot add another question, Vote is limited to %d questions.\n\r", MAX_QUESTIONS);
       WaitForEnter();
       return;
    }
    
    /* Add new question to file. */
-   if(fwrite(&QuestionRecord, sizeof(QuestionRecord), 1, fpQuestionFile) != 1)
+   if(!VoteQuestionRecordWrite(fpQuestionFile, &QuestionRecord))
    {
-      ExclusiveFileClose(fpQuestionFile);
+      ExclusiveFileClose(&VoteFile);
       od_printf("Unable to write to question file.\n\r");
       WaitForEnter();
       return;
    }
    
    /* Close question file, allowing other nodes to access file. */
-   ExclusiveFileClose(fpQuestionFile);
+   ExclusiveFileClose(&VoteFile);
 
    /* Record in the logfile that user has added a new question. */
    sprintf(szLogMessage, "User adding questions: %s",
@@ -782,11 +815,13 @@ int ChooseQuestion(int nFromWhichQuestions, char *pszTitle, int *nLocation)
    char chCurrent;
    tQuestionRecord QuestionRecord;
    FILE *fpQuestionFile;
+   tVoteFile VoteFile;
+   tVoteIOResult IOResult;
    static char szQuestionName[MAX_QUESTIONS][QUESTION_STR_SIZE];
    static int nQuestionNumber[MAX_QUESTIONS];
    
    /* Attempt to open question file. */
-   fpQuestionFile = ExclusiveFileOpen(QUESTION_FILENAME, "r+b");
+   fpQuestionFile = ExclusiveFileOpen(&VoteFile, QUESTION_FILENAME, "r+b");
 
    /* If unable to open question file, assume that no questions have been */
    /* created.                                                            */
@@ -803,7 +838,8 @@ int ChooseQuestion(int nFromWhichQuestions, char *pszTitle, int *nLocation)
    }
    
    /* Loop for every question record in the file. */
-   while(fread(&QuestionRecord, sizeof(QuestionRecord), 1, fpQuestionFile) == 1)
+   while((IOResult = VoteQuestionRecordRead(fpQuestionFile,
+      &QuestionRecord)) == kVoteIOSuccess)
    {
       /* Determine whether or not the user has voted on this question. */
       bVotedOnQuestion = CurrentUserRecord.bVotedOnQuestion[nFileQuestion];
@@ -827,7 +863,14 @@ int ChooseQuestion(int nFromWhichQuestions, char *pszTitle, int *nLocation)
    }   
    
    /* Close question file to allow other nodes to access the file. */
-   ExclusiveFileClose(fpQuestionFile);
+   ExclusiveFileClose(&VoteFile);
+
+   if(IOResult != kVoteIOEnd)
+   {
+      od_printf("Unable to read the portable question-file format.\n\r");
+      WaitForEnter();
+      return(NO_QUESTION);
+   }
 
    /* If there are no questions for the user to choose, display an */
    /* appropriate message and return. */
@@ -1004,6 +1047,7 @@ void DisplayQuestionResult(tQuestionRecord *pQuestionRecord)
 {
    int nAnswer;
    int uPercent;
+   char szCreationTime[64];
 
    /* Clear the screen. */
    od_clr_scr();
@@ -1024,7 +1068,8 @@ void DisplayQuestionResult(tQuestionRecord *pQuestionRecord)
    /* Display author's name. */
    od_printf("`dark red`Question created by %s on %s\n\r",
       pQuestionRecord->szCreatorName,
-      ctime(&pQuestionRecord->lCreationTime));
+      FormatCreationTime(pQuestionRecord->uCreationTime,
+         szCreationTime));
    
    /* Display heading for responses. */
    od_printf("`bright green`Response                        Votes  Percent  Graph\n\r`dark green`");
@@ -1094,13 +1139,15 @@ void DisplayQuestionResult(tQuestionRecord *pQuestionRecord)
 int ReadOrAddCurrentUser(void)
 {
    FILE *fpUserFile;
+   tVoteFile VoteFile;
+   tVoteIOResult IOResult;
    int bGotUser = FALSE;
    int nQuestion;
 
    /* Attempt to open the user file for exclusize access by this node.     */
    /* This function will wait up to the pre-set amount of time (as defined */   
    /* near the beginning of this file) for access to the user file.        */
-   fpUserFile = ExclusiveFileOpen(USER_FILENAME, "a+b");
+   fpUserFile = ExclusiveFileOpen(&VoteFile, USER_FILENAME, "a+b");
 
    /* If unable to open user file, return with failure. */   
    if(fpUserFile == NULL)
@@ -1110,9 +1157,11 @@ int ReadOrAddCurrentUser(void)
 
    /* Begin with the current user record number set to 0. */
    nCurrentUserNumber = 0;
+   rewind(fpUserFile);
 
    /* Loop for each record in the file */
-   while(fread(&CurrentUserRecord, sizeof(tUserRecord), 1, fpUserFile) == 1)
+   while((IOResult = VoteUserRecordRead(fpUserFile,
+      &CurrentUserRecord)) == kVoteIOSuccess)
    {
       /* If name in record matches the current user name ... */
       if(strcmp(CurrentUserRecord.szUserName, od_control.user_name) == 0)
@@ -1142,7 +1191,8 @@ int ReadOrAddCurrentUser(void)
       }
       
       /* Write the new record to the file. */
-      if(fwrite(&CurrentUserRecord, sizeof(tUserRecord), 1, fpUserFile) == 1)
+      if(IOResult == kVoteIOEnd
+         && VoteUserRecordWrite(fpUserFile, &CurrentUserRecord))
       {
          /* If write succeeded, record that we now have a valid user record. */
          bGotUser = TRUE;
@@ -1150,7 +1200,7 @@ int ReadOrAddCurrentUser(void)
    }
 
    /* Close the user file to allow other nodes to access it. */
-   ExclusiveFileClose(fpUserFile);
+   ExclusiveFileClose(&VoteFile);
 
    /* Return, indciating whether or not a valid user record now exists for */
    /* the user that is currently online.                                   */   
@@ -1163,14 +1213,14 @@ int ReadOrAddCurrentUser(void)
 void WriteCurrentUser(void)
 {
    FILE *fpUserFile;
+   tVoteFile VoteFile;
 
    /* Attempt to open the user file for exclusize access by this node.     */
    /* This function will wait up to the pre-set amount of time (as defined */   
    /* near the beginning of this file) for access to the user file.        */
-   fpUserFile = ExclusiveFileOpen(USER_FILENAME, "r+b");
+   fpUserFile = ExclusiveFileOpen(&VoteFile, USER_FILENAME, "r+b");
 
    /* If unable to access the user file, display an error message and */
-   /* return.                                                         */
    if(fpUserFile == NULL)
    {
       od_printf("Unable to access the user file.\n\r");
@@ -1180,84 +1230,127 @@ void WriteCurrentUser(void)
    
    /* Move to appropriate location in user file for the current user's */
    /* record. */
-   fseek(fpUserFile, (long)nCurrentUserNumber * sizeof(tUserRecord), SEEK_SET);
-
    /* Write the new record to the file. */
-   if(fwrite(&CurrentUserRecord, sizeof(tUserRecord), 1, fpUserFile) != 1)
+   if(!VoteUserRecordSeek(fpUserFile, nCurrentUserNumber)
+      || !VoteUserRecordWrite(fpUserFile, &CurrentUserRecord))
    {
       /* If unable to write the record, display an error message. */
-      ExclusiveFileClose(fpUserFile);
+      ExclusiveFileClose(&VoteFile);
       od_printf("Unable to update your user record file.\n\r");
       WaitForEnter();
       return;
    }
    
    /* Close the user file to allow other nodes to access it again. */
-   ExclusiveFileClose(fpUserFile);
+   ExclusiveFileClose(&VoteFile);
 }
 
 
-/* This function is used by Vote to open a file. If Vote has been compiled */
-/* with #define MULTINODE_AWARE uncommented (see the beginning of this     */
-/* file), file access is performed in a multinode-aware way. This implies  */
-/* that the file is opened of exclusive access, using share-aware open     */
-/* functions that may not be available using all compilers.                */
-FILE *ExclusiveFileOpen(char *pszFileName, char *pszMode)
+/* Open a Vote data file, using the portable sidecar lock when enabled. */
+FILE *ExclusiveFileOpen(tVoteFile *pVoteFile, const char *pszFileName,
+   const char *pszMode)
 {
-#ifdef MULTINODE_AWARE
-   /* If Vote is being compiled for multinode-aware file access, then   */
-   /* attempt to use compiler-specific share-aware file open functions. */
-   FILE *fpFile = NULL;
-   time_t StartTime = time(NULL);
-   int hFile;
+   const char *pszLockName;
 
-   /* Attempt to open the file while there is still time remaining. */    
-   while((hFile = sopen(pszFileName, O_BINARY | O_RDWR, SH_DENYRW,
-      S_IREAD | S_IWRITE)) == -1)
+   if(strcmp(pszFileName, QUESTION_FILENAME) == 0)
    {
-      /* If we have been unable to open the file for more than the */
-      /* maximum wait time, or if open failed for a reason other   */
-      /* than file access, then attempt to create a new file and   */
-      /* exit the loop.                                            */
-      if(errno != EACCES ||
-         difftime(time(NULL), StartTime) >= FILE_ACCESS_MAX_WAIT)
-      {
-         hFile = sopen(pszFileName, O_BINARY | O_CREAT, SH_DENYRW,
-            S_IREAD | S_IWRITE);
-         break;
-      }
-
-      /* If we were unable to open the file, call od_kernel, so that    */
-      /* OpenDoors can continue to respond to sysop function keys, loss */
-      /* of connection, etc.                                            */
-      od_kernel();
+      pszLockName = QUESTION_LOCK_FILENAME;
+   }
+   else
+   {
+      pszLockName = USER_LOCK_FILENAME;
    }
 
-   /* Attempt to obtain a FILE * corresponding to the handle. */
-   if(hFile != -1)
+   if(!VoteFileOpen(pVoteFile, pszFileName, pszLockName, pszMode,
+      &VoteLockOwner, FILE_ACCESS_MAX_WAIT, od_kernel))
    {
-      fpFile = fdopen(hFile, pszMode);
-      if(fpFile == NULL)
-      {
-         close(hFile);
-      }
+      od_printf("%s\n\r", VoteFileError(pVoteFile));
+      od_log_write(VoteFileError(pVoteFile));
+      return(NULL);
    }
-
-   /* Return FILE pointer for opened file, if any. */   
-   return(fpFile);
-#else
-   /* If Vote is not being compiled for multinode-aware mode, then just */
-   /* use fopen to access the file.                                     */
-   return(fopen(pszFileName, pszMode));
-#endif
+   return(pVoteFile->pfFile);
 }
 
 
 /* The ExclusiveFileClose() function closes a file that was opened using */
 /* ExclusiveFileOpen().                                                  */
-void ExclusiveFileClose(FILE *pfFile)
+void ExclusiveFileClose(tVoteFile *pVoteFile)
 {
-   fclose(pfFile);
+   if(!VoteFileClose(pVoteFile))
+   {
+      od_printf("%s\n\r", VoteFileError(pVoteFile));
+      od_log_write(VoteFileError(pVoteFile));
+   }
+}
+
+
+/* Verify existing data before allowing the example to modify it. */
+static BOOL ValidateVoteFiles(void)
+{
+   tVoteFile VoteFile;
+   FILE *pfFile;
+   BOOL bValid;
+
+   pfFile = ExclusiveFileOpen(&VoteFile, USER_FILENAME, "a+b");
+   if(pfFile == NULL)
+   {
+      return(FALSE);
+   }
+   bValid = VoteUserFileValidate(pfFile);
+   ExclusiveFileClose(&VoteFile);
+   if(!bValid)
+   {
+      od_printf("%s is not in the portable 236-byte record format.\n\r",
+         USER_FILENAME);
+      od_log_write("Rejected incompatible vote.usr format");
+      return(FALSE);
+   }
+
+   pfFile = ExclusiveFileOpen(&VoteFile, QUESTION_FILENAME, "a+b");
+   if(pfFile == NULL)
+   {
+      return(FALSE);
+   }
+   bValid = VoteQuestionFileValidate(pfFile);
+   ExclusiveFileClose(&VoteFile);
+   if(!bValid)
+   {
+      od_printf("%s is not in the portable 664-byte DOS record format.\n\r",
+         QUESTION_FILENAME);
+      od_log_write("Rejected incompatible vote.qst format");
+      return(FALSE);
+   }
+   return(TRUE);
+}
+
+
+static const char *FormatCreationTime(DWORD uCreationTime,
+   char *pszBuffer)
+{
+   time_t CreationTime = (time_t)uCreationTime;
+   const char *pszTime = NULL;
+   char *pszNewline;
+
+   if(sizeof(time_t) > 4 || (time_t)-1 > (time_t)0
+      || uCreationTime <= 0x7fffffffUL)
+   {
+      pszTime = ctime(&CreationTime);
+   }
+   if(pszTime == NULL)
+   {
+      sprintf(pszBuffer, "epoch second %lu UTC",
+         (unsigned long)uCreationTime);
+      return(pszBuffer);
+   }
+
+   strncpy(pszBuffer, pszTime, 63);
+   pszBuffer[63] = '\0';
+   pszNewline = strpbrk(pszBuffer, "\r\n");
+   if(pszNewline != NULL)
+   {
+      *pszNewline = '\0';
+   }
+   return(pszBuffer);
 }
 
 

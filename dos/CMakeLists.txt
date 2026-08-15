@@ -89,6 +89,16 @@ set(OPENDOORS_DOS_SOURCES
 )
 list(TRANSFORM OPENDOORS_DOS_SOURCES PREPEND "${OPENDOORS_ROOT}/")
 
+# Keep example-only inputs separate from OPENDOORS_DOS_SOURCES.  Construct
+# their paths from names so the strict library-source manifest checker does
+# not mistake them for library inputs.
+set(OPENDOORS_VOTE_EXAMPLE_SOURCES)
+foreach(vote_source IN ITEMS ex_vote.c ex_vote_io.c)
+    list(APPEND OPENDOORS_VOTE_EXAMPLE_SOURCES
+        "${OPENDOORS_ROOT}/${vote_source}")
+endforeach()
+list(GET OPENDOORS_VOTE_EXAMPLE_SOURCES 1 OPENDOORS_VOTE_IO_SOURCE)
+
 if(OPENDOORS_DOS_PROCESSOR STREQUAL "I386")
     list(APPEND OPENDOORS_DOS_SOURCES
         "${OPENDOORS_ROOT}/OD32DPMI.c"
@@ -174,6 +184,26 @@ foreach(example IN ITEMS ex_chat ex_diag ex_hello ex_music ex_ski)
         OPENDOORS_HAVE_VSNPRINTF=1)
     target_link_libraries(${example} PRIVATE opendoors_dos)
 endforeach()
+
+add_executable(ex_vote ${OPENDOORS_VOTE_EXAMPLE_SOURCES})
+target_compile_options(ex_vote PRIVATE -ml -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(ex_vote PRIVATE -we)
+endif()
+target_compile_definitions(ex_vote PRIVATE
+    OPENDOORS_HAVE_VSNPRINTF=1 MULTINODE_AWARE)
+target_link_libraries(ex_vote PRIVATE opendoors_dos)
+
+add_executable(vote_io_test
+    "${OPENDOORS_ROOT}/tests/vote_io_test.c"
+    "${OPENDOORS_VOTE_IO_SOURCE}")
+set_target_properties(vote_io_test PROPERTIES OUTPUT_NAME odvtest)
+target_include_directories(vote_io_test PRIVATE "${OPENDOORS_ROOT}")
+target_compile_options(vote_io_test PRIVATE -ml -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(vote_io_test PRIVATE -we)
+endif()
+target_compile_definitions(vote_io_test PRIVATE MULTINODE_AWARE)
 
 add_executable(dos_runtime_smoke
     "${OPENDOORS_ROOT}/tests/dos_runtime_smoke.c")
@@ -313,6 +343,19 @@ foreach(example IN ITEMS ex_chat ex_diag ex_hello ex_music ex_ski)
     opendoors_configure_dos32_target(${example} 3r)
     target_link_libraries(${example} PRIVATE opendoors_dos32r)
 endforeach()
+
+add_executable(ex_vote ${OPENDOORS_VOTE_EXAMPLE_SOURCES})
+opendoors_configure_dos32_target(ex_vote 3r)
+target_compile_definitions(ex_vote PRIVATE MULTINODE_AWARE)
+target_link_libraries(ex_vote PRIVATE opendoors_dos32r)
+
+add_executable(vote_io_test
+    "${OPENDOORS_ROOT}/tests/vote_io_test.c"
+    "${OPENDOORS_VOTE_IO_SOURCE}")
+set_target_properties(vote_io_test PROPERTIES OUTPUT_NAME od32vot)
+target_include_directories(vote_io_test PRIVATE "${OPENDOORS_ROOT}")
+opendoors_configure_dos32_target(vote_io_test 3r)
+target_compile_definitions(vote_io_test PRIVATE MULTINODE_AWARE)
 
 add_executable(dos32_runtime_smoke
     "${OPENDOORS_ROOT}/tests/dos32_runtime_smoke.c")

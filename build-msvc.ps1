@@ -6,8 +6,6 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Release',
 
-    [string]$XpdevDirectory,
-
     [switch]$WarningsAsErrors,
 
     [switch]$Clean
@@ -36,10 +34,6 @@ $configureArguments = @(
     '-B', $buildDirectory,
     '-A', $cmakePlatform
 )
-
-if ($PSBoundParameters.ContainsKey('XpdevDirectory')) {
-    $configureArguments += "-DOPENDOORS_XPDEV_DIR=$XpdevDirectory"
-}
 
 if ($WarningsAsErrors) {
     $configureArguments += '-DOPENDOORS_WARNINGS_AS_ERRORS=ON'

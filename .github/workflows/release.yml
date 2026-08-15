@@ -365,28 +365,6 @@ jobs:
           cd build/release
           cmake -E tar cf "$name.zip" --format=zip "$name"
 
-      - name: Check xpdev example against pinned Synchronet source
-        uses: actions/checkout@v7
-        with:
-          repository: SynchronetBBS/sbbs
-          ref: 564edbb0eb55cc84e6e213f0f3852b5d69055281
-          path: build/sbbs
-          sparse-checkout: src/xpdev
-
-      - name: Build xpdev example
-        env:
-          ASSET_VERSION: ${{ needs.validate.outputs.asset_version }}
-        run: |
-          name="OpenDoors-${ASSET_VERSION}-examples-and-docs"
-          cmake \
-            -S "build/release/$name/examples" \
-            -B build/companion-xpdev \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$PWD/build/companion-install" \
-            -DOPENDOORS_EXAMPLE_VARIANT=Static \
-            -DOPENDOORS_XPDEV_DIR="$PWD/build/sbbs/src/xpdev"
-          cmake --build build/companion-xpdev --parallel
-
       - uses: actions/upload-artifact@v7
         with:
           name: release-examples-docs
@@ -447,6 +425,8 @@ jobs:
           test -s build/dos/odtest.exe
           test -s build/dos/odpers.exe
           test -s build/dos/odapi.exe
+          test -s build/dos/ex_vote.exe
+          test -s build/dos/odvtest.exe
 
       - name: Run DOSBox tests
         env:
@@ -462,11 +442,14 @@ jobs:
               -c 'odtest.exe' \
               -c 'odpers.exe' \
               -c 'odapi.exe' \
+              -c 'odvtest.exe' \
+              -c 'if not errorlevel 1 echo Passed>VOTEPASS.OK' \
               -c 'exit' \
             2>&1 | tee build/dos/dosbox.log
           test -s build/dos/DOSPASS.OK
           test -s build/dos/PERSPASS.OK
           test -s build/dos/APIPASS.OK
+          test -s build/dos/VOTEPASS.OK
 
       - name: Stage release SDK
         env:
@@ -549,6 +532,8 @@ jobs:
           test -s build/dos32/od32foss.exe
           test -s build/dos32/FOSSTSR.com
           test -s build/dos32/od32pss.exe
+          test -s build/dos32/ex_vote.exe
+          test -s build/dos32/od32vot.exe
 
       - name: Test DOS/4GW compatibility
         env:
@@ -573,6 +558,8 @@ jobs:
               -c 'ren D32PASS.OK D32RPASS.OK' \
               -c 'od32tsts.exe' \
               -c 'ren D32PASS.OK D32SPASS.OK' \
+              -c 'od32vot.exe' \
+              -c 'if not errorlevel 1 echo Passed>VOTEPASS.OK' \
               -c 'exit'
           timeout --signal=TERM --kill-after=5s 45s \
             xvfb-run -a dosbox -noconsole \
@@ -595,6 +582,7 @@ jobs:
           test -s build/dos32/PERSSPAS.OK
           test -s build/dos32/APIRPASS.OK
           test -s build/dos32/APISPASS.OK
+          test -s build/dos32/VOTEPASS.OK
 
       - name: Build and test native DOS/32A executables
         env:
@@ -626,6 +614,8 @@ jobs:
           test -s build/dos32a/ex_diag.exe
           test -s build/dos32a/ex_hello.exe
           test -s build/dos32a/ex_music.exe
+          test -s build/dos32a/ex_vote.exe
+          test -s build/dos32a/od32vot.exe
           timeout --signal=TERM --kill-after=5s 45s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos32a" \
@@ -650,6 +640,8 @@ jobs:
               -c 'ren D32PASS.OK D32RPASS.OK' \
               -c 'od32tsts.exe' \
               -c 'ren D32PASS.OK D32SPASS.OK' \
+              -c 'od32vot.exe' \
+              -c 'if not errorlevel 1 echo Passed>VOTEPASS.OK' \
               -c 'exit'
           timeout --signal=TERM --kill-after=5s 45s \
             xvfb-run -a dosbox -noconsole \
@@ -672,10 +664,11 @@ jobs:
           test -s build/dos32a/PERSSPAS.OK
           test -s build/dos32a/APIRPASS.OK
           test -s build/dos32a/APISPASS.OK
-          embedded_count=$(find build/dos32a -maxdepth 1 -type f \
-            \( -iname 'od32test.exe' -o -iname 'ex_*.exe' \) \
-            -exec grep -aFl 'DOS/32A' {} \; | wc -l)
-          test "$embedded_count" -eq 5
+          test -s build/dos32a/VOTEPASS.OK
+          for executable in od32test.exe ex_chat.exe ex_diag.exe \
+              ex_hello.exe ex_music.exe ex_vote.exe; do
+            grep -aFq 'DOS/32A' "build/dos32a/$executable"
+          done
 
       - name: Stage DOS32 release SDK
         env:
