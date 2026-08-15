@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ex_vote_io.h"
+#include "ex_votio.h"
 
 static int nFailures;
 
@@ -16,12 +16,12 @@ static int nFailures;
 
 static void TestRecords(void)
 {
-   unsigned char achUser[VOTE_USER_RECORD_SIZE];
-   unsigned char achQuestion[VOTE_QUESTION_RECORD_SIZE];
-   tUserRecord User;
-   tUserRecord DecodedUser;
-   tQuestionRecord Question;
-   tQuestionRecord DecodedQuestion;
+   static unsigned char achUser[VOTE_USER_RECORD_SIZE];
+   static unsigned char achQuestion[VOTE_QUESTION_RECORD_SIZE];
+   static tUserRecord User;
+   static tUserRecord DecodedUser;
+   static tQuestionRecord Question;
+   static tQuestionRecord DecodedQuestion;
 
    memset(&User, 0, sizeof(User));
    strcpy(User.szUserName, "Example User");
@@ -91,16 +91,16 @@ static void TestRecords(void)
 
 static void TestFiles(void)
 {
-   static const char szDataName[] = "VTIO.DAT";
-   static const char szLockName[] = "VTIO.LCK";
-   tVoteLockOwner Owner;
-   tVoteFile First;
-   tVoteFile Second;
+   static char szDataName[] = "VTIO.DAT";
+   static char szLockName[] = "VTIO.LCK";
+   static tVoteLockOwner Owner;
+   static tVoteFile First;
+   static tVoteFile Second;
    FILE *pfFile;
    FILE *pfLock;
-   char szOwner[128];
+   static char szOwner[128];
    size_t nOwnerLength;
-   unsigned char achWrongRecord[672];
+   static unsigned char achWrongRecord[672];
 
    remove(szDataName);
    remove(szLockName);

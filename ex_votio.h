@@ -1,5 +1,5 @@
-#ifndef EX_VOTE_IO_H
-#define EX_VOTE_IO_H
+#ifndef EX_VOTIO_H
+#define EX_VOTIO_H
 
 #include <stdio.h>
 

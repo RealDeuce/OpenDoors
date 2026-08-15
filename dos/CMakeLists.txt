@@ -93,7 +93,7 @@ list(TRANSFORM OPENDOORS_DOS_SOURCES PREPEND "${OPENDOORS_ROOT}/")
 # their paths from names so the strict library-source manifest checker does
 # not mistake them for library inputs.
 set(OPENDOORS_VOTE_EXAMPLE_SOURCES)
-foreach(vote_source IN ITEMS ex_vote.c ex_vote_io.c)
+foreach(vote_source IN ITEMS ex_vote.c ex_votio.c)
     list(APPEND OPENDOORS_VOTE_EXAMPLE_SOURCES
         "${OPENDOORS_ROOT}/${vote_source}")
 endforeach()

@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE_SOURCES = (
     "ex_chat.c", "ex_diag.c", "ex_hello.c", "ex_music.c", "ex_ski.c",
-    "ex_vote.c", "ex_vote_io.c", "ex_vote_io.h",
+    "ex_vote.c", "ex_votio.c", "ex_votio.h",
 )
 PERSONALITY_SOURCES = ("ODStand.c", "ODPCB.c", "ODRA.c", "ODWCat.c")
 

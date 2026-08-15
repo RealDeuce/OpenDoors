@@ -39,7 +39,7 @@
 /* Include the OpenDoors header file. This line must be done in any program */
 /* using OpenDoors.                                                         */
 #include "OpenDoor.h"
-#include "ex_vote_io.h"
+#include "ex_votio.h"
 
 /* Manifest constants used by Vote */
 #define NO_QUESTION              -1

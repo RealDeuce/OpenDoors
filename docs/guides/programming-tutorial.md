@@ -595,7 +595,7 @@ caller's name and one Boolean byte for each possible question. The current
 user record and its file index remain in memory for the session.
 
 `tQuestionRecord` contains the question text, the possible answer strings,
-counts, creator name, and creation time. `ex_vote_io.c` serializes both record
+counts, creator name, and creation time. `ex_votio.c` serializes both record
 types explicitly: `vote.usr` uses 236-byte records and `vote.qst` uses the
 historical 664-byte DOS record layout. Multi-byte values are little-endian,
 and creation time is an unsigned 32-bit count of POSIX epoch seconds, covering

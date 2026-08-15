@@ -1,4 +1,4 @@
-#include "ex_vote_io.h"
+#include "ex_votio.h"
 
 #include <ctype.h>
 #include <errno.h>

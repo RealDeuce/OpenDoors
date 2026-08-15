@@ -336,7 +336,7 @@ if(OPENDOORS_BUILD_EXAMPLES)
     opendoors_add_example(ex_hello ex_hello.c)
     opendoors_add_example(ex_music ex_music.c)
     opendoors_add_example(ex_ski ex_ski.c)
-    opendoors_add_example(ex_vote ex_vote.c ex_vote_io.c)
+    opendoors_add_example(ex_vote ex_vote.c ex_votio.c)
     target_compile_definitions(ex_vote PRIVATE MULTINODE_AWARE)
 
     if(WIN32)
@@ -347,7 +347,7 @@ endif()
 
 if(BUILD_TESTING)
     add_executable(opendoors_vote_io_test
-        tests/vote_io_test.c ex_vote_io.c)
+        tests/vote_io_test.c ex_votio.c)
     target_include_directories(opendoors_vote_io_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}")
     target_compile_definitions(opendoors_vote_io_test PRIVATE

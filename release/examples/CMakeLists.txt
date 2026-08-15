@@ -26,7 +26,7 @@ foreach(example IN ITEMS ex_chat ex_diag ex_hello ex_music ex_ski)
     opendoors_example(${example} ${example}.c)
 endforeach()
 
-opendoors_example(ex_vote ex_vote.c ex_vote_io.c)
+opendoors_example(ex_vote ex_vote.c ex_votio.c)
 target_compile_definitions(ex_vote PRIVATE MULTINODE_AWARE)
 
 if(WIN32)

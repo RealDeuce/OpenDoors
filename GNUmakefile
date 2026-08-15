@@ -315,8 +315,8 @@ ${EXEDIR}ex_music${EXE_SUFFIX}: ex_music.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP
 ${EXEDIR}ex_ski${EXE_SUFFIX}: ex_ski.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
 	$(CC) $(LDFLAGS) $(CFLAGS) ex_ski.c -o $@ ${ODOORS_SHLIB}
 
-${EXEDIR}ex_vote${EXE_SUFFIX}: ex_vote.c ex_vote_io.c ex_vote_io.h ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
-	$(CC) $(LDFLAGS) $(CFLAGS) ex_vote.c ex_vote_io.c -o $@ ${ODOORS_SHLIB} -DMULTINODE_AWARE
+${EXEDIR}ex_vote${EXE_SUFFIX}: ex_vote.c ex_votio.c ex_votio.h ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
+	$(CC) $(LDFLAGS) $(CFLAGS) ex_vote.c ex_votio.c -o $@ ${ODOORS_SHLIB} -DMULTINODE_AWARE
 
 #
 #------------------------------------------------------------------------------

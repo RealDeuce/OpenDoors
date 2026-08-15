@@ -673,6 +673,8 @@ jobs:
           test -s build/dos/ex_diag.exe
           test -s build/dos/ex_hello.exe
           test -s build/dos/ex_music.exe
+          test -s build/dos/ex_vote.exe
+          test -s build/dos/odvtest.exe
           test -s build/dos/odtest.exe
           test -s build/dos/odpers.exe
           test -s build/dos/odapi.exe
@@ -682,6 +684,8 @@ jobs:
           test "$(od -An -tx1 -N2 build/dos/ex_diag.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/ex_hello.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/ex_music.exe | tr -d ' ')" = '4d5a'
+          test "$(od -An -tx1 -N2 build/dos/ex_vote.exe | tr -d ' ')" = '4d5a'
+          test "$(od -An -tx1 -N2 build/dos/odvtest.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/odtest.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/odpers.exe | tr -d ' ')" = '4d5a'
           test "$(od -An -tx1 -N2 build/dos/odapi.exe | tr -d ' ')" = '4d5a'
@@ -689,6 +693,7 @@ jobs:
           file build/dos/ODoorl.lib build/dos/dos_link_smoke.exe \
             build/dos/ex_chat.exe build/dos/ex_diag.exe \
             build/dos/ex_hello.exe build/dos/ex_music.exe \
+            build/dos/ex_vote.exe build/dos/odvtest.exe \
             build/dos/odtest.exe build/dos/odpers.exe build/dos/odapi.exe \
             build/dos/odserial.exe
 
@@ -707,6 +712,7 @@ jobs:
           rm -f build/dos/PERSPASS.OK
           rm -f build/dos/PERSFAIL.TXT
           rm -f build/dos/APIPASS.OK
+          rm -f build/dos/VOTEPASS.OK
           timeout --signal=TERM --kill-after=5s 30s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos" \
@@ -714,6 +720,8 @@ jobs:
               -c 'odtest.exe' \
               -c 'odpers.exe' \
               -c 'odapi.exe' \
+              -c 'odvtest.exe' \
+              -c 'if not errorlevel 1 echo Passed>VOTEPASS.OK' \
               -c 'exit' \
             2>&1 | tee build/dos/dosbox.log
           if ! test -s build/dos/DOSPASS.OK; then
@@ -725,6 +733,7 @@ jobs:
             exit 1
           fi
           test -s build/dos/APIPASS.OK
+          test -s build/dos/VOTEPASS.OK
 
       - name: Upload OpenDoors DOS outputs
         if: always()
@@ -743,6 +752,7 @@ jobs:
             build/dos/PERSPASS.OK
             build/dos/PERSFAIL.TXT
             build/dos/APIPASS.OK
+            build/dos/VOTEPASS.OK
             build/dos/dosbox.log
             build/dos/ODFAIL.TXT
             build/dos/dos-serial-odserial.log
@@ -827,6 +837,8 @@ jobs:
           test -s build/dos32/ex_diag.exe
           test -s build/dos32/ex_hello.exe
           test -s build/dos32/ex_music.exe
+          test -s build/dos32/ex_vote.exe
+          test -s build/dos32/od32vot.exe
 
       - name: Install DOSBox runtime
         run: |
@@ -865,10 +877,13 @@ jobs:
               -c 'ren D32PASS.OK D32RPASS.OK' \
               -c 'od32tsts.exe' \
               -c 'ren D32PASS.OK D32SPASS.OK' \
+              -c 'od32vot.exe' \
+              -c 'if not errorlevel 1 echo Passed>VOTEPASS.OK' \
               -c 'exit' \
             2>&1 | tee build/dos32/dos4gw-runtime.log
           require_marker D32RPASS.OK
           require_marker D32SPASS.OK
+          require_marker VOTEPASS.OK
           timeout --signal=TERM --kill-after=5s 45s \
             xvfb-run -a dosbox -noconsole \
               -c "mount c $PWD/build/dos32" \
@@ -926,6 +941,8 @@ jobs:
           test -s build/dos32a/ex_diag.exe
           test -s build/dos32a/ex_hello.exe
           test -s build/dos32a/ex_music.exe
+          test -s build/dos32a/ex_vote.exe
+          test -s build/dos32a/od32vot.exe
 
       - name: Test with DOS/32A
         env:
@@ -958,6 +975,8 @@ jobs:
               -c 'ren D32PASS.OK D32RPASS.OK' \
               -c 'od32tsts.exe' \
               -c 'ren D32PASS.OK D32SPASS.OK' \
+              -c 'od32vot.exe' \
+              -c 'if not errorlevel 1 echo Passed>VOTEPASS.OK' \
               -c 'exit' \
             2>&1 | tee build/dos32a/dos32a-runtime.log
           timeout --signal=TERM --kill-after=5s 45s \
@@ -982,10 +1001,11 @@ jobs:
           test -s build/dos32a/PERSSPAS.OK
           test -s build/dos32a/APIRPASS.OK
           test -s build/dos32a/APISPASS.OK
-          embedded_count=$(find build/dos32a -maxdepth 1 -type f \
-            \( -iname 'od32test.exe' -o -iname 'ex_*.exe' \) \
-            -exec grep -aFl 'DOS/32A' {} \; | wc -l)
-          test "$embedded_count" -eq 5
+          test -s build/dos32a/VOTEPASS.OK
+          for executable in od32test.exe ex_chat.exe ex_diag.exe \
+              ex_hello.exe ex_music.exe ex_vote.exe; do
+            grep -aFq 'DOS/32A' "build/dos32a/$executable"
+          done
 
       - name: Upload OpenDoors DOS32 outputs
         if: always()
