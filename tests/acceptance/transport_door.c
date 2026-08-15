@@ -508,6 +508,58 @@ static int RunEmulationScenario(void)
    return(FinishScenario("EMULATION-DONE"));
 }
 
+static int RunListingScenario(void)
+{
+   char long_spec[101];
+   char index_path[32];
+
+   memset(long_spec, 'L', sizeof(long_spec) - 1);
+   long_spec[sizeof(long_spec) - 1] = '\0';
+   od_control.od_error = ERR_NONE;
+   OD_TEST_CHECK(!od_list_files(long_spec));
+   OD_TEST_CHECK(od_control.od_error == ERR_LIMIT);
+   od_control.od_error = ERR_NONE;
+   OD_TEST_CHECK(!od_list_files("MISSING.BBS"));
+   OD_TEST_CHECK(od_control.od_error == ERR_FILEOPEN);
+   od_control.od_error = ERR_NONE;
+   OD_TEST_CHECK(!od_list_files("ODBADTOK.BBS"));
+   OD_TEST_CHECK(od_control.od_error == ERR_LIMIT);
+
+   Marker("LISTING-CURRENT");
+   OD_TEST_CHECK(od_list_files(NULL));
+   OD_TEST_CHECK(od_list_files(""));
+
+   od_control.od_offline = "OFFLINE-MARK";
+   Marker("LISTING-DIRECTORY");
+   OD_TEST_CHECK(od_list_files("ODAREA"));
+   strcpy(index_path, "ODAREA" DIRSEP_STR "FILES.BBS");
+   Marker("LISTING-EXPLICIT");
+   OD_TEST_CHECK(od_list_files(index_path));
+
+   od_control.od_list_name_col = L_YELLOW | (D_BLUE << 4);
+   od_control.od_list_size_col = L_WHITE | (D_RED << 4);
+   od_control.od_list_comment_col = L_GREEN | (D_CYAN << 4);
+   Marker("LISTING-COLORS");
+   od_clr_scr();
+   OD_TEST_CHECK(od_list_files("ODCOLOR.BBS"));
+   OD_TEST_CHECK(ScreenMatches(1, 1, "COLOR.TXT   ",
+      od_control.od_list_name_col));
+   OD_TEST_CHECK(ScreenMatches(15, 1, "6", od_control.od_list_size_col));
+   OD_TEST_CHECK(ScreenMatches(24, 1, "Color entry",
+      od_control.od_list_comment_col));
+
+   od_control.user_screen_length = 4;
+   od_control.od_page_pausing = TRUE;
+   Marker("LISTING-CANCEL");
+   OD_TEST_CHECK(od_list_files("ODCANCEL.BBS"));
+   Marker("LISTING-AFTER-CANCEL");
+   Marker("LISTING-PAGING");
+   OD_TEST_CHECK(od_list_files("ODPAGE.BBS"));
+   od_control.od_page_pausing = FALSE;
+
+   return(FinishScenario("LISTING-DONE"));
+}
+
 static int RunSessionScenario(void)
 {
    tODInputEvent event;
@@ -636,6 +688,8 @@ int main(int argc, char **argv)
       return(RunDisplayScenario());
    if(strcmp(scenario, "emulation") == 0)
       return(RunEmulationScenario());
+   if(strcmp(scenario, "listing") == 0)
+      return(RunListingScenario());
    if(strcmp(scenario, "session") == 0)
       return(RunSessionScenario());
 

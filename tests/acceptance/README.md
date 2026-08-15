@@ -58,9 +58,9 @@ tools/wine-ctest --display :92 \
 
 The ordinary smoke-integration suite contains deterministic compile, ABI,
 lifecycle, screen, configuration, spawn, and drop-file scenarios. The extended
-setting adds six transport-neutral public-API scenarios for input, interactive
+setting adds seven transport-neutral public-API scenarios for input, interactive
 prompts, formatted and multiline editing, display and files, terminal
-emulation, and connection/session behavior. Unix runs them
+emulation, `FILES.BBS` listings, and connection/session behavior. Unix runs them
 over an inherited socket, Windows uses loopback TCP, and the DOS build reuses
 the same protocol over direct UART and FOSSIL serial paths. Every enabled
 transport must satisfy the same scenario assertions; only endpoint setup and
@@ -69,7 +69,7 @@ the selected `od_com_method` differ.
 GitHub Actions runs the ordinary cases on pushes and pull requests. The
 extended matrix runs nightly when the default branch has advanced since the
 last successful scheduled run, or unconditionally on request, and is required
-for releases. Its DOS jobs run all six scenarios through DOSBox over 16-bit
+for releases. Its DOS jobs run all seven scenarios through DOSBox over 16-bit
 direct UART and over both direct UART and FOSSIL with DOS/4GW and DOS/32A. The
 extended workflow also publishes a single Clang/Unix branch-coverage report.
 That report is directional and has no percentage or delta gate; Windows and

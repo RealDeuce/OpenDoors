@@ -10,7 +10,18 @@ import time
 from pathlib import Path
 
 
-SCENARIOS = ("input", "interactive", "edit", "display", "emulation", "session")
+SCENARIOS = (
+    "input",
+    "interactive",
+    "edit",
+    "display",
+    "emulation",
+    "listing",
+    "session",
+)
+
+LONG_DESCRIPTION = b"DESC-" + b"1234567890" * 6
+FIXTURE_DIRECTORIES = ("ODAREA",)
 
 FIXTURES = {
     "ODFILE.ASC": b"FILE-CONTENT\r\n",
@@ -29,6 +40,31 @@ FIXTURES = {
         b"PAGE-LINE-1\r\nPAGE-LINE-2\r\n"
         b"PAGE-LINE-3\r\nPAGE-LINE-4\r\n"
     ),
+    "ODAREA/FILES.BBS": (
+        b" LIST-TITLE\r\n\r\n"
+        b"EXIST.TXT Existing entry\r\n"
+        b"MATCH?.DAT Wildcard entry\r\n"
+        b"MISSING.ZIP Offline entry\r\n"
+        b"LONG.TXT " + LONG_DESCRIPTION + b"\r\n"
+        b"SKIP.TXT " + b"Z" * 600 + b"\r\n"
+        b"AFTER.TXT AFTER-LONG-LINE\r\n"
+    ),
+    "ODAREA/EXIST.TXT": b"existing\n",
+    "ODAREA/MATCH1.DAT": b"match one\n",
+    "ODAREA/MATCH2.DAT": b"match two\n",
+    "ODAREA/LONG.TXT": b"long\n",
+    "ODAREA/AFTER.TXT": b"after\n",
+    "ODCOLOR.BBS": b"COLOR.TXT Color entry\r\n",
+    "COLOR.TXT": b"color\n",
+    "ODPAGE.BBS": (
+        b" PAGE-LINE-1\r\n PAGE-LINE-2\r\n"
+        b" PAGE-LINE-3\r\n PAGE-LINE-4\r\n"
+    ),
+    "ODCANCEL.BBS": (
+        b" CANCEL-LINE-1\r\n CANCEL-LINE-2\r\n"
+        b" CANCEL-LINE-3\r\n CANCEL-LINE-4\r\n"
+    ),
+    "ODBADTOK.BBS": b"A" * 80 + b" invalid token\r\n",
     "FILES.BBS": b"ITEM.TXT Acceptance listed file\r\n",
     "ITEM.TXT": b"fixture\n",
 }
@@ -57,6 +93,8 @@ def receive_until(
 
 
 def create_fixtures(directory: Path) -> None:
+    for name in FIXTURE_DIRECTORIES:
+        (directory / name).mkdir(exist_ok=True)
     for name, contents in FIXTURES.items():
         (directory / name).write_bytes(contents)
 
@@ -64,6 +102,10 @@ def create_fixtures(directory: Path) -> None:
 def remove_fixtures(directory: Path) -> None:
     for name in FIXTURES:
         (directory / name).unlink(missing_ok=True)
+    for name in reversed(FIXTURE_DIRECTORIES):
+        path = directory / name
+        if path.exists():
+            path.rmdir()
 
 
 def finish(peer: socket.socket, transcript: bytearray, marker: bytes,
@@ -208,6 +250,42 @@ def drive_emulation(peer: socket.socket, timeout: int) -> bytearray:
     return transcript
 
 
+def drive_listing(peer: socket.socket, timeout: int) -> bytearray:
+    transcript = bytearray()
+    receive_until(peer, b"LISTING-CANCEL", transcript, timeout)
+    receive_until(peer, b"Continue?", transcript, timeout)
+    peer.sendall(b"n")
+    receive_until(peer, b"LISTING-AFTER-CANCEL", transcript, timeout)
+    receive_until(peer, b"LISTING-PAGING", transcript, timeout)
+    receive_until(peer, b"Continue?", transcript, timeout)
+    peer.sendall(b"=")
+    finish(peer, transcript, b"LISTING-DONE", timeout)
+    for expected in (
+        b"ITEM.TXT",
+        b"LIST-TITLE",
+        b"EXIST.TXT",
+        b"MATCH1.DAT",
+        b"MATCH2.DAT",
+        b"OFFLINE-MARK",
+        LONG_DESCRIPTION[:56],
+        b"AFTER-LONG-LINE",
+        b"COLOR.TXT",
+        b"PAGE-LINE-4",
+    ):
+        if expected not in transcript:
+            raise RuntimeError(
+                f"listing transcript lacks {expected!r}: "
+                f"{bytes(transcript)!r}"
+            )
+    for unexpected in (b"CANCEL-LINE-3", LONG_DESCRIPTION):
+        if unexpected in transcript:
+            raise RuntimeError(
+                f"listing transcript unexpectedly contains {unexpected!r}: "
+                f"{bytes(transcript)!r}"
+            )
+    return transcript
+
+
 def drive_session(peer: socket.socket, timeout: int) -> bytearray:
     transcript = bytearray()
     receive_until(peer, b"SESSION-AUTODETECT", transcript, timeout)
@@ -231,6 +309,7 @@ DRIVERS = {
     "edit": drive_edit,
     "display": drive_display,
     "emulation": drive_emulation,
+    "listing": drive_listing,
     "session": drive_session,
 }
 
