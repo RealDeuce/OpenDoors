@@ -56,19 +56,20 @@ tools/wine-ctest --display :92 \
   --test-dir build/wine32 --output-on-failure
 ```
 
-The ordinary suite contains deterministic compile, ABI, lifecycle, screen,
-configuration, spawn, and drop-file scenarios. The extended setting adds four
-transport-neutral public-API scenarios for input, interactive editing, display
-and files, and connection/session behavior. Unix runs them over an inherited
-socket, Windows uses loopback TCP, and the DOS build reuses the same protocol
-over direct UART and FOSSIL serial paths. Every enabled transport must satisfy
-the same scenario assertions; only endpoint setup and the selected
-`od_com_method` differ.
+The ordinary smoke-integration suite contains deterministic compile, ABI,
+lifecycle, screen, configuration, spawn, and drop-file scenarios. The extended
+setting adds four transport-neutral public-API scenarios for input, interactive
+editing, display and files, and connection/session behavior. Unix runs them
+over an inherited socket, Windows uses loopback TCP, and the DOS build reuses
+the same protocol over direct UART and FOSSIL serial paths. Every enabled
+transport must satisfy the same scenario assertions; only endpoint setup and
+the selected `od_com_method` differ.
 
-GitHub Actions runs the ordinary cases on pushes and pull requests, runs the
-hosted extended matrix nightly or on request, and requires it for releases.
-The existing DOS build jobs run all four scenarios through DOSBox. The
-extended workflow also publishes a single Clang/Unix branch-coverage report.
+GitHub Actions runs the ordinary cases on pushes and pull requests. The
+extended matrix runs nightly or on request and is required for releases; its
+DOS jobs run all four scenarios through DOSBox over 16-bit direct UART and
+over both direct UART and FOSSIL with DOS/4GW and DOS/32A. The extended
+workflow also publishes a single Clang/Unix branch-coverage report.
 That report is directional and has no percentage or delta gate; Windows and
 DOS runtime results remain authoritative for their platform-specific paths.
 

@@ -1,7 +1,8 @@
 # OpenDoors
 
-[![Build](https://github.com/RealDeuce/OpenDoors/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/RealDeuce/OpenDoors/actions/workflows/build.yml)
+[![Build and smoke integration](https://github.com/RealDeuce/OpenDoors/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/RealDeuce/OpenDoors/actions/workflows/build.yml)
 [![Unit Tests](https://github.com/RealDeuce/OpenDoors/actions/workflows/unit-tests.yml/badge.svg?branch=master)](https://github.com/RealDeuce/OpenDoors/actions/workflows/unit-tests.yml)
+[![Regression tests](https://github.com/RealDeuce/OpenDoors/actions/workflows/regression.yml/badge.svg?branch=master)](https://github.com/RealDeuce/OpenDoors/actions/workflows/regression.yml)
 [![Documentation](https://github.com/RealDeuce/OpenDoors/actions/workflows/docs.yml/badge.svg?branch=master)](https://github.com/RealDeuce/OpenDoors/actions/workflows/docs.yml)
 [![Extended acceptance](https://github.com/RealDeuce/OpenDoors/actions/workflows/acceptance.yml/badge.svg?branch=master)](https://github.com/RealDeuce/OpenDoors/actions/workflows/acceptance.yml)
 
@@ -64,10 +65,23 @@ corresponding variants were built.
 
 ## Testing
 
-The normal CTest run includes both implementation regressions and public-only
-integration acceptance tests. The acceptance inventory covers every exported
-declaration and every `od_control` field, while its executables use only the
-installed headers and library interface. See
+The test automation has four distinct layers:
+
+- Unit tests are narrow white-box cases selected from the source and function
+  owners affected by a change.
+- Smoke integration tests use only the public API and run on every push as
+  part of the normal build matrix.
+- Extended acceptance tests use only the public API and exercise the deeper
+  socket, direct-UART, and FOSSIL scenarios nightly, on request, and for a
+  release.
+- Regression tests may use private component boundaries and mocks. They run
+  on every push; reported bugs should gain a reproducer here when public-only
+  acceptance cannot express one.
+
+The Actions select the public `acceptance.*` and link-smoke cases separately
+from the private implementation regressions. The acceptance inventory covers
+every exported declaration and every `od_control` field, while its executables
+use only the installed headers and library interface. See
 [`tests/acceptance/README.md`](tests/acceptance/README.md) for standalone
 installed-package and extended socket-driven test commands. Behavioral and
 design problems discovered while characterizing the current implementation are

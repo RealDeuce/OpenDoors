@@ -289,6 +289,37 @@ static int second(void)
         self.assertEqual(result["mode"], "unit-infrastructure")
         self.assertEqual(result["sources"], {"sample.c": ["one", "two"]})
 
+    def test_non_unit_workflow_does_not_select_runtime_tests(self):
+        inventory = {"sources": [{
+            "path": "sample.c", "platforms": ["unix"],
+            "functions": [{"name": "one"}]
+        }]}
+        tests = [{"source": "sample.c", "function": "one",
+                  "platforms": ["unix"]}]
+        with patch("selector.build_inventory", return_value=inventory), \
+                patch("selector.registered_tests", return_value=tests), \
+                patch("selector.changed_files",
+                      return_value=[".github/workflows/build.yml"]):
+            result = select("base", "head", False)
+        self.assertEqual(result["mode"], "affected")
+        self.assertFalse(result["run"])
+        self.assertEqual(result["sources"], {})
+
+    def test_unit_workflow_selects_the_complete_inventory(self):
+        inventory = {"sources": [{
+            "path": "sample.c", "platforms": ["unix"],
+            "functions": [{"name": "one"}]
+        }]}
+        tests = [{"source": "sample.c", "function": "one",
+                  "platforms": ["unix"]}]
+        with patch("selector.build_inventory", return_value=inventory), \
+                patch("selector.registered_tests", return_value=tests), \
+                patch("selector.changed_files",
+                      return_value=[".github/workflows/unit-tests.yml"]):
+            result = select("base", "head", False)
+        self.assertEqual(result["mode"], "unit-infrastructure")
+        self.assertEqual(result["sources"], {"sample.c": ["one"]})
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,4 @@
-name: Build
+name: Build and smoke integration
 
 on:
   push:
@@ -42,12 +42,13 @@ jobs:
           -Configuration '${{ matrix.configuration }}'
           -WarningsAsErrors
 
-      - name: Test
+      - name: Run smoke integration tests
         shell: pwsh
         run: >-
           ctest
           --test-dir 'build/msvc/${{ matrix.architecture }}'
           -C '${{ matrix.configuration }}'
+          -R '^(shared_link_smoke|static_link_smoke|acceptance\.)'
           --output-on-failure
 
       - name: Inspect DLL architecture and exports
@@ -198,7 +199,7 @@ jobs:
         shell: msys2 {0}
         run: cmake --build build/mingw --parallel
 
-      - name: Test native Windows binaries
+      - name: Run native Windows smoke integration tests
         shell: pwsh
         run: |
           $ctest = Join-Path '${{ steps.msys2.outputs.msys2-location }}' `
@@ -209,7 +210,9 @@ jobs:
           $toolDirectory = Split-Path -Parent $ctest
           $env:PATH = "$toolDirectory;$env:PATH"
           if ('${{ matrix.msystem }}' -ne 'UCRT64') {
-            & $ctest --test-dir build\mingw --output-on-failure
+            & $ctest --test-dir build\mingw `
+              -R '^(shared_link_smoke|static_link_smoke|acceptance\.)' `
+              --output-on-failure
             exit $LASTEXITCODE
           }
 
@@ -242,7 +245,9 @@ jobs:
               Pop-Location
             }
 
-            & $ctest --test-dir build\mingw --output-on-failure `
+            & $ctest --test-dir build\mingw `
+              -R '^(shared_link_smoke|static_link_smoke|acceptance\.)' `
+              --output-on-failure `
               -E '^acceptance\.spawn$'
             if ($LASTEXITCODE -ne 0) {
               $testStatus = $LASTEXITCODE
@@ -400,8 +405,11 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
+      - name: Run smoke integration tests
+        run: >-
+          ctest --test-dir build
+          -R '^(shared_link_smoke|static_link_smoke|acceptance\.)'
+          --output-on-failure
 
   package:
     name: Installed package (${{ matrix.variant }})
@@ -431,10 +439,12 @@ jobs:
           -DOPENDOORS_BUILD_EXAMPLES=OFF
           -DOPENDOORS_WARNINGS_AS_ERRORS=ON
 
-      - name: Build and test selected variant
+      - name: Build and smoke-test selected variant
         run: |
           cmake --build build/package --parallel
-          ctest --test-dir build/package --output-on-failure
+          ctest --test-dir build/package \
+            -R '^(shared_link_smoke|static_link_smoke|acceptance\.)' \
+            --output-on-failure
 
       - name: Install OpenDoors package
         run: >-
@@ -511,11 +521,13 @@ jobs:
           -DOPENDOORS_WARNINGS_AS_ERRORS=ON
           -DCMAKE_MSVC_RUNTIME_LIBRARY=${{ matrix.runtime }}
 
-      - name: Build and test selected variant
+      - name: Build and smoke-test selected variant
         shell: pwsh
         run: |
           cmake --build build/package --config Release --parallel
-          ctest --test-dir build/package -C Release --output-on-failure
+          ctest --test-dir build/package -C Release `
+            -R '^(shared_link_smoke|static_link_smoke|acceptance\.)' `
+            --output-on-failure
 
       - name: Install OpenDoors package
         shell: pwsh
@@ -714,14 +726,6 @@ jobs:
           fi
           test -s build/dos/APIPASS.OK
 
-      - name: Run DOS serial acceptance test
-        env:
-          SDL_AUDIODRIVER: dummy
-        run: |
-          timeout --signal=TERM --kill-after=5s 90s \
-            xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
-              "$(command -v dosbox)" "$PWD/build/dos/odserial.exe"
-
       - name: Upload OpenDoors DOS outputs
         if: always()
         uses: actions/upload-artifact@v7
@@ -775,36 +779,6 @@ jobs:
         with:
           path: ~/watcom
           key: open-watcom-${{ runner.os }}-${{ runner.arch }}-2.0-2026-08-01
-
-      - name: Restore X00 test-driver cache
-        id: x00-cache
-        uses: actions/cache/restore@v6
-        with:
-          path: ~/x00/x00150.zip
-          key: x00-1.50-4577e1ad1d89a652
-
-      - name: Download X00 test driver
-        if: steps.x00-cache.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p "$HOME/x00"
-          curl --fail --location --retry 3 \
-            --output "$HOME/x00/x00150.zip" \
-            https://raw.githubusercontent.com/deadbeatz/mystic_a45/4df1f1fef349e2b192f6dbe2b29717bcd6742314/dosemu/drive_c/x00/x00150.zip
-
-      - name: Verify X00 test driver
-        run: |
-          echo '4577e1ad1d89a65209ca3b2be9522191c4c25119c9de4938adb2dd4f5a819eab  '"$HOME/x00/x00150.zip" | sha256sum --check
-          unzip -t "$HOME/x00/x00150.zip"
-
-      - name: Save X00 test-driver cache
-        if: >-
-          steps.x00-cache.outputs.cache-hit != 'true' &&
-          (github.event_name != 'pull_request' ||
-          github.event.pull_request.head.repo.full_name == github.repository)
-        uses: actions/cache/save@v6
-        with:
-          path: ~/x00/x00150.zip
-          key: x00-1.50-4577e1ad1d89a652
 
       - name: Configure Open Watcom environment
         run: |
@@ -914,23 +888,6 @@ jobs:
           require_marker APIRPASS.OK
           require_marker APISPASS.OK
 
-      - name: Run DOS/4GW serial acceptance tests
-        env:
-          SDL_AUDIODRIVER: dummy
-        run: |
-          unzip -p "$HOME/x00/x00150.zip" X00.SYS > build/dos32/X00.EXE
-          for door in od32uar.exe od32uas.exe; do
-            timeout --signal=TERM --kill-after=5s 90s \
-              xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
-                "$(command -v dosbox)" "$PWD/build/dos32/$door"
-          done
-          for door in od32for.exe od32fos.exe; do
-            timeout --signal=TERM --kill-after=5s 90s \
-              xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
-                --pre-command 'x00.exe E' \
-                "$(command -v dosbox)" "$PWD/build/dos32/$door"
-          done
-
       - name: Configure native DOS/32A build
         env:
           CC: wcl386
@@ -1029,27 +986,6 @@ jobs:
             \( -iname 'od32test.exe' -o -iname 'ex_*.exe' \) \
             -exec grep -aFl 'DOS/32A' {} \; | wc -l)
           test "$embedded_count" -eq 5
-
-      - name: Run DOS/32A serial acceptance tests
-        env:
-          SDL_AUDIODRIVER: dummy
-        run: |
-          unzip -p "$HOME/x00/x00150.zip" X00.SYS > build/dos32a/X00.EXE
-          for door in od32uar.exe od32uas.exe; do
-            timeout --signal=TERM --kill-after=5s 90s \
-              xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
-                "$(command -v dosbox)" "$PWD/build/dos32a/$door"
-          done
-          for door in od32for.exe od32fos.exe; do
-            timeout --signal=TERM --kill-after=5s 90s \
-              xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
-                --pre-command 'x00.exe E' \
-                "$(command -v dosbox)" "$PWD/build/dos32a/$door"
-          done
-
-      - name: Remove third-party X00 test driver
-        if: always()
-        run: rm -f build/dos32/X00.EXE build/dos32a/X00.EXE
 
       - name: Upload OpenDoors DOS32 outputs
         if: always()

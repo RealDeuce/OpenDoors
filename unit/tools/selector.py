@@ -17,12 +17,13 @@ from inventory import ROOT, build_inventory, scan_c
 LOCAL_INCLUDE = re.compile(r'^\s*#\s*include\s*"([^"]+)"', re.MULTILINE)
 HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 FULL_PREFIXES = (
-    ".github/workflows/",
     "unit/framework/",
     "unit/tools/",
 )
 FULL_FILES = {
-    "CMakeLists.txt", "dos/CMakeLists.txt",
+    ".github/workflows/unit-tests.yml",
+    "CMakeLists.txt",
+    "dos/CMakeLists.txt",
 }
 
 
