@@ -108,6 +108,12 @@ int main(void)
    memset(readback, 0, sizeof(readback));
    OD_TEST_CHECK(od_gettext(94, 2, 99, 2, readback));
    OD_TEST_CHECK(memcmp(cells, readback, sizeof(cells)) == 0);
+   od_control.od_error = ERR_NONE;
+   OD_TEST_CHECK(!od_puttext(0, 2, 1, 2, cells));
+   OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
+   od_control.od_error = ERR_NONE;
+   OD_TEST_CHECK(!od_gettext(2, 2, 1, 2, readback));
+   OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
 
    od_set_cursor(5, 100);
    od_get_cursor(&row, &column);
@@ -126,21 +132,35 @@ int main(void)
    od_clr_line();
 
    OD_TEST_CHECK(od_draw_box(2, 3, 20, 8));
+   OD_TEST_CHECK(!od_draw_box(0, 3, 20, 8));
+   OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
    window = od_window_create(25, 3, 45, 8, "Title", L_WHITE, L_YELLOW,
       D_BLUE, 0);
    OD_TEST_CHECK(window != NULL);
    OD_TEST_CHECK(od_window_remove(window));
+   OD_TEST_CHECK(!od_window_remove(NULL));
+   OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
+   OD_TEST_CHECK(od_window_create(0, 3, 45, 8, "Bad", L_WHITE, L_YELLOW,
+      D_BLUE, 0) == NULL);
+   OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
    OD_TEST_CHECK(od_scroll(2, 3, 20, 8, 1, SCROLL_NORMAL));
+   OD_TEST_CHECK(od_scroll(2, 3, 20, 8, 0, SCROLL_NORMAL));
+   OD_TEST_CHECK(!od_scroll(20, 3, 2, 8, 1, SCROLL_NORMAL));
+   OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
 
    snapshot_size = od_save_screen_size();
    OD_TEST_CHECK(snapshot_size != 0);
    snapshot = (unsigned char *)malloc((size_t)snapshot_size);
    OD_TEST_CHECK(snapshot != NULL);
+   OD_TEST_CHECK(!od_save_screen_ex(NULL, snapshot_size));
+   OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
    OD_TEST_CHECK(!od_save_screen_ex(snapshot, snapshot_size - 1));
    OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
    OD_TEST_CHECK(od_save_screen_ex(snapshot, snapshot_size));
    od_clr_scr();
    OD_TEST_CHECK(od_restore_screen_ex(snapshot, snapshot_size));
+   OD_TEST_CHECK(!od_restore_screen_ex(snapshot, snapshot_size - 1));
+   OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
    free(snapshot);
 
    legacy_snapshot = (unsigned char *)malloc(LEGACY_SCREEN_BUFFER_SIZE);

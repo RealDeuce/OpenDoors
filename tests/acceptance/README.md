@@ -57,10 +57,24 @@ tools/wine-ctest --display :92 \
 ```
 
 The ordinary suite contains deterministic compile, ABI, lifecycle, screen,
-configuration, spawn, and drop-file scenarios. The extended setting adds the
-external socket peer used for interactive remote input and output. GitHub
-Actions runs the ordinary cases on pushes and pull requests, runs the extended
-matrix nightly or on request, and requires it for releases.
+configuration, spawn, and drop-file scenarios. The extended setting adds four
+transport-neutral public-API scenarios for input, interactive editing, display
+and files, and connection/session behavior. Unix runs them over an inherited
+socket, Windows uses loopback TCP, and the DOS build reuses the same protocol
+over direct UART and FOSSIL serial paths. Every enabled transport must satisfy
+the same scenario assertions; only endpoint setup and the selected
+`od_com_method` differ.
+
+GitHub Actions runs the ordinary cases on pushes and pull requests, runs the
+hosted extended matrix nightly or on request, and requires it for releases.
+The existing DOS build jobs run all four scenarios through DOSBox. The
+extended workflow also publishes a single Clang/Unix branch-coverage report.
+That report is directional and has no percentage or delta gate; Windows and
+DOS runtime results remain authoritative for their platform-specific paths.
+
+Interactions which would need private mocks are recorded separately in
+[`../COMPONENT_TEST_BACKLOG.md`](../COMPONENT_TEST_BACKLOG.md). Acceptance
+tests must not add production hooks or substitutes to reach those branches.
 
 On Windows, `acceptance.windows_screen` also creates the real local frame and
 screen child, forces a published generation through `WM_PAINT`, and injects a

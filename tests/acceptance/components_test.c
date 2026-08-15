@@ -52,12 +52,17 @@ int main(void)
    OD_TEST_CHECK(od_control.od_maxtime == 37);
    OD_TEST_CHECK(custom_calls == 1);
    OD_TEST_CHECK(od_control.od_config_callback == ConfigComplete);
+   od_control.od_logfile_disable = TRUE;
+   OD_TEST_CHECK(od_log_write("disabled acceptance log record"));
+   od_control.od_logfile_disable = FALSE;
    OD_TEST_CHECK(od_log_open());
    OD_TEST_CHECK(od_log_write("acceptance log record"));
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32) || defined(ODPLAT_WIN32)
    OD_TEST_CHECK(od_add_personality("Acceptance", 1, 1, TestPersonality));
    OD_TEST_CHECK(od_set_personality("Acceptance"));
    OD_TEST_CHECK(personality_initialize_calls == 1);
+   OD_TEST_CHECK(!od_set_personality("Missing"));
+   OD_TEST_CHECK(od_control.od_error == ERR_LIMIT);
 #else
    OD_TEST_CHECK(!od_add_personality("Acceptance", 1, 1, TestPersonality));
    OD_TEST_CHECK(od_control.od_error == ERR_UNSUPPORTED);

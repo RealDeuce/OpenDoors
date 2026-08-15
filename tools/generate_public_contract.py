@@ -34,7 +34,7 @@ TESTS = {
     "command-line.behavior": {"tier": "push", "description": "Command-line parsing and callbacks"},
     "dropfiles.all": {"tier": "push", "description": "Every built-in and custom drop-file contract"},
     "terminal.screen": {"tier": "push", "description": "Public screen, display, cursor, and window operations"},
-    "terminal.socket": {"tier": "extended", "description": "Scripted remote output, input, and autodetection"},
+    "terminal.socket": {"tier": "extended", "description": "Transport-neutral remote output, input, and autodetection"},
     "input.interactive": {"tier": "extended", "description": "Scripted input, editor, menu, page, and chat behavior"},
     "process.spawn": {"tier": "push", "description": "Spawn, environment, logging, sleep, and kernel behavior"},
     "components.lifecycle": {"tier": "push", "description": "Optional component setup and callbacks"},
@@ -72,6 +72,7 @@ def function_evidence(name: str) -> list[str]:
         "od_sleep": "process.spawn",
         "od_kernel": "process.spawn",
         "od_parse_cmd_line": "command-line.behavior",
+        "od_parse_cmd_line_cons": "command-line.behavior",
         "od_split_cmd_line": "command-line.behavior",
         "od_free_split_cmd_line": "command-line.behavior",
     }
@@ -109,6 +110,8 @@ def field_evidence(name: str) -> list[str]:
 def entry(kind: str, name: str) -> dict[str, object]:
     platforms = DOS if kind.startswith("personality-") else ALL
     if kind == "control-field" and name in {"od_app_icon", "od_cmd_show"}:
+        platforms = ["windows"]
+    elif kind == "function" and name == "od_parse_cmd_line_cons":
         platforms = ["windows"]
     elif kind == "constant" and name in PLATFORM_CONSTANTS:
         platforms = PLATFORM_CONSTANTS[name]

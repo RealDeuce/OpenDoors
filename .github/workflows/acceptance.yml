@@ -141,3 +141,87 @@ jobs:
           path: |
             build/acceptance/acceptance-*.xml
             build/acceptance/Testing/Temporary/LastTest.log
+
+  coverage:
+    name: Public acceptance branch coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build instrumented shared library
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake \
+            -S . \
+            -B build/coverage-library \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DOPENDOORS_BUILD_SHARED=ON \
+            -DOPENDOORS_BUILD_STATIC=OFF \
+            -DOPENDOORS_BUILD_EXAMPLES=OFF \
+            '-DCMAKE_C_FLAGS=-fprofile-instr-generate -fcoverage-mapping' \
+            '-DCMAKE_SHARED_LINKER_FLAGS=-fprofile-instr-generate'
+          cmake --build build/coverage-library --parallel
+          cmake --install build/coverage-library \
+            --prefix "$RUNNER_TEMP/opendoors"
+
+      - name: Build installed acceptance consumer
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake \
+            -S tests/acceptance \
+            -B build/coverage-acceptance \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/opendoors" \
+            -DOPENDOORS_VARIANT=Shared \
+            -DOPENDOORS_ACCEPTANCE_EXTENDED=ON \
+            '-DCMAKE_C_FLAGS=-fprofile-instr-generate -fcoverage-mapping' \
+            '-DCMAKE_EXE_LINKER_FLAGS=-fprofile-instr-generate'
+          cmake --build build/coverage-acceptance --parallel
+
+      - name: Run and report acceptance coverage
+        run: |
+          mkdir -p build/coverage-profiles build/acceptance-coverage-html
+          LLVM_PROFILE_FILE="$PWD/build/coverage-profiles/%p-%m.profraw" \
+            ctest \
+              --test-dir build/coverage-acceptance \
+              --output-on-failure \
+              --output-junit acceptance-coverage.xml
+          llvm-profdata merge -sparse build/coverage-profiles/*.profraw \
+            -o build/acceptance.profdata
+          library=$(find "$RUNNER_TEMP/opendoors" -type f \
+            -name 'libODoors.so*' | head -n 1)
+          test -n "$library"
+          llvm-cov report "$library" \
+            -instr-profile=build/acceptance.profdata \
+            -ignore-filename-regex='/(tests|third_party)/' \
+            > build/acceptance-coverage.txt
+          llvm-cov show "$library" \
+            -instr-profile=build/acceptance.profdata \
+            -ignore-filename-regex='/(tests|third_party)/' \
+            -format=html \
+            -output-dir=build/acceptance-coverage-html
+          cat build/acceptance-coverage.txt
+          {
+            echo '## Public acceptance branch coverage'
+            echo
+            echo '```text'
+            tail -n 2 build/acceptance-coverage.txt
+            echo '```'
+            echo
+            echo 'Directional report only; no percentage or delta gate.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: acceptance-branch-coverage
+          path: |
+            build/acceptance-coverage.txt
+            build/acceptance-coverage-html
+            build/coverage-acceptance/acceptance-coverage.xml
+            build/coverage-acceptance/Testing/Temporary/LastTest.log

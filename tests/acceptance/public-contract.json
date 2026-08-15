@@ -43,7 +43,7 @@
     },
     "terminal.socket": {
       "tier": "extended",
-      "description": "Scripted remote output, input, and autodetection"
+      "description": "Transport-neutral remote output, input, and autodetection"
     },
     "input.interactive": {
       "tier": "extended",

@@ -213,7 +213,7 @@ target_compile_definitions(dos_acceptance_surface PRIVATE
 target_link_libraries(dos_acceptance_surface PRIVATE opendoors_dos)
 
 add_executable(dos_acceptance_serial
-    "${OPENDOORS_ROOT}/tests/acceptance/socket_door.c")
+    "${OPENDOORS_ROOT}/tests/acceptance/transport_door.c")
 set_target_properties(dos_acceptance_serial PROPERTIES OUTPUT_NAME odserial)
 target_include_directories(dos_acceptance_serial PRIVATE
     "${OPENDOORS_ROOT}/tests/acceptance")
@@ -408,7 +408,7 @@ foreach(convention IN ITEMS r s)
     endif()
 
     add_executable(dos32_acceptance_uart_${convention}
-        "${OPENDOORS_ROOT}/tests/acceptance/socket_door.c")
+        "${OPENDOORS_ROOT}/tests/acceptance/transport_door.c")
     set_target_properties(dos32_acceptance_uart_${convention} PROPERTIES
         OUTPUT_NAME "od32ua${convention}")
     target_include_directories(dos32_acceptance_uart_${convention} PRIVATE
@@ -419,7 +419,7 @@ foreach(convention IN ITEMS r s)
         ${serial_library})
 
     add_executable(dos32_acceptance_fossil_${convention}
-        "${OPENDOORS_ROOT}/tests/acceptance/socket_door.c")
+        "${OPENDOORS_ROOT}/tests/acceptance/transport_door.c")
     set_target_properties(dos32_acceptance_fossil_${convention} PROPERTIES
         OUTPUT_NAME "od32fo${convention}")
     target_include_directories(dos32_acceptance_fossil_${convention} PRIVATE

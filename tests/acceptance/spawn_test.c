@@ -47,6 +47,8 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(fclose(file) == 0);
    remove("ODSIMPLE.OK");
 
+   OD_TEST_CHECK(!od_spawn("opendoors-acceptance-missing-program"));
+
    errno = 0;
    result = od_spawnvpe(P_WAIT, "opendoors-acceptance-missing-program",
       child_args, child_environment);

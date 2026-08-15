@@ -11,8 +11,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-from socket_controller import create_fixtures, drive_session, remove_fixtures
-from socket_controller import validate_transcript
+from transport_scenarios import SCENARIOS, create_fixtures, drive_scenario
+from transport_scenarios import remove_fixtures
 
 
 def print_log_tail(log_path: Path) -> None:
@@ -36,10 +36,18 @@ def main() -> int:
         default=[],
         help="DOS command to run before the acceptance door (repeatable)",
     )
+    parser.add_argument(
+        "--scenario",
+        action="append",
+        choices=SCENARIOS,
+        default=[],
+        help="scenario to run (repeatable; defaults to the complete suite)",
+    )
     args = parser.parse_args()
 
     dosbox = args.dosbox.resolve()
     door = args.door.resolve()
+    scenarios = args.scenario or list(SCENARIOS)
     if not dosbox.is_file():
         raise RuntimeError(f"DOSBox executable not found: {dosbox}")
     if not door.is_file():
@@ -65,7 +73,7 @@ def main() -> int:
             config.write_text(
                 "[serial]\n"
                 f"serial1=nullmodem server:127.0.0.1 port:{port} "
-                "transparent:1\n",
+                "usedtr:1\n",
                 encoding="ascii",
             )
             with log_path.open("wb") as log:
@@ -81,7 +89,9 @@ def main() -> int:
                 ]
                 for command in args.pre_command:
                     commands.extend(("-c", command))
-                commands.extend(("-c", door.name, "-c", "exit"))
+                for scenario in scenarios:
+                    commands.extend(("-c", f"{door.name} {scenario}"))
+                commands.extend(("-c", "exit"))
                 process = subprocess.Popen(
                     commands,
                     stdout=log,
@@ -89,12 +99,14 @@ def main() -> int:
                 )
                 listener.settimeout(30)
                 peer, _ = listener.accept()
-                transcript = drive_session(peer, timeout=30)
-                peer.sendall(b"X")
+                for scenario in scenarios:
+                    drive_scenario(peer, scenario, timeout=30)
+                    if scenario == "session":
+                        peer.close()
+                        peer = None
                 return_code = process.wait(timeout=30)
                 if return_code != 0:
                     raise RuntimeError(f"DOSBox exited with {return_code}")
-                validate_transcript(transcript)
     except Exception:
         if failure_path.exists():
             print(failure_path.read_text(errors="replace"), file=sys.stderr)

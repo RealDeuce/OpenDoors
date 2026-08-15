@@ -16,7 +16,7 @@ elseif(NOT DEFINED OPENDOORS_ACCEPTANCE_LIBRARY)
 endif()
 
 option(OPENDOORS_ACCEPTANCE_EXTENDED
-    "Run socket-driven interactive acceptance scenarios" OFF)
+    "Run transport-driven interactive acceptance scenarios" OFF)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 function(opendoors_acceptance_library_path name)
@@ -192,15 +192,16 @@ add_test(NAME acceptance.symbols
         --platform "$<IF:$<BOOL:${WIN32}>,windows,unix>")
 
 if(OPENDOORS_ACCEPTANCE_EXTENDED)
-    add_executable(opendoors_acceptance_socket_door socket_door.c)
-    target_link_libraries(opendoors_acceptance_socket_door
+    add_executable(opendoors_acceptance_transport_door transport_door.c)
+    target_link_libraries(opendoors_acceptance_transport_door
         PRIVATE "${OPENDOORS_ACCEPTANCE_LIBRARY}")
     if(WIN32)
-        target_link_libraries(opendoors_acceptance_socket_door PRIVATE ws2_32)
+        target_link_libraries(opendoors_acceptance_transport_door
+            PRIVATE ws2_32)
     endif()
-    target_include_directories(opendoors_acceptance_socket_door
+    target_include_directories(opendoors_acceptance_transport_door
         PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    set_target_properties(opendoors_acceptance_socket_door PROPERTIES
+    set_target_properties(opendoors_acceptance_transport_door PROPERTIES
         C_STANDARD 90
         C_STANDARD_REQUIRED TRUE
         C_EXTENSIONS TRUE)
@@ -212,39 +213,17 @@ if(OPENDOORS_ACCEPTANCE_EXTENDED)
     if(WIN32)
         list(APPEND _opendoors_socket_launcher --tcp)
     endif()
-    add_test(NAME acceptance.socket
-        COMMAND "${Python3_EXECUTABLE}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/socket_controller.py"
-            ${_opendoors_socket_launcher}
-            "$<TARGET_FILE:opendoors_acceptance_socket_door>")
-    set_tests_properties(acceptance.socket PROPERTIES
-        TIMEOUT 30 LABELS "acceptance-extended")
-    opendoors_acceptance_library_path(acceptance.socket)
-
-    add_executable(opendoors_acceptance_input_progress
-        input_progress_door.c)
-    target_link_libraries(opendoors_acceptance_input_progress
-        PRIVATE "${OPENDOORS_ACCEPTANCE_LIBRARY}")
-    if(WIN32)
-        target_link_libraries(opendoors_acceptance_input_progress PRIVATE ws2_32)
-    endif()
-    target_include_directories(opendoors_acceptance_input_progress
-        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    set_target_properties(opendoors_acceptance_input_progress PROPERTIES
-        C_STANDARD 90
-        C_STANDARD_REQUIRED TRUE
-        C_EXTENSIONS TRUE)
-    set(_opendoors_input_progress_launcher)
-    foreach(_opendoors_launcher_arg IN LISTS CMAKE_CROSSCOMPILING_EMULATOR)
-        list(APPEND _opendoors_input_progress_launcher
-            --launcher "${_opendoors_launcher_arg}")
+    foreach(_opendoors_scenario IN ITEMS input interactive display session)
+        add_test(NAME "acceptance.transport.${_opendoors_scenario}"
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/socket_controller.py"
+                ${_opendoors_socket_launcher}
+                "${_opendoors_scenario}"
+                "$<TARGET_FILE:opendoors_acceptance_transport_door>")
+        set_tests_properties(
+            "acceptance.transport.${_opendoors_scenario}" PROPERTIES
+            TIMEOUT 40 LABELS "acceptance-extended")
+        opendoors_acceptance_library_path(
+            "acceptance.transport.${_opendoors_scenario}")
     endforeach()
-    add_test(NAME acceptance.input_progress
-        COMMAND "${Python3_EXECUTABLE}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/input_progress_controller.py"
-            ${_opendoors_input_progress_launcher}
-            "$<TARGET_FILE:opendoors_acceptance_input_progress>")
-    set_tests_properties(acceptance.input_progress PROPERTIES
-        TIMEOUT 25 LABELS "acceptance-extended")
-    opendoors_acceptance_library_path(acceptance.input_progress)
 endif()

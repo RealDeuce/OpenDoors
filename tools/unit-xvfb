@@ -122,8 +122,8 @@ case "$command_name" in
       cmake --build "$1"
       ;;
    serial)
-      if [ "$#" -ne 2 ]; then
-         echo "tools/unit-xvfb: serial requires DOSBox and a DOS door executable" >&2
+      if [ "$#" -lt 2 ]; then
+         echo "tools/unit-xvfb: serial requires controller arguments, DOSBox, and a DOS door executable" >&2
          exit 2
       fi
       python3 tests/acceptance/dos_serial_controller.py "$@"
