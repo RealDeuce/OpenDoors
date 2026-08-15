@@ -24,6 +24,8 @@ static int before_chat_calls;
 static int after_chat_calls;
 static int chat_kernel_calls;
 static int time_message_calls;
+static int edit_menu_calls;
+static int edit_realloc_calls;
 
 static void Marker(const char *text)
 {
@@ -51,6 +53,22 @@ static void OD_ACCEPTANCE_CALLBACK TimeMessage(char *message)
    (void)message;
    ++time_message_calls;
    Marker("TIME-MESSAGE");
+}
+
+static tODEditMenuResult OD_ACCEPTANCE_CALLBACK EditMenu(void *unused)
+{
+   (void)unused;
+   ++edit_menu_calls;
+   if(edit_menu_calls == 1)
+      Marker("EDIT-MENU-RESUMED");
+   return(edit_menu_calls == 1 ? EDIT_MENU_DO_NOTHING
+      : EDIT_MENU_EXIT_EDITOR);
+}
+
+static void * OD_ACCEPTANCE_CALLBACK EditRealloc(void *buffer, UINT size)
+{
+   ++edit_realloc_calls;
+   return(realloc(buffer, size));
 }
 
 static void PauseWithoutOpenDoors(unsigned seconds)
@@ -233,6 +251,131 @@ static int RunInteractiveScenario(void)
    return(FinishScenario("INTERACTIVE-DONE"));
 }
 
+static int RunEditScenario(void)
+{
+   char field[40];
+   char multiline[80];
+   char *growable;
+   WORD edit_result;
+   tODEditOptions options;
+
+   Marker("EDIT-FORMATS");
+   field[0] = '\0';
+   edit_result = od_edit_str(field, "#%9*CADFHL'-'MTUWXY?", 2, 2,
+      L_WHITE, L_YELLOW, '_', EDIT_FLAG_NORMAL);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_ACCEPT);
+   OD_TEST_CHECK(strcmp(field, "7 -!db/Faq-J+Rw3N@") == 0);
+
+   Marker("EDIT-INSERT");
+   strcpy(field, "ac");
+   edit_result = od_edit_str(field, "????", 3, 2, L_WHITE, L_YELLOW,
+      '_', EDIT_FLAG_EDIT_STRING);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_ACCEPT);
+   OD_TEST_CHECK(strcmp(field, "abc") == 0);
+
+   Marker("EDIT-OVERWRITE");
+   strcpy(field, "abc");
+   edit_result = od_edit_str(field, "???", 4, 2, L_WHITE, L_YELLOW,
+      '_', EDIT_FLAG_EDIT_STRING);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_ACCEPT);
+   OD_TEST_CHECK(strcmp(field, "xbc") == 0);
+
+   Marker("EDIT-DELETE");
+   strcpy(field, "abc");
+   edit_result = od_edit_str(field, "???", 5, 2, L_WHITE, L_YELLOW,
+      '_', EDIT_FLAG_EDIT_STRING);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_ACCEPT);
+   OD_TEST_CHECK(strcmp(field, "b") == 0);
+
+   Marker("EDIT-KILL");
+   strcpy(field, "old");
+   edit_result = od_edit_str(field, "???", 6, 2, L_WHITE, L_YELLOW,
+      '_', EDIT_FLAG_EDIT_STRING);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_ACCEPT);
+   OD_TEST_CHECK(strcmp(field, "x") == 0);
+
+   Marker("EDIT-AUTO-DELETE");
+   strcpy(field, "old");
+   edit_result = od_edit_str(field, "???", 7, 2, L_WHITE, L_YELLOW,
+      '_', EDIT_FLAG_EDIT_STRING | EDIT_FLAG_AUTO_DELETE);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_ACCEPT);
+   OD_TEST_CHECK(strcmp(field, "x") == 0);
+
+   Marker("EDIT-PREVIOUS");
+   strcpy(field, "A");
+   edit_result = od_edit_str(field, "?", 8, 2, L_WHITE, L_YELLOW,
+      '_', EDIT_FLAG_EDIT_STRING | EDIT_FLAG_FIELD_MODE);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_PREVIOUS);
+
+   Marker("EDIT-NEXT");
+   strcpy(field, "A");
+   edit_result = od_edit_str(field, "?", 9, 2, L_WHITE, L_YELLOW,
+      '_', EDIT_FLAG_EDIT_STRING | EDIT_FLAG_FIELD_MODE);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_NEXT);
+
+   Marker("EDIT-FILL-AUTO");
+   field[0] = '\0';
+   edit_result = od_edit_str(field, "##", 10, 2, L_WHITE, L_YELLOW,
+      '_', EDIT_FLAG_FILL_STRING | EDIT_FLAG_AUTO_ENTER);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_ACCEPT);
+   OD_TEST_CHECK(strcmp(field, "12") == 0);
+
+   Marker("EDIT-PERMALITERAL");
+   field[0] = '\0';
+   edit_result = od_edit_str(field, "'-'?", 11, 2, L_WHITE, L_YELLOW,
+      '_', EDIT_FLAG_PERMALITERAL | EDIT_FLAG_LEAVE_BLANK);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_ACCEPT);
+   OD_TEST_CHECK(field[0] == '\0');
+
+   Marker("EDIT-STRICT");
+   strcpy(field, "ab");
+   edit_result = od_edit_str(field, "??", 12, 2, L_WHITE, L_YELLOW,
+      '_', EDIT_FLAG_EDIT_STRING | EDIT_FLAG_STRICT_INPUT |
+      EDIT_FLAG_NO_REDRAW);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_ACCEPT);
+   OD_TEST_CHECK(strcmp(field, "xb") == 0);
+
+   Marker("EDIT-PASSWORD");
+   strcpy(field, "secret");
+   edit_result = od_edit_str(field, "??????", 13, 2, L_WHITE, L_YELLOW,
+      '*', EDIT_FLAG_EDIT_STRING | EDIT_FLAG_PASSWORD_MODE |
+      EDIT_FLAG_KEEP_BLANK | EDIT_FLAG_SHOW_SIZE);
+   OD_TEST_CHECK(edit_result == EDIT_RETURN_ACCEPT);
+   OD_TEST_CHECK(strcmp(field, "secret") == 0);
+
+   Marker("EDIT-MULTILINE-MENU");
+   memset(&options, 0, sizeof(options));
+   options.nAreaLeft = 2;
+   options.nAreaTop = 14;
+   options.nAreaRight = 30;
+   options.nAreaBottom = 19;
+   options.TextFormat = FORMAT_NO_WORDWRAP;
+   options.pfMenuCallback = EditMenu;
+   multiline[0] = '\0';
+   OD_TEST_CHECK(od_multiline_edit(multiline, sizeof(multiline), &options) ==
+      OD_MULTIEDIT_SUCCESS);
+   OD_TEST_CHECK(edit_menu_calls == 2);
+   OD_TEST_CHECK(strncmp(multiline, "AB", 2) == 0);
+   OD_TEST_CHECK(strchr(multiline, 'C') != NULL);
+
+   Marker("EDIT-MULTILINE-GROW");
+   memset(&options, 0, sizeof(options));
+   options.TextFormat = FORMAT_LINE_BREAKS;
+   options.pfBufferRealloc = EditRealloc;
+   growable = (char *)malloc(4);
+   OD_TEST_CHECK(growable != NULL);
+   growable[0] = '\0';
+   OD_TEST_CHECK(od_multiline_edit(growable, 4, &options) ==
+      OD_MULTIEDIT_SUCCESS);
+   OD_TEST_CHECK(edit_realloc_calls != 0);
+   OD_TEST_CHECK(options.pszFinalBuffer != NULL);
+   OD_TEST_CHECK(options.unFinalBufferSize > 4);
+   OD_TEST_CHECK(strstr(options.pszFinalBuffer, "Growing text") != NULL);
+   free(options.pszFinalBuffer);
+
+   return(FinishScenario("EDIT-DONE"));
+}
+
 static int RunDisplayScenario(void)
 {
    char menu_choice;
@@ -391,6 +534,8 @@ int main(int argc, char **argv)
       return(RunInputScenario());
    if(strcmp(scenario, "interactive") == 0)
       return(RunInteractiveScenario());
+   if(strcmp(scenario, "edit") == 0)
+      return(RunEditScenario());
    if(strcmp(scenario, "display") == 0)
       return(RunDisplayScenario());
    if(strcmp(scenario, "session") == 0)

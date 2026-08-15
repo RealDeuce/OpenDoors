@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 
-SCENARIOS = ("input", "interactive", "display", "session")
+SCENARIOS = ("input", "interactive", "edit", "display", "session")
 
 FIXTURES = {
     "ODFILE.ASC": b"FILE-CONTENT\r\n",
@@ -118,6 +118,42 @@ def drive_interactive(peer: socket.socket, timeout: int) -> bytearray:
     return transcript
 
 
+def drive_edit(peer: socket.socket, timeout: int) -> bytearray:
+    transcript = bytearray()
+    receive_until(peer, b"EDIT-FORMATS", transcript, timeout)
+    peer.sendall(b"x7x x-!1d1bx/|fxa1Q1jx+1r|w!3xn@\r")
+    receive_until(peer, b"EDIT-INSERT", transcript, timeout)
+    peer.sendall(b"\x1b[H\x1b[Cb\r")
+    receive_until(peer, b"EDIT-OVERWRITE", transcript, timeout)
+    peer.sendall(b"\x1b[H\x1b[2~x\r")
+    receive_until(peer, b"EDIT-DELETE", transcript, timeout)
+    peer.sendall(b"\x1b[H\x1b[3~\x1b[F\x08\r")
+    receive_until(peer, b"EDIT-KILL", transcript, timeout)
+    peer.sendall(b"\x19x\r")
+    receive_until(peer, b"EDIT-AUTO-DELETE", transcript, timeout)
+    peer.sendall(b"x\r")
+    receive_until(peer, b"EDIT-PREVIOUS", transcript, timeout)
+    peer.sendall(b"\x1b[A")
+    receive_until(peer, b"EDIT-NEXT", transcript, timeout)
+    peer.sendall(b"\t")
+    receive_until(peer, b"EDIT-FILL-AUTO", transcript, timeout)
+    peer.sendall(b"\rx12")
+    receive_until(peer, b"EDIT-PERMALITERAL", transcript, timeout)
+    peer.sendall(b"\r")
+    receive_until(peer, b"EDIT-STRICT", transcript, timeout)
+    peer.sendall(b"\x1b[H\x1b[2~\x1b[3~x\x08\r")
+    receive_until(peer, b"EDIT-PASSWORD", transcript, timeout)
+    peer.sendall(b"\r")
+    receive_until(peer, b"EDIT-MULTILINE-MENU", transcript, timeout)
+    peer.sendall(b"AB\tC\x1b")
+    receive_until(peer, b"EDIT-MENU-RESUMED", transcript, timeout)
+    peer.sendall(b"\x1a")
+    receive_until(peer, b"EDIT-MULTILINE-GROW", transcript, timeout)
+    peer.sendall(b"Growing text\x1a")
+    finish(peer, transcript, b"EDIT-DONE", timeout)
+    return transcript
+
+
 def drive_display(peer: socket.socket, timeout: int) -> bytearray:
     transcript = bytearray()
     receive_until(peer, b"DISPLAY-OUTPUT", transcript, timeout)
@@ -162,6 +198,7 @@ def drive_session(peer: socket.socket, timeout: int) -> bytearray:
 DRIVERS = {
     "input": drive_input,
     "interactive": drive_interactive,
+    "edit": drive_edit,
     "display": drive_display,
     "session": drive_session,
 }

@@ -58,8 +58,9 @@ tools/wine-ctest --display :92 \
 
 The ordinary smoke-integration suite contains deterministic compile, ABI,
 lifecycle, screen, configuration, spawn, and drop-file scenarios. The extended
-setting adds four transport-neutral public-API scenarios for input, interactive
-editing, display and files, and connection/session behavior. Unix runs them
+setting adds five transport-neutral public-API scenarios for input, interactive
+prompts, formatted and multiline editing, display and files, and
+connection/session behavior. Unix runs them
 over an inherited socket, Windows uses loopback TCP, and the DOS build reuses
 the same protocol over direct UART and FOSSIL serial paths. Every enabled
 transport must satisfy the same scenario assertions; only endpoint setup and
