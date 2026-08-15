@@ -215,7 +215,8 @@ if(OPENDOORS_ACCEPTANCE_EXTENDED)
     if(WIN32)
         list(APPEND _opendoors_socket_launcher --tcp)
     endif()
-    foreach(_opendoors_scenario IN ITEMS input interactive edit display session)
+    foreach(_opendoors_scenario IN ITEMS
+        input interactive edit display emulation session)
         add_test(NAME "acceptance.transport.${_opendoors_scenario}"
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/socket_controller.py"

@@ -412,6 +412,102 @@ static int RunDisplayScenario(void)
    return(FinishScenario("DISPLAY-DONE"));
 }
 
+static BOOL ScreenMatches(INT column, INT row, const char *text,
+   INT attribute)
+{
+   static unsigned char cells[128];
+   size_t length;
+   size_t index;
+
+   length = strlen(text);
+   if(length == 0 || length > sizeof(cells) / 2)
+      return(FALSE);
+   if(!od_gettext(column, row, column + (INT)length - 1, row, cells))
+      return(FALSE);
+   for(index = 0; index < length; ++index)
+   {
+      if(cells[index * 2] != (unsigned char)text[index])
+         return(FALSE);
+      if(attribute >= 0 && cells[index * 2 + 1] != (unsigned char)attribute)
+         return(FALSE);
+   }
+   return(TRUE);
+}
+
+static int RunEmulationScenario(void)
+{
+   static const char avatar_position[] = {0x16, 0x08, 9, 15, 'V', 0};
+   static const char avatar_attribute[] = {0x16, 0x01, 0x2e, 'C', 0};
+   static const char avatar_repeat[] = {0x19, 'R', 3, 0};
+   static const char avatar_insert[] = {0x16, 0x09, 'X', 0};
+   static const char avatar_delete[] = {0x16, 0x0e, 0};
+   static const char ra_values[] = {0x06, 'A', '|', 0x06, 'H', '|',
+      0x0b, 'A', 0};
+
+   Marker("EMULATION-ANSI");
+   od_disp_emu("\x1b[2J\x1b[3;5H\x1b[1;33;44mAB", TRUE);
+   OD_TEST_CHECK(ScreenMatches(5, 3, "AB",
+      L_YELLOW | (D_BLUE << 4)));
+   od_disp_emu("\x1b[4;10H\x1b[s\x1b[7;20HX\x1b[uY", TRUE);
+   OD_TEST_CHECK(ScreenMatches(10, 4, "Y", -1));
+   OD_TEST_CHECK(ScreenMatches(20, 7, "X", -1));
+
+   Marker("EMULATION-SPLIT");
+   od_emulate(27);
+   od_emulate('[');
+   od_emulate('8');
+   od_emulate(';');
+   od_emulate('1');
+   od_emulate('2');
+   od_emulate('H');
+   od_emulate('Z');
+   OD_TEST_CHECK(ScreenMatches(12, 8, "Z", -1));
+
+   Marker("EMULATION-AVATAR");
+   od_disp_emu(avatar_position, TRUE);
+   OD_TEST_CHECK(ScreenMatches(15, 9, "V", -1));
+   od_disp_emu(avatar_attribute, TRUE);
+   OD_TEST_CHECK(ScreenMatches(16, 9, "C", 0x2e));
+   od_disp_emu(avatar_repeat, TRUE);
+   OD_TEST_CHECK(ScreenMatches(17, 9, "RRR", 0x2e));
+
+   od_disp_emu("\x1b[10;10HABC", TRUE);
+   od_disp_emu("\x1b[10;11H", TRUE);
+   od_disp_emu(avatar_insert, TRUE);
+   OD_TEST_CHECK(ScreenMatches(10, 10, "AXBC", -1));
+   od_disp_emu("\x1b[10;11H", TRUE);
+   od_disp_emu(avatar_delete, TRUE);
+   OD_TEST_CHECK(ScreenMatches(10, 10, "ABC ", -1));
+
+   strcpy(od_control.user_name, "EMU-USER");
+   od_control.user_flags[0] = 5;
+   od_control.system_calls = 42;
+   od_control.od_no_ra_codes = FALSE;
+   Marker("EMULATION-RA");
+   od_disp_emu(ra_values, TRUE);
+
+   Marker("EMULATION-FORMATS");
+   od_control.user_rip = TRUE;
+   od_control.user_avatar = TRUE;
+   od_control.user_ansi = TRUE;
+   OD_TEST_CHECK(od_send_file("ODFMT"));
+   od_control.user_rip = FALSE;
+   OD_TEST_CHECK(od_send_file("ODFMT"));
+   od_control.user_avatar = FALSE;
+   OD_TEST_CHECK(od_send_file("ODFMT"));
+   od_control.user_ansi = FALSE;
+   OD_TEST_CHECK(od_send_file("ODFMT"));
+
+   od_control.user_ansi = TRUE;
+   od_control.user_screen_length = 4;
+   od_control.od_page_pausing = TRUE;
+   Marker("EMULATION-PAGING");
+   OD_TEST_CHECK(od_send_file("ODPAGE"));
+   od_control.od_page_pausing = FALSE;
+
+   return(FinishScenario("EMULATION-DONE"));
+}
+
 static int RunSessionScenario(void)
 {
    tODInputEvent event;
@@ -538,6 +634,8 @@ int main(int argc, char **argv)
       return(RunEditScenario());
    if(strcmp(scenario, "display") == 0)
       return(RunDisplayScenario());
+   if(strcmp(scenario, "emulation") == 0)
+      return(RunEmulationScenario());
    if(strcmp(scenario, "session") == 0)
       return(RunSessionScenario());
 

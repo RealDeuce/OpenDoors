@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 
-SCENARIOS = ("input", "interactive", "edit", "display", "session")
+SCENARIOS = ("input", "interactive", "edit", "display", "emulation", "session")
 
 FIXTURES = {
     "ODFILE.ASC": b"FILE-CONTENT\r\n",
@@ -21,6 +21,14 @@ FIXTURES = {
     ),
     "ODMENU.ASC": b"MENU-CONTENT\r\n",
     "ODLONG.ASC": b"LONG-MENU-" + b"0123456789" * 80 + b"\r\n",
+    "ODFMT.rip": b"FORMAT-RIP\r\n",
+    "ODFMT.avt": b"FORMAT-AVATAR\r\n",
+    "ODFMT.ans": b"FORMAT-ANSI\r\n",
+    "ODFMT.asc": b"FORMAT-ASCII\r\n",
+    "ODPAGE.asc": (
+        b"PAGE-LINE-1\r\nPAGE-LINE-2\r\n"
+        b"PAGE-LINE-3\r\nPAGE-LINE-4\r\n"
+    ),
     "FILES.BBS": b"ITEM.TXT Acceptance listed file\r\n",
     "ITEM.TXT": b"fixture\n",
 }
@@ -178,6 +186,28 @@ def drive_display(peer: socket.socket, timeout: int) -> bytearray:
     return transcript
 
 
+def drive_emulation(peer: socket.socket, timeout: int) -> bytearray:
+    transcript = bytearray()
+    receive_until(peer, b"EMULATION-PAGING", transcript, timeout)
+    receive_until(peer, b"Continue?", transcript, timeout)
+    peer.sendall(b"=")
+    finish(peer, transcript, b"EMULATION-DONE", timeout)
+    for expected in (
+        b"EMU-USER|X-X-----|42",
+        b"FORMAT-RIP",
+        b"FORMAT-AVATAR",
+        b"FORMAT-ANSI",
+        b"FORMAT-ASCII",
+        b"PAGE-LINE-4",
+    ):
+        if expected not in transcript:
+            raise RuntimeError(
+                f"emulation transcript lacks {expected!r}: "
+                f"{bytes(transcript)!r}"
+            )
+    return transcript
+
+
 def drive_session(peer: socket.socket, timeout: int) -> bytearray:
     transcript = bytearray()
     receive_until(peer, b"SESSION-AUTODETECT", transcript, timeout)
@@ -200,6 +230,7 @@ DRIVERS = {
     "interactive": drive_interactive,
     "edit": drive_edit,
     "display": drive_display,
+    "emulation": drive_emulation,
     "session": drive_session,
 }
 
