@@ -36,7 +36,12 @@ class TurboShardTests(unittest.TestCase):
         self.assertIn("-D_M_IX86=100", flags)
         self.assertIn("-Dasm=__asm", flags)
         self.assertNotIn("-D__va_list=char *", flags)
-        self.assertTrue(any(flag.startswith("-DMK_FP(") for flag in flags))
+        include_paths = [Path(flags[index + 1])
+                         for index, flag in enumerate(flags[:-1])
+                         if flag == "-I"]
+        self.assertIn(Path(__file__).resolve().parents[1]
+                      / "framework" / "turbo_include", include_paths)
+        self.assertFalse(any(flag.startswith("-DMK_FP(") for flag in flags))
         self.assertFalse(any("__WATCOMC__" in flag for flag in flags))
 
     def test_turbo_analysis_forces_its_borland_only_type_declarations(self):

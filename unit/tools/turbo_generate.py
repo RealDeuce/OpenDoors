@@ -24,13 +24,13 @@ def turbo_ast_flags(watcom: Path) -> list[str]:
         "-D_M_I86=1",
         "-DOPENDOORS_HAVE_VSNPRINTF=1",
         "-Dinterrupt=", "-Dfar=", "-Dasm=__asm", "-fasm-blocks",
-        "-DMK_FP(s,o)=((void *)((((unsigned long)(s)) << 16) + (unsigned)(o)))",
         "-fdeclspec", "-Wno-ignored-attributes", "-Wno-ignored-pragmas",
         "-D__near=", "-D__far=", "-D__huge=", "-D__interrupt=",
         "-D__based(x)=", "-D__watcall=", "-D__int64=long long",
         "-D__builtin_alloca=watcom_alloca",
         "-include", str(ROOT / "unit" / "framework" / "turbo_ast.h"),
         "-I", str(ROOT / "third_party"),
+        "-I", str(ROOT / "unit" / "framework" / "turbo_include"),
         "-isystem", str(watcom / "h"),
     ]
 
