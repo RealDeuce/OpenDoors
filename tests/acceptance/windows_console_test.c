@@ -200,8 +200,20 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(!od_control.od_silent_mode);
    OD_TEST_CHECK(output != INVALID_HANDLE_VALUE);
    OD_TEST_CHECK(GetConsoleScreenBufferInfo(output, &info));
-   OD_TEST_CHECK(info.dwSize.X == 100);
-   OD_TEST_CHECK(info.dwSize.Y == 32);
+   if(info.dwSize.X < 100 || info.dwSize.Y < 32)
+   {
+      fprintf(stderr,
+         "console canvas %dx%d, window (%d,%d)-(%d,%d), expected at least 100x32\n",
+         (int)info.dwSize.X, (int)info.dwSize.Y,
+         (int)info.srWindow.Left, (int)info.srWindow.Top,
+         (int)info.srWindow.Right, (int)info.srWindow.Bottom);
+      fflush(stderr);
+   }
+   /* Windows may enforce a larger host-dependent minimum buffer size. The
+    * console frontend must preserve at least the requested logical canvas
+    * and compose correctly across the actual buffer it reports. */
+   OD_TEST_CHECK(info.dwSize.X >= 100);
+   OD_TEST_CHECK(info.dwSize.Y >= 32);
    GetSystemTimeAsFileTime(&marker);
    sprintf(screenMarker, "SCREEN-%08lx%08lx",
       (unsigned long)marker.dwHighDateTime,
