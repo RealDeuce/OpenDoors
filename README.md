@@ -1,5 +1,10 @@
 # OpenDoors
 
+[![Build](https://github.com/RealDeuce/OpenDoors/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/RealDeuce/OpenDoors/actions/workflows/build.yml)
+[![Unit Tests](https://github.com/RealDeuce/OpenDoors/actions/workflows/unit-tests.yml/badge.svg?branch=master)](https://github.com/RealDeuce/OpenDoors/actions/workflows/unit-tests.yml)
+[![Documentation](https://github.com/RealDeuce/OpenDoors/actions/workflows/docs.yml/badge.svg?branch=master)](https://github.com/RealDeuce/OpenDoors/actions/workflows/docs.yml)
+[![Extended acceptance](https://github.com/RealDeuce/OpenDoors/actions/workflows/acceptance.yml/badge.svg?branch=master)](https://github.com/RealDeuce/OpenDoors/actions/workflows/acceptance.yml)
+
 OpenDoors 6.30 is a C/C++ toolkit for writing online software such as BBS
 doors. It transparently interfaces with most BBS systems, displays output on
 both local and remote screens, creates ANSI/AVATAR/RIP control sequences, and
