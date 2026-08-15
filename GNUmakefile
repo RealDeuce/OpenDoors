@@ -97,7 +97,7 @@ endif
 #
 CFLAGS	+=	-fPIC -fvisibility="hidden"
 LDFLAGS	+=	-fPIC
-CFLAGS	+=	-O2 -I../xpdev
+CFLAGS	+=	-O2
 ifeq ($(OS),Darwin)
  CFLAGS		+=	-D__unix__
 endif
@@ -131,8 +131,9 @@ endif
 # Link flags.
 #
 ifdef XPDEV_LIB
-LDFLAGS	+=	-L$(XPDEV_LIB)
+XPDEV_LDFLAGS	+=	-L$(XPDEV_LIB)
 endif
+XPDEV_CFLAGS	:=	-I../xpdev
 #
 #------------------------------------------------------------------------------
 #
@@ -220,6 +221,7 @@ HEADERS= ${HEADERDIR}ODCom.h\
          ${HEADERDIR}ODScrn.h\
          ${HEADERDIR}ODStat.h\
          ${HEADERDIR}ODSwap.h\
+         ${HEADERDIR}ODSync.h\
          ${HEADERDIR}ODTypes.h\
          ${HEADERDIR}ODUtil.h\
          ${HEADERDIR}OpenDoor.h
@@ -260,6 +262,7 @@ OBJECTS := ${OBJDIR}ODAuto${OBJFILE}\
          ${OBJDIR}ODStand${OBJFILE}\
          ${OBJDIR}ODStat${OBJFILE}\
          ${OBJDIR}ODStr${OBJFILE}\
+         ${OBJDIR}ODSync${OBJFILE}\
          ${OBJDIR}ODUtil${OBJFILE}\
          ${OBJDIR}ODWCat${OBJFILE}\
 	 ${OBJDIR}ODWin${OBJFILE}\
@@ -317,7 +320,7 @@ ${EXEDIR}ex_ski${EXE_SUFFIX}: ex_ski.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | 
 	$(CC) $(LDFLAGS) $(CFLAGS) ex_ski.c -o $@ ${ODOORS_SHLIB}
 
 ${EXEDIR}ex_vote${EXE_SUFFIX}: ex_vote.c ${ODOORS_SHLIB} ${EXAMPLE_RUNTIME_DEP} | ${EXEDIR}
-	$(CC) $(LDFLAGS) $(CFLAGS) ex_vote.c ../xpdev/filewrap.c -o $@ ${ODOORS_SHLIB} -DMULTINODE_AWARE
+	$(CC) $(LDFLAGS) $(XPDEV_LDFLAGS) $(CFLAGS) $(XPDEV_CFLAGS) ex_vote.c ../xpdev/filewrap.c -o $@ ${ODOORS_SHLIB} -DMULTINODE_AWARE
 
 #
 #------------------------------------------------------------------------------
