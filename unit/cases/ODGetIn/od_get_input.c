@@ -1,15 +1,16 @@
 #define UT_CUSTOM_MOCK_ODGetCodeIfLongest
 #define UT_CUSTOM_MOCK_ODGetInputWait
+#define UT_CUSTOM_MOCK_ODGetInputWaitUntil
 #define UT_CUSTOM_MOCK_ODHaveStartOfSequence
 #define UT_CUSTOM_MOCK_ODLongestFullCode
 #define UT_CUSTOM_MOCK_ODShiftSeq
-#define UT_CUSTOM_MOCK_ODSyncAPIEntry
-#define UT_CUSTOM_MOCK_ODSyncAPIExit
 #define UT_CUSTOM_MOCK_memcpy
-#define UT_CUSTOM_MOCK_od_init
 #define UT_CUSTOM_MOCK_od_kernel
 
 #include "common.h"
+
+#define utt_od_get_input(event, timeout, flags) \
+   utt_ODGetInputCore((event), (timeout), (flags), NULL)
 
 #define UT_INPUT_CAPACITY 4
 #define UT_RESULT_CAPACITY 8
@@ -27,13 +28,11 @@ static unsigned ut_code_count;
 static unsigned ut_code_index;
 static unsigned ut_longest_count;
 static unsigned ut_longest_index;
-static unsigned ut_init_calls;
-static unsigned ut_entries;
-static unsigned ut_exits;
 static unsigned ut_kernel_calls;
 static unsigned ut_shift_calls;
 static int ut_last_shift;
-static BOOL ut_init_succeeds;
+static const tODInputDeadline *ut_expected_deadline;
+static tODMilliSec ut_seen_timeout;
 
 static void reset_input_fixture(void)
 {
@@ -46,34 +45,16 @@ static void reset_input_fixture(void)
    ut_set_sequence("");
    bDoorwaySequence = FALSE;
    bDoorwaySequencePending = FALSE;
-   bODInitialized = TRUE;
    ut_wait_count = ut_wait_index = 0;
    ut_have_count = ut_have_index = 0;
    ut_code_count = ut_code_index = 0;
    ut_longest_count = ut_longest_index = 0;
-   ut_init_calls = ut_entries = ut_exits = 0;
    ut_kernel_calls = ut_shift_calls = 0;
    ut_last_shift = -1;
-   ut_init_succeeds = TRUE;
+   ut_expected_deadline = NULL;
+   ut_seen_timeout = 0;
 }
 
-void ODCALL utm_od_init(void)
-{
-   ++ut_init_calls;
-   if(ut_init_succeeds) bODInitialized = TRUE;
-}
-
-static void terminal_session_is_rejected(void)
-{
-   tODInputEvent output;
-   reset_input_fixture(); bODInitialized = FALSE; ut_init_succeeds = FALSE;
-   UT_ASSERT(!utt_od_get_input(&output, 0, 0));
-   UT_ASSERT_EQ_INT(ERR_GENERALFAILURE, od_control.od_error);
-   UT_ASSERT_EQ_UINT(0, ut_entries);
-}
-
-void utm_ODSyncAPIEntry(void) { ++ut_entries; }
-void utm_ODSyncAPIExit(void) { ++ut_exits; }
 void ODCALL utm_od_kernel(void) { ++ut_kernel_calls; }
 
 void *utm_memcpy(void *destination, const void *source, size_t size)
@@ -103,6 +84,14 @@ tODResult utm_ODGetInputWait(tODInputEvent *event, tODMilliSec timeout)
    if(ut_wait_results[index] == kODRCSuccess)
       utm_memcpy(event, &ut_wait_events[index], sizeof(*event));
    return ut_wait_results[index];
+}
+
+tODResult utm_ODGetInputWaitUntil(tODInputEvent *event,
+   const tODInputDeadline *deadline, tODMilliSec timeout)
+{
+   UT_ASSERT_EQ_PTR(ut_expected_deadline, deadline);
+   ut_seen_timeout = timeout;
+   return(utm_ODGetInputWait(event, timeout));
 }
 
 int utm_ODHaveStartOfSequence(WORD flags)
@@ -137,14 +126,10 @@ void utm_ODShiftSeq(int characters)
       szCurrentSequence[index] = szCurrentSequence[index + characters];
 }
 
-static void rejects_null_output_after_initializing(void)
+static void rejects_null_output(void)
 {
    reset_input_fixture();
-   bODInitialized = FALSE;
    UT_ASSERT(!utt_od_get_input(NULL, 0, 0));
-   UT_ASSERT_EQ_UINT(1, ut_init_calls);
-   UT_ASSERT_EQ_UINT(1, ut_entries);
-   UT_ASSERT_EQ_UINT(1, ut_exits);
    UT_ASSERT_EQ_INT(ERR_PARAMETER, od_control.od_error);
 }
 
@@ -154,8 +139,35 @@ static void initial_wait_can_fail(void)
    reset_input_fixture();
    queue_input(kODRCTimeout, 0, TRUE);
    UT_ASSERT(!utt_od_get_input(&output, 123, 0));
-   UT_ASSERT_EQ_UINT(0, ut_init_calls);
-   UT_ASSERT_EQ_UINT(1, ut_exits);
+}
+
+static void absolute_deadline_uses_the_same_translation_paths(void)
+{
+   tODInputEvent output;
+   tODInputDeadline deadline;
+
+   reset_input_fixture();
+   deadline.dwSeconds = 12;
+   deadline.wMilliseconds = 345;
+   ut_expected_deadline = &deadline;
+   queue_input(kODRCSuccess, 'L', FALSE);
+   UT_ASSERT(utt_ODGetInputCore(&output, OD_NO_TIMEOUT, 0, &deadline));
+   UT_ASSERT_EQ_INT('L', output.chKeyPress);
+
+   reset_input_fixture();
+   deadline.dwSeconds = 12;
+   deadline.wMilliseconds = 345;
+   ut_expected_deadline = &deadline;
+   ut_set_sequence("\033[");
+   ut_have_results[0] = TRUE;
+   ut_have_count = 1;
+   ut_code_results[0] = NO_MATCH;
+   ut_code_results[1] = 15;
+   ut_code_count = 2;
+   queue_input(kODRCSuccess, 'A', TRUE);
+   UT_ASSERT(utt_ODGetInputCore(&output, OD_NO_TIMEOUT, 0, &deadline));
+   UT_ASSERT_EQ_INT((char)OD_KEY_UP, output.chKeyPress);
+   UT_ASSERT_EQ_UINT(MAX_CHARACTER_LATENCY, ut_seen_timeout);
 }
 
 static void returns_an_initial_local_character(void)
@@ -343,7 +355,7 @@ static void pending_state_exercises_each_promotion_condition(void)
 }
 
 static const UTTestCase ut_cases[] = {
-   {"invalid output", rejects_null_output_after_initializing},
+   {"invalid output", rejects_null_output},
    {"initial timeout", initial_wait_can_fail},
    {"initial local character", returns_an_initial_local_character},
    {"untranslated remote character", returns_an_untranslated_remote_character},
@@ -356,5 +368,5 @@ static const UTTestCase ut_cases[] = {
    {"deferred doorway input", remote_null_defers_doorway_mode_until_buffer_drains},
    {"settled complete sequence", timeout_can_settle_for_a_complete_sequence},
    {"pending promotion conditions", pending_state_exercises_each_promotion_condition},
-   {"terminal session", terminal_session_is_rejected}
+   {"absolute deadline", absolute_deadline_uses_the_same_translation_paths}
 };

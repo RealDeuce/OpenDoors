@@ -441,6 +441,7 @@ ODAPIDEF void ODCALL od_init(void)
       /* run again.                                                     */
       bODInitialized = TRUE;
       eODLifecycleState = kODLifecycleInitializing;
+      ODSessionTimeInitialize();
 
       /* Initialize program name string. */
       if(od_control.od_prog_name[0] == '\0')

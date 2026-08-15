@@ -166,7 +166,6 @@ static void handles_hotkeys_and_control_keys(void)
    od_control.baud = 9600L;
    UT_ASSERT(!utt_od_send_file_section((char *)"screen.ans", (char *)"SEC"));
    UT_ASSERT_EQ_INT('B', chHotkeyPressed);
-   UT_ASSERT_EQ_UINT(1, ut_clear_outbound_calls);
 
    reset_send();
    pszCurrentHotkeys = high_hotkeys;

@@ -10,7 +10,6 @@
 #define UT_CUSTOM_MOCK_ODScrnShowMessage
 #define UT_CUSTOM_MOCK_od_get_key
 #define UT_CUSTOM_MOCK_tolower
-#define UT_CUSTOM_MOCK_ODComClearOutbound
 #define UT_CUSTOM_MOCK_od_clear_keybuffer
 #define UT_CUSTOM_MOCK_fgets
 #define UT_CUSTOM_MOCK_ODEmulateFromBuffer
@@ -45,7 +44,7 @@ static UTReadEvent ut_reads[UT_SEND_MAX_EVENTS];
 static unsigned ut_read_count, ut_read_index;
 static char ut_keys[4];
 static unsigned ut_key_count, ut_key_index;
-static unsigned ut_clear_outbound_calls, ut_clear_key_calls;
+static unsigned ut_clear_key_calls;
 static unsigned ut_emulate_calls;
 static char ut_control_after_emulate;
 static BOOL ut_emulate_remote[UT_SEND_MAX_EVENTS];
@@ -131,12 +130,6 @@ int utm_tolower(int value)
    UT_ASSERT_EQ_INT((int)(unsigned char)value, value);
    if(value >= 'A' && value <= 'Z') return(value - 'A' + 'a');
    return(value);
-}
-tODResult utm_ODComClearOutbound(tPortHandle port)
-{
-   UT_ASSERT_EQ_PTR(hSerialPort, port);
-   ++ut_clear_outbound_calls;
-   return(kODRCSuccess);
 }
 void ODCALL utm_od_clear_keybuffer(void) { ++ut_clear_key_calls; }
 
@@ -237,7 +230,7 @@ static void reset_send(void)
    ut_message_build_calls = ut_show_calls = ut_remove_calls = 0;
    ut_read_count = ut_read_index = 0;
    ut_key_count = ut_key_index = 0;
-   ut_clear_outbound_calls = ut_clear_key_calls = 0;
+   ut_clear_key_calls = 0;
    ut_emulate_calls = ut_page_calls = ut_disp_calls = 0;
    ut_control_after_emulate = 0;
    ut_page_result = FALSE;
@@ -417,14 +410,12 @@ static void handles_hotkeys_during_transmission(void)
    od_control.baud = 9600L;
    UT_ASSERT(utt_od_send_file("screen.ans"));
    UT_ASSERT_EQ_INT('B', chHotkeyPressed);
-   UT_ASSERT_EQ_UINT(1, ut_clear_outbound_calls);
 
    reset_send();
    pszCurrentHotkeys = (char *)"AB";
    ut_keys[0] = 'a'; ut_key_count = 1;
    UT_ASSERT(utt_od_send_file("screen.ans"));
    UT_ASSERT_EQ_INT('A', chHotkeyPressed);
-   UT_ASSERT_EQ_UINT(0, ut_clear_outbound_calls);
 
    reset_send();
    pszCurrentHotkeys = high_hotkeys;

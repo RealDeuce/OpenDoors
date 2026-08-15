@@ -66,6 +66,9 @@ additional 250 milliseconds between sequence bytes before deciding whether to
 return a translated key or the leading character. On 16-bit DOS, timer
 resolution is approximately 55 milliseconds.
 
+Use [`od_get_input_until()`](od_get_input_until.md) when one absolute deadline
+must bound both the initial wait and any extended-sequence translation wait.
+
 `wFlags` selects translation behavior:
 
 | Flag | Behavior |
@@ -128,4 +131,5 @@ Cast [`chKeyPress`](../types.md#chkeypress) to `unsigned char` before comparing 
 
 [`od_get_key()`](od_get_key.md), [`od_key_pending()`](od_key_pending.md),
 [`od_clear_keybuffer()`](od_clear_keybuffer.md),
+[`od_get_input_until()`](od_get_input_until.md),
 [Input constants](../constants/input.md), [Types and callbacks](../types.md)

@@ -35,6 +35,7 @@
 #define CHANGE_DIRECTION      10       /* % of ticks course changes direction */
 #define MAX_NAME_SIZE         35       /* Maximum characters in player name */
 #define WAIT_FOR_FILE         10       /* Time to wait for access to file */
+#define FRAME_TIME_MS         100      /* Target duration of one game frame */
 #define SCORE_FILENAME   "skigame.dat" /* Name of high score file */
 
 
@@ -63,6 +64,7 @@ void PlayGame(void);
 void SpaceRight(int nColumns);
 void MoveLeft(int nColumns);
 int AddHighScore(tHighScoreFile *pHighScores, tHighScoreRecord *pScoreRecord);
+void ApplySkiInput(const tODInputEvent *pInputEvent, int *pnPlayerPos);
 
 
 /* The main() or WinMain() function: program execution begins here. */
@@ -339,7 +341,9 @@ void PlayGame(void)
    long lnScore = 0;
    int nDistanceSinceShrink = 0;
    int bMovingRight = TRUE;
-   char cKeyPress;
+   tODInputEvent InputEvent;
+   DWORD dwFrameSeconds;
+   WORD wFrameMilliseconds;
    tHighScoreRecord ScoreRecord;
    FILE *pfFile;
    tHighScoreFile HighScores;
@@ -358,6 +362,15 @@ void PlayGame(void)
    /* Loop until game is over */
    for(;;)
    {
+      /* Establish a fixed frame deadline before doing any frame work. */
+      od_get_time(&dwFrameSeconds, &wFrameMilliseconds);
+      wFrameMilliseconds += FRAME_TIME_MS;
+      if(wFrameMilliseconds >= 1000U)
+      {
+         wFrameMilliseconds -= 1000U;
+         ++dwFrameSeconds;
+      }
+
       /* Display current line */
       if(od_control.user_ansi || od_control.user_avatar)
       {
@@ -382,21 +395,6 @@ void PlayGame(void)
          od_putch('o');
          SpaceRight(nRightEdge - nPlayerPos - 1);
          od_putch((char)(bMovingRight ? '\\' : '/'));
-      }
-
-      /* Loop for each key pressed by user */
-      while((cKeyPress = (char)od_get_key(FALSE)) != '\0')
-      {
-         if(cKeyPress == 'q' || cKeyPress == 'Q')
-         {
-            /* Move left */
-            --nPlayerPos;
-         }
-         else if(cKeyPress == 'w' || cKeyPress == 'W')
-         {
-            /* Move right */
-            ++nPlayerPos;
-         }
       }
 
       /* Check whether course should turn */
@@ -454,6 +452,14 @@ void PlayGame(void)
          --nRightEdge;
       }
 
+      /* Wait only for the remainder of the frame, processing input rather */
+      /* than polling while the game is otherwise idle.                    */
+      while(od_get_input_until(&InputEvent, dwFrameSeconds,
+         wFrameMilliseconds, GETIN_NORMAL))
+      {
+         ApplySkiInput(&InputEvent, &nPlayerPos);
+      }
+
       /* Check that player is still within the course */
       if(nPlayerPos <= nLeftEdge || nPlayerPos >= nRightEdge)
       {
@@ -499,10 +505,6 @@ void PlayGame(void)
          return;
       }
 
-      /* Delay for about 1/10th of a second, to add a constant delay after */
-      /* each line is displayed that does not depend on the connect speed. */
-      od_sleep(100);
-
       /* Increase score */
       ++lnScore;
 
@@ -517,6 +519,23 @@ void PlayGame(void)
 
       /* Move to next line */
       od_printf("\r\n");
+   }
+}
+
+
+/* ApplySkiInput() - Applies one character input event to the skier. */
+void ApplySkiInput(const tODInputEvent *pInputEvent, int *pnPlayerPos)
+{
+   if(pInputEvent->EventType != EVENT_CHARACTER)
+      return;
+
+   if(pInputEvent->chKeyPress == 'q' || pInputEvent->chKeyPress == 'Q')
+   {
+      --*pnPlayerPos;
+   }
+   else if(pInputEvent->chKeyPress == 'w' || pInputEvent->chKeyPress == 'W')
+   {
+      ++*pnPlayerPos;
    }
 }
 

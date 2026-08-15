@@ -15,9 +15,10 @@ BOOL utm_ODDWordDivide(DWORD *quotient, DWORD *remainder,
 {
    ++ut_divide_calls;
    UT_ASSERT_NOT_NULL(quotient);
-   UT_ASSERT_NULL(remainder);
+   UT_ASSERT_NOT_NULL(remainder);
    UT_ASSERT_EQ_UINT(55, divisor);
    *quotient = dividend / divisor;
+   *remainder = dividend % divisor;
    return(TRUE);
 }
 #endif
@@ -65,8 +66,15 @@ static void stores_the_current_time_and_requested_duration(void)
    ut_divide_calls = 0;
    utt_ODTimerStart(&timer, 789);
    UT_ASSERT_EQ_UINT(99, timer.Start);
-   UT_ASSERT_EQ_UINT(14, timer.Duration);
+   UT_ASSERT_EQ_UINT(15, timer.Duration);
    UT_ASSERT_EQ_UINT(1, ut_divide_calls);
+
+   utt_ODTimerStart(&timer, 1);
+   UT_ASSERT_EQ_UINT(1, timer.Duration);
+   utt_ODTimerStart(&timer, 55);
+   UT_ASSERT_EQ_UINT(1, timer.Duration);
+   utt_ODTimerStart(&timer, 56);
+   UT_ASSERT_EQ_UINT(2, timer.Duration);
 #endif
 
 #ifdef ODPLAT_DOS32

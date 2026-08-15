@@ -12,6 +12,7 @@
 #define UT_CUSTOM_MOCK_ODInitReadSFDoorsDAT
 #define UT_CUSTOM_MOCK_ODMakeFilename
 #define UT_CUSTOM_MOCK_ODPlatInit
+#define UT_CUSTOM_MOCK_ODSessionTimeInitialize
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
 #endif
@@ -71,6 +72,7 @@ static tODResult ut_queue_result;
 static INT ut_queue_size;
 static unsigned ut_sync_calls;
 static unsigned ut_platform_calls;
+static unsigned ut_session_time_calls;
 static unsigned ut_part_two_calls;
 static unsigned ut_error_calls;
 static unsigned ut_exit_calls;
@@ -340,6 +342,11 @@ void utm_ODPlatInit(void)
    ++ut_platform_calls;
 }
 
+void utm_ODSessionTimeInitialize(void)
+{
+   ++ut_session_time_calls;
+}
+
 time_t utm_time(time_t *destination)
 {
    *destination = (time_t)123456;
@@ -568,6 +575,7 @@ static void reset_init_fixture(void)
    ut_queue_size = 0;
    ut_sync_calls = 0;
    ut_platform_calls = 0;
+   ut_session_time_calls = 0;
    ut_part_two_calls = 0;
    ut_error_calls = 0;
    ut_exit_calls = 0;
@@ -717,6 +725,7 @@ static void initializes_tables_allocations_and_local_defaults(void)
 #endif
    UT_ASSERT(utm_strcmp("Unknown Location", od_control.user_location) == 0);
    UT_ASSERT_EQ_UINT(1, ut_platform_calls);
+   UT_ASSERT_EQ_UINT(1, ut_session_time_calls);
    UT_ASSERT_EQ_UINT(1, ut_part_two_calls);
 }
 

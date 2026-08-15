@@ -1820,10 +1820,6 @@ BOOL ODPagePrompt(BOOL *pbPausing)
       }
    }
 
-   /* Discard pending output when the user stopped the display remotely. */
-   if(bToReturn && od_control.baud)
-      ODComClearOutbound(hSerialPort);
-
    /* Remove the pause prompt. */
    for(btCount = 0; btCount < nPromptLength; ++btCount)
    {

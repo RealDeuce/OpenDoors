@@ -144,6 +144,26 @@
       "case": "unit/cases/ODPlat/od_sleep.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
     },
+    {
+      "source": "ODPlat.c", "function": "ODDOSReadSessionClock",
+      "case": "unit/cases/ODPlat/ODDOSReadSessionClock.c",
+      "platforms": ["dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODSessionTimeInitialize",
+      "case": "unit/cases/ODPlat/ODSessionTimeInitialize.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "ODSessionTimeGet",
+      "case": "unit/cases/ODPlat/ODSessionTimeGet.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODPlat.c", "function": "od_get_time",
+      "case": "unit/cases/ODPlat/od_get_time.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
     {"source":"ODEdit.c","function":"ODEditGetCurrentLineInArea","case":"unit/cases/ODEdit/ODEditGetCurrentLineInArea.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODEdit.c","function":"ODEditPastEndOfCurLine","case":"unit/cases/ODEdit/ODEditPastEndOfCurLine.c","platforms":["unix","windows","dos16","dos32"]},
     {"source":"ODEdit.c","function":"ODEditRememberBufferSize","case":"unit/cases/ODEdit/ODEditRememberBufferSize.c","platforms":["unix","windows","dos16","dos32"]},
@@ -945,7 +965,15 @@
       "source": "ODCom.c",
       "function": "ODComOutbound",
       "case": "unit/cases/ODCom/ODComOutbound.c",
-      "platforms": ["unix", "windows", "dos16", "dos32"]
+      "platforms": ["unix", "windows", "dos16", "dos32"],
+      "configurations": [
+        {"name": "default", "platforms": ["unix", "windows"]},
+        {
+          "name": "isolated-uart",
+          "platforms": ["dos16", "dos32"],
+          "defines": ["inp=UTInp"]
+        }
+      ]
     },
     {
       "source": "ODCom.c",
@@ -1152,8 +1180,32 @@
     },
     {
       "source": "ODGetIn.c",
-      "function": "od_get_input",
+      "function": "ODGetInputDeadlineSlice",
+      "case": "unit/cases/ODGetIn/ODGetInputDeadlineSlice.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODGetIn.c",
+      "function": "ODGetInputWaitUntil",
+      "case": "unit/cases/ODGetIn/ODGetInputWaitUntil.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODGetIn.c",
+      "function": "ODGetInputCore",
       "case": "unit/cases/ODGetIn/od_get_input.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODGetIn.c",
+      "function": "od_get_input",
+      "case": "unit/cases/ODGetIn/od_get_input_wrapper.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODGetIn.c",
+      "function": "od_get_input_until",
+      "case": "unit/cases/ODGetIn/od_get_input_until.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
     },
     {

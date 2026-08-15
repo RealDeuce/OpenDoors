@@ -493,6 +493,257 @@ void ODPlatRingBell(void)
 
 
 /* ========================================================================= */
+/* Session-relative wall clock.                                              */
+/* ========================================================================= */
+
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+static DWORD dwODSessionStartDays;
+static DWORD dwODSessionStartSeconds;
+static WORD wODSessionStartMilliseconds;
+
+#ifdef ODPLAT_DOS32
+#define OD_DOS_DATE_YEAR(Registers) ((Registers).w.cx)
+#else
+#define OD_DOS_DATE_YEAR(Registers) ((Registers).x.cx)
+#endif
+
+static const BYTE abODDaysInMonth[12] =
+   {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+/* Read the DOS civil clock coherently across a possible midnight boundary. */
+static void ODDOSReadSessionClock(DWORD *pdwDays, DWORD *pdwSeconds,
+   WORD *pwMilliseconds)
+{
+   union REGS DateBefore;
+   union REGS TimeNow;
+   union REGS DateAfter;
+   WORD wYear;
+   BYTE btMonth;
+   BYTE btDay;
+   WORD wIndex;
+   DWORD dwDays;
+
+   do
+   {
+      memset(&DateBefore, 0, sizeof(DateBefore));
+      DateBefore.h.ah = 0x2a;
+      intdos(&DateBefore, &DateBefore);
+
+      memset(&TimeNow, 0, sizeof(TimeNow));
+      TimeNow.h.ah = 0x2c;
+      intdos(&TimeNow, &TimeNow);
+
+      memset(&DateAfter, 0, sizeof(DateAfter));
+      DateAfter.h.ah = 0x2a;
+      intdos(&DateAfter, &DateAfter);
+   } while(OD_DOS_DATE_YEAR(DateBefore) != OD_DOS_DATE_YEAR(DateAfter)
+      || DateBefore.h.dh != DateAfter.h.dh
+      || DateBefore.h.dl != DateAfter.h.dl);
+
+   wYear = OD_DOS_DATE_YEAR(DateAfter);
+   btMonth = DateAfter.h.dh;
+   btDay = DateAfter.h.dl;
+   dwDays = 0;
+
+   for(wIndex = 1980; wIndex < wYear; ++wIndex)
+   {
+      dwDays += (wIndex % 4 == 0
+         && (wIndex % 100 != 0 || wIndex % 400 == 0)) ? 366UL : 365UL;
+   }
+   for(wIndex = 1; wIndex < btMonth; ++wIndex)
+   {
+      dwDays += abODDaysInMonth[wIndex - 1];
+      if(wIndex == 2 && wYear % 4 == 0
+         && (wYear % 100 != 0 || wYear % 400 == 0))
+      {
+         ++dwDays;
+      }
+   }
+   if(btDay != 0)
+      dwDays += btDay - 1;
+
+   *pdwDays = dwDays;
+   *pdwSeconds = (DWORD)TimeNow.h.ch * 3600UL
+      + (DWORD)TimeNow.h.cl * 60UL + (DWORD)TimeNow.h.dh;
+   *pwMilliseconds = (WORD)TimeNow.h.dl * 10U;
+}
+
+#undef OD_DOS_DATE_YEAR
+#endif
+
+#ifdef ODPLAT_WIN32
+static ULARGE_INTEGER ODSessionStartFileTime;
+#endif
+#ifdef ODPLAT_NIX
+static struct timespec ODSessionStartTime;
+#endif
+static DWORD dwODSessionLastSeconds;
+static WORD wODSessionLastMilliseconds;
+static BOOL bODSessionTimeInitialized = FALSE;
+
+/* Establish time zero for the session before initialization callbacks run. */
+void ODSessionTimeInitialize(void)
+{
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   ODDOSReadSessionClock(&dwODSessionStartDays,
+      &dwODSessionStartSeconds, &wODSessionStartMilliseconds);
+#endif
+#ifdef ODPLAT_WIN32
+   {
+      FILETIME FileTime;
+      GetSystemTimeAsFileTime(&FileTime);
+      ODSessionStartFileTime.LowPart = FileTime.dwLowDateTime;
+      ODSessionStartFileTime.HighPart = FileTime.dwHighDateTime;
+   }
+#endif
+#ifdef ODPLAT_NIX
+   clock_gettime(CLOCK_REALTIME, &ODSessionStartTime);
+#endif
+   dwODSessionLastSeconds = 0;
+   wODSessionLastMilliseconds = 0;
+   bODSessionTimeInitialized = TRUE;
+}
+
+/* Return elapsed wall-clock time since ODSessionTimeInitialize(). */
+void ODSessionTimeGet(DWORD *pdwSeconds, WORD *pwMilliseconds)
+{
+   DWORD dwSeconds = 0;
+   WORD wMilliseconds = 0;
+
+   ASSERT(pdwSeconds != NULL || pwMilliseconds != NULL);
+   if(!bODSessionTimeInitialized)
+      ODSessionTimeInitialize();
+
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   {
+      DWORD dwDays;
+      DWORD dwSecondsToday;
+      WORD wMillisecondsToday;
+      DWORD dwDayDifference;
+
+      ODDOSReadSessionClock(&dwDays, &dwSecondsToday,
+         &wMillisecondsToday);
+      if(dwDays > dwODSessionStartDays
+         || (dwDays == dwODSessionStartDays
+            && (dwSecondsToday > dwODSessionStartSeconds
+               || (dwSecondsToday == dwODSessionStartSeconds
+                  && wMillisecondsToday >= wODSessionStartMilliseconds))))
+      {
+         dwDayDifference = dwDays - dwODSessionStartDays;
+         if(dwSecondsToday < dwODSessionStartSeconds)
+         {
+            --dwDayDifference;
+            dwSeconds = 86400UL - dwODSessionStartSeconds
+               + dwSecondsToday;
+         }
+         else
+         {
+            dwSeconds = dwSecondsToday - dwODSessionStartSeconds;
+         }
+         dwSeconds += dwDayDifference * 86400UL;
+
+         if(wMillisecondsToday < wODSessionStartMilliseconds)
+         {
+            --dwSeconds;
+            wMilliseconds = (WORD)(1000U + wMillisecondsToday
+               - wODSessionStartMilliseconds);
+         }
+         else
+         {
+            wMilliseconds = (WORD)(wMillisecondsToday
+               - wODSessionStartMilliseconds);
+         }
+      }
+   }
+#endif
+
+#ifdef ODPLAT_WIN32
+   {
+      FILETIME FileTime;
+      ULARGE_INTEGER CurrentTime;
+      ULONGLONG ullElapsed;
+
+      GetSystemTimeAsFileTime(&FileTime);
+      CurrentTime.LowPart = FileTime.dwLowDateTime;
+      CurrentTime.HighPart = FileTime.dwHighDateTime;
+      if(CurrentTime.QuadPart >= ODSessionStartFileTime.QuadPart)
+      {
+         ullElapsed = CurrentTime.QuadPart - ODSessionStartFileTime.QuadPart;
+         dwSeconds = (DWORD)(ullElapsed / 10000000UL);
+         wMilliseconds = (WORD)((ullElapsed % 10000000UL) / 10000UL);
+      }
+   }
+#endif
+
+#ifdef ODPLAT_NIX
+   {
+      struct timespec CurrentTime;
+      time_t Seconds;
+      long Nanoseconds;
+
+      clock_gettime(CLOCK_REALTIME, &CurrentTime);
+      if(CurrentTime.tv_sec > ODSessionStartTime.tv_sec
+         || (CurrentTime.tv_sec == ODSessionStartTime.tv_sec
+            && CurrentTime.tv_nsec >= ODSessionStartTime.tv_nsec))
+      {
+         Seconds = CurrentTime.tv_sec - ODSessionStartTime.tv_sec;
+         Nanoseconds = CurrentTime.tv_nsec - ODSessionStartTime.tv_nsec;
+         if(Nanoseconds < 0)
+         {
+            --Seconds;
+            Nanoseconds += 1000000000L;
+         }
+         dwSeconds = (DWORD)Seconds;
+         wMilliseconds = (WORD)(Nanoseconds / 1000000L);
+      }
+   }
+#endif
+
+   /* A civil-clock correction may move the source backward. Never expose a
+    * decreasing session time to callers. */
+   if(dwSeconds < dwODSessionLastSeconds
+      || (dwSeconds == dwODSessionLastSeconds
+         && wMilliseconds < wODSessionLastMilliseconds))
+   {
+      dwSeconds = dwODSessionLastSeconds;
+      wMilliseconds = wODSessionLastMilliseconds;
+   }
+   else
+   {
+      dwODSessionLastSeconds = dwSeconds;
+      wODSessionLastMilliseconds = wMilliseconds;
+   }
+
+   if(pdwSeconds != NULL) *pdwSeconds = dwSeconds;
+   if(pwMilliseconds != NULL) *pwMilliseconds = wMilliseconds;
+}
+
+/* ----------------------------------------------------------------------------
+ * od_get_time()
+ *
+ * Returns a zero-based seconds/milliseconds pair for the current session.
+ */
+ODAPIDEF void ODCALL od_get_time(DWORD *pdwSeconds, WORD *pwMilliseconds)
+{
+   TRACE(TRACE_API, "od_get_time()");
+
+   if(!bODInitialized) od_init();
+   OD_RETURN_VOID_IF_SESSION_ENDED();
+   OD_API_ENTRY();
+
+   if(pdwSeconds == NULL && pwMilliseconds == NULL)
+   {
+      od_control.od_error = ERR_PARAMETER;
+      OD_API_EXIT();
+      return;
+   }
+
+   ODSessionTimeGet(pdwSeconds, pwMilliseconds);
+   OD_API_EXIT();
+}
+
+
+/* ========================================================================= */
 /* Millisecond timer functions.                                              */
 /* ========================================================================= */
 
@@ -537,12 +788,19 @@ void ODTimerStart(tODTimer *pTimer, tODMilliSec Duration)
    ASSERT(Duration >= 0);
 
 #ifdef ODPLAT_DOS
-   /* Store timer start time right away. */
-   pTimer->Start = clock();
+   {
+      DWORD dwRemainder;
 
-   /* Calculate duration of timer. */
-   ODDWordDivide((DWORD *)&pTimer->Duration, NULL, Duration,
-      MILLISEC_PER_TICK);
+      /* Store timer start time right away. */
+      pTimer->Start = clock();
+
+      /* Round nonzero durations up so the timer cannot elapse before the
+       * requested interval. */
+      ODDWordDivide((DWORD *)&pTimer->Duration, &dwRemainder, Duration,
+         MILLISEC_PER_TICK);
+      if(dwRemainder != 0)
+         ++pTimer->Duration;
+   }
 #endif /* ODPLAT_DOS */
 
 #ifdef ODPLAT_DOS32

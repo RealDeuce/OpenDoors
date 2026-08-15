@@ -8202,7 +8202,35 @@
     },
     {
       "kind": "function",
+      "name": "od_get_input_until",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "input.interactive"
+      ]
+    },
+    {
+      "kind": "function",
       "name": "od_get_key",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "input.interactive"
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "od_get_time",
       "platforms": [
         "windows",
         "unix",

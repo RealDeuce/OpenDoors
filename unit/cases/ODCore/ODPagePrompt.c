@@ -1,4 +1,3 @@
-#define UT_CUSTOM_MOCK_ODComClearOutbound
 #define UT_CUSTOM_MOCK_ODScrnGetTextInfo
 #define UT_CUSTOM_MOCK_od_disp_str
 #define UT_CUSTOM_MOCK_od_get_key
@@ -16,7 +15,6 @@ static unsigned ut_text_info_calls;
 static unsigned ut_attrib_calls;
 static INT ut_attrib_values[2];
 static unsigned ut_display_calls;
-static unsigned ut_clear_calls;
 
 size_t utm_strlen(const char *text)
 {
@@ -74,13 +72,6 @@ char ODCALL utm_od_get_key(BOOL wait)
    return ut_keys[ut_key_index - 1];
 }
 
-tODResult utm_ODComClearOutbound(tPortHandle port)
-{
-   UT_ASSERT_EQ_PTR(hSerialPort, port);
-   ++ut_clear_calls;
-   return kODRCSuccess;
-}
-
 static void reset_prompt(void)
 {
    char *destination = ut_prompt_text;
@@ -100,7 +91,6 @@ static void reset_prompt(void)
    ut_text_info_calls = 0;
    ut_attrib_calls = 0;
    ut_display_calls = 0;
-   ut_clear_calls = 0;
 }
 
 static BOOL run_prompt_key(char key, BOOL *pausing)
@@ -168,7 +158,6 @@ static void every_abort_key_stops_display(void)
       od_control.baud = index == 0 ? 9600 : 0;
       UT_ASSERT_EQ_INT(TRUE, run_prompt_key(keys[index], &pausing));
       UT_ASSERT_EQ_INT(TRUE, pausing);
-      UT_ASSERT_EQ_UINT(index == 0 ? 1 : 0, ut_clear_calls);
       assert_normal_prompt_cleanup();
    }
 }
@@ -205,7 +194,6 @@ static void shutdown_aborts_without_erasing_the_prompt(void)
    UT_ASSERT_EQ_INT(TRUE, utt_ODPagePrompt(&pausing));
    UT_ASSERT_EQ_UINT(1, ut_display_calls);
    UT_ASSERT_EQ_UINT(2, ut_attrib_calls);
-   UT_ASSERT_EQ_UINT(0, ut_clear_calls);
 }
 
 static const UTTestCase ut_cases[] = {

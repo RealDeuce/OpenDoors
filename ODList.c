@@ -240,10 +240,6 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
             case 's':
                if(od_control.od_list_stop)
                {
-                  if(od_control.baud)
-                  {
-                     ODComClearOutbound(hSerialPort);
-                  }
                   od_clear_keybuffer();
                   fclose(pfFilesBBS);
                   OD_API_EXIT();

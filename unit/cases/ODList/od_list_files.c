@@ -1,4 +1,3 @@
-#define UT_CUSTOM_MOCK_ODComClearOutbound
 #define UT_CUSTOM_MOCK_ODDirClose
 #define UT_CUSTOM_MOCK_ODDirOpen
 #define UT_CUSTOM_MOCK_ODDirRead
@@ -66,7 +65,6 @@ static unsigned ut_page_calls;
 static unsigned ut_clear_calls;
 static unsigned ut_get_key_calls;
 static BOOL ut_end_session_on_key;
-static unsigned ut_com_clear_calls;
 static unsigned ut_display_calls;
 static unsigned ut_printf_calls;
 static unsigned ut_attrib_calls;
@@ -244,13 +242,6 @@ BOOL utm_ODPagePrompt(BOOL *pausing)
    return ut_page_result;
 }
 
-tODResult utm_ODComClearOutbound(tPortHandle port)
-{
-   (void)port;
-   ++ut_com_clear_calls;
-   return kODRCSuccess;
-}
-
 void ODCALL utm_od_clear_keybuffer(void) { ++ut_clear_calls; }
 char ODCALL utm_od_get_key(BOOL wait)
 {
@@ -322,7 +313,6 @@ static void reset_list(void)
    ut_clear_calls = 0;
    ut_get_key_calls = 0;
    ut_end_session_on_key = FALSE;
-   ut_com_clear_calls = 0;
    ut_display_calls = 0;
    ut_printf_calls = 0;
    ut_attrib_calls = 0;
@@ -449,7 +439,6 @@ static void handles_stop_and_pause_control_keys(void)
    od_control.baud = 1;
    add_line(" comment", TRUE, 's');
    UT_ASSERT(utt_od_list_files("index.bbs"));
-   UT_ASSERT_EQ_UINT(1, ut_com_clear_calls);
    UT_ASSERT_EQ_UINT(1, ut_clear_calls);
 
    reset_list();
@@ -457,7 +446,6 @@ static void handles_stop_and_pause_control_keys(void)
    od_control.baud = 0;
    add_line(" comment", TRUE, 's');
    UT_ASSERT(utt_od_list_files("index.bbs"));
-   UT_ASSERT_EQ_UINT(0, ut_com_clear_calls);
 
    reset_list();
    make_initial_directory(FALSE);

@@ -95,6 +95,10 @@ static int RunInputScenario(void)
    static const unsigned char burst[] =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-";
    tODInputEvent event;
+   DWORD first_seconds;
+   DWORD second_seconds;
+   WORD first_milliseconds;
+   WORD second_milliseconds;
    size_t index;
 
    OD_TEST_CHECK(!od_get_input(&event, 0, GETIN_RAW));
@@ -152,6 +156,36 @@ static int RunInputScenario(void)
    od_clear_keybuffer();
    OD_TEST_CHECK(!od_key_pending());
    OD_TEST_CHECK(od_get_key(FALSE) == 0);
+
+   od_get_time(&first_seconds, &first_milliseconds);
+   OD_TEST_CHECK(first_milliseconds < 1000U);
+   od_sleep(100);
+   od_get_time(&second_seconds, &second_milliseconds);
+   OD_TEST_CHECK(second_milliseconds < 1000U);
+   OD_TEST_CHECK(second_seconds > first_seconds
+      || (second_seconds == first_seconds
+         && second_milliseconds > first_milliseconds));
+
+   Marker("INPUT-UNTIL");
+   od_get_time(&second_seconds, &second_milliseconds);
+   second_milliseconds += 500U;
+   if(second_milliseconds >= 1000U)
+   {
+      second_milliseconds -= 1000U;
+      ++second_seconds;
+   }
+   OD_TEST_CHECK(od_get_input_until(&event, second_seconds,
+      second_milliseconds, GETIN_RAW));
+   OD_TEST_CHECK(event.EventType == EVENT_CHARACTER);
+   OD_TEST_CHECK(event.bFromRemote && event.chKeyPress == 'U');
+
+   Marker("INPUT-UNTIL-EXPIRED");
+   od_get_time(&second_seconds, &second_milliseconds);
+   OD_TEST_CHECK(!od_get_input_until(&event, second_seconds,
+      second_milliseconds, GETIN_RAW));
+   OD_TEST_CHECK(od_get_input(&event, OD_NO_TIMEOUT, GETIN_RAW));
+   OD_TEST_CHECK(event.EventType == EVENT_CHARACTER);
+   OD_TEST_CHECK(event.bFromRemote && event.chKeyPress == 'E');
 
    return(FinishScenario("INPUT-DONE"));
 }

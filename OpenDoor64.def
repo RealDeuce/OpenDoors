@@ -76,3 +76,5 @@ EXPORTS
    od_save_screen_size @68
    od_set_port @69
    od_parse_cmd_line_cons @70
+   od_get_time @71
+   od_get_input_until @72

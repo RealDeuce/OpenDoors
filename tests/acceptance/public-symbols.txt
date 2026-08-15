@@ -21,7 +21,9 @@ od_free_split_cmd_line
 od_get_answer
 od_get_cursor
 od_get_input
+od_get_input_until
 od_get_key
+od_get_time
 od_gettext
 od_hotkey_menu
 od_init

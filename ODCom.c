@@ -306,6 +306,7 @@ static void ODComInternalResetTX(void);
 #define RDR     0x01                    /* Receive data ready. */
 #define ERRS    0x1E                    /* All the error bits. */
 #define TXR     0x20                    /* Transmitter ready. */
+#define TEMT    0x40                    /* Transmitter completely empty. */
 
 /* Interrupt enable register (IER) bits. */
 #define DR      0x01                    /* Data ready. */
@@ -2377,7 +2378,16 @@ still_sending:
 
 #ifdef INCLUDE_UART_COM
       case kComMethodUART:
-         *pnOutboundWaiting = (int)nTXChars;
+         if(nTXChars > 0)
+         {
+            *pnOutboundWaiting = (int)nTXChars;
+         }
+         else
+         {
+            *pnOutboundWaiting =
+               (OD_COM_PORT_READ(nLineStatusRegAddr) & TEMT)
+                  ? 0 : SIZE_NON_ZERO;
+         }
          break;
 #endif /* INCLUDE_UART_COM */
 
@@ -2434,6 +2444,9 @@ still_sending:
  * ODComClearOutbound()
  *
  * Removes the current contents of the serial port outbound buffer.
+ * This discards an arbitrary byte boundary and must not be used while a
+ * terminal stream will continue unless the caller knows that boundary is
+ * safe; otherwise an ANSI, AVATAR, or RIP command may be truncated.
  *
  * Parameters: hPort - Handle to a serial port object.
  *

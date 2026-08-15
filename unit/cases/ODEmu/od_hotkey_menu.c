@@ -1,4 +1,3 @@
-#define UT_CUSTOM_MOCK_ODComClearOutbound
 #define UT_CUSTOM_MOCK_ODSyncAPIEntry
 #define UT_CUSTOM_MOCK_ODSyncAPIExit
 #define UT_CUSTOM_MOCK_od_get_answer
@@ -10,7 +9,6 @@ static unsigned ut_entries;
 static unsigned ut_exits;
 static unsigned ut_send_calls;
 static unsigned ut_answer_calls;
-static unsigned ut_clear_calls;
 static BOOL ut_send_result;
 static char ut_send_hotkey;
 static char ut_answer;
@@ -42,13 +40,6 @@ char ODCALL utm_od_get_answer(const char *keys)
    return ut_answer;
 }
 
-tODResult utm_ODComClearOutbound(tPortHandle port)
-{
-   ++ut_clear_calls;
-   UT_ASSERT(port == hSerialPort);
-   return kODRCSuccess;
-}
-
 static void reset_menu(void)
 {
    memset(&od_control, 0, sizeof(od_control));
@@ -56,7 +47,7 @@ static void reset_menu(void)
    pszCurrentHotkeys = NULL;
    chHotkeyPressed = '\0';
    ut_init_calls = ut_entries = ut_exits = 0;
-   ut_send_calls = ut_answer_calls = ut_clear_calls = 0;
+   ut_send_calls = ut_answer_calls = 0;
    ut_send_result = TRUE;
    ut_send_hotkey = '\0';
    ut_answer = 'B';
@@ -103,18 +94,16 @@ static void returns_a_hotkey_pressed_during_display(void)
    UT_ASSERT_EQ_INT('A',
       utt_od_hotkey_menu("menu", (char *)ut_expected_keys, TRUE));
    UT_ASSERT_EQ_UINT(0, ut_answer_calls);
-   UT_ASSERT_EQ_UINT(0, ut_clear_calls);
    UT_ASSERT_NULL(pszCurrentHotkeys);
 }
 
-static void waits_and_clears_remote_output_when_connected(void)
+static void waits_and_preserves_remote_output_when_connected(void)
 {
    reset_menu();
    od_control.baud = 9600;
    UT_ASSERT_EQ_INT('B',
       utt_od_hotkey_menu("menu", (char *)ut_expected_keys, TRUE));
    UT_ASSERT_EQ_UINT(1, ut_answer_calls);
-   UT_ASSERT_EQ_UINT(1, ut_clear_calls);
    UT_ASSERT_NULL(pszCurrentHotkeys);
 }
 
@@ -124,7 +113,6 @@ static void waits_without_a_remote_connection(void)
    UT_ASSERT_EQ_INT('B',
       utt_od_hotkey_menu("menu", (char *)ut_expected_keys, TRUE));
    UT_ASSERT_EQ_UINT(1, ut_answer_calls);
-   UT_ASSERT_EQ_UINT(0, ut_clear_calls);
 }
 
 static void returns_zero_without_waiting(void)
@@ -133,7 +121,6 @@ static void returns_zero_without_waiting(void)
    UT_ASSERT_EQ_INT(0,
       utt_od_hotkey_menu("menu", (char *)ut_expected_keys, FALSE));
    UT_ASSERT_EQ_UINT(0, ut_answer_calls);
-   UT_ASSERT_EQ_UINT(0, ut_clear_calls);
    UT_ASSERT_NULL(pszCurrentHotkeys);
 }
 
@@ -141,7 +128,7 @@ static const UTTestCase ut_cases[] = {
    {"null keys", rejects_a_null_hotkey_list_after_initializing},
    {"display failure", clears_shared_state_when_display_fails},
    {"display hotkey", returns_a_hotkey_pressed_during_display},
-   {"wait connected", waits_and_clears_remote_output_when_connected},
+   {"wait connected", waits_and_preserves_remote_output_when_connected},
    {"wait local", waits_without_a_remote_connection},
    {"no wait", returns_zero_without_waiting},
    {"terminal session", terminal_session_is_rejected}

@@ -94,6 +94,10 @@ BOOL ODTimerElapsed(tODTimer *pTimer);
 void ODTimerWaitForElapse(tODTimer *pTimer);
 tODMilliSec ODTimerLeft(tODTimer *pTimer);
 
+/* Session-relative wall-clock functions. */
+void ODSessionTimeInitialize(void);
+void ODSessionTimeGet(DWORD *pdwSeconds, WORD *pwMilliseconds);
+
 
 /* ========================================================================= */
 /* Multithreading and synchronization support.                               */

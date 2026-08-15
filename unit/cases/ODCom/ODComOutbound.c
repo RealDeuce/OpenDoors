@@ -44,6 +44,24 @@ BOOL WINAPI utm_ClearCommError(HANDLE device, LPDWORD errors,
 }
 #endif
 
+#ifdef INCLUDE_UART_COM
+#define UT_CUSTOM_MOCK_UTInp
+static unsigned ut_uart_status;
+static unsigned ut_uart_status_calls;
+
+#ifdef __TURBOC__
+int
+#else
+unsigned
+#endif
+utm_UTInp(unsigned port)
+{
+   UT_ASSERT_EQ_UINT((unsigned)nLineStatusRegAddr, port);
+   ++ut_uart_status_calls;
+   return(ut_uart_status);
+}
+#endif
+
 static tPortInfo ut_port;
 
 static void reset_outbound(void)
@@ -61,6 +79,11 @@ static void reset_outbound(void)
    ut_port.hCommDev = (HANDLE)(DWORD_PTR)41;
    ut_status_succeeds = TRUE;
    ut_outbound_count = 0;
+#endif
+#ifdef INCLUDE_UART_COM
+   nLineStatusRegAddr = 0x3fd;
+   ut_uart_status = 0;
+   ut_uart_status_calls = 0;
 #endif
 }
 
@@ -101,7 +124,7 @@ static void reports_fossil_empty_or_nonempty_state(void)
 #endif
 
 #ifdef INCLUDE_UART_COM
-static void reports_the_uart_queue_count(void)
+static void reports_the_uart_software_and_hardware_state(void)
 {
    int waiting;
    reset_outbound();
@@ -110,6 +133,20 @@ static void reports_the_uart_queue_count(void)
    UT_ASSERT_EQ_INT(kODRCSuccess,
       utt_ODComOutbound(ODPTR2HANDLE(&ut_port, tPortInfo), &waiting));
    UT_ASSERT_EQ_INT(17, waiting);
+   UT_ASSERT_EQ_UINT(0, ut_uart_status_calls);
+
+   nTXChars = 0;
+   ut_uart_status = 0x40;
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODComOutbound(ODPTR2HANDLE(&ut_port, tPortInfo), &waiting));
+   UT_ASSERT_EQ_INT(0, waiting);
+   UT_ASSERT_EQ_UINT(1, ut_uart_status_calls);
+
+   ut_uart_status = 0;
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODComOutbound(ODPTR2HANDLE(&ut_port, tPortInfo), &waiting));
+   UT_ASSERT_EQ_INT(SIZE_NON_ZERO, waiting);
+   UT_ASSERT_EQ_UINT(2, ut_uart_status_calls);
 }
 #endif
 
@@ -182,7 +219,7 @@ static const UTTestCase ut_cases[] = {
    {"FOSSIL", reports_fossil_empty_or_nonempty_state},
 #endif
 #ifdef INCLUDE_UART_COM
-   {"UART", reports_the_uart_queue_count},
+   {"UART", reports_the_uart_software_and_hardware_state},
 #endif
 #ifdef INCLUDE_WIN32_COM
    {"Win32", reports_the_win32_queue_count_and_failure},

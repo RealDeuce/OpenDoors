@@ -26,8 +26,10 @@ DOS implementation performs one platform yield, and the 32-bit DOS
 implementation issues multiplex interrupt `2Fh`, function `1680h`, through
 its real-mode interrupt service.
 
-For a nonzero DOS delay, OpenDoors waits on its BIOS-tick-based timer and
-yields while necessary. Its resolution is approximately 55 milliseconds.
+For a nonzero DOS delay, OpenDoors rounds the request up to a whole BIOS tick,
+then waits on its BIOS-tick-based timer and yields while necessary. Its
+resolution is approximately 55 milliseconds, so even `od_sleep(1)` waits for
+at least one tick rather than becoming a zero-delay yield.
 Windows uses `Sleep()`. Unix-like targets use `nanosleep()` and resume the
 remaining interval if a signal interrupts the call.
 
@@ -63,4 +65,4 @@ while(!od_key_pending())
 ## See also
 
 [`od_kernel()`](od_kernel.md), [`od_key_pending()`](od_key_pending.md),
-[`tODMilliSec`](../types.md#todmillisec)
+[`od_get_time()`](od_get_time.md), [`tODMilliSec`](../types.md#todmillisec)

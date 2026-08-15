@@ -1,17 +1,6 @@
-#define UT_CUSTOM_MOCK_ODComOutbound
 #define UT_CUSTOM_MOCK_ODEditEstDrawBytes
-static int ut_outbound_bytes;
 static UINT ut_full_redraw_bytes;
-static unsigned ut_outbound_calls;
 static unsigned ut_estimate_calls;
-
-tODResult utm_ODComOutbound(tPortHandle port, int *bytes)
-{
-   ++ut_outbound_calls;
-   UT_ASSERT_EQ_PTR(hSerialPort, port);
-   *bytes = ut_outbound_bytes;
-   return(kODRCSuccess);
-}
 
 UINT utm_ODEditEstDrawBytes(tEditInstance *instance, UINT start_line,
    UINT start_column, UINT finish_line, UINT finish_column)
@@ -24,51 +13,36 @@ UINT utm_ODEditEstDrawBytes(tEditInstance *instance, UINT start_line,
    return(ut_full_redraw_bytes);
 }
 
-static void uses_defaults_when_no_estimate_is_possible(void)
+static void uses_the_default_for_local_rendering(void)
 {
    tEditInstance instance;
 
-   ut_outbound_calls = 0;
    ut_estimate_calls = 0;
    od_control.baud = 0;
    UT_ASSERT_EQ_INT(TRUE,
       utt_ODEditRecommendFullRedraw(&instance, 50, TRUE));
    UT_ASSERT_EQ_INT(FALSE,
       utt_ODEditRecommendFullRedraw(&instance, 50, FALSE));
-   UT_ASSERT_EQ_UINT(0, ut_outbound_calls);
-
-   od_control.baud = 9600;
-   hSerialPort = (tPortHandle)1;
-   ut_outbound_bytes = SIZE_NON_ZERO;
-   UT_ASSERT_EQ_INT(TRUE,
-      utt_ODEditRecommendFullRedraw(&instance, 50, TRUE));
-   UT_ASSERT_EQ_INT(FALSE,
-      utt_ODEditRecommendFullRedraw(&instance, 50, FALSE));
-   UT_ASSERT_EQ_UINT(2, ut_outbound_calls);
    UT_ASSERT_EQ_UINT(0, ut_estimate_calls);
 }
 
-static void compares_incremental_and_full_estimates(void)
+static void compares_only_the_new_incremental_and_full_output(void)
 {
    tEditInstance instance;
 
    instance.unAreaHeight = 10;
    instance.unAreaWidth = 40;
    od_control.baud = 9600;
-   hSerialPort = (tPortHandle)1;
-   ut_outbound_calls = 0;
    ut_estimate_calls = 0;
-   ut_outbound_bytes = 20;
    ut_full_redraw_bytes = 100;
    UT_ASSERT_EQ_INT(TRUE,
-      utt_ODEditRecommendFullRedraw(&instance, 81, FALSE));
+      utt_ODEditRecommendFullRedraw(&instance, 101, FALSE));
    UT_ASSERT_EQ_INT(FALSE,
-      utt_ODEditRecommendFullRedraw(&instance, 80, TRUE));
-   UT_ASSERT_EQ_UINT(2, ut_outbound_calls);
+      utt_ODEditRecommendFullRedraw(&instance, 100, TRUE));
    UT_ASSERT_EQ_UINT(2, ut_estimate_calls);
 }
 
 static const UTTestCase ut_cases[] = {
-   {"default decision", uses_defaults_when_no_estimate_is_possible},
-   {"estimated decision", compares_incremental_and_full_estimates}
+   {"local default", uses_the_default_for_local_rendering},
+   {"remote estimate", compares_only_the_new_incremental_and_full_output}
 };

@@ -257,10 +257,8 @@ ODAPIDEF INT ODCALL od_multiline_edit(char *pszBufferToEdit, UINT unBufferSize,
    /* Claim exclusive use of arrow keys. */
    ODStatStartArrowUse();
 
-   /* Ensure that all information in the outbound communications buffer  */
-   /* has been sent before starting. This way, we can safely purge the   */
-   /* outbound buffer at any time without loosing anything that was sent */
-   /* before od_multiline_edit() was called.                             */
+   /* Ensure that output sent before od_multiline_edit() has reached the */
+   /* remote terminal before drawing the editor.                         */
    ODWaitDrain(PRE_DRAIN_TIME);
    if(!bODInitialized)
    {
@@ -516,11 +514,6 @@ static void ODEditRedrawArea(tEditInstance *pEditInstance)
    ASSERT(pEditInstance != NULL);
 
    ODScrnEnableCaret(FALSE);
-
-   /* First, remove anything that is still in the outbound communications */
-   /* buffer, since whatever it was, it will no longer be visible after   */
-   /* the screen redraw anyhow.                                           */
-   if(od_control.baud != 0) ODComClearOutbound(hSerialPort);
 
    /* Loop, drawing every line in the edit area. */
    for(unAreaLine = 0; unAreaLine < pEditInstance->unAreaHeight; ++unAreaLine)
@@ -1168,7 +1161,7 @@ static BOOL ODEditScrollArea(tEditInstance *pEditInstance, INT nDistance)
          pEditInstance->unLineScrolledToTop -= unPositiveDistance;
       }
 
-      /* Perform redraw, first purging outbound buffer. */
+      /* Perform a full redraw. */
       ODEditRedrawArea(pEditInstance);
    }
 
@@ -1180,9 +1173,9 @@ static BOOL ODEditScrollArea(tEditInstance *pEditInstance, INT nDistance)
  * ODEditRecommendFullRedraw()                         *** PRIVATE FUNCTION ***
  *
  * Determines whether it would be more efficient to add the specified number
- * of bytes to the outbound buffer as part of an incremental redraw, or if
- * it would be more efficient to just purge the outbound buffer and do a
- * complete redraw of the edit area.
+ * of bytes to the outbound buffer as part of an incremental redraw, or to
+ * append a complete redraw of the edit area. Any bytes already queued are
+ * retained in either case and therefore do not affect the comparison.
  *
  * Parameters: pEditInstance           - Editor instance information structure.
  *
@@ -1190,18 +1183,16 @@ static BOOL ODEditScrollArea(tEditInstance *pEditInstance, INT nDistance)
  *                                       would be transmitted if an incremental
  *                                       redraw is performed.
  *
- *             bDefault                - The default action (TRUE for full
- *                                       redraw, FALSE for incremental) if the
- *                                       number of bytes in the outbound buffer
- *                                       cannot be determined.
+ *             bDefault                - The action to use in local mode (TRUE
+ *                                       for full redraw, FALSE for
+ *                                       incremental).
  *
- *     Return: TRUE if a full redraw is recommended, FALSE if an the
+ *     Return: TRUE if a full redraw is recommended, FALSE if an
  *             incremental redraw is recommended.
  */
 static BOOL ODEditRecommendFullRedraw(tEditInstance *pEditInstance,
    UINT unEstPartialRedrawBytes, BOOL bDefault)
 {
-   int nOutboundBufferBytes;
    UINT unEstFullRedrawBytes;
 
    /* In local mode, just return the default action. */
@@ -1210,34 +1201,13 @@ static BOOL ODEditRecommendFullRedraw(tEditInstance *pEditInstance,
       return(bDefault);
    }
 
-   /* Attempt to obtain the number of bytes in the communications outbound */
-   /* buffer. Unfortunately, this information may not be available. For    */
-   /* example, FOSSIL drivers will only report whether or not there is     */
-   /* still data in the outbound buffer, but not a count of the number of  */
-   /* bytes in the buffer. Under such a situation, ODComOutbound() returns */
-   /* SIZE_NON_ZERO if there is data in the buffer, and 0 if there is no   */
-   /* data in the buffer. This is not a problem under OpenDoor's internal  */
-   /* serial I/O code, nor is it a problem under Win32's communications    */
-   /* facilities.                                                          */
-   ODComOutbound(hSerialPort, &nOutboundBufferBytes);
-
-   if(nOutboundBufferBytes == SIZE_NON_ZERO)
-   {
-      /* We know that there is data in the outbound buffer, but we don't */
-      /* know how much, and so we cannot make a recommendation. Instead, */
-      /* the default course of action will be taken.                     */
-      return(bDefault);
-   }
-
    /* Estimate the # of bytes required for a full redraw of the edit area. */
    unEstFullRedrawBytes = ODEditEstDrawBytes(pEditInstance, 0,
       0, pEditInstance->unAreaHeight - 1, pEditInstance->unAreaWidth);
 
-   /* Recommend a full redraw if the number of bytes for an incremental */
-   /* redraw plus the number of bytes already in the outbound buffer    */
-   /* exceed the number of bytes required for a full redraw.            */
-   if(unEstPartialRedrawBytes + (UINT)nOutboundBufferBytes
-      > unEstFullRedrawBytes)
+   /* Recommend a full redraw if it adds fewer bytes than an incremental */
+   /* redraw. Existing queued bytes precede either choice.               */
+   if(unEstPartialRedrawBytes > unEstFullRedrawBytes)
    {
       return(TRUE);
    }
@@ -1875,7 +1845,7 @@ static void ODEditRedrawChanged(tEditInstance *pEditInstance,
    if(ODEditRecommendFullRedraw(pEditInstance, unEstPartialRedrawBytes,
       FALSE))
    {
-      /* Purge the outbound buffer and do a full redraw. */
+      /* Do a full redraw. */
       ODEditRedrawArea(pEditInstance);
 
       /* Move the cursor back to its appropriate position. */

@@ -135,6 +135,10 @@ def drive_input(peer: socket.socket, timeout: int) -> bytearray:
     )
     receive_until(peer, b"INPUT-CLEAR", transcript, timeout)
     peer.sendall(b"XYZ")
+    receive_until(peer, b"INPUT-UNTIL", transcript, timeout)
+    peer.sendall(b"U")
+    receive_until(peer, b"INPUT-UNTIL-EXPIRED", transcript, timeout)
+    peer.sendall(b"E")
     finish(peer, transcript, b"INPUT-DONE", timeout)
     return transcript
 

@@ -91,6 +91,7 @@ nav:
           - od_get_answer: reference/api/od_get_answer.md
           - od_get_key: reference/api/od_get_key.md
           - od_get_input: reference/api/od_get_input.md
+          - od_get_input_until: reference/api/od_get_input_until.md
           - od_input_str: reference/api/od_input_str.md
           - od_edit_str: reference/api/od_edit_str.md
           - od_clear_keybuffer: reference/api/od_clear_keybuffer.md
@@ -120,6 +121,7 @@ nav:
           - od_set_port: reference/api/od_set_port.md
           - od_chat: reference/api/od_chat.md
           - od_sleep: reference/api/od_sleep.md
+          - od_get_time: reference/api/od_get_time.md
           - od_control_get: reference/api/od_control_get.md
   - Data reference:
       - Types and callbacks: reference/types.md

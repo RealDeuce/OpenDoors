@@ -1039,6 +1039,7 @@ od_control;
  *    od_get_answer()         - Inputs a key, allowing only specified responses
  *    od_get_key()            - Inputs a key, optionally waiting for next key
  *    od_get_input()          - Obtains next input, with translation
+ *    od_get_input_until()    - Obtains input before a session-time deadline
  *    od_input_str()          - Inputs string of specified length from keyboard
  *    od_edit_str()           - Fancy formatted string input function (ANS/AVT)
  *    od_clear_keybuffer()    - Removes any waiting keys in keyboard buffer
@@ -1065,6 +1066,7 @@ od_control;
  *    od_set_port()           - Selects a port before initialization
  *    od_chat()               - Manually starts chat mode
  *    od_sleep()              - Yield to other processes
+ *    od_get_time()           - Gets elapsed session wall-clock time
  *    od_control_get()        - Returns a pointer to the od_control structure.
  */
 ODAPIDEF BOOL ODCALL   od_add_personality(const char *pszName, BYTE btOutputTop,
@@ -1091,8 +1093,12 @@ ODAPIDEF void ODCALL   od_exit(INT nErrorLevel, BOOL bTermCall);
 ODAPIDEF void ODCALL   od_free_split_cmd_line(char **papszArguments);
 ODAPIDEF char ODCALL   od_get_answer(const char *pszOptions);
 ODAPIDEF void ODCALL   od_get_cursor(INT *pnRow, INT *pnColumn);
+ODAPIDEF void ODCALL   od_get_time(DWORD *pdwSeconds,
+                          WORD *pwMilliseconds);
 ODAPIDEF BOOL ODCALL   od_get_input(tODInputEvent *pInputEvent,
                           tODMilliSec TimeToWait, WORD wFlags);
+ODAPIDEF BOOL ODCALL   od_get_input_until(tODInputEvent *pInputEvent,
+                          DWORD dwSeconds, WORD wMilliseconds, WORD wFlags);
 ODAPIDEF BOOL ODCALL   od_key_pending(void);
 ODAPIDEF char ODCALL   od_get_key(BOOL bWait);
 ODAPIDEF BOOL ODCALL   od_gettext(INT nLeft, INT nTop, INT nRight,

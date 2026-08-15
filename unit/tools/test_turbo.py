@@ -33,7 +33,9 @@ class TurboShardTests(unittest.TestCase):
     def test_turbo_analysis_selects_borland_not_watcom_paths(self):
         flags = turbo_ast_flags(Path("/watcom"))
         self.assertIn("-D__TURBOC__=0x0201", flags)
+        self.assertIn("-D_M_IX86=100", flags)
         self.assertIn("-Dasm=__asm", flags)
+        self.assertNotIn("-D__va_list=char *", flags)
         self.assertTrue(any(flag.startswith("-DMK_FP(") for flag in flags))
         self.assertFalse(any("__WATCOMC__" in flag for flag in flags))
 

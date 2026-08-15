@@ -244,13 +244,6 @@ ODAPIDEF char ODCALL od_hotkey_menu(char *pszFileName, char *pszHotKeys,
       /* Wait for a valid hotkey using the od_get_answer() primitive. */
       chPressed = od_get_answer(pszHotKeys);
 
-      /* If a remote user is connected on this node. */
-      if(od_control.baud)
-      {
-         /* Clear the outbound buffer. */
-         ODComClearOutbound(hSerialPort);
-      }
-
       /* Return the hotkey pressed by the user. */
       OD_API_EXIT();
       return(chPressed);
@@ -448,13 +441,6 @@ ODAPIDEF BOOL ODCALL od_send_file(const char *pszFileName)
                {
                   /* If enabled, clear keyboard buffer. */
 abort_send:
-                  /* If operating in remote mode. */
-                  if(od_control.baud)
-                  {
-                     /* Clear the outbound FOSSIL buffer. */
-                     ODComClearOutbound(hSerialPort);
-                  }
-
                   /* Return from function. */
                   goto end_transmission;
                }
@@ -810,13 +796,6 @@ ODAPIDEF BOOL ODCALL od_send_file_section(char *pszFileName, char *pszSectionNam
                {
                   /* If enabled, clear keyboard buffer. */
 abort_send:
-                  /* If operating in remote mode. */
-                  if(od_control.baud)
-                  {
-                     /* Clear the outbound FOSSIL buffer. */
-                     ODComClearOutbound(hSerialPort);
-                  }
-
                   /* Return from function. */
                   goto end_transmission;
                }
