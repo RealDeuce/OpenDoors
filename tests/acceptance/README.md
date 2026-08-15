@@ -66,10 +66,11 @@ transport must satisfy the same scenario assertions; only endpoint setup and
 the selected `od_com_method` differ.
 
 GitHub Actions runs the ordinary cases on pushes and pull requests. The
-extended matrix runs nightly or on request and is required for releases; its
-DOS jobs run all four scenarios through DOSBox over 16-bit direct UART and
-over both direct UART and FOSSIL with DOS/4GW and DOS/32A. The extended
-workflow also publishes a single Clang/Unix branch-coverage report.
+extended matrix runs nightly when the default branch has advanced since the
+last successful scheduled run, or unconditionally on request, and is required
+for releases. Its DOS jobs run all four scenarios through DOSBox over 16-bit
+direct UART and over both direct UART and FOSSIL with DOS/4GW and DOS/32A. The
+extended workflow also publishes a single Clang/Unix branch-coverage report.
 That report is directional and has no percentage or delta gate; Windows and
 DOS runtime results remain authoritative for their platform-specific paths.
 

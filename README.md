@@ -72,8 +72,8 @@ The test automation has four distinct layers:
 - Smoke integration tests use only the public API and run on every push as
   part of the normal build matrix.
 - Extended acceptance tests use only the public API and exercise the deeper
-  socket, direct-UART, and FOSSIL scenarios nightly, on request, and for a
-  release.
+  socket, direct-UART, and FOSSIL scenarios nightly when there have been new
+  pushes, on request, and for a release.
 - Regression tests may use private component boundaries and mocks. They run
   on every push; reported bugs should gain a reproducer here when public-only
   acceptance cannot express one.
