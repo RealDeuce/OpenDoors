@@ -100,11 +100,15 @@ if(WIN32)
     opendoors_acceptance_library_path(
         acceptance.windows_console_parser_mismatch)
 
-    if(TARGET OpenDoors::StaticConsole)
+    set(_opendoors_static_console_library OpenDoors::StaticConsole)
+    if(OPENDOORS_VARIANT STREQUAL "StaticMT")
+        set(_opendoors_static_console_library OpenDoors::StaticMTConsole)
+    endif()
+    if(TARGET "${_opendoors_static_console_library}")
         add_executable(opendoors_acceptance_windows_console
             windows_console_test.c)
         target_link_libraries(opendoors_acceptance_windows_console
-            PRIVATE OpenDoors::StaticConsole)
+            PRIVATE "${_opendoors_static_console_library}")
         target_include_directories(opendoors_acceptance_windows_console
             PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
         set_target_properties(opendoors_acceptance_windows_console PROPERTIES
