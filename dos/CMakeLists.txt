@@ -15,6 +15,13 @@ if(NOT CMAKE_C_COMPILER_ID STREQUAL "OpenWatcom")
 endif()
 
 set(OPENDOORS_ROOT "${CMAKE_CURRENT_LIST_DIR}/..")
+set(OPENDOORS_SOURCE_DIR "${OPENDOORS_ROOT}/src")
+set(OPENDOORS_INCLUDE_DIR "${OPENDOORS_ROOT}/include")
+set(OPENDOORS_EXAMPLES_DIR "${OPENDOORS_ROOT}/examples")
+configure_file("${OPENDOORS_EXAMPLES_DIR}/data/door.cfg"
+    "${CMAKE_BINARY_DIR}/door.cfg" COPYONLY)
+configure_file("${OPENDOORS_EXAMPLES_DIR}/data/DORINFO1.DEF"
+    "${CMAKE_BINARY_DIR}/DORINFO1.DEF" COPYONLY)
 string(TOUPPER "${CMAKE_SYSTEM_PROCESSOR}" OPENDOORS_DOS_PROCESSOR)
 
 if(NOT OPENDOORS_DOS_PROCESSOR STREQUAL "I86" AND
@@ -88,7 +95,7 @@ set(OPENDOORS_DOS_SOURCES
     ODWCat.c
     ODWin.c
 )
-list(TRANSFORM OPENDOORS_DOS_SOURCES PREPEND "${OPENDOORS_ROOT}/")
+list(TRANSFORM OPENDOORS_DOS_SOURCES PREPEND "${OPENDOORS_SOURCE_DIR}/")
 
 # Keep example-only inputs separate from OPENDOORS_DOS_SOURCES.  Construct
 # their paths from names so the strict library-source manifest checker does
@@ -96,14 +103,14 @@ list(TRANSFORM OPENDOORS_DOS_SOURCES PREPEND "${OPENDOORS_ROOT}/")
 set(OPENDOORS_VOTE_EXAMPLE_SOURCES)
 foreach(vote_source IN ITEMS ex_vote.c ex_votio.c)
     list(APPEND OPENDOORS_VOTE_EXAMPLE_SOURCES
-        "${OPENDOORS_ROOT}/${vote_source}")
+        "${OPENDOORS_EXAMPLES_DIR}/${vote_source}")
 endforeach()
 list(GET OPENDOORS_VOTE_EXAMPLE_SOURCES 1 OPENDOORS_VOTE_IO_SOURCE)
 
 if(OPENDOORS_DOS_PROCESSOR STREQUAL "I386")
     list(APPEND OPENDOORS_DOS_SOURCES
-        "${OPENDOORS_ROOT}/OD32DPMI.c"
-        "${OPENDOORS_ROOT}/OD32Foss.c")
+        "${OPENDOORS_SOURCE_DIR}/OD32DPMI.c"
+        "${OPENDOORS_SOURCE_DIR}/OD32Foss.c")
 endif()
 
 if(OPENDOORS_DOS_PROCESSOR STREQUAL "I86")
@@ -112,8 +119,8 @@ set(OPENDOORS_SWAP_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/ODSwap.obj")
 add_custom_command(
     OUTPUT "${OPENDOORS_SWAP_OBJECT}"
     COMMAND "${OPENDOORS_WASM}" -q -dLCODE -dLDATA
-        "-fo=${OPENDOORS_SWAP_OBJECT}" "${OPENDOORS_ROOT}/ODSwap.asm"
-    DEPENDS "${OPENDOORS_ROOT}/ODSwap.asm"
+        "-fo=${OPENDOORS_SWAP_OBJECT}" "${OPENDOORS_SOURCE_DIR}/ODSwap.asm"
+    DEPENDS "${OPENDOORS_SOURCE_DIR}/ODSwap.asm"
     VERBATIM)
 set_source_files_properties("${OPENDOORS_SWAP_OBJECT}" PROPERTIES
     EXTERNAL_OBJECT TRUE
@@ -122,7 +129,9 @@ set_source_files_properties("${OPENDOORS_SWAP_OBJECT}" PROPERTIES
 add_library(opendoors_dos STATIC
     ${OPENDOORS_DOS_SOURCES}
     "${OPENDOORS_SWAP_OBJECT}")
-target_include_directories(opendoors_dos PUBLIC "${OPENDOORS_ROOT}")
+target_include_directories(opendoors_dos PUBLIC
+    "${OPENDOORS_INCLUDE_DIR}" "${OPENDOORS_SOURCE_DIR}"
+    PRIVATE "${OPENDOORS_ROOT}")
 target_compile_options(opendoors_dos PRIVATE -ml -zq -za99)
 if(OPENDOORS_WARNINGS_AS_ERRORS)
     target_compile_options(opendoors_dos PRIVATE -we)
@@ -136,14 +145,14 @@ set(OPENDOORS_PERSONALITY_SDK_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/personality-sdk")
 file(MAKE_DIRECTORY "${OPENDOORS_PERSONALITY_SDK_DIR}")
 foreach(personality_sdk_file IN ITEMS
-    OpenDoor.h
-    ODSync.h
-    ODStat.h
-    ODTypes.h
-    ODStand.c
-    ODPCB.c
-    ODRA.c
-    ODWCat.c
+    include/OpenDoor.h
+    src/ODSync.h
+    include/ODStat.h
+    src/ODTypes.h
+    src/ODStand.c
+    src/ODPCB.c
+    src/ODRA.c
+    src/ODWCat.c
     tests/dos_personality_smoke.c)
     get_filename_component(personality_sdk_name
         "${personality_sdk_file}" NAME)
@@ -176,7 +185,7 @@ target_compile_definitions(dos_link_smoke PRIVATE OPENDOORS_HAVE_VSNPRINTF=1)
 target_link_libraries(dos_link_smoke PRIVATE opendoors_dos)
 
 foreach(example IN ITEMS ex_chat ex_diag ex_hello ex_music ex_ski)
-    add_executable(${example} "${OPENDOORS_ROOT}/${example}.c")
+    add_executable(${example} "${OPENDOORS_EXAMPLES_DIR}/${example}.c")
     target_compile_options(${example} PRIVATE -ml -zq -za99)
     if(OPENDOORS_WARNINGS_AS_ERRORS)
         target_compile_options(${example} PRIVATE -we)
@@ -199,7 +208,8 @@ add_executable(vote_io_test
     "${OPENDOORS_ROOT}/tests/vote_io_test.c"
     "${OPENDOORS_VOTE_IO_SOURCE}")
 set_target_properties(vote_io_test PROPERTIES OUTPUT_NAME odvtest)
-target_include_directories(vote_io_test PRIVATE "${OPENDOORS_ROOT}")
+target_include_directories(vote_io_test PRIVATE
+    "${OPENDOORS_INCLUDE_DIR}" "${OPENDOORS_EXAMPLES_DIR}")
 target_compile_options(vote_io_test PRIVATE -ml -zq -za99)
 if(OPENDOORS_WARNINGS_AS_ERRORS)
     target_compile_options(vote_io_test PRIVATE -we)
@@ -293,7 +303,9 @@ endif()
 else()
 
 function(opendoors_configure_dos32_target target convention)
-    target_include_directories(${target} PUBLIC "${OPENDOORS_ROOT}")
+    target_include_directories(${target} PUBLIC
+        "${OPENDOORS_INCLUDE_DIR}" "${OPENDOORS_SOURCE_DIR}"
+        PRIVATE "${OPENDOORS_ROOT}")
     target_compile_options(${target} PRIVATE
         "-${convention}" -zq -za99)
     if(OPENDOORS_WARNINGS_AS_ERRORS)
@@ -325,14 +337,14 @@ set(OPENDOORS_PERSONALITY_SDK_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/personality-sdk")
 file(MAKE_DIRECTORY "${OPENDOORS_PERSONALITY_SDK_DIR}")
 foreach(personality_sdk_file IN ITEMS
-    OpenDoor.h
-    ODSync.h
-    ODStat.h
-    ODTypes.h
-    ODStand.c
-    ODPCB.c
-    ODRA.c
-    ODWCat.c
+    include/OpenDoor.h
+    src/ODSync.h
+    include/ODStat.h
+    src/ODTypes.h
+    src/ODStand.c
+    src/ODPCB.c
+    src/ODRA.c
+    src/ODWCat.c
     tests/dos_personality_smoke.c)
     get_filename_component(personality_sdk_name
         "${personality_sdk_file}" NAME)
@@ -380,7 +392,7 @@ target_compile_options(dos32_abi_smoke_hostile PRIVATE -zp16 -em)
 target_link_libraries(dos32_abi_smoke_hostile PRIVATE opendoors_dos32r)
 
 foreach(example IN ITEMS ex_chat ex_diag ex_hello ex_music ex_ski)
-    add_executable(${example} "${OPENDOORS_ROOT}/${example}.c")
+    add_executable(${example} "${OPENDOORS_EXAMPLES_DIR}/${example}.c")
     opendoors_configure_dos32_target(${example} 3r)
     target_link_libraries(${example} PRIVATE opendoors_dos32r)
 endforeach()
@@ -394,7 +406,8 @@ add_executable(vote_io_test
     "${OPENDOORS_ROOT}/tests/vote_io_test.c"
     "${OPENDOORS_VOTE_IO_SOURCE}")
 set_target_properties(vote_io_test PROPERTIES OUTPUT_NAME od32vot)
-target_include_directories(vote_io_test PRIVATE "${OPENDOORS_ROOT}")
+target_include_directories(vote_io_test PRIVATE
+    "${OPENDOORS_INCLUDE_DIR}" "${OPENDOORS_EXAMPLES_DIR}")
 opendoors_configure_dos32_target(vote_io_test 3r)
 
 add_executable(dos32_runtime_smoke

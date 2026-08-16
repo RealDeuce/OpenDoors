@@ -31,6 +31,14 @@ Release and package versions use `6.3.0` for the traditional OpenDoors
 version `6.30`. The [versioning guide](https://realdeuce.github.io/OpenDoors/guides/versioning/)
 documents the compatibility guarantees and the `OD_VERSION` encoding.
 
+## Source layout
+
+The public headers are in `include/`, library implementation files and native
+resources are in `src/`, and sample programs are in `examples/`. Example
+runtime files live in `examples/data/` and are copied beside built examples.
+Release-only metadata is under `release/`; superseded distribution artifacts
+are retained under `historic/`.
+
 ## CMake builds
 
 CMake 3.20 or newer can build the shared library, static library, examples,

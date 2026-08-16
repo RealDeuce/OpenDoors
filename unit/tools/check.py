@@ -18,7 +18,7 @@ WAIVERS_FILE = ROOT / "unit" / "coverage-waivers.json"
 PROPOSALS_FILE = ROOT / "unit" / "coverage-waiver-proposals.json"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 UNIT_WORKFLOW = ROOT / ".github" / "workflows" / "unit-tests.yml"
-MODERN_CMAKE = ROOT / "CMakeLists.txt"
+MODERN_CMAKE = ROOT / "src" / "CMakeLists.txt"
 DOS_CMAKE = ROOT / "dos" / "CMakeLists.txt"
 PROPOSED_WAIVER_FLAG = "--allow-proposed-coverage-waivers"
 
@@ -29,7 +29,7 @@ UNIT_PLATFORMS = {"unix", "windows", "dos16", "dos32"}
 
 
 def cmake_first_party_sources(modern: str, dos: str) -> set[str]:
-    """Extract root C/assembly library inputs from the build manifests."""
+    """Extract repository-relative C/assembly library build inputs."""
     sources = set()
     for text, variable in ((modern, "OPENDOORS_SOURCES"),
                            (dos, "OPENDOORS_DOS_SOURCES")):
@@ -39,11 +39,19 @@ def cmake_first_party_sources(modern: str, dos: str) -> set[str]:
             rf"list\s*\(\s*APPEND\s+{variable}\s+(.*?)\)",
             text, re.DOTALL)
         for block in blocks:
-            sources.update(re.findall(
-                r"(?:\$\{OPENDOORS_ROOT\}/)?"
-                r"([A-Za-z0-9_]+\.(?:c|asm))\b", block))
+            found = re.findall(
+                r"(?:\$\{(?:OPENDOORS_ROOT|OPENDOORS_SOURCE_DIR|"
+                r"PROJECT_SOURCE_DIR)\}/)?"
+                r"([A-Za-z0-9_./-]+\.(?:c|asm))\b", block)
+            sources.update(path if "/" in path else f"src/{path}"
+                           for path in found)
+    sources.update(
+        f"src/{path}" for path in re.findall(
+            r"\$\{OPENDOORS_SOURCE_DIR\}/"
+            r"([A-Za-z0-9_.-]+\.(?:c|asm))\b", dos))
     sources.update(re.findall(
-        r"\$\{OPENDOORS_ROOT\}/([A-Za-z0-9_]+\.(?:c|asm))\b", dos))
+        r"\$\{OPENDOORS_ROOT\}/(src/[A-Za-z0-9_.-]+\.(?:c|asm))\b",
+        dos))
     return sources
 
 

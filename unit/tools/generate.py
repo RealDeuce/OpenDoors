@@ -86,6 +86,14 @@ HEADER_MOCK_DECLARATIONS = {
 }
 
 
+def manifest_source(source: Path) -> str:
+    """Return a stable repository-relative source identity when possible."""
+    try:
+        return source.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        return source.name
+
+
 def embedded_case(case: Path, stack: tuple[Path, ...] = ()) -> str:
     """Embed a case and its case-local quoted includes for DOS staging."""
     case = case.resolve()
@@ -431,7 +439,7 @@ def generate(source: Path, target_name: str, case: Path, output: Path,
     ])
     metadata = json.dumps({
         "version": 1,
-        "source": source.name,
+        "source": manifest_source(source),
         "function": target_name,
         "decisions": decision_metadata,
         "branches": branch_metadata,

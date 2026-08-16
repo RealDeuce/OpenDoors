@@ -29,6 +29,11 @@ from run import (analyzer_platform_flags, coverage_disposition,
 
 
 class DosObjectNamingTests(unittest.TestCase):
+    def test_native_label_drops_source_directory(self):
+        self.assertEqual(
+            run_module.unit_test_label("src/ODAuto.c", "od_autodetect"),
+            "ODAuto-od_autodetect")
+
     def test_default_runtime_timeout_accommodates_the_full_dos_suite(self):
         self.assertEqual(DEFAULT_DOS_TIMEOUT, 900)
 

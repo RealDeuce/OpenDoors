@@ -6,6 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import generate as generate_module  # noqa: E402
 from clang_model import Callable, Variable  # noqa: E402
 from generate import (default_mock, early_alias_macros,
                       early_mock_declarations, embedded_case,
@@ -18,6 +19,11 @@ from inventory import ROOT  # noqa: E402
 
 
 class IncludedImplementationTests(unittest.TestCase):
+    def test_repository_source_identity_preserves_its_directory(self):
+        self.assertEqual(
+            generate_module.manifest_source(ROOT / "src" / "ODAuto.c"),
+            "src/ODAuto.c")
+
     def test_emits_an_unmodified_boolean_tree_for_llvm_coverage(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

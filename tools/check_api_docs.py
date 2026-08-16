@@ -11,8 +11,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-HEADER = ROOT / "OpenDoor.h"
-PERSONALITY_HEADER = ROOT / "ODStat.h"
+HEADER = ROOT / "include" / "OpenDoor.h"
+PERSONALITY_HEADER = ROOT / "include" / "ODStat.h"
 API_DIR = ROOT / "docs" / "reference" / "api"
 PERSONALITY_DIR = ROOT / "docs" / "reference" / "personality"
 CONTROL_DIR = ROOT / "docs" / "reference" / "control"

@@ -20,6 +20,13 @@ function(opendoors_example name)
     add_executable(${name} ${ARGN})
     target_link_libraries(${name}
         PRIVATE OpenDoors::${OPENDOORS_EXAMPLE_VARIANT})
+    add_custom_command(TARGET ${name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/data/door.cfg"
+            "$<TARGET_FILE_DIR:${name}>/door.cfg"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/data/DORINFO1.DEF"
+            "$<TARGET_FILE_DIR:${name}>/DORINFO1.DEF")
 endfunction()
 
 foreach(example IN ITEMS ex_chat ex_diag ex_hello ex_music ex_ski)

@@ -27,6 +27,7 @@ class WineCTestTests(unittest.TestCase):
 
             marker = directory / "xvfb-started"
             wine_log = directory / "wine.log"
+            winepath_log = directory / "winepath.log"
             make_executable(
                 binaries / "Xvfb",
                 "#!/bin/sh\n"
@@ -53,6 +54,7 @@ class WineCTestTests(unittest.TestCase):
                 binaries / "ctest",
                 "#!/bin/sh\n"
                 "test \"$DISPLAY\" = :197\n"
+                "printf '%s' \"$WINEPATH\" >\"$WINE_CTEST_WINEPATH_LOG\"\n"
                 "printf 'minidump' >\"$WINE_CTEST_FAKE_TEMP/WD1234.tmp\"\n"
                 "exit 7\n")
 
@@ -60,12 +62,14 @@ class WineCTestTests(unittest.TestCase):
             environment["PATH"] = str(binaries) + os.pathsep + environment["PATH"]
             environment["WINE_CTEST_XVFB_MARKER"] = str(marker)
             environment["WINE_CTEST_WINE_LOG"] = str(wine_log)
+            environment["WINE_CTEST_WINEPATH_LOG"] = str(winepath_log)
             environment["WINE_CTEST_FAKE_TEMP"] = str(wine_temp)
 
             result = subprocess.run(
                 [str(ROOT / "tools" / "wine-ctest"),
                  "--display", ":197", "--wine", str(binaries / "wine"),
                  "--prefix", str(prefix), "--artifacts", str(artifacts),
+                 "--dll-directory", str(binaries),
                  "--test-dir", "build/wine"],
                 cwd=ROOT, env=environment, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, timeout=5)
@@ -82,6 +86,8 @@ class WineCTestTests(unittest.TestCase):
             self.assertIn("reg add", wine_calls)
             self.assertIn("winedbg --minidump %ld %ld", wine_calls)
             self.assertIn("reg import", wine_calls)
+            self.assertEqual(winepath_log.read_text(),
+                             "Z:" + str(binaries).replace("/", "\\"))
 
 
 if __name__ == "__main__":

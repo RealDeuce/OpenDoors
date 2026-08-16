@@ -18,22 +18,23 @@ class ConfigurationValidationTests(unittest.TestCase):
     def test_extracts_first_party_sources_from_both_build_manifests(self):
         modern = """\
 set(OPENDOORS_SOURCES
-    ODAuto.c
+    src/ODAuto.c
 )
-list(APPEND OPENDOORS_SOURCES ODFrame.c ODRes.rc)
+list(APPEND OPENDOORS_SOURCES src/ODFrame.c src/ODRes.rc)
 """
         dos = """\
 set(OPENDOORS_DOS_SOURCES
-    ODAuto.c
-    ODDos.c
+    ${OPENDOORS_ROOT}/src/ODAuto.c
+    ${OPENDOORS_ROOT}/src/ODDos.c
 )
 list(APPEND OPENDOORS_DOS_SOURCES
-    \"${OPENDOORS_ROOT}/OD32Foss.c\")
-DEPENDS \"${OPENDOORS_ROOT}/ODSwap.asm\"
+    \"${OPENDOORS_SOURCE_DIR}/OD32Foss.c\")
+DEPENDS \"${OPENDOORS_SOURCE_DIR}/ODSwap.asm\"
+add_executable(smoke \"${OPENDOORS_ROOT}/tests/link_smoke.c\")
 """
         self.assertEqual(cmake_first_party_sources(modern, dos), {
-            "ODAuto.c", "ODFrame.c", "ODDos.c", "OD32Foss.c",
-            "ODSwap.asm",
+            "src/ODAuto.c", "src/ODFrame.c", "src/ODDos.c",
+            "src/OD32Foss.c", "src/ODSwap.asm",
         })
 
     def test_validates_source_platform_native_flags(self):

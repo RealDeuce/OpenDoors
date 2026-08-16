@@ -2,7 +2,7 @@
   "version": 1,
   "sources": [
     {
-      "path": "ODAuto.c",
+      "path": "src/ODAuto.c",
       "platforms": [
         "unix",
         "windows",
@@ -52,7 +52,7 @@
       ]
     },
     {
-      "path": "ODBlock.c",
+      "path": "src/ODBlock.c",
       "platforms": [
         "unix",
         "windows",
@@ -167,7 +167,7 @@
       ]
     },
     {
-      "path": "ODCFile.c",
+      "path": "src/ODCFile.c",
       "platforms": [
         "unix",
         "windows",
@@ -256,7 +256,7 @@
       ]
     },
     {
-      "path": "ODCmdLn.c",
+      "path": "src/ODCmdLn.c",
       "platforms": [
         "unix",
         "windows",
@@ -422,7 +422,7 @@
       ]
     },
     {
-      "path": "ODCom.c",
+      "path": "src/ODCom.c",
       "platforms": [
         "unix",
         "windows",
@@ -909,7 +909,7 @@
       ]
     },
     {
-      "path": "ODConsole.c",
+      "path": "src/ODConsole.c",
       "platforms": [
         "windows"
       ],
@@ -987,7 +987,7 @@
       ]
     },
     {
-      "path": "ODCore.c",
+      "path": "src/ODCore.c",
       "platforms": [
         "unix",
         "windows",
@@ -1362,7 +1362,7 @@
       ]
     },
     {
-      "path": "ODDrBox.c",
+      "path": "src/ODDrBox.c",
       "platforms": [
         "unix",
         "windows",
@@ -1386,7 +1386,7 @@
       ]
     },
     {
-      "path": "ODEdit.c",
+      "path": "src/ODEdit.c",
       "platforms": [
         "unix",
         "windows",
@@ -1839,7 +1839,7 @@
       ]
     },
     {
-      "path": "ODEdStr.c",
+      "path": "src/ODEdStr.c",
       "platforms": [
         "unix",
         "windows",
@@ -1915,7 +1915,7 @@
       ]
     },
     {
-      "path": "ODEmu.c",
+      "path": "src/ODEmu.c",
       "platforms": [
         "unix",
         "windows",
@@ -2121,7 +2121,7 @@
       ]
     },
     {
-      "path": "ODFormat.c",
+      "path": "src/ODFormat.c",
       "platforms": [
         "unix",
         "windows",
@@ -2145,7 +2145,7 @@
       ]
     },
     {
-      "path": "ODFmtFB.c",
+      "path": "src/ODFmtFB.c",
       "platforms": [
         "unix",
         "windows",
@@ -2169,7 +2169,7 @@
       ]
     },
     {
-      "path": "ODGetIn.c",
+      "path": "src/ODGetIn.c",
       "platforms": [
         "unix",
         "windows",
@@ -2310,7 +2310,7 @@
       ]
     },
     {
-      "path": "ODGraph.c",
+      "path": "src/ODGraph.c",
       "platforms": [
         "unix",
         "windows",
@@ -2360,7 +2360,7 @@
       ]
     },
     {
-      "path": "ODInEx1.c",
+      "path": "src/ODInEx1.c",
       "platforms": [
         "unix",
         "windows",
@@ -2554,7 +2554,7 @@
       ]
     },
     {
-      "path": "ODInEx2.c",
+      "path": "src/ODInEx2.c",
       "platforms": [
         "unix",
         "windows",
@@ -2819,7 +2819,7 @@
       ]
     },
     {
-      "path": "ODInQue.c",
+      "path": "src/ODInQue.c",
       "platforms": [
         "unix",
         "windows",
@@ -2999,7 +2999,7 @@
       ]
     },
     {
-      "path": "ODKrnl.c",
+      "path": "src/ODKrnl.c",
       "platforms": [
         "unix",
         "windows",
@@ -3336,7 +3336,7 @@
       ]
     },
     {
-      "path": "ODList.c",
+      "path": "src/ODList.c",
       "platforms": [
         "unix",
         "windows",
@@ -3412,7 +3412,7 @@
       ]
     },
     {
-      "path": "ODLog.c",
+      "path": "src/ODLog.c",
       "platforms": [
         "unix",
         "windows",
@@ -3514,7 +3514,7 @@
       ]
     },
     {
-      "path": "ODMulti.c",
+      "path": "src/ODMulti.c",
       "platforms": [
         "unix",
         "windows",
@@ -3617,7 +3617,7 @@
       ]
     },
     {
-      "path": "ODPlat.c",
+      "path": "src/ODPlat.c",
       "platforms": [
         "unix",
         "windows",
@@ -4040,7 +4040,7 @@
       ]
     },
     {
-      "path": "ODPCB.c",
+      "path": "src/ODPCB.c",
       "platforms": [
         "unix",
         "windows",
@@ -4064,7 +4064,7 @@
       ]
     },
     {
-      "path": "ODPopup.c",
+      "path": "src/ODPopup.c",
       "platforms": [
         "unix",
         "windows",
@@ -4114,7 +4114,7 @@
       ]
     },
     {
-      "path": "ODPrntf.c",
+      "path": "src/ODPrntf.c",
       "platforms": [
         "unix",
         "windows",
@@ -4138,7 +4138,7 @@
       ]
     },
     {
-      "path": "ODRA.c",
+      "path": "src/ODRA.c",
       "platforms": [
         "unix",
         "windows",
@@ -4210,7 +4210,7 @@
       ]
     },
     {
-      "path": "ODRsv.c",
+      "path": "src/ODRsv.c",
       "platforms": [
         "unix",
         "windows",
@@ -4572,7 +4572,7 @@
       ]
     },
     {
-      "path": "ODSafe.c",
+      "path": "src/ODSafe.c",
       "platforms": [
         "unix",
         "windows",
@@ -4609,7 +4609,7 @@
       ]
     },
     {
-      "path": "ODScrn.c",
+      "path": "src/ODScrn.c",
       "platforms": [
         "unix",
         "windows",
@@ -5529,7 +5529,7 @@
       ]
     },
     {
-      "path": "ODSpawn.c",
+      "path": "src/ODSpawn.c",
       "platforms": [
         "unix",
         "windows",
@@ -5731,7 +5731,7 @@
       ]
     },
     {
-      "path": "ODStand.c",
+      "path": "src/ODStand.c",
       "platforms": [
         "unix",
         "windows",
@@ -5755,7 +5755,7 @@
       ]
     },
     {
-      "path": "ODStat.c",
+      "path": "src/ODStat.c",
       "platforms": [
         "unix",
         "windows",
@@ -5817,7 +5817,7 @@
       ]
     },
     {
-      "path": "ODStr.c",
+      "path": "src/ODStr.c",
       "platforms": [
         "unix"
       ],
@@ -5845,7 +5845,7 @@
       ]
     },
     {
-      "path": "ODSync.c",
+      "path": "src/ODSync.c",
       "platforms": [
         "unix",
         "windows",
@@ -6051,7 +6051,7 @@
       ]
     },
     {
-      "path": "ODUtil.c",
+      "path": "src/ODUtil.c",
       "platforms": [
         "unix",
         "windows",
@@ -6205,7 +6205,7 @@
       ]
     },
     {
-      "path": "ODWCat.c",
+      "path": "src/ODWCat.c",
       "platforms": [
         "unix",
         "windows",
@@ -6229,7 +6229,7 @@
       ]
     },
     {
-      "path": "ODWin.c",
+      "path": "src/ODWin.c",
       "platforms": [
         "unix",
         "windows",
@@ -6266,7 +6266,7 @@
       ]
     },
     {
-      "path": "ODFrame.c",
+      "path": "src/ODFrame.c",
       "platforms": [
         "windows"
       ],
@@ -6554,7 +6554,7 @@
       ]
     },
     {
-      "path": "OD32DPMI.c",
+      "path": "src/OD32DPMI.c",
       "platforms": [
         "dos32"
       ],
@@ -6572,7 +6572,7 @@
       ]
     },
     {
-      "path": "OD32Foss.c",
+      "path": "src/OD32Foss.c",
       "platforms": [
         "dos32"
       ],
@@ -6740,7 +6740,7 @@
       ]
     },
     {
-      "path": "ODSwap.asm",
+      "path": "src/ODSwap.asm",
       "platforms": [
         "dos16"
       ],

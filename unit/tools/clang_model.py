@@ -416,7 +416,9 @@ def switches_in(body: dict[str, object], text: str, body_start: int,
 
 def run_ast(source: Path, clang: str, flags: list[str],
             text: str | None = None) -> dict[str, object]:
-    command = [clang, *flags, "-iquote", str(source.parent), "-I", str(ROOT),
+    command = [clang, *flags, "-iquote", str(source.parent),
+               "-I", str(ROOT / "include"), "-I", str(ROOT / "src"),
+               "-I", str(ROOT),
                "-Xclang", "-ast-dump=json", "-fsyntax-only"]
     if text is None:
         command.append(str(source))

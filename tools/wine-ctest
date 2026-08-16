@@ -6,7 +6,7 @@ set -eu
 
 usage()
 {
-   echo "usage: tools/wine-ctest --display :N --wine PATH --prefix PATH --artifacts DIR [ctest arguments ...]" >&2
+   echo "usage: tools/wine-ctest --display :N --wine PATH --prefix PATH --artifacts DIR [--dll-directory DIR] [ctest arguments ...]" >&2
    exit 2
 }
 
@@ -14,10 +14,11 @@ test_display=
 wine_command=
 wine_prefix=
 artifact_directory=
+dll_directory=
 
 while [ "$#" -gt 0 ]; do
    case "$1" in
-      --display|--wine|--prefix|--artifacts)
+      --display|--wine|--prefix|--artifacts|--dll-directory)
          [ "$#" -ge 2 ] || usage
          option=$1
          value=$2
@@ -27,6 +28,7 @@ while [ "$#" -gt 0 ]; do
             --wine) wine_command=$value ;;
             --prefix) wine_prefix=$value ;;
             --artifacts) artifact_directory=$value ;;
+            --dll-directory) dll_directory=$value ;;
          esac
          ;;
       *) break ;;
@@ -84,6 +86,21 @@ wine_z_path()
    printf 'Z:'
    printf '%s' "$1" | sed 's,/,\\,g'
 }
+
+if [ -n "$dll_directory" ]; then
+   [ -d "$dll_directory" ] || {
+      echo "tools/wine-ctest: DLL directory not found: $dll_directory" >&2
+      exit 1
+   }
+   dll_directory=$(cd "$dll_directory" && pwd)
+   dll_directory_win=$(wine_z_path "$dll_directory")
+   if [ -n "${WINEPATH-}" ]; then
+      WINEPATH=$dll_directory_win\;$WINEPATH
+   else
+      WINEPATH=$dll_directory_win
+   fi
+   export WINEPATH
+fi
 
 registry_backup_win=$(wine_z_path "$registry_backup")
 aedebug_key='HKLM\Software\Microsoft\Windows NT\CurrentVersion\AeDebug'

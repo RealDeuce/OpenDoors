@@ -12,7 +12,7 @@ class InventoryTests(unittest.TestCase):
     def test_function_platform_override(self):
         inventory = build_inventory()
         source = next(item for item in inventory["sources"]
-                      if item["path"] == "ODStat.c")
+                      if item["path"] == "src/ODStat.c")
         function = next(item for item in source["functions"]
                         if item["name"] == "ODStatForceStatusUpdate")
         self.assertEqual(function["platforms"],
@@ -21,8 +21,8 @@ class InventoryTests(unittest.TestCase):
     def test_guarded_platform_helpers_have_explicit_platforms(self):
         inventory = build_inventory()
         expected = {
-            ("ODPlat.c", "ODPlatYield"): ["dos16"],
-            ("ODSpawn.c", "ODUnixExecProgram"): ["unix"],
+            ("src/ODPlat.c", "ODPlatYield"): ["dos16"],
+            ("src/ODSpawn.c", "ODUnixExecProgram"): ["unix"],
         }
         actual = {}
         for source in inventory["sources"]:
@@ -35,7 +35,7 @@ class InventoryTests(unittest.TestCase):
     def test_win32_screen_helpers_are_windows_only(self):
         inventory = build_inventory()
         source = next(item for item in inventory["sources"]
-                      if item["path"] == "ODScrn.c")
+                      if item["path"] == "src/ODScrn.c")
         expected = {
             "ODScrnCreateWin", "ODScrnWindowProc", "ODScrnPaint",
             "ODScrnInvalidate", "ODScrnPublish", "ODScrnSetCurrentFont",
@@ -51,7 +51,7 @@ class InventoryTests(unittest.TestCase):
     def test_text_window_helpers_include_console_windows(self):
         inventory = build_inventory()
         source = next(item for item in inventory["sources"]
-                      if item["path"] == "ODScrn.c")
+                      if item["path"] == "src/ODScrn.c")
         expected = {"ODScrnCreateWindow", "ODScrnDestroyWindow"}
         actual = {item["name"]: item["platforms"]
                   for item in source["functions"] if item["name"] in expected}
@@ -63,7 +63,7 @@ class InventoryTests(unittest.TestCase):
     def test_text_mode_local_input_includes_console_windows(self):
         inventory = build_inventory()
         source = next(item for item in inventory["sources"]
-                      if item["path"] == "ODScrn.c")
+                      if item["path"] == "src/ODScrn.c")
         function = next(item for item in source["functions"]
                         if item["name"] == "ODScrnLocalInput")
         self.assertEqual(function["platforms"],
@@ -72,7 +72,7 @@ class InventoryTests(unittest.TestCase):
     def test_kernel_ui_queue_helper_is_windows_only(self):
         inventory = build_inventory()
         source = next(item for item in inventory["sources"]
-                      if item["path"] == "ODKrnl.c")
+                      if item["path"] == "src/ODKrnl.c")
         platforms = {item["name"]: item["platforms"]
                      for item in source["functions"]}
         self.assertEqual(platforms["ODKrnlRequestShutdown"], ["windows"])
@@ -158,7 +158,7 @@ void second(void) { }
                          ["first", "second"])
 
     def test_discovers_every_odgetin_definition(self):
-        source = (ROOT / "ODGetIn.c").read_text(encoding="latin-1")
+        source = (ROOT / "src" / "ODGetIn.c").read_text(encoding="latin-1")
         self.assertEqual([item.name for item in scan_c(source)], [
             "ODGetInputWait", "ODGetInputDeadlineSlice",
             "ODGetInputWaitUntil", "ODGetInputCore", "od_get_input",

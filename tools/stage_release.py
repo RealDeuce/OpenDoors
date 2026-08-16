@@ -67,8 +67,8 @@ def dos(args):
     (destination / "include").mkdir()
     (destination / "lib").mkdir()
     (destination / "share" / "licenses" / "OpenDoors").mkdir(parents=True)
-    shutil.copy2(ROOT / "OpenDoor.h", destination / "include")
-    shutil.copy2(ROOT / "ODStat.h", destination / "include")
+    shutil.copy2(ROOT / "include" / "OpenDoor.h", destination / "include")
+    shutil.copy2(ROOT / "include" / "ODStat.h", destination / "include")
     shutil.copy2(args.library, destination / "lib" / "ODOORL.LIB")
     shutil.copy2(ROOT / "LICENSE",
                  destination / "share" / "licenses" / "OpenDoors")
@@ -88,8 +88,8 @@ def dos32(args):
     examples.mkdir()
     licenses.mkdir()
 
-    shutil.copy2(ROOT / "OpenDoor.h", include)
-    shutil.copy2(ROOT / "ODStat.h", include)
+    shutil.copy2(ROOT / "include" / "OpenDoor.h", include)
+    shutil.copy2(ROOT / "include" / "ODStat.h", include)
     shutil.copy2(args.register_library, libraries / "ODOOR32R.LIB")
     shutil.copy2(args.stack_library, libraries / "ODOOR32S.LIB")
     examples_source = Path(args.examples_directory)
@@ -156,13 +156,17 @@ def companion(args):
     reset_directory(destination)
     shutil.copytree(site, destination / "docs")
     examples = destination / "examples"
+    example_data = examples / "data"
     personalities = examples / "personalities"
     personalities.mkdir(parents=True)
+    example_data.mkdir()
 
     for name in EXAMPLE_SOURCES:
-        shutil.copy2(ROOT / name, examples / name)
+        shutil.copy2(ROOT / "examples" / name, examples / name)
     for name in PERSONALITY_SOURCES:
-        shutil.copy2(ROOT / name, personalities / name)
+        shutil.copy2(ROOT / "src" / name, personalities / name)
+    for name in ("door.cfg", "DORINFO1.DEF"):
+        shutil.copy2(ROOT / "examples" / "data" / name, example_data / name)
     shutil.copy2(ROOT / "release" / "examples" / "CMakeLists.txt", examples)
     shutil.copy2(ROOT / "release" / "examples" / "README.md", examples)
     shutil.copy2(ROOT / "LICENSE", destination / "LICENSE")

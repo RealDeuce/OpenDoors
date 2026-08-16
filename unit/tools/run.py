@@ -99,6 +99,11 @@ def executable_suffix(platform: str) -> str:
     return ""
 
 
+def unit_test_label(source: str, function: str) -> str:
+    """Return a filesystem-safe descriptive stem for a non-DOS unit."""
+    return Path(source).stem + "-" + function
+
+
 def llvm_coverage_supported(platform: str) -> bool:
     """Return whether this platform receives the host LLVM coverage run."""
     return platform == "unix"
@@ -801,7 +806,10 @@ def main() -> int:
         args.windows_architecture, args.windows_abi)
     if args.platform in {"unix", "windows"}:
         common_flags = [*native_compile_flags(args.platform),
-                        "-I", str(ROOT), "-I", str(ROOT / "unit" / "framework"),
+                        "-I", str(ROOT / "include"),
+                        "-I", str(ROOT / "src"),
+                        "-I", str(ROOT),
+                        "-I", str(ROOT / "unit" / "framework"),
                         *native_platform_flags, *windows_architecture_flags,
                         "-DHAS_INTTYPES_H",
                         "-DOPENDOORS_HAVE_VSNPRINTF=1", *args.native_flag]
@@ -822,7 +830,7 @@ def main() -> int:
     for test in tests:
         configuration = test["configuration"]
         configuration_name = configuration["name"]
-        label = test["source"].rsplit(".", 1)[0] + "-" + test["function"]
+        label = unit_test_label(test["source"], test["function"])
         if configuration_name != "default":
             label += "-" + configuration_name
         stem = label
@@ -905,6 +913,8 @@ def main() -> int:
                 "-zq", "-za99", "-we",
                 "-dOPENDOORS_HAVE_VSNPRINTF=1",
                 *preprocessor_flags(configuration, watcom=True),
+                "-i=" + str(ROOT / "include"),
+                "-i=" + str(ROOT / "src"),
                 "-i=" + str(ROOT),
                 "-i=" + str(ROOT / "unit" / "framework"),
                 "-fe=" + executable.name, str(FRAMEWORK), generated.name,

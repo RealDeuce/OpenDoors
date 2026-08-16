@@ -297,7 +297,7 @@ format when the parser and the BBS provide explicit paths.
 
 ### Testing with the sample drop file
 
-The source tree contains `DORINFO1.DEF`, a local test record. Its twelve lines
+The source tree contains `examples/data/DORINFO1.DEF`, a local test record. Its twelve lines
 contain, in order, the BBS name, sysop first and last names, port description,
 communications description, a legacy unused field, caller first and last
 names, caller location, ANSI setting, security level, and minutes remaining.

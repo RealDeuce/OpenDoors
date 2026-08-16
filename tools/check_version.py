@@ -36,20 +36,21 @@ def main():
     abi = f"{major}{minor}"
     encoded = f"0x{major:X}{minor:X}{patch:X}"
 
-    require(rf"^#define OD_VERSION\s+{re.escape(encoded)}$", "OpenDoor.h",
+    require(rf"^#define OD_VERSION\s+{re.escape(encoded)}$", "include/OpenDoor.h",
             "OD_VERSION")
-    require(rf'^#define OD_DLL_NAME\s+"ODOORS{abi}"$', "ODGen.h",
+    require(rf'^#define OD_DLL_NAME\s+"ODOORS{abi}"$', "src/ODGen.h",
             "OD_DLL_NAME")
-    require(rf"OpenDoors {re.escape(compact)}", "ODGen.h",
+    require(rf"OpenDoors {re.escape(compact)}", "src/ODGen.h",
             "compact version text")
-    require(rf"OpenDoors {re.escape(compact)}", "ODRes.rc",
+    require(rf"OpenDoors {re.escape(compact)}", "src/ODRes.rc",
             "resource version text")
-    require(rf"^OpenDoors {re.escape(compact)}\b", "FILE_ID.DIZ",
+    require(rf"^OpenDoors {re.escape(compact)}\b", "release/FILE_ID.DIZ",
             "FILE_ID.DIZ version")
 
     for definition in ("OpenDoor.def", "OpenDoor64.def", "OpenDoorMinGW.def"):
-        require(rf"^LIBRARY ODOORS{abi}$", definition, "DLL ABI name")
-        require(rf"^VERSION {major}\.{minor}$", definition, "DLL version")
+        path = f"src/{definition}"
+        require(rf"^LIBRARY ODOORS{abi}$", path, "DLL ABI name")
+        require(rf"^VERSION {major}\.{minor}$", path, "DLL version")
 
     if args.tag is not None:
         tag_pattern = rf"v{re.escape(version)}(?:-rc[1-9][0-9]*)?"

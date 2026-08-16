@@ -8,7 +8,7 @@ import json
 import re
 from pathlib import Path
 
-from generate import embedded_case
+from generate import embedded_case, manifest_source
 from inventory import scan_asm
 
 
@@ -515,7 +515,7 @@ def generate(source: Path, target: str, case: Path, c_output: Path,
     mock_kernel_jump = "UT_ASM_MOCK_KERNEL_JUMP" in case_text
     assembly, model = render_assembly(
         text, target, code_words, external_ranges, mock_kernel_jump)
-    model["source"] = source.name
+    model["source"] = manifest_source(source)
     c_output.write_text(render_case(
         case, len(model["assembly_branches"]),
         model["assembly_procedures"]), encoding="latin-1")

@@ -61,7 +61,7 @@ Run one function, one source, or all registered UNIX cases:
 PYTHONDONTWRITEBYTECODE=1 python3 unit/tools/run.py --coverage \
     --function od_autodetect
 PYTHONDONTWRITEBYTECODE=1 python3 unit/tools/run.py --coverage \
-    --source ODAuto.c
+    --source src/ODAuto.c
 PYTHONDONTWRITEBYTECODE=1 python3 unit/tools/run.py --coverage
 ```
 

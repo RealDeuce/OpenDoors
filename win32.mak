@@ -84,7 +84,7 @@ RC=rc
 #
 # /c /W3 /D "WIN32" /D "_WINDOWS"  - For Microsoft compilers
 #
-CFLAGS=/nologo /MT /W3 /GX /O2 /D "WIN32" /D "_WINDOWS" /c /D "_CRT_NONSTDC_NO_WARNINGS" /D "OPENDOORS_USE_DEF_EXPORTS"
+CFLAGS=/nologo /MT /W3 /GX /O2 /Iinclude /Isrc /D "WIN32" /D "_WINDOWS" /c /D "_CRT_NONSTDC_NO_WARNINGS" /D "OPENDOORS_USE_DEF_EXPORTS"
 # /MTd /Zi - for debug
 #
 #------------------------------------------------------------------------------
@@ -104,8 +104,9 @@ LINKFLAGS=kernel32.lib user32.lib gdi32.lib advapi32.lib shell32.lib wsock32.lib
 # Output directories. customize for your own preferences. Note that trailing
 # backslash (\) characters are required.
 #
-SOURCEDIR=.\                                               # Comments required
-ODHEADERDIR=.\                                             # in order to
+SOURCEDIR=src\                                             # Comments required
+ODHEADERDIR=include\                                       # in order to
+HEADERDIR=src\                                             # concatenate
 OBJDIR=.\ 	# was ..\obj                               # avoid line
 LIBDIR=.\       # was ..\lib                          	   # concatentation
 #
@@ -139,13 +140,13 @@ HEADERS= $(HEADERDIR)ODCom.h\
          $(HEADERDIR)ODRsv.h\
          $(HEADERDIR)ODSafe.h\
          $(HEADERDIR)ODScrn.h\
-         $(HEADERDIR)ODStat.h\
+         $(ODHEADERDIR)ODStat.h\
          $(HEADERDIR)ODSwap.h\
          $(HEADERDIR)ODSync.h\
          $(HEADERDIR)ODTypes.h\
          $(HEADERDIR)ODUtil.h\
          $(HEADERDIR)ODVScrn.h\
-         $(HEADERDIR)OpenDoor.h
+         $(ODHEADERDIR)OpenDoor.h
 #
 #------------------------------------------------------------------------------
 #

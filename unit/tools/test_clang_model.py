@@ -48,7 +48,7 @@ class ClangModelTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.model = build_model(ROOT / "ODAuto.c")
+        cls.model = build_model(ROOT / "src" / "ODAuto.c")
 
     def test_discovers_public_and_static_definitions(self):
         self.assertEqual([item.name for item in self.model],
@@ -64,13 +64,13 @@ class ClangModelTests(unittest.TestCase):
                          {"bODInitialized", "eODLifecycleState", "od_control"})
 
     def test_pointer_returning_dependency_is_retained(self):
-        block = build_model(ROOT / "ODBlock.c")
+        block = build_model(ROOT / "src" / "ODBlock.c")
         target = next(item for item in block if item.name == "od_puttext")
         malloc = next(item for item in target.functions if item.name == "malloc")
         self.assertEqual(malloc.result, "void *")
 
     def test_header_inline_dependency_is_not_emitted_as_mock(self):
-        definitions = build_model(ROOT / "ODCFile.c")
+        definitions = build_model(ROOT / "src" / "ODCFile.c")
         target = next(item for item in definitions
                       if item.name == "ODCfgGetWordHex")
         self.assertNotIn("__sbtoupper",
@@ -79,7 +79,7 @@ class ClangModelTests(unittest.TestCase):
     def test_included_c_implementation_is_emitted_as_mock_dependency(self):
         flags = ["-std=c89", "-D__unix__", "-DHAS_INTTYPES_H",
                  "-UOPENDOORS_HAVE_VSNPRINTF"]
-        definitions = build_model(ROOT / "ODFmtFB.c", flags=flags)
+        definitions = build_model(ROOT / "src" / "ODFmtFB.c", flags=flags)
         target = next(item for item in definitions
                       if item.name == "ODFallbackVsnprintf")
         self.assertIn("trio_vsnprintf",
@@ -129,7 +129,7 @@ class ClangModelTests(unittest.TestCase):
             self.assertEqual(target.signature_line, 6)
 
     def test_runtime_library_objects_are_not_redefined(self):
-        definitions = build_model(ROOT / "ODCmdLn.c")
+        definitions = build_model(ROOT / "src" / "ODCmdLn.c")
         target = next(item for item in definitions
                       if item.name == "ODParseCommandLineArguments")
         names = {item.name for item in target.variables}
@@ -137,7 +137,7 @@ class ClangModelTests(unittest.TestCase):
         self.assertIn("od_control", names)
 
     def test_variadic_language_builtins_are_not_mock_dependencies(self):
-        definitions = build_model(ROOT / "ODPrntf.c")
+        definitions = build_model(ROOT / "src" / "ODPrntf.c")
         target = next(item for item in definitions if item.name == "od_printf")
         names = {item.name for item in target.functions}
         self.assertNotIn("__builtin_va_start", names)
@@ -154,7 +154,7 @@ class ClangModelTests(unittest.TestCase):
         self.assertTrue(all(item.start < item.end for item in wait.decisions))
 
     def test_object_like_macro_at_condition_edge_is_instrumented(self):
-        source = ROOT / "ODInQue.c"
+        source = ROOT / "src" / "ODInQue.c"
         text = source.read_text(encoding="latin-1")
         definitions = build_model(source)
         target = next(item for item in definitions
@@ -166,7 +166,7 @@ class ClangModelTests(unittest.TestCase):
         self.assertIn("pInputQueueInfo != NULL", expressions)
 
     def test_leading_static_state_registration_follows_all_declarations(self):
-        source = ROOT / "ODGraph.c"
+        source = ROOT / "src" / "ODGraph.c"
         text = source.read_text(encoding="latin-1")
         target = next(item for item in build_model(source)
                       if item.name == "od_set_cursor")
@@ -177,7 +177,7 @@ class ClangModelTests(unittest.TestCase):
         self.assertEqual(target.state_points[0].names, ["szControlSequence"])
 
     def test_discovers_switch_cases_and_default(self):
-        definitions = build_model(ROOT / "ODCFile.c")
+        definitions = build_model(ROOT / "src" / "ODCFile.c")
         target = next(item for item in definitions if item.name == "ODCfgIsTrue")
         self.assertEqual(len(target.switches), 1)
         self.assertEqual(target.switches[0].expression_type, "int")

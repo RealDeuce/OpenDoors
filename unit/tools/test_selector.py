@@ -47,43 +47,43 @@ static int second(void)
 
     def test_case_owner_supports_c_and_assembler_sources(self):
         self.assertEqual(test_owner("unit/cases/ODAuto/od_autodetect.c"),
-                         ("ODAuto.c", "od_autodetect"))
+                         ("src/ODAuto.c", "od_autodetect"))
         self.assertEqual(test_owner("unit/cases/ODSwap/__xspawn.c"),
-                         ("ODSwap.asm", "__xspawn"))
+                         ("src/ODSwap.asm", "__xspawn"))
 
     def test_case_owner_uses_manifest_for_nonmatching_directory(self):
         self.assertEqual(
             test_owner("unit/cases/ODReserve/ODReserveCountRecords.c"),
-            ("ODRsv.c", "ODReserveCountRecords"))
+            ("src/ODRsv.c", "ODReserveCountRecords"))
 
     def test_shared_case_support_selects_its_complete_source(self):
         self.assertEqual(case_source("unit/cases/ODLog/errno_mock.h"),
-                         "ODLog.c")
+                         "src/ODLog.c")
         self.assertIsNone(case_source("unit/cases/unknown/helper.h"))
 
     def test_fixture_change_selects_each_registered_consumer(self):
         tests = [
-            {"source": "ODCom.c", "function": "ODComOpen",
+            {"source": "src/ODCom.c", "function": "ODComOpen",
              "configurations": [{
                  "name": "door32",
                  "windows_fixture": "unit/fixtures/door32/door32.c"}]},
-            {"source": "ODCom.c", "function": "ODComGetByte",
+            {"source": "src/ODCom.c", "function": "ODComGetByte",
              "configurations": [{
                  "name": "fossil",
                  "dos_tsr_fixture": "tests/fossil_tsr.asm"}]},
-            {"source": "ODCom.c", "function": "unrelated"},
+            {"source": "src/ODCom.c", "function": "unrelated"},
         ]
         self.assertEqual(
             fixture_owners("unit/fixtures/door32/door32.c", tests),
-            {("ODCom.c", "ODComOpen")})
+            {("src/ODCom.c", "ODComOpen")})
         self.assertEqual(
             fixture_owners("tests/fossil_tsr.asm", tests),
-            {("ODCom.c", "ODComGetByte")})
+            {("src/ODCom.c", "ODComGetByte")})
 
     def test_unix_matrix_contains_only_selected_variants(self):
-        self.assertEqual(unix_variants({"windows": ["ODPlat.c"]}),
+        self.assertEqual(unix_variants({"windows": ["src/ODPlat.c"]}),
                          {"platform": []})
-        self.assertEqual(unix_variants({"unix": ["ODLog.c"]}),
+        self.assertEqual(unix_variants({"unix": ["src/ODLog.c"]}),
                          {"platform": ["unix"]})
 
     def test_watcom_matrix_contains_only_selected_memory_models(self):
@@ -91,7 +91,7 @@ static int second(void)
             "include": [{"target": "dos16-large", "platform": "dos16",
                          "toolchain": "watcom16"}]
         })
-        self.assertEqual(watcom_variants({"dos32": ["OD32DPMI.c"]}), {
+        self.assertEqual(watcom_variants({"dos32": ["src/OD32DPMI.c"]}), {
             "include": [
                 {"target": "dos32-register", "platform": "dos32",
                  "toolchain": "watcom32r"},

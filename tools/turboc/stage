@@ -28,14 +28,16 @@ stage_file()
       "$source" > "$destination"
 }
 
-for source in ./*.c ./*.h; do
+for source in src/*.c src/*.h include/*.h examples/*.c examples/*.h; do
    stage_file "$source" "$stage_source/$(basename "$source")"
 done
 for source in third_party/trio/*.c third_party/trio/*.h; do
    stage_file "$source" "$stage_source/TRIO/$(basename "$source")"
 done
 
-stage_file ODSwap.asm "$stage_source/ODSWAP.ASM"
+stage_file src/ODSwap.asm "$stage_source/ODSWAP.ASM"
+stage_file examples/data/door.cfg "$stage_root/OUT/DOOR.CFG"
+stage_file examples/data/DORINFO1.DEF "$stage_root/OUT/DORINFO1.DEF"
 stage_file tests/link_smoke.c "$stage_source/LINKTEST.C"
 stage_file tests/acceptance/public_surface_test.c "$stage_source/APITEST.C"
 stage_file tests/acceptance/test_support.h "$stage_source/ATSUP.H"

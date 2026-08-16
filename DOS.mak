@@ -96,7 +96,7 @@ LIB=tlib
 #   -m$(TARGET) -c -O -G -Z -d -B  - For Borland compilers including Turbo C
 #          /a$(TARGET) /c /nologo  - For Microsoft compilers
 #
-CFLAGS=-m$(TARGET) -c -O -G -Z -d -Ic:\progra~1\tc\include
+CFLAGS=-m$(TARGET) -c -O -G -Z -d -Iinclude -Isrc -Ic:\progra~1\tc\include
 #
 #------------------------------------------------------------------------------
 #
@@ -111,8 +111,9 @@ ADEFLDATA=/dLDATA
 # Output directories. customize for your own preferences. Note that trailing
 # backslash (\) characters are required.
 #
-SOURCEDIR=.\                                               # Comments required
-ODHEADERDIR=.\                                             # in order to
+SOURCEDIR=src\                                             # Comments required
+ODHEADERDIR=include\                                       # in order to
+HEADERDIR=src\                                             # concatenate
 OBJDIR=..\obj\                                             # avoid line
 LIBDIR=..\lib\                                             # concatentation
 #
@@ -145,12 +146,12 @@ HEADERS= $(HEADERDIR)ODCom.h\
          $(HEADERDIR)ODRsv.h\
          $(HEADERDIR)ODSafe.h\
          $(HEADERDIR)ODScrn.h\
-         $(HEADERDIR)ODStat.h\
+         $(ODHEADERDIR)ODStat.h\
          $(HEADERDIR)ODSwap.h\
          $(HEADERDIR)ODSync.h\
          $(HEADERDIR)ODTypes.h\
          $(HEADERDIR)ODUtil.h\
-         $(HEADERDIR)OpenDoor.h
+         $(ODHEADERDIR)OpenDoor.h
 #
 #------------------------------------------------------------------------------
 #
