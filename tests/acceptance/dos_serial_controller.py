@@ -55,29 +55,57 @@ def main() -> int:
         raise RuntimeError(f"DOS acceptance door not found: {door}")
 
     build_directory = door.parent
+    answer = next(
+        (
+            candidate
+            for candidate in (
+                build_directory / "odanswer.exe",
+                build_directory / "ODANSWER.EXE",
+            )
+            if candidate.is_file()
+        ),
+        build_directory / "odanswer.exe",
+    )
     log_path = build_directory / f"dos-serial-{door.stem.lower()}.log"
     failure_path = build_directory / "ODFAIL.TXT"
-    fossil_done_path = build_directory / "FOSDONE.OK"
+    modem_ready_path = build_directory / "MODREADY.OK"
+    batch_path = build_directory / "ODACTEST.BAT"
+    if not answer.is_file():
+        raise RuntimeError(f"DOS modem-answer helper not found: {answer}")
     failure_path.unlink(missing_ok=True)
-    fossil_done_path.unlink(missing_ok=True)
+    modem_ready_path.unlink(missing_ok=True)
+    batch_path.unlink(missing_ok=True)
     create_fixtures(build_directory)
 
-    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    listener.bind(("127.0.0.1", 0))
-    listener.listen(1)
-    port = listener.getsockname()[1]
+    batch_lines = [
+        "@echo off",
+        answer.name,
+        "if errorlevel 1 goto failed",
+        *args.pre_command,
+    ]
+    for scenario in scenarios:
+        batch_lines.extend(
+            (
+                f"{door.name} {scenario}",
+                "if errorlevel 1 goto failed",
+            )
+        )
+    batch_lines.extend(("exit", ":failed", "exit"))
+    batch_path.write_bytes(("\r\n".join(batch_lines) + "\r\n").encode("ascii"))
+
+    reservation = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    reservation.bind(("127.0.0.1", 0))
+    port = reservation.getsockname()[1]
+    reservation.close()
 
     process: subprocess.Popen[bytes] | None = None
     peer: socket.socket | None = None
-    fossil_completed = False
     try:
         with tempfile.TemporaryDirectory(prefix="opendoors-dos-serial-") as temp:
             config = Path(temp) / "dosbox.conf"
             config.write_text(
                 "[serial]\n"
-                f"serial1=nullmodem server:127.0.0.1 port:{port} "
-                "usedtr:1\n",
+                f"serial1=modem listenport:{port}\n",
                 encoding="ascii",
             )
             with log_path.open("wb") as log:
@@ -91,51 +119,36 @@ def main() -> int:
                     "-c",
                     "c:",
                 ]
-                for command in args.pre_command:
-                    commands.extend(("-c", command))
-                for scenario in scenarios:
-                    commands.extend(("-c", f"{door.name} {scenario}"))
-                commands.extend(("-c", "exit"))
+                commands.extend(("-c", batch_path.name))
                 process = subprocess.Popen(
                     commands,
                     stdout=log,
                     stderr=subprocess.STDOUT,
                 )
-                listener.settimeout(30)
-                peer, _ = listener.accept()
+                deadline = time.monotonic() + 30
+                while not modem_ready_path.exists():
+                    if process.poll() is not None:
+                        raise RuntimeError(
+                            "DOSBox exited before the modem was ready"
+                        )
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError("DOS modem did not become ready")
+                    time.sleep(0.01)
+                peer = socket.create_connection(("127.0.0.1", port), 10)
                 for scenario in scenarios:
-                    transcript = drive_scenario(peer, scenario, timeout=30)
-                    if scenario == "session" and (
-                        b"SESSION-FOSSIL-DONE" in transcript
-                    ):
-                        deadline = time.monotonic() + 10
-                        while not fossil_done_path.exists():
-                            if time.monotonic() >= deadline:
-                                raise RuntimeError(
-                                    "FOSSIL door did not return from od_exit()"
-                                )
-                            time.sleep(0.01)
-                        fossil_done_path.unlink()
+                    drive_scenario(peer, scenario, timeout=30)
+                    if scenario == "session":
                         peer.close()
                         peer = None
-                        fossil_completed = True
-                    elif scenario == "session":
-                        peer.close()
-                        peer = None
-                if fossil_completed:
-                    process.terminate()
-                    process.wait(timeout=5)
-                else:
-                    return_code = process.wait(timeout=30)
-                    if return_code != 0:
-                        raise RuntimeError(f"DOSBox exited with {return_code}")
+                return_code = process.wait(timeout=30)
+                if return_code != 0:
+                    raise RuntimeError(f"DOSBox exited with {return_code}")
     except Exception:
         if failure_path.exists():
             print(failure_path.read_text(errors="replace"), file=sys.stderr)
         print_log_tail(log_path)
         raise
     finally:
-        listener.close()
         if peer is not None:
             peer.close()
         if process is not None and process.poll() is None:
@@ -145,7 +158,8 @@ def main() -> int:
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
-        fossil_done_path.unlink(missing_ok=True)
+        modem_ready_path.unlink(missing_ok=True)
+        batch_path.unlink(missing_ok=True)
         remove_fixtures(build_directory)
 
     return 0

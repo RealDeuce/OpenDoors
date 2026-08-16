@@ -1,20 +1,26 @@
 #ifdef ODPLAT_DOS
 #define UT_CUSTOM_MOCK_clock
+#ifndef __WATCOMC__
 #define UT_CUSTOM_MOCK_ODDWordMultiply
+#endif
 static clock_t ut_clock_value;
+#ifndef __WATCOMC__
 static unsigned ut_multiply_calls;
+#endif
 
 clock_t utm_clock(void)
 {
    return(ut_clock_value);
 }
 
+#ifndef __WATCOMC__
 DWORD utm_ODDWordMultiply(DWORD multiplicand, DWORD multiplier)
 {
    ++ut_multiply_calls;
    UT_ASSERT_EQ_UINT(55, multiplier);
    return(multiplicand * multiplier);
 }
+#endif
 #elif defined(ODPLAT_DOS32)
 #define UT_CUSTOM_MOCK_OD32BIOSClock
 static tODMilliSec ut_clock_value;
@@ -52,10 +58,16 @@ static void reports_time_remaining_and_expiration(void)
 #ifdef ODPLAT_DOS
    ut_timer.Start = (clock_t)100;
    ut_timer.Duration = (clock_t)20;
+#ifndef __WATCOMC__
    ut_multiply_calls = 0;
+#endif
    ut_clock_value = (clock_t)110;
+#ifdef __WATCOMC__
+   UT_ASSERT_EQ_UINT(10, utt_ODTimerLeft(&ut_timer));
+#else
    UT_ASSERT_EQ_UINT(550, utt_ODTimerLeft(&ut_timer));
    UT_ASSERT_EQ_UINT(1, ut_multiply_calls);
+#endif
    ut_clock_value = (clock_t)121;
    UT_ASSERT_EQ_UINT(0, utt_ODTimerLeft(&ut_timer));
    ut_clock_value = (clock_t)99;
@@ -104,14 +116,26 @@ static void reports_time_remaining_across_counter_rollover(void)
    ut_timer.Duration = 32;
 
 #ifdef ODPLAT_DOS
+#ifndef __WATCOMC__
    ut_multiply_calls = 0;
+#endif
    ut_clock_value = (clock_t)0xfffffff8UL;
+#ifdef __WATCOMC__
+   UT_ASSERT_EQ_UINT(24, utt_ODTimerLeft(&ut_timer));
+#else
    UT_ASSERT_EQ_UINT(1320, utt_ODTimerLeft(&ut_timer));
+#endif
    ut_clock_value = (clock_t)5;
+#ifdef __WATCOMC__
+   UT_ASSERT_EQ_UINT(11, utt_ODTimerLeft(&ut_timer));
+#else
    UT_ASSERT_EQ_UINT(605, utt_ODTimerLeft(&ut_timer));
+#endif
    ut_clock_value = (clock_t)16;
    UT_ASSERT_EQ_UINT(0, utt_ODTimerLeft(&ut_timer));
+#ifndef __WATCOMC__
    UT_ASSERT_EQ_UINT(2, ut_multiply_calls);
+#endif
 #elif defined(ODPLAT_WIN32)
    ut_clock_value = (tODMilliSec)0xfffffff8UL;
    UT_ASSERT_EQ_UINT(24, utt_ODTimerLeft(&ut_timer));

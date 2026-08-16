@@ -2,6 +2,7 @@
 
 static int before_exit_calls;
 static int kernel_exit_calls;
+static int sleep_kernel_calls;
 
 static void BeforeExit(void)
 {
@@ -14,6 +15,11 @@ static void KernelExit(void)
    ++kernel_exit_calls;
    od_control.od_ker_exec = NULL;
    od_exit(23, FALSE);
+}
+
+static void CountSleepKernel(void)
+{
+   ++sleep_kernel_calls;
 }
 
 int main(void)
@@ -62,8 +68,13 @@ int main(void)
    OD_TEST_CHECK(!od_carrier());
    OD_TEST_CHECK(od_control.od_error == ERR_NOREMOTE);
    od_set_dtr(TRUE);
-   od_kernel();
+
+   od_control.od_ker_exec = CountSleepKernel;
    od_sleep(1);
+   OD_TEST_CHECK(sleep_kernel_calls == 0);
+   od_control.od_ker_exec = NULL;
+
+   od_kernel();
 
    od_control.od_noexit = FALSE;
    od_control.od_ker_exec = KernelExit;

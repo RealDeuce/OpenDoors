@@ -63,16 +63,11 @@ prompts, formatted and multiline editing, display and files, terminal
 emulation, `FILES.BBS` listings, popup/window behavior, and connection/session
 behavior. Unix runs them
 over an inherited socket, Windows uses loopback TCP, and the DOS build reuses
-the same protocol over direct UART and FOSSIL serial paths. Every enabled
-transport must satisfy the same scenario assertions; only endpoint setup and
-the selected `od_com_method` differ. The sole environment limitation is the
-post-disconnect carrier transition with X00 1.50 under DOSBox: X00 retains the
-last null-modem DCD state after DOSBox closes the TCP peer. Those runs verify
-FOSSIL selection and carrier-present reporting while connected, but leave the
-carrier-loss assertion to the direct-UART and hosted-socket runs. The FOSSIL
-door writes a completion sentinel after `od_exit()` returns; the harness then
-terminates DOSBox because its command shell does not advance to the queued
-`exit` command while the X00 TSR remains resident after disconnect.
+the same protocol over direct UART and FOSSIL serial paths. The DOS controller
+places a modem emulator online before launching the door, then hangs up during
+the session scenario so both UART and FOSSIL builds must observe carrier loss.
+Every enabled transport must satisfy the same scenario assertions; only
+endpoint setup and the selected `od_com_method` differ.
 
 GitHub Actions runs the ordinary cases on pushes and pull requests. The
 extended matrix runs nightly when the default branch has advanced since the

@@ -480,11 +480,12 @@ for(record = 0; record < record_count; ++record)
 }
 ```
 
-[`od_sleep()`](../reference/api/od_sleep.md) is preferable to an operating
-system busy wait because it yields while preserving the library's expected
-periodic behavior. A long section which holds an application data-file lock
-should normally finish and release the lock promptly rather than call arbitrary
-callbacks or wait for caller input while shared data is unavailable.
+When a polling loop has nothing else to wait for, call
+[`od_kernel()`](../reference/api/od_kernel.md) for periodic processing and use
+[`od_sleep()`](../reference/api/od_sleep.md) between calls instead of an
+operating-system busy wait. A long section which holds an application data-file
+lock should normally finish and release the lock promptly rather than call
+arbitrary callbacks or wait for caller input while shared data is unavailable.
 
 ## Optional components and callbacks
 

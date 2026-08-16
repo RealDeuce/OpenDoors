@@ -32,6 +32,7 @@ static int chat_kernel_calls;
 static int time_message_calls;
 static int edit_menu_calls;
 static int edit_realloc_calls;
+static int before_exit_calls;
 
 static void Marker(const char *text)
 {
@@ -59,6 +60,11 @@ static void OD_ACCEPTANCE_CALLBACK TimeMessage(char *message)
    (void)message;
    ++time_message_calls;
    Marker("TIME-MESSAGE");
+}
+
+static void OD_ACCEPTANCE_CALLBACK BeforeExit(void)
+{
+   ++before_exit_calls;
 }
 
 static tODEditMenuResult OD_ACCEPTANCE_CALLBACK EditMenu(void *unused)
@@ -156,8 +162,16 @@ static int RunInputScenario(void)
    OD_TEST_CHECK(!od_key_pending());
 
    Marker("INPUT-CLEAR");
-   od_sleep(250);
-   OD_TEST_CHECK(od_key_pending());
+   od_get_time(&second_seconds, &second_milliseconds);
+   second_seconds += 5;
+   while(!od_key_pending())
+   {
+      od_get_time(&first_seconds, &first_milliseconds);
+      OD_TEST_CHECK(first_seconds < second_seconds
+         || (first_seconds == second_seconds
+            && first_milliseconds < second_milliseconds));
+      od_sleep(1);
+   }
    od_clear_keybuffer();
    OD_TEST_CHECK(!od_key_pending());
    OD_TEST_CHECK(od_get_key(FALSE) == 0);
@@ -754,11 +768,7 @@ static int RunPopupScenario(void)
 static int RunSessionScenario(void)
 {
    tODInputEvent event;
-#ifdef OD_ACCEPTANCE_DOS_FOSSIL
-   FILE *shutdown_complete;
-#else
    int count;
-#endif
 
    od_control.user_ansi = FALSE;
    od_control.user_rip = FALSE;
@@ -790,24 +800,15 @@ static int RunSessionScenario(void)
    OD_TEST_CHECK(time_message_calls != 0);
 
    OD_TEST_CHECK(od_carrier());
-#ifdef OD_ACCEPTANCE_DOS_FOSSIL
-   /* X00 1.50 caches DOSBox's null-modem DCD state after the peer closes.
-    * The connected-state check above still exercises FOSSIL carrier status;
-    * do not turn this emulator/driver limitation into a product assertion. */
-   Marker("SESSION-FOSSIL-DONE");
-   od_exit(0, FALSE);
-   shutdown_complete = fopen("FOSDONE.OK", "w");
-   OD_TEST_CHECK(shutdown_complete != NULL);
-   OD_TEST_CHECK(fclose(shutdown_complete) == 0);
-   return(0);
-#else
    Marker("SESSION-DISCONNECT");
-   for(count = 0; count < 100 && od_carrier(); ++count)
-      od_sleep(50);
-   OD_TEST_CHECK(count < 100);
-   od_exit(0, FALSE);
+   for(count = 0; count < 100 && before_exit_calls == 0; ++count)
+   {
+      od_kernel();
+      if(before_exit_calls == 0)
+         od_sleep(50);
+   }
+   OD_TEST_CHECK(before_exit_calls == 1);
    return(0);
-#endif
 }
 
 int main(int argc, char **argv)
@@ -865,14 +866,16 @@ int main(int argc, char **argv)
    od_control.od_open_handle = handle;
 #endif
    od_control.od_disable = DIS_INFOFILE | DIS_NAME_PROMPT | DIS_TIMEOUT |
-      DIS_LOCAL_INPUT | DIS_SYSOP_KEYS | DIS_CARRIERDETECT;
+      DIS_LOCAL_INPUT | DIS_SYSOP_KEYS;
    od_control.od_silent_mode = TRUE;
    od_control.od_nocopyright = TRUE;
    od_control.od_noexit = TRUE;
+   od_control.od_before_exit = BeforeExit;
    od_control.user_ansi = TRUE;
    if(strcmp(scenario, "input") == 0)
       od_control.od_in_buf_size = 8;
    od_init();
+   OD_TEST_CHECK(before_exit_calls == 0);
 
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 #ifdef OD_ACCEPTANCE_DOS_FOSSIL
@@ -882,13 +885,6 @@ int main(int argc, char **argv)
 #endif
 #else
    OD_TEST_CHECK(od_control.od_com_method == COM_SOCKET);
-#endif
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
-   /* DOSBox's usedtr mode requires an observable low-to-high transition;
-    * a real UART may already have DTR high when OpenDoors initializes it. */
-   od_set_dtr(FALSE);
-   od_sleep(10);
-   od_set_dtr(TRUE);
 #endif
    od_get_time(&carrier_deadline_seconds,
       &carrier_deadline_milliseconds);

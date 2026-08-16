@@ -789,17 +789,25 @@ void ODTimerStart(tODTimer *pTimer, tODMilliSec Duration)
 
 #ifdef ODPLAT_DOS
    {
+#ifndef __WATCOMC__
       DWORD dwRemainder;
+#endif
 
       /* Store timer start time right away. */
       pTimer->Start = clock();
 
+#ifdef __WATCOMC__
+      /* Open Watcom reports clock() in milliseconds, although the value
+       * still advances at the DOS system-clock resolution. */
+      pTimer->Duration = (clock_t)Duration;
+#else
       /* Round nonzero durations up so the timer cannot elapse before the
        * requested interval. */
       ODDWordDivide((DWORD *)&pTimer->Duration, &dwRemainder, Duration,
          MILLISEC_PER_TICK);
       if(dwRemainder != 0)
          ++pTimer->Duration;
+#endif
    }
 #endif /* ODPLAT_DOS */
 
@@ -919,8 +927,12 @@ tODMilliSec ODTimerLeft(tODTimer *pTimer)
          return(0);
       }
 
+#ifdef __WATCOMC__
+      return((DWORD)pTimer->Duration - Elapsed);
+#else
       return(ODDWordMultiply((DWORD)pTimer->Duration - Elapsed,
          MILLISEC_PER_TICK));
+#endif
    }
 #elif defined(ODPLAT_DOS32)
    {
@@ -980,11 +992,6 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 #ifdef ODPLAT_NIX
    struct timespec ts;
 #endif
-#ifdef OD_THREAD_SUPPORT
-   tODTimer SleepTimer;
-   tODMilliSec Slice;
-   unsigned nSavedAPILevel;
-#endif
    /* Log function entry if running in trace mode. */
    TRACE(TRACE_API, "od_sleep()");
 
@@ -1035,47 +1042,10 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
 #endif /* ODPLAT_DOS32 */
 
 #ifdef ODPLAT_WIN32
-#ifdef OD_THREAD_SUPPORT
-   if(Milliseconds == 0)
-   {
-      nSavedAPILevel = ODSyncAPIRelease();
-      Sleep(0);
-      ODSyncAPIReacquire(nSavedAPILevel);
-      ODSyncAPICheckpoint();
-   }
-   else
-   {
-      ODTimerStart(&SleepTimer, Milliseconds);
-      do
-      {
-         Slice = ODTimerLeft(&SleepTimer);
-         if(Slice > 50) Slice = 50;
-         nSavedAPILevel = ODSyncAPIRelease();
-         Sleep(Slice);
-         ODSyncAPIReacquire(nSavedAPILevel);
-         if(!ODSyncAPICheckpoint()) break;
-      } while(!ODTimerElapsed(&SleepTimer));
-   }
-#else
    Sleep(Milliseconds);
-#endif
 #endif /* ODPLAT_WIN32 */
 
 #ifdef ODPLAT_NIX
-#ifdef OD_THREAD_SUPPORT
-   if(Milliseconds != 0) ODTimerStart(&SleepTimer, Milliseconds);
-   do
-   {
-      Slice = Milliseconds == 0 ? 0 : ODTimerLeft(&SleepTimer);
-      if(Slice > 50) Slice = 50;
-      ts.tv_sec = Slice / 1000;
-      ts.tv_nsec = Slice == 0 ? 100000 : (long)(Slice % 1000) * 1000000L;
-      nSavedAPILevel = ODSyncAPIRelease();
-      while(nanosleep(&ts, &ts) == EINTR) ;
-      ODSyncAPIReacquire(nSavedAPILevel);
-      if(!ODSyncAPICheckpoint()) break;
-   } while(Milliseconds != 0 && !ODTimerElapsed(&SleepTimer));
-#else
    clock_gettime(CLOCK_REALTIME, &ts);
 
    if(Milliseconds==0)  {
@@ -1089,7 +1059,6 @@ ODAPIDEF void ODCALL od_sleep(tODMilliSec Milliseconds)
    }
    while (nanosleep(&ts, &ts) == EINTR)
       ;
-#endif
 #endif
 
    OD_API_EXIT();

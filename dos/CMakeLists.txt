@@ -281,6 +281,15 @@ target_compile_definitions(dos_acceptance_fossil PRIVATE
     OPENDOORS_HAVE_VSNPRINTF=1 OD_ACCEPTANCE_DOS_FOSSIL=1)
 target_link_libraries(dos_acceptance_fossil PRIVATE opendoors_dos)
 
+add_executable(dos_acceptance_modem_answer
+    "${OPENDOORS_ROOT}/tests/acceptance/modem_answer.c")
+set_target_properties(dos_acceptance_modem_answer PROPERTIES
+    OUTPUT_NAME odanswer)
+target_compile_options(dos_acceptance_modem_answer PRIVATE -ml -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(dos_acceptance_modem_answer PRIVATE -we)
+endif()
+
 else()
 
 function(opendoors_configure_dos32_target target convention)
@@ -293,6 +302,12 @@ function(opendoors_configure_dos32_target target convention)
     target_compile_definitions(${target} PRIVATE
         OPENDOORS_HAVE_VSNPRINTF=1)
 endfunction()
+
+add_executable(dos32_acceptance_modem_answer
+    "${OPENDOORS_ROOT}/tests/acceptance/modem_answer.c")
+set_target_properties(dos32_acceptance_modem_answer PROPERTIES
+    OUTPUT_NAME odanswer)
+opendoors_configure_dos32_target(dos32_acceptance_modem_answer 3r)
 
 add_library(opendoors_dos32r STATIC ${OPENDOORS_DOS_SOURCES})
 opendoors_configure_dos32_target(opendoors_dos32r 3r)

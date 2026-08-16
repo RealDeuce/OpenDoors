@@ -1,15 +1,20 @@
 #ifdef ODPLAT_DOS
 #define UT_CUSTOM_MOCK_clock
+#ifndef __WATCOMC__
 #define UT_CUSTOM_MOCK_ODDWordDivide
+#endif
 
 static clock_t ut_clock_value;
+#ifndef __WATCOMC__
 static unsigned ut_divide_calls;
+#endif
 
 clock_t utm_clock(void)
 {
    return(ut_clock_value);
 }
 
+#ifndef __WATCOMC__
 BOOL utm_ODDWordDivide(DWORD *quotient, DWORD *remainder,
    DWORD dividend, DWORD divisor)
 {
@@ -21,6 +26,7 @@ BOOL utm_ODDWordDivide(DWORD *quotient, DWORD *remainder,
    *remainder = dividend % divisor;
    return(TRUE);
 }
+#endif
 #endif
 
 #ifdef ODPLAT_DOS32
@@ -63,18 +69,32 @@ static void stores_the_current_time_and_requested_duration(void)
 
 #ifdef ODPLAT_DOS
    ut_clock_value = (clock_t)99;
+#ifndef __WATCOMC__
    ut_divide_calls = 0;
+#endif
    utt_ODTimerStart(&timer, 789);
    UT_ASSERT_EQ_UINT(99, timer.Start);
+#ifdef __WATCOMC__
+   UT_ASSERT_EQ_UINT(789, timer.Duration);
+#else
    UT_ASSERT_EQ_UINT(15, timer.Duration);
    UT_ASSERT_EQ_UINT(1, ut_divide_calls);
+#endif
 
    utt_ODTimerStart(&timer, 1);
    UT_ASSERT_EQ_UINT(1, timer.Duration);
    utt_ODTimerStart(&timer, 55);
+#ifdef __WATCOMC__
+   UT_ASSERT_EQ_UINT(55, timer.Duration);
+#else
    UT_ASSERT_EQ_UINT(1, timer.Duration);
+#endif
    utt_ODTimerStart(&timer, 56);
+#ifdef __WATCOMC__
+   UT_ASSERT_EQ_UINT(56, timer.Duration);
+#else
    UT_ASSERT_EQ_UINT(2, timer.Duration);
+#endif
 #endif
 
 #ifdef ODPLAT_DOS32

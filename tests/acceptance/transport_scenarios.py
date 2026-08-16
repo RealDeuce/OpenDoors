@@ -358,27 +358,16 @@ def drive_session(peer: socket.socket, timeout: int) -> bytearray:
     transcript = bytearray()
     receive_until(peer, b"SESSION-AUTODETECT", transcript, timeout)
     receive_until(peer, b"\x1b[6n", transcript, timeout)
-    # Model terminal response latency instead of replying in the same host
-    # scheduling slice in which an emulated UART finishes the query.
-    time.sleep(0.05)
-    peer.sendall(b"\x1b[")
+    peer.sendall(b"\x1b[1;1R")
     receive_until(peer, b"\x1b[!", transcript, timeout)
-    time.sleep(0.05)
     peer.sendall(b"rIp12345678901")
     receive_until(peer, b"SESSION-AUTODETECT-KNOWN", transcript, timeout)
     receive_until(peer, b"SESSION-AUTODETECT-FAIL", transcript, timeout)
     receive_until(peer, b"SESSION-TIMER-ARMED", transcript, timeout)
     receive_until(peer, b"TIME-MESSAGE", transcript, timeout + 3)
-    time.sleep(0.05)
     peer.sendall(b"Z")
-    final_marker = receive_until_any(
-        peer,
-        (b"SESSION-DISCONNECT", b"SESSION-FOSSIL-DONE"),
-        transcript,
-        timeout,
-    )
-    if final_marker == b"SESSION-DISCONNECT":
-        peer.shutdown(socket.SHUT_RDWR)
+    receive_until(peer, b"SESSION-DISCONNECT", transcript, timeout)
+    peer.shutdown(socket.SHUT_RDWR)
     return transcript
 
 

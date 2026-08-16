@@ -45,11 +45,10 @@ output space, display-file pauses, popup and hotkey menus, editor input, and
 chat. Application code does not need to add a yield around those blocking
 interfaces.
 
-Calling [`od_sleep()`](od_sleep.md) initializes OpenDoors if necessary. It does not promise
-to call [`od_kernel()`](od_kernel.md) periodically during a nonzero delay; a
-program which must continue kernel processing should divide long work into
-appropriate intervals and call the kernel explicitly. The function returns no
-value.
+Calling [`od_sleep()`](od_sleep.md) initializes OpenDoors if necessary. It does
+not call [`od_kernel()`](od_kernel.md). A program which must continue kernel
+processing should divide long work into appropriate intervals and call the
+kernel explicitly. The function returns no value.
 
 ## Example
 

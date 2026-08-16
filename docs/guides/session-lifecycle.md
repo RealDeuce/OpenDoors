@@ -30,11 +30,11 @@ synchronization rules which apply while the internal Windows UI worker is
 active.
 
 [`od_kernel()`](../reference/api/od_kernel.md) services time limits, connection
-status, local function keys, and other housekeeping. Normal API traffic invokes
-it as needed. A program which spends a long time computing or waiting outside
-OpenDoors should call it periodically or use
-[`od_sleep()`](../reference/api/od_sleep.md), which continues to yield
-appropriately.
+status, local function keys, and other housekeeping. Blocking OpenDoors input
+and timed-wait functions invoke it as needed. A program which spends a long
+time computing or has nothing to wait for should call it periodically, using
+[`od_sleep()`](../reference/api/od_sleep.md) between calls when it should also
+yield processor time.
 
 [`od_exit()`](../reference/api/od_exit.md) performs the library shutdown work,
 including connection and door information handling. Do not substitute the C
