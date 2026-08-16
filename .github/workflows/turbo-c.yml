@@ -103,7 +103,7 @@ jobs:
           mkdir -p build/turboc/OBJ build/turboc/OUT
           set -o pipefail
           wasm -q -dLCODE -dLDATA \
-            -fo=build/turboc/OBJ/ODSWAP.OBJ ODSwap.asm \
+            -fo=build/turboc/OBJ/ODSWAP.OBJ src/ODSwap.asm \
             2>&1 | tee build/turboc/wasm.log
           test -s build/turboc/OBJ/ODSWAP.OBJ
 
