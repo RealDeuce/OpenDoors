@@ -51,6 +51,11 @@ static int second(void)
         self.assertEqual(test_owner("unit/cases/ODSwap/__xspawn.c"),
                          ("ODSwap.asm", "__xspawn"))
 
+    def test_case_owner_uses_manifest_for_nonmatching_directory(self):
+        self.assertEqual(
+            test_owner("unit/cases/ODReserve/ODReserveCountRecords.c"),
+            ("ODRsv.c", "ODReserveCountRecords"))
+
     def test_shared_case_support_selects_its_complete_source(self):
         self.assertEqual(case_source("unit/cases/ODLog/errno_mock.h"),
                          "ODLog.c")

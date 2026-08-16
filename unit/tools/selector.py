@@ -160,18 +160,15 @@ def source_functions(base: str, head: str, path: str) -> set[str] | None:
     return old
 
 
-def test_owner(path: str) -> tuple[str, str] | None:
-    parts = PurePosixPath(path).parts
-    if len(parts) != 4 or parts[:2] != ("unit", "cases"):
-        return None
-    if not parts[3].endswith(".c"):
-        return None
-    source_document = json.loads(
-        (ROOT / "unit" / "sources.json").read_text(encoding="utf-8"))
-    by_stem = {Path(item["path"]).stem: item["path"]
-               for item in source_document["sources"]}
-    source = by_stem.get(parts[2])
-    return (source, parts[3][:-2]) if source else None
+def test_owner(path: str, tests: list[dict[str, object]] | None = None) \
+        -> tuple[str, str] | None:
+    """Return the registered owner of an individual case source."""
+    registered = tests if tests is not None else registered_tests()
+    matches = [
+        (str(test["source"]), str(test["function"]))
+        for test in registered if test.get("case") == path
+    ]
+    return matches[0] if len(matches) == 1 else None
 
 
 def case_source(path: str) -> str | None:
@@ -298,7 +295,7 @@ def select(base: str, head: str, force_full: bool) -> dict[str, object]:
                     else:
                         by_source[path] = None
                     continue
-                owner = test_owner(path)
+                owner = test_owner(path, tests)
                 if owner and owner[0] in configured:
                     current = by_source.get(owner[0], set())
                     if current is not None:
