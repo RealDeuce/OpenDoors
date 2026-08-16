@@ -14,6 +14,7 @@
 #define UT_CUSTOM_MOCK_open
 #define UT_CUSTOM_MOCK_close
 #define UT_CUSTOM_MOCK___error
+#define UT_CUSTOM_MOCK___errno_location
 #endif
 #define UT_CUSTOM_MOCK_ODReserveTransfer
 #define UT_CUSTOM_MOCK_memset
@@ -43,6 +44,7 @@ int utm_sopen(const char *path, int flags, int sharing, ...)
 #endif
 #else
 int *utm___error(void) { return(&ut_errno_value); }
+int *utm___errno_location(void) { return(&ut_errno_value); }
 int utm_open(const char *path, int flags, ...)
 #endif
 #endif

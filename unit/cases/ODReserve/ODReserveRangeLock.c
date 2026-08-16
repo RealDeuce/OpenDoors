@@ -3,10 +3,12 @@
 #define UT_CUSTOM_MOCK_fcntl
 #define UT_CUSTOM_MOCK_memset
 #define UT_CUSTOM_MOCK___error
+#define UT_CUSTOM_MOCK___errno_location
 static int ut_fcntl_result;
 static short ut_expected_type;
 static int ut_errno;
 int *utm___error(void) { return(&ut_errno); }
+int *utm___errno_location(void) { return(&ut_errno); }
 int utm_fcntl(int fd, int command, ...)
 {
    va_list arguments;

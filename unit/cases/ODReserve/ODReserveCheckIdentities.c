@@ -57,12 +57,14 @@ tODReserveLockResult utm_ODReserveAcquire(long offset, long length,
 
 #ifdef ODPLAT_WIN32
 long utm__lseek(int file, long offset, int whence)
+#elif defined(ODPLAT_NIX)
+off_t utm_lseek(int file, off_t offset, int whence)
 #else
 long utm_lseek(int file, long offset, int whence)
 #endif
 {
    UT_ASSERT_EQ_INT(hODReserveFile, file);
-   UT_ASSERT_EQ_INT(0, offset);
+   UT_ASSERT_EQ_INT(0, (int)offset);
    UT_ASSERT_EQ_INT(SEEK_END, whence);
    return(ut_length);
 }

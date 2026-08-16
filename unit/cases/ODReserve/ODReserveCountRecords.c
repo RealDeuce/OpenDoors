@@ -7,6 +7,8 @@ static long ut_length;
 static int ut_seek_result;
 #ifdef ODPLAT_WIN32
 long utm__lseek(int file, long offset, int whence)
+#elif defined(ODPLAT_NIX)
+off_t utm_lseek(int file, off_t offset, int whence)
 #else
 long utm_lseek(int file, long offset, int whence)
 #endif
