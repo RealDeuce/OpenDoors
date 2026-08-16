@@ -283,6 +283,12 @@ jobs:
         msystem: [MINGW32, MINGW64, UCRT64]
         variant: [Shared, Static]
         include:
+          - msystem: MINGW32
+            prefix: mingw32
+          - msystem: MINGW64
+            prefix: mingw64
+          - msystem: UCRT64
+            prefix: ucrt64
           - variant: Shared
             shared: ON
             static: OFF
@@ -331,12 +337,20 @@ jobs:
           cmake --build build/acceptance --parallel
 
       - name: Run extended acceptance suite
-        shell: msys2 {0}
-        run: >-
-          ctest
-          --test-dir build/acceptance
-          --output-on-failure
-          --output-junit acceptance-${{ matrix.msystem }}-${{ matrix.variant }}.xml
+        shell: pwsh
+        run: |
+          $ctest = 'C:\msys64\${{ matrix.prefix }}\bin\ctest.exe'
+          if (-not (Test-Path -LiteralPath $ctest)) {
+            throw "CTest was not found at $ctest"
+          }
+          $toolDirectory = Split-Path -Parent $ctest
+          $installBin = Join-Path $PWD 'build\install\bin'
+          $env:PATH = "$installBin;$toolDirectory;$env:PATH"
+          & $ctest `
+            --test-dir build\acceptance `
+            --output-on-failure `
+            --output-junit "acceptance-${{ matrix.msystem }}-${{ matrix.variant }}.xml"
+          exit $LASTEXITCODE
 
       - uses: actions/upload-artifact@v7
         if: always()

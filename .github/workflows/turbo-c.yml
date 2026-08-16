@@ -149,7 +149,7 @@ jobs:
           awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
             tests/vote_io_test.c > build/turboc/SRC/VOTETEST.C
           for file in TCBUILD.BAT TCONE.BAT TCASM.BAT TCEX.BAT TCLIB.BAT \
-              TCVOTE.BAT TCACTEST.BAT; do
+              TCVOTE.BAT TCACTEST.BAT TCUART.LNK TCFOSS.LNK; do
             awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
               "tools/turboc/$file" > "build/turboc/$file"
           done

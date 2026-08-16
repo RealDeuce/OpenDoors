@@ -140,7 +140,12 @@ FOSSIL block calls use DPMI conventional memory as a transfer buffer and fall
 back to byte-at-a-time calls when that buffer is unavailable. The internal
 method accesses the UART directly and installs its interrupt handler through
 the DOS extender. CI exercises both paths through DOSBox's TCP-backed COM1;
-the FOSSIL integration tests use X00 1.50.
+the FOSSIL integration tests use X00 1.50. X00 retains its last DCD state when
+DOSBox closes the null-modem TCP peer, so the FOSSIL run verifies carrier while
+connected and the direct-UART run verifies the carrier-loss transition. After
+the FOSSIL door records that [`od_exit()`](../reference/api/od_exit.md)
+returned, the test harness terminates the emulator rather than depending on
+DOSBox's command shell to exit with X00 still resident.
 
 ## Older build systems
 

@@ -9,6 +9,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from transport_scenarios import SCENARIOS, create_fixtures, drive_scenario
@@ -56,7 +57,9 @@ def main() -> int:
     build_directory = door.parent
     log_path = build_directory / f"dos-serial-{door.stem.lower()}.log"
     failure_path = build_directory / "ODFAIL.TXT"
+    fossil_done_path = build_directory / "FOSDONE.OK"
     failure_path.unlink(missing_ok=True)
+    fossil_done_path.unlink(missing_ok=True)
     create_fixtures(build_directory)
 
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -67,6 +70,7 @@ def main() -> int:
 
     process: subprocess.Popen[bytes] | None = None
     peer: socket.socket | None = None
+    fossil_completed = False
     try:
         with tempfile.TemporaryDirectory(prefix="opendoors-dos-serial-") as temp:
             config = Path(temp) / "dosbox.conf"
@@ -100,13 +104,31 @@ def main() -> int:
                 listener.settimeout(30)
                 peer, _ = listener.accept()
                 for scenario in scenarios:
-                    drive_scenario(peer, scenario, timeout=30)
-                    if scenario == "session":
+                    transcript = drive_scenario(peer, scenario, timeout=30)
+                    if scenario == "session" and (
+                        b"SESSION-FOSSIL-DONE" in transcript
+                    ):
+                        deadline = time.monotonic() + 10
+                        while not fossil_done_path.exists():
+                            if time.monotonic() >= deadline:
+                                raise RuntimeError(
+                                    "FOSSIL door did not return from od_exit()"
+                                )
+                            time.sleep(0.01)
+                        fossil_done_path.unlink()
                         peer.close()
                         peer = None
-                return_code = process.wait(timeout=30)
-                if return_code != 0:
-                    raise RuntimeError(f"DOSBox exited with {return_code}")
+                        fossil_completed = True
+                    elif scenario == "session":
+                        peer.close()
+                        peer = None
+                if fossil_completed:
+                    process.terminate()
+                    process.wait(timeout=5)
+                else:
+                    return_code = process.wait(timeout=30)
+                    if return_code != 0:
+                        raise RuntimeError(f"DOSBox exited with {return_code}")
     except Exception:
         if failure_path.exists():
             print(failure_path.read_text(errors="replace"), file=sys.stderr)
@@ -123,6 +145,7 @@ def main() -> int:
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
+        fossil_done_path.unlink(missing_ok=True)
         remove_fixtures(build_directory)
 
     return 0

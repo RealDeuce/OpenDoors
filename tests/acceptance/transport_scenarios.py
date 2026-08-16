@@ -93,6 +93,35 @@ def receive_until(
         transcript.extend(chunk)
 
 
+def receive_until_any(
+    peer: socket.socket,
+    markers: tuple[bytes, ...],
+    transcript: bytearray,
+    timeout: int = 10,
+) -> bytes:
+    deadline = time.monotonic() + timeout
+    while True:
+        for marker in markers:
+            if marker in transcript:
+                return marker
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError(
+                f"timed out waiting for one of {markers!r}; "
+                f"got {bytes(transcript)!r}"
+            )
+        readable, _, _ = select.select([peer], [], [], remaining)
+        if not readable:
+            continue
+        chunk = peer.recv(4096)
+        if not chunk:
+            raise RuntimeError(
+                f"connection closed waiting for one of {markers!r}; "
+                f"got {bytes(transcript)!r}"
+            )
+        transcript.extend(chunk)
+
+
 def create_fixtures(directory: Path) -> None:
     for name in FIXTURE_DIRECTORIES:
         (directory / name).mkdir(exist_ok=True)
@@ -337,8 +366,14 @@ def drive_session(peer: socket.socket, timeout: int) -> bytearray:
     receive_until(peer, b"SESSION-TIMER-ARMED", transcript, timeout)
     receive_until(peer, b"TIME-MESSAGE", transcript, timeout + 3)
     peer.sendall(b"Z")
-    receive_until(peer, b"SESSION-DISCONNECT", transcript, timeout)
-    peer.shutdown(socket.SHUT_RDWR)
+    final_marker = receive_until_any(
+        peer,
+        (b"SESSION-DISCONNECT", b"SESSION-FOSSIL-DONE"),
+        transcript,
+        timeout,
+    )
+    if final_marker == b"SESSION-DISCONNECT":
+        peer.shutdown(socket.SHUT_RDWR)
     return transcript
 
 
