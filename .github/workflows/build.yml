@@ -904,16 +904,22 @@ jobs:
               -c 'ren APIPASS.OK APIRPASS.OK' \
               -c 'odapis.exe' \
               -c 'ren APIPASS.OK APISPASS.OK' \
-              -c 'odresr.exe' \
-              -c 'if not errorlevel 1 echo Passed>RESRPASS.OK' \
-              -c 'odress.exe' \
-              -c 'if not errorlevel 1 echo Passed>RESSPASS.OK' \
               -c 'exit' \
             2>&1 | tee build/dos32/dos4gw-personality.log
           require_marker PERSRPAS.OK
           require_marker PERSSPAS.OK
           require_marker APIRPASS.OK
           require_marker APISPASS.OK
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32" \
+              -c 'c:' \
+              -c 'odresr.exe' \
+              -c 'if not errorlevel 1 echo Passed>RESRPASS.OK' \
+              -c 'odress.exe' \
+              -c 'if not errorlevel 1 echo Passed>RESSPASS.OK' \
+              -c 'exit' \
+            2>&1 | tee build/dos32/dos4gw-reservation.log
           require_marker RESRPASS.OK
           require_marker RESSPASS.OK
 
@@ -1007,12 +1013,18 @@ jobs:
               -c 'ren APIPASS.OK APIRPASS.OK' \
               -c 'odapis.exe' \
               -c 'ren APIPASS.OK APISPASS.OK' \
+              -c 'exit' \
+            2>&1 | tee build/dos32a/dos32a-personality.log
+          timeout --signal=TERM --kill-after=5s 45s \
+            xvfb-run -a dosbox -noconsole \
+              -c "mount c $PWD/build/dos32a" \
+              -c 'c:' \
               -c 'odresr.exe' \
               -c 'if not errorlevel 1 echo Passed>RESRPASS.OK' \
               -c 'odress.exe' \
               -c 'if not errorlevel 1 echo Passed>RESSPASS.OK' \
               -c 'exit' \
-            2>&1 | tee build/dos32a/dos32a-personality.log
+            2>&1 | tee build/dos32a/dos32a-reservation.log
           test -s build/dos32a/NOFSPASS.OK
           test -s build/dos32a/FOSSPASS.OK
           test -s build/dos32a/D32RPASS.OK
