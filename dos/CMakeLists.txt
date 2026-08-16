@@ -77,6 +77,7 @@ set(OPENDOORS_DOS_SOURCES
     ODPopup.c
     ODPrntf.c
     ODRA.c
+    ODRsv.c
     ODSafe.c
     ODScrn.c
     ODSpawn.c
@@ -203,7 +204,6 @@ target_compile_options(vote_io_test PRIVATE -ml -zq -za99)
 if(OPENDOORS_WARNINGS_AS_ERRORS)
     target_compile_options(vote_io_test PRIVATE -we)
 endif()
-target_compile_definitions(vote_io_test PRIVATE MULTINODE_AWARE)
 
 add_executable(dos_runtime_smoke
     "${OPENDOORS_ROOT}/tests/dos_runtime_smoke.c")
@@ -241,6 +241,19 @@ endif()
 target_compile_definitions(dos_acceptance_surface PRIVATE
     OPENDOORS_HAVE_VSNPRINTF=1)
 target_link_libraries(dos_acceptance_surface PRIVATE opendoors_dos)
+
+add_executable(dos_acceptance_reservation
+    "${OPENDOORS_ROOT}/tests/acceptance/reservation_test.c")
+set_target_properties(dos_acceptance_reservation PROPERTIES OUTPUT_NAME odres)
+target_include_directories(dos_acceptance_reservation PRIVATE
+    "${OPENDOORS_ROOT}/tests/acceptance")
+target_compile_options(dos_acceptance_reservation PRIVATE -ml -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(dos_acceptance_reservation PRIVATE -we)
+endif()
+target_compile_definitions(dos_acceptance_reservation PRIVATE
+    OPENDOORS_HAVE_VSNPRINTF=1)
+target_link_libraries(dos_acceptance_reservation PRIVATE opendoors_dos)
 
 add_executable(dos_acceptance_serial
     "${OPENDOORS_ROOT}/tests/acceptance/transport_door.c")
@@ -355,7 +368,6 @@ add_executable(vote_io_test
 set_target_properties(vote_io_test PROPERTIES OUTPUT_NAME od32vot)
 target_include_directories(vote_io_test PRIVATE "${OPENDOORS_ROOT}")
 opendoors_configure_dos32_target(vote_io_test 3r)
-target_compile_definitions(vote_io_test PRIVATE MULTINODE_AWARE)
 
 add_executable(dos32_runtime_smoke
     "${OPENDOORS_ROOT}/tests/dos32_runtime_smoke.c")
@@ -440,6 +452,28 @@ endif()
 target_compile_definitions(dos32_acceptance_surface_s PRIVATE
     OPENDOORS_HAVE_VSNPRINTF=1)
 target_link_libraries(dos32_acceptance_surface_s PRIVATE opendoors_dos32s)
+
+foreach(convention IN ITEMS r s)
+    if(convention STREQUAL "r")
+        set(reservation_library opendoors_dos32r)
+        set(reservation_switch 3r)
+    else()
+        set(reservation_library opendoors_dos32s)
+        set(reservation_switch 3s)
+    endif()
+    add_executable(dos32_acceptance_reservation_${convention}
+        "${OPENDOORS_ROOT}/tests/acceptance/reservation_test.c")
+    set_target_properties(dos32_acceptance_reservation_${convention}
+        PROPERTIES OUTPUT_NAME "odres${convention}")
+    target_include_directories(
+        dos32_acceptance_reservation_${convention} PRIVATE
+        "${OPENDOORS_ROOT}/tests/acceptance")
+    opendoors_configure_dos32_target(
+        dos32_acceptance_reservation_${convention} ${reservation_switch})
+    target_link_libraries(
+        dos32_acceptance_reservation_${convention} PRIVATE
+        ${reservation_library})
+endforeach()
 
 foreach(convention IN ITEMS r s)
     if(convention STREQUAL "r")

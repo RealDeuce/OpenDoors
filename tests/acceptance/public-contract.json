@@ -68,6 +68,10 @@
     "windows.control": {
       "tier": "push",
       "description": "Windows-only public control fields"
+    },
+    "reservation.named": {
+      "tier": "push",
+      "description": "Named filesystem reservation lifecycle"
     }
   },
   "coverage": [
@@ -8507,6 +8511,76 @@
     },
     {
       "kind": "function",
+      "name": "od_reserve_configure",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "reservation.named"
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "od_reserve_end",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "reservation.named"
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "od_reserve_request",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "reservation.named"
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "od_reserve_wait",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "reservation.named"
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "od_reserve_wait_until",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "reservation.named"
+      ]
+    },
+    {
+      "kind": "function",
       "name": "od_restore_screen",
       "platforms": [
         "windows",
@@ -9281,6 +9355,20 @@
     {
       "kind": "type",
       "name": "tODMilliSec",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "surface.compile",
+        "surface.abi"
+      ]
+    },
+    {
+      "kind": "type",
+      "name": "tODReserveResult",
       "platforms": [
         "windows",
         "unix",

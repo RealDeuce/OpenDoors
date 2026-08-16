@@ -150,6 +150,9 @@ def early_mock_declarations(names: set[str]) -> list[str]:
     if "__errno_location" in names:
         declarations.extend(("int *__errno_location(void);",
                              "int *utm___errno_location(void);"))
+    if "__get_errno_ptr" in names:
+        declarations.extend(("int *__get_errno_ptr(void);",
+                             "int *utm___get_errno_ptr(void);"))
     if "_errno" in names:
         declarations.extend(("int *_errno(void);",
                              "int *utm__errno(void);"))

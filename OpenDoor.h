@@ -297,6 +297,14 @@ typedef char               BOOL;           /* Boolean value, at least 1 bit. */
 /* Millisecond time type. */
 typedef DWORD tODMilliSec;
 
+/* Named filesystem reservation result. */
+typedef enum
+{
+   OD_RESERVE_ERROR = -1,
+   OD_RESERVE_PENDING = 0,
+   OD_RESERVE_ACQUIRED = 1
+} tODReserveResult;
+
 /* Special value tODMilliSec value for no timeouts. */
 #ifdef ODPLAT_WIN32
 #define OD_NO_TIMEOUT INFINITE
@@ -1067,6 +1075,11 @@ od_control;
  *    od_chat()               - Manually starts chat mode
  *    od_sleep()              - Yield to other processes
  *    od_get_time()           - Gets elapsed session wall-clock time
+ *    od_reserve_configure()  - Selects a shared reservation registry
+ *    od_reserve_request()    - Enters a named reservation queue
+ *    od_reserve_wait()       - Waits for a relative reservation timeout
+ *    od_reserve_wait_until() - Waits until a session-time deadline
+ *    od_reserve_end()        - Leaves the current reservation queue
  *    od_get_user_8bit()      - Reports eight-bit caller data support
  *    od_set_user_8bit()      - Records eight-bit caller data support
  *    od_control_get()        - Returns a pointer to the od_control structure.
@@ -1132,6 +1145,12 @@ ODAPIDEF void ODCALL   od_putch(char chToDisplay);
 ODAPIDEF BOOL ODCALL   od_puttext(INT nLeft, INT nTop, INT nRight,
                           INT nBottom, void *pBlock);
 ODAPIDEF void ODCALL   od_repeat(char chValue, BYTE btTimes);
+ODAPIDEF BOOL ODCALL   od_reserve_configure(const char *pszPath);
+ODAPIDEF BOOL ODCALL   od_reserve_request(const char *pszName);
+ODAPIDEF tODReserveResult ODCALL od_reserve_wait(tODMilliSec Milliseconds);
+ODAPIDEF tODReserveResult ODCALL od_reserve_wait_until(DWORD dwSeconds,
+                          WORD wMilliseconds);
+ODAPIDEF BOOL ODCALL   od_reserve_end(void);
 ODAPIDEF BOOL ODCALL   od_restore_screen(void *pBuffer);
 ODAPIDEF BOOL ODCALL   od_save_screen(void *pBuffer);
 ODAPIDEF DWORD ODCALL  od_save_screen_size(void);

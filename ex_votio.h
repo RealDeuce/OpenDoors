@@ -40,24 +40,10 @@ typedef enum
    kVoteIOInvalid = 2
 } tVoteIOResult;
 
-typedef void (ODCALL *tVoteIdleCallback)(void);
-
-typedef struct
-{
-   char szLabel[16];
-   char szProcessKind[4];
-   DWORD uProcess;
-   DWORD uStarted;
-   DWORD uNonce;
-   DWORD uSequence;
-} tVoteLockOwner;
-
 typedef struct
 {
    FILE *pfFile;
-   BOOL bLocked;
-   char szLockName[128];
-   char szOwner[128];
+   BOOL bReserved;
    char szError[160];
 } tVoteFile;
 
@@ -81,10 +67,9 @@ BOOL VoteQuestionRecordWrite(FILE *pfFile,
 BOOL VoteQuestionRecordSeek(FILE *pfFile, long nRecord);
 BOOL VoteQuestionFileValidate(FILE *pfFile);
 
-void VoteLockOwnerInitialize(tVoteLockOwner *pOwner, const char *pszLabel);
 BOOL VoteFileOpen(tVoteFile *pFile, const char *pszDataName,
-   const char *pszLockName, const char *pszMode, tVoteLockOwner *pOwner,
-   unsigned int nWaitSeconds, tVoteIdleCallback pfIdle);
+   const char *pszReservationName, const char *pszMode,
+   unsigned int nWaitSeconds);
 BOOL VoteFileClose(tVoteFile *pFile);
 const char *VoteFileError(const tVoteFile *pFile);
 

@@ -270,6 +270,7 @@ def reference_symbols(
         "TRUE",
         "FALSE",
         "tODMilliSec",
+        "tODReserveResult",
         "tODInputEventType",
         "tODInputEvent",
         "tODEditOptions",

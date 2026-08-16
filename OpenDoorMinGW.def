@@ -76,3 +76,8 @@ EXPORTS
    od_get_input_until=od_get_input_until@16 @70
    od_get_user_8bit=od_get_user_8bit@0 @72
    od_set_user_8bit=od_set_user_8bit@4 @73
+   od_reserve_configure=od_reserve_configure@4 @74
+   od_reserve_request=od_reserve_request@4 @75
+   od_reserve_wait=od_reserve_wait@4 @76
+   od_reserve_wait_until=od_reserve_wait_until@8 @77
+   od_reserve_end=od_reserve_end@0 @78

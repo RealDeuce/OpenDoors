@@ -1,40 +1,6 @@
 #include "ex_votio.h"
 
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <time.h>
-
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
-#include <dos.h>
-#include <io.h>
-#elif defined(ODPLAT_WIN32)
-#include <io.h>
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
-
-#ifndef S_IREAD
-#define S_IREAD S_IRUSR
-#endif
-#ifndef S_IWRITE
-#define S_IWRITE S_IWUSR
-#endif
-
-typedef enum
-{
-   kVoteLockError = -1,
-   kVoteLockHeld = 0,
-   kVoteLockAcquired = 1
-} tVoteLockResult;
 
 static void VotePutDWORD(unsigned char *pachBuffer, DWORD uValue)
 {
@@ -332,296 +298,44 @@ BOOL VoteQuestionFileValidate(FILE *pfFile)
    return(fseek(pfFile, nOriginal, SEEK_SET) == 0 && bValid);
 }
 
-void VoteLockOwnerInitialize(tVoteLockOwner *pOwner, const char *pszLabel)
-{
-   memset(pOwner, 0, sizeof(*pOwner));
-   strncpy(pOwner->szLabel, pszLabel, sizeof(pOwner->szLabel) - 1);
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
-   strcpy(pOwner->szProcessKind, "PSP");
-   pOwner->uProcess = (DWORD)_psp;
-#elif defined(ODPLAT_WIN32)
-   strcpy(pOwner->szProcessKind, "PID");
-   pOwner->uProcess = (DWORD)GetCurrentProcessId();
-#else
-   strcpy(pOwner->szProcessKind, "PID");
-   pOwner->uProcess = (DWORD)getpid();
-#endif
-   pOwner->uStarted = (DWORD)time(NULL);
-   pOwner->uNonce = (DWORD)clock()
-      ^ (DWORD)(DWORD_PTR)(const void *)pOwner;
-}
-
-#if defined(MULTINODE_AWARE) && !defined(ODPLAT_WIN32)
-static BOOL VoteWriteAll(int hFile, const char *pszText)
-{
-   size_t nLeft = strlen(pszText);
-   const char *pszCurrent = pszText;
-
-   while(nLeft > 0)
-   {
-      int nWritten = write(hFile, pszCurrent, (unsigned int)nLeft);
-      if(nWritten <= 0)
-      {
-         return(FALSE);
-      }
-      pszCurrent += nWritten;
-      nLeft -= (size_t)nWritten;
-   }
-   return(TRUE);
-}
-#endif
-
-#ifdef MULTINODE_AWARE
-static BOOL VoteReadOwner(const char *pszLockName, char *pszOwner,
-   size_t nOwnerSize)
-{
-   FILE *pfLock;
-   size_t nRead;
-   size_t nIndex;
-
-   pfLock = fopen(pszLockName, "rb");
-   if(pfLock == NULL)
-   {
-      return(FALSE);
-   }
-   nRead = fread(pszOwner, 1, nOwnerSize - 1, pfLock);
-   fclose(pfLock);
-   pszOwner[nRead] = '\0';
-   for(nIndex = 0; nIndex < nRead; ++nIndex)
-   {
-      if(pszOwner[nIndex] == '\r' || pszOwner[nIndex] == '\n')
-      {
-         pszOwner[nIndex] = '\0';
-         break;
-      }
-      if(!isprint((unsigned char)pszOwner[nIndex]))
-      {
-         pszOwner[nIndex] = '?';
-      }
-   }
-   return(nRead > 0);
-}
-
-static BOOL VoteReleaseLock(tVoteFile *pFile)
-{
-   char szCurrentOwner[128];
-
-   if(!VoteReadOwner(pFile->szLockName, szCurrentOwner,
-      sizeof(szCurrentOwner))
-      || strcmp(szCurrentOwner, pFile->szOwner) != 0)
-   {
-      strcpy(pFile->szError, "Lock ownership changed before release");
-      return(FALSE);
-   }
-   if(remove(pFile->szLockName) != 0)
-   {
-      strcpy(pFile->szError, "Unable to remove owned lock");
-      return(FALSE);
-   }
-   pFile->bLocked = FALSE;
-   return(TRUE);
-}
-
-static tVoteLockResult VoteCreateLock(const char *pszLockName,
-   const char *pszOwner)
-{
-#ifdef ODPLAT_WIN32
-   HANDLE hFile;
-   DWORD dwWritten;
-   DWORD dwLength = (DWORD)strlen(pszOwner);
-
-   hFile = CreateFileA(pszLockName, GENERIC_WRITE, 0, NULL, CREATE_NEW,
-      FILE_ATTRIBUTE_NORMAL, NULL);
-   if(hFile == INVALID_HANDLE_VALUE)
-   {
-      return(GetLastError() == ERROR_FILE_EXISTS
-         || GetLastError() == ERROR_ALREADY_EXISTS
-         ? kVoteLockHeld : kVoteLockError);
-   }
-   if(!WriteFile(hFile, pszOwner, dwLength, &dwWritten, NULL)
-      || dwWritten != dwLength)
-   {
-      CloseHandle(hFile);
-      DeleteFileA(pszLockName);
-      return(kVoteLockError);
-   }
-   CloseHandle(hFile);
-   return(kVoteLockAcquired);
-#else
-   int hFile;
-
-   hFile = open(pszLockName, O_WRONLY | O_CREAT | O_EXCL | O_BINARY,
-      S_IREAD | S_IWRITE);
-   if(hFile == -1)
-   {
-      return(errno == EEXIST ? kVoteLockHeld : kVoteLockError);
-   }
-   if(!VoteWriteAll(hFile, pszOwner))
-   {
-      close(hFile);
-      remove(pszLockName);
-      return(kVoteLockError);
-   }
-   close(hFile);
-   return(kVoteLockAcquired);
-#endif
-}
-
-#if defined(ODPLAT_NIX)
-static BOOL VoteLinkUnsupported(int nError)
-{
-   return(nError == EPERM || nError == EACCES || nError == EXDEV
-#ifdef EOPNOTSUPP
-      || nError == EOPNOTSUPP
-#endif
-#ifdef ENOTSUP
-      || nError == ENOTSUP
-#endif
-      );
-}
-
-static tVoteLockResult VoteLinkLock(const char *pszLockName,
-   const char *pszOwner, tVoteLockOwner *pOwner)
-{
-   char szTemporary[256];
-   char szExisting[128];
-   struct stat Status;
-   int hFile;
-   int nLinkError;
-
-   sprintf(szTemporary, "%s.%s.%lu.%08lX.%lu", pszLockName,
-      pOwner->szLabel,
-      (unsigned long)pOwner->uProcess,
-      (unsigned long)pOwner->uNonce,
-      (unsigned long)pOwner->uSequence);
-   hFile = open(szTemporary, O_WRONLY | O_CREAT | O_EXCL | O_BINARY,
-      S_IREAD | S_IWRITE);
-   if(hFile == -1)
-   {
-      return(kVoteLockError);
-   }
-   if(!VoteWriteAll(hFile, pszOwner))
-   {
-      close(hFile);
-      remove(szTemporary);
-      return(kVoteLockError);
-   }
-   (void)fsync(hFile);
-   close(hFile);
-
-   if(link(szTemporary, pszLockName) == 0)
-   {
-      remove(szTemporary);
-      return(kVoteLockAcquired);
-   }
-   nLinkError = errno;
-   if(stat(szTemporary, &Status) == 0 && Status.st_nlink >= 2
-      && VoteReadOwner(pszLockName, szExisting, sizeof(szExisting))
-      && strcmp(szExisting, pszOwner) == 0)
-   {
-      remove(szTemporary);
-      return(kVoteLockAcquired);
-   }
-   remove(szTemporary);
-   if(nLinkError == EEXIST)
-   {
-      return(kVoteLockHeld);
-   }
-   if(VoteLinkUnsupported(nLinkError))
-   {
-      return(VoteCreateLock(pszLockName, pszOwner));
-   }
-   return(kVoteLockError);
-}
-#endif
-
-static tVoteLockResult VoteTryLock(const char *pszLockName,
-   const char *pszOwner, tVoteLockOwner *pOwner)
-{
-#if defined(ODPLAT_NIX)
-   return(VoteLinkLock(pszLockName, pszOwner, pOwner));
-#else
-   (void)pOwner;
-   return(VoteCreateLock(pszLockName, pszOwner));
-#endif
-}
-#endif
-
 BOOL VoteFileOpen(tVoteFile *pFile, const char *pszDataName,
-   const char *pszLockName, const char *pszMode, tVoteLockOwner *pOwner,
-   unsigned int nWaitSeconds, tVoteIdleCallback pfIdle)
+   const char *pszReservationName, const char *pszMode,
+   unsigned int nWaitSeconds)
 {
 #ifdef MULTINODE_AWARE
-   time_t StartTime;
-   tVoteLockResult LockResult;
-   char szCurrentOwner[128];
+   tODReserveResult ReserveResult;
 #endif
 
    memset(pFile, 0, sizeof(*pFile));
 #ifdef MULTINODE_AWARE
-   ++pOwner->uSequence;
-   sprintf(pFile->szOwner,
-      "%s %s=%lu ODVOTELOCK=1 TOKEN=%08lX-%08lX-%08lX-%08lX",
-      pOwner->szLabel, pOwner->szProcessKind,
-      (unsigned long)pOwner->uProcess,
-      (unsigned long)pOwner->uProcess,
-      (unsigned long)pOwner->uStarted,
-      (unsigned long)pOwner->uNonce,
-      (unsigned long)pOwner->uSequence);
-   strncpy(pFile->szLockName, pszLockName,
-      sizeof(pFile->szLockName) - 1);
-   StartTime = time(NULL);
-   for(;;)
+   if(!od_reserve_request(pszReservationName))
    {
-      LockResult = VoteTryLock(pszLockName, pFile->szOwner, pOwner);
-      if(LockResult == kVoteLockAcquired)
-      {
-         pFile->bLocked = TRUE;
-         break;
-      }
-      if(LockResult == kVoteLockError)
-      {
-         sprintf(pFile->szError, "Unable to create lock %s", pszLockName);
-         return(FALSE);
-      }
-      if(nWaitSeconds == 0
-         || difftime(time(NULL), StartTime) >= nWaitSeconds)
-      {
-         if(VoteReadOwner(pszLockName, szCurrentOwner,
-            sizeof(szCurrentOwner)))
-         {
-            sprintf(pFile->szError, "%s is locked by %.120s",
-               pszDataName, szCurrentOwner);
-         }
-         else
-         {
-            sprintf(pFile->szError, "%s has an unreadable lock",
-               pszDataName);
-         }
-         return(FALSE);
-      }
-      if(pfIdle != NULL)
-      {
-         (*pfIdle)();
-      }
+      sprintf(pFile->szError, "Unable to request access to %s", pszDataName);
+      return(FALSE);
+   }
+   pFile->bReserved = TRUE;
+   ReserveResult = od_reserve_wait((tODMilliSec)nWaitSeconds * 1000UL);
+   if(ReserveResult != OD_RESERVE_ACQUIRED)
+   {
+      (void)od_reserve_end();
+      pFile->bReserved = FALSE;
+      sprintf(pFile->szError, ReserveResult == OD_RESERVE_PENDING
+         ? "Timed out waiting for %s" : "Unable to reserve %s", pszDataName);
+      return(FALSE);
    }
 #else
-   (void)pszLockName;
-   (void)pOwner;
+   (void)pszReservationName;
    (void)nWaitSeconds;
-   (void)pfIdle;
 #endif
 
    pFile->pfFile = fopen(pszDataName, pszMode);
    if(pFile->pfFile == NULL)
    {
 #ifdef MULTINODE_AWARE
-      if(pFile->bLocked)
+      if(pFile->bReserved)
       {
-         if(!VoteReleaseLock(pFile))
-         {
-            return(FALSE);
-         }
+         (void)od_reserve_end();
+         pFile->bReserved = FALSE;
       }
 #endif
       sprintf(pFile->szError, "Unable to open %s", pszDataName);
@@ -643,9 +357,14 @@ BOOL VoteFileClose(tVoteFile *pFile)
       pFile->pfFile = NULL;
    }
 #ifdef MULTINODE_AWARE
-   if(pFile->bLocked && !VoteReleaseLock(pFile))
+   if(pFile->bReserved)
    {
-      bSuccess = FALSE;
+      if(!od_reserve_end())
+      {
+         strcpy(pFile->szError, "Unable to end file reservation");
+         bSuccess = FALSE;
+      }
+      pFile->bReserved = FALSE;
    }
 #endif
    return(bSuccess);

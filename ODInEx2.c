@@ -92,6 +92,7 @@ typedef unsigned long tODPrintUInt32;
 #include "ODInQue.h"
 #include "ODKrnl.h"
 #include "ODInEx.h"
+#include "ODRsv.h"
 #include "ODUtil.h"
 #ifdef ODPLAT_WIN32
 #include "ODFrame.h"
@@ -401,6 +402,10 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
 
    bReturnToCaller = bODPendingExitNoExit;
    eODLifecycleState = kODLifecycleFinalizing;
+
+   /* The before-exit hook may need the reservation. Release it before the
+    * remainder of shutdown can block or terminate the process. */
+   ODReserveSessionShutdown();
 
    if(bTermCall && od_control.od_hanging_up != NULL)
    {

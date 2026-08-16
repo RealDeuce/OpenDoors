@@ -735,12 +735,11 @@ extension must make its own capability and fallback decisions.
 
 ### Multi-node file access
 
-Maintained builds define `MULTINODE_AWARE` for Vote. In that mode,
-`ExclusiveFileOpen` acquires `VOTEUSR.LCK` or `VOTEQST.LCK` before opening the
-corresponding data file, waits for at most 20 seconds when another node owns
-the lock, and calls [`od_kernel()`](../reference/api/od_kernel.md) while
-waiting. A manual build which omits the definition falls back to ordinary
-`fopen()` and does not provide multi-node exclusion.
+Maintained builds define `MULTINODE_AWARE` for Vote. In that mode, startup
+configures a shared OpenDoors reservation registry. `ExclusiveFileOpen`
+requests `VoteUsers` or `VoteQuestions`, waits for at most 20 seconds, and then
+opens the corresponding data file. A manual build which omits the definition
+falls back to ordinary `fopen()` and does not provide multi-node exclusion.
 
 The important pattern is broader than the particular wrapper. Vote acquires
 exclusive access before searching or modifying a file, performs the complete
@@ -755,33 +754,17 @@ Vote writes these fixed-size structures one record at a time. For such a call,
 or failed write and must take the error path before the caller is told that the
 update succeeded.
 
-Each lock file starts with `NodeN` or `Local`, followed by a process identity
-(`PID` on Windows and Unix-like systems or `PSP` on DOS) and a unique token.
-Unix-like builds use the traditional hard-link lock-file dance and fall back
-to atomic exclusive creation when the mounted filesystem does not support
-links. Windows uses `CreateFile(..., CREATE_NEW, ...)`; DOS uses an exclusive
-create. These operations are intended to preserve exclusion on shared NFS,
-SMB/Samba, and LANMAN filesystems which implement the corresponding atomic
-operation.
-
-Vote never guesses that an existing lock is stale. On timeout it reports the
-recorded owner and leaves the lock in place. On close it removes only a lock
-whose owner text still matches its own token. After a crash, an operator must
-therefore establish that the recorded owner is gone before removing the
-sidecar manually.
-
-Calling [`od_kernel()`](../reference/api/od_kernel.md) during a bounded lock
-wait keeps carrier and time handling responsive, but it also means OpenDoors
-callbacks may run while the application is waiting. The application must not
-pretend it owns a file before the open succeeds, and should keep global state
-consistent at every point where it services the kernel.
+The reservation wait services OpenDoors checkpoints while it is blocked, so
+callbacks may run during the wait. The application must not pretend it owns a
+file before the reservation is acquired, and should keep global state
+consistent at those checkpoints. Closing the wrapper releases the named
+reservation after closing the data file.
 
 The example's wrappers are demonstrations, not a universal locking API.
 Sharing semantics still depend on the mounted filesystem correctly
-implementing atomic create or hard-link operations. A production format may
-prefer record locks, lock files, a database transaction, or a single service
-which owns the data. Whichever mechanism is chosen, document its behavior when
-a node crashes and its policy for stale locks.
+implementing shared byte-range locks and coherent file I/O. A production
+format may instead prefer a database transaction or a single service which
+owns the data.
 
 ### What to take from the example
 

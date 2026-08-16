@@ -62,6 +62,7 @@ set(OPENDOORS_SOURCES
     ODPopup.c
     ODPrntf.c
     ODRA.c
+    ODRsv.c
     ODSafe.c
     ODScrn.c
     ODSpawn.c
@@ -96,6 +97,7 @@ set(OPENDOORS_PRIVATE_HEADERS
     ODMulti.h
     ODPlat.h
     ODRes.h
+    ODRsv.h
     ODSafe.h
     ODScrn.h
     ODStr.h
@@ -350,8 +352,6 @@ if(BUILD_TESTING)
         tests/vote_io_test.c ex_votio.c)
     target_include_directories(opendoors_vote_io_test PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_compile_definitions(opendoors_vote_io_test PRIVATE
-        MULTINODE_AWARE)
     set_target_properties(opendoors_vote_io_test PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
     add_test(NAME vote_io COMMAND opendoors_vote_io_test)

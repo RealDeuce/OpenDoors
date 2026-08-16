@@ -151,11 +151,14 @@ class MockDeclarationTests(unittest.TestCase):
 
     def test_declares_errno_accessors_before_runtime_headers_use_them(self):
         self.assertEqual(early_mock_declarations(
-            {"__error", "__errno_location", "_errno", "fopen"}), [
+            {"__error", "__errno_location", "__get_errno_ptr", "_errno",
+             "fopen"}), [
                 "int *__error(void);",
                 "int *utm___error(void);",
                 "int *__errno_location(void);",
                 "int *utm___errno_location(void);",
+                "int *__get_errno_ptr(void);",
+                "int *utm___get_errno_ptr(void);",
                 "int *_errno(void);",
                 "int *utm__errno(void);",
             ])

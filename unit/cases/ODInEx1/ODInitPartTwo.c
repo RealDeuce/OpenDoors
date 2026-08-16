@@ -32,6 +32,7 @@
 #define UT_CUSTOM_MOCK_ODKrnlShutdown
 #define UT_CUSTOM_MOCK_ODMultiResolvePersonality
 #define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
+#define UT_CUSTOM_MOCK_ODReserveSessionInitialize
 #define UT_CUSTOM_MOCK_ODScrnCreateWindow
 #define UT_CUSTOM_MOCK_ODScrnDestroyWindow
 #define UT_CUSTOM_MOCK_ODScrnDisplayString
@@ -67,6 +68,7 @@ static tODResult ut_existing_result;
 static tODResult ut_kernel_result;
 static tODResult ut_frame_result;
 static tODResult ut_screen_result;
+static tODResult ut_reserve_result;
 static tComMethod ut_com_method;
 static unsigned ut_alloc_calls;
 static unsigned ut_open_calls;
@@ -80,6 +82,7 @@ static unsigned ut_atexit_calls;
 static unsigned ut_frame_calls;
 static unsigned ut_publish_calls;
 static unsigned ut_error_calls;
+static unsigned ut_reserve_calls;
 static unsigned ut_exit_calls;
 static unsigned ut_log_calls;
 static unsigned ut_preferred_calls;
@@ -265,6 +268,12 @@ void ODCALL utm_od_kernel(void)
 tODResult utm_ODScrnInitialize(void)
 {
    return ut_screen_result;
+}
+
+tODResult utm_ODReserveSessionInitialize(void)
+{
+   ++ut_reserve_calls;
+   return ut_reserve_result;
 }
 
 void utm_ODScrnSetBoundary(BYTE left, BYTE top, BYTE right, BYTE bottom)
@@ -540,6 +549,7 @@ static void reset_part_two_fixture(void)
    ut_kernel_result = kODRCSuccess;
    ut_frame_result = kODRCSuccess;
    ut_screen_result = kODRCSuccess;
+   ut_reserve_result = kODRCSuccess;
 #ifdef ODPLAT_NIX
    ut_com_method = kComMethodStdIO;
 #else
@@ -561,6 +571,7 @@ static void reset_part_two_fixture(void)
    ut_frame_calls = 0;
    ut_publish_calls = 0;
    ut_error_calls = 0;
+   ut_reserve_calls = 0;
    ut_exit_calls = 0;
    ut_log_calls = 0;
    ut_preferred_calls = 0;
@@ -649,6 +660,7 @@ static void initializes_defaults_and_a_serial_session(void)
    UT_ASSERT_EQ_INT(TRUE, od_control.od_list_pause);
    UT_ASSERT(strcmp("DOOR.LOG", od_control.od_logfile_name) == 0);
    UT_ASSERT_EQ_UINT(1, ut_kernel_calls);
+   UT_ASSERT_EQ_UINT(1, ut_reserve_calls);
 #if defined(OD_TEXTMODE) || defined(ODPLAT_WIN32)
    UT_ASSERT_EQ_INT(23, ut_boundary_bottom);
    UT_ASSERT_EQ_INT(80, ut_session_width);
@@ -855,6 +867,13 @@ static void exercises_serial_failure_results(void)
       kODRCNoMemory, kODRCNoPortAddress, kODRCNoUART, kODRCGeneralFailure
    };
    unsigned index;
+
+   reset_part_two_fixture();
+   ut_reserve_result = kODRCFileAccessError;
+   run_expecting_fatal_exit();
+   UT_ASSERT_EQ_UINT(1, ut_reserve_calls);
+   UT_ASSERT(strcmp("Unable to initialize shared reservations.",
+      ut_error_text) == 0);
 
    reset_part_two_fixture();
    ut_alloc_result = kODRCNoMemory;

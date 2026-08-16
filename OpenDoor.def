@@ -149,3 +149,13 @@ EXPORTS
    od_get_user_8bit=_od_get_user_8bit@0 @143
    _od_set_user_8bit@4=_od_set_user_8bit@4 @144
    od_set_user_8bit=_od_set_user_8bit@4 @145
+   _od_reserve_configure@4=_od_reserve_configure@4 @146
+   od_reserve_configure=_od_reserve_configure@4 @147
+   _od_reserve_request@4=_od_reserve_request@4 @148
+   od_reserve_request=_od_reserve_request@4 @149
+   _od_reserve_wait@4=_od_reserve_wait@4 @150
+   od_reserve_wait=_od_reserve_wait@4 @151
+   _od_reserve_wait_until@8=_od_reserve_wait_until@8 @152
+   od_reserve_wait_until=_od_reserve_wait_until@8 @153
+   _od_reserve_end@0=_od_reserve_end@0 @154
+   od_reserve_end=_od_reserve_end@0 @155

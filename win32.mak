@@ -136,6 +136,7 @@ HEADERS= $(HEADERDIR)ODCom.h\
          $(HEADERDIR)ODKrnl.h\
          $(HEADERDIR)ODPlat.h\
          $(HEADERDIR)ODRes.h\
+         $(HEADERDIR)ODRsv.h\
          $(HEADERDIR)ODSafe.h\
          $(HEADERDIR)ODScrn.h\
          $(HEADERDIR)ODStat.h\
@@ -295,6 +296,11 @@ $(OBJDIR)odsafe$(TARGET).obj : $(SOURCEDIR)odsafe.c $(HEADERS)
    cmd /c erase $(OBJDIR)odsafe$(TARGET).obj
    move odsafe.obj $(OBJDIR)odsafe$(TARGET).obj
 
+$(OBJDIR)odrsv$(TARGET).obj : $(SOURCEDIR)odrsv.c $(HEADERS)
+   $(CC) $(CFLAGS) $(SOURCEDIR)odrsv.c
+   cmd /c erase $(OBJDIR)odrsv$(TARGET).obj
+   move odrsv.obj $(OBJDIR)odrsv$(TARGET).obj
+
 $(OBJDIR)odscrn$(TARGET).obj : $(SOURCEDIR)odscrn.c $(HEADERS)
    $(CC) $(CFLAGS) $(SOURCEDIR)odscrn.c
    cmd /c erase $(OBJDIR)odscrn$(TARGET).obj
@@ -381,6 +387,7 @@ OBJECTS= $(OBJDIR)odauto$(TARGET).obj\
          $(OBJDIR)odpopup$(TARGET).obj\
          $(OBJDIR)odprntf$(TARGET).obj\
          $(OBJDIR)odra$(TARGET).obj\
+         $(OBJDIR)odrsv$(TARGET).obj\
          $(OBJDIR)odsafe$(TARGET).obj\
          $(OBJDIR)odscrn$(TARGET).obj\
          $(OBJDIR)odspawn$(TARGET).obj\

@@ -50,8 +50,9 @@
 
 #define USER_FILENAME             "vote.usr"
 #define QUESTION_FILENAME         "vote.qst"
-#define USER_LOCK_FILENAME        "VOTEUSR.LCK"
-#define QUESTION_LOCK_FILENAME    "VOTEQST.LCK"
+#define RESERVATION_FILENAME      "VOTE.SYN"
+#define USER_RESERVATION_NAME     "VoteUsers"
+#define QUESTION_RESERVATION_NAME "VoteQuestions"
 
 #define FILE_ACCESS_MAX_WAIT      20
 
@@ -65,7 +66,6 @@ int nCurrentUserNumber;
 /* Global variables. */
 int nViewResultsFrom = QUESTIONS_VOTED_ON;
 int nQuestionsVotedOn = 0;
-tVoteLockOwner VoteLockOwner;
 
 
 /* Prototypes for functions that form EX_VOTE */
@@ -100,7 +100,6 @@ int main(int argc, char *argv[])
    /* Variable to store user's choice from the menu */
    char chMenuChoice = '\0';
    char chYesOrNo;
-   char szNodeLabel[16];
 
 #ifdef ODPLAT_WIN32
    /* In Windows, pass in nCmdShow value to OpenDoors. */
@@ -149,26 +148,17 @@ int main(int argc, char *argv[])
    /* Set function to be called before program exits. */
    od_control.od_before_exit = BeforeExitFunction;
 
+#ifdef MULTINODE_AWARE
+   if(!od_reserve_configure(RESERVATION_FILENAME))
+      return(1);
+#endif
+
    /* Initialize OpenDoors. This function call is optional, and can be used */
    /* to force OpenDoors to read the door informtion file and begin door    */
    /* operations. If a call to od_init() is not included in your program,   */
    /* OpenDoors initialization will be performed at the time of your first  */
    /* call to any OpenDoors function. */
    od_init();
-
-#if defined(ODPLAT_NIX)
-   if(od_control.od_force_local)
-#else
-   if(od_control.od_force_local || od_control.baud == 0)
-#endif
-   {
-      strcpy(szNodeLabel, "Local");
-   }
-   else
-   {
-      sprintf(szNodeLabel, "Node%u", od_control.od_node);
-   }
-   VoteLockOwnerInitialize(&VoteLockOwner, szNodeLabel);
 
    if(!ValidateVoteFiles())
    {
@@ -1246,23 +1236,23 @@ void WriteCurrentUser(void)
 }
 
 
-/* Open a Vote data file, using the portable sidecar lock when enabled. */
+/* Open a Vote data file while holding its named reservation. */
 FILE *ExclusiveFileOpen(tVoteFile *pVoteFile, const char *pszFileName,
    const char *pszMode)
 {
-   const char *pszLockName;
+   const char *pszReservationName;
 
    if(strcmp(pszFileName, QUESTION_FILENAME) == 0)
    {
-      pszLockName = QUESTION_LOCK_FILENAME;
+      pszReservationName = QUESTION_RESERVATION_NAME;
    }
    else
    {
-      pszLockName = USER_LOCK_FILENAME;
+      pszReservationName = USER_RESERVATION_NAME;
    }
 
-   if(!VoteFileOpen(pVoteFile, pszFileName, pszLockName, pszMode,
-      &VoteLockOwner, FILE_ACCESS_MAX_WAIT, od_kernel))
+   if(!VoteFileOpen(pVoteFile, pszFileName, pszReservationName, pszMode,
+      FILE_ACCESS_MAX_WAIT))
    {
       od_printf("%s\n\r", VoteFileError(pVoteFile));
       od_log_write(VoteFileError(pVoteFile));

@@ -123,6 +123,11 @@ nav:
           - od_chat: reference/api/od_chat.md
           - od_sleep: reference/api/od_sleep.md
           - od_get_time: reference/api/od_get_time.md
+          - od_reserve_configure: reference/api/od_reserve_configure.md
+          - od_reserve_request: reference/api/od_reserve_request.md
+          - od_reserve_wait: reference/api/od_reserve_wait.md
+          - od_reserve_wait_until: reference/api/od_reserve_wait_until.md
+          - od_reserve_end: reference/api/od_reserve_end.md
           - od_get_user_8bit: reference/api/od_get_user_8bit.md
           - od_control_get: reference/api/od_control_get.md
   - Data reference:

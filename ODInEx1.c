@@ -103,6 +103,7 @@
 #include "ODKrnl.h"
 #include "ODMulti.h"
 #include "ODInEx.h"
+#include "ODRsv.h"
 #include "ODUtil.h"
 #ifdef ODPLAT_WIN32
 #include "ODFrame.h"
@@ -2367,6 +2368,12 @@ static void ODInitPartTwo(void)
       {
          od_control.baud = dwForcedBPS;
       }
+   }
+
+   if(ODReserveSessionInitialize() != kODRCSuccess)
+   {
+      ODInitError("Unable to initialize shared reservations.");
+      exit(od_control.od_errorlevel[1]);
    }
 
    /* If we are not operating in local mode, then setup for serial I/O. */

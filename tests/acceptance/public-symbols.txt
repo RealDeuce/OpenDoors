@@ -43,6 +43,11 @@ od_printf
 od_putch
 od_puttext
 od_repeat
+od_reserve_configure
+od_reserve_end
+od_reserve_request
+od_reserve_wait
+od_reserve_wait_until
 od_restore_screen
 od_restore_screen_ex
 od_save_screen

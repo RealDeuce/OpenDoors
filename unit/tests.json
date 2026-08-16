@@ -2195,6 +2195,141 @@
       "platforms": ["windows"]
     },
     {
+      "source": "ODRsv.c", "function": "ODReserveRangeLock",
+      "case": "unit/cases/ODReserve/ODReserveRangeLock.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveRangeUnlock",
+      "case": "unit/cases/ODReserve/ODReserveRangeUnlock.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReservePause",
+      "case": "unit/cases/ODReserve/ODReservePause.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveAcquire",
+      "case": "unit/cases/ODReserve/ODReserveAcquire.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveTransfer",
+      "case": "unit/cases/ODReserve/ODReserveTransfer.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveAccess",
+      "case": "unit/cases/ODReserve/ODReserveAccess.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveCountRecords",
+      "case": "unit/cases/ODReserve/ODReserveCountRecords.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveSnapshotRecords",
+      "case": "unit/cases/ODReserve/ODReserveSnapshotRecords.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveReadLiveRecord",
+      "case": "unit/cases/ODReserve/ODReserveReadLiveRecord.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveWriteOwn",
+      "case": "unit/cases/ODReserve/ODReserveWriteOwn.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveDetach",
+      "case": "unit/cases/ODReserve/ODReserveDetach.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveNameValid",
+      "case": "unit/cases/ODReserve/ODReserveNameValid.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveTicketGreater",
+      "case": "unit/cases/ODReserve/ODReserveTicketGreater.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveTicketPrecedes",
+      "case": "unit/cases/ODReserve/ODReserveTicketPrecedes.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveOpenRegistry",
+      "case": "unit/cases/ODReserve/ODReserveOpenRegistry.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReservePrepareHeader",
+      "case": "unit/cases/ODReserve/ODReservePrepareHeader.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveSetIdentity",
+      "case": "unit/cases/ODReserve/ODReserveSetIdentity.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveCheckIdentities",
+      "case": "unit/cases/ODReserve/ODReserveCheckIdentities.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveAppendParticipant",
+      "case": "unit/cases/ODReserve/ODReserveAppendParticipant.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveSessionInitialize",
+      "case": "unit/cases/ODReserve/ODReserveSessionInitialize.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveSessionShutdown",
+      "case": "unit/cases/ODReserve/ODReserveSessionShutdown.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "od_reserve_configure",
+      "case": "unit/cases/ODReserve/od_reserve_configure.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "od_reserve_request",
+      "case": "unit/cases/ODReserve/od_reserve_request.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "ODReserveWaitCore",
+      "case": "unit/cases/ODReserve/ODReserveWaitCore.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "od_reserve_wait",
+      "case": "unit/cases/ODReserve/od_reserve_wait.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "od_reserve_wait_until",
+      "case": "unit/cases/ODReserve/od_reserve_wait_until.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "ODRsv.c", "function": "od_reserve_end",
+      "case": "unit/cases/ODReserve/od_reserve_end.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
       "source": "ODScrn.c", "function": "ODScrnPublishConsole",
       "case": "unit/cases/ODScrn/ODScrnPublishConsole.c",
       "platforms": ["windows"]

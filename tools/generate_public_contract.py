@@ -41,6 +41,7 @@ TESTS = {
     "personalities.builtin": {"tier": "push", "description": "Built-in personality lifecycle"},
     "personality.sdk": {"tier": "push", "description": "DOS personality SDK compile and screen-cell behavior"},
     "windows.control": {"tier": "push", "description": "Windows-only public control fields"},
+    "reservation.named": {"tier": "push", "description": "Named filesystem reservation lifecycle"},
 }
 
 
@@ -79,6 +80,11 @@ def function_evidence(name: str) -> list[str]:
         "od_split_cmd_line": "command-line.behavior",
         "od_free_split_cmd_line": "command-line.behavior",
         "od_set_user_8bit": "dropfiles.all",
+        "od_reserve_configure": "reservation.named",
+        "od_reserve_request": "reservation.named",
+        "od_reserve_wait": "reservation.named",
+        "od_reserve_wait_until": "reservation.named",
+        "od_reserve_end": "reservation.named",
     }
     if name.startswith("pdef_"):
         group = "personalities.builtin"

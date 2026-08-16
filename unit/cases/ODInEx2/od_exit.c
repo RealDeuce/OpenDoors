@@ -14,6 +14,7 @@
 #define UT_CUSTOM_MOCK_ODKrnlShutdown
 #define UT_CUSTOM_MOCK_ODMakeFilename
 #define UT_CUSTOM_MOCK_ODProcessExit
+#define UT_CUSTOM_MOCK_ODReserveSessionShutdown
 #define UT_CUSTOM_MOCK_ODScrnClear
 #define UT_CUSTOM_MOCK_ODScrnRemoveMessage
 #define UT_CUSTOM_MOCK_ODScrnSetAttribute
@@ -62,6 +63,7 @@ static unsigned ut_process_exit_calls;
 static unsigned ut_api_entry_calls;
 static unsigned ut_api_exit_calls;
 static unsigned ut_before_exit_calls;
+static unsigned ut_reserve_shutdown_calls;
 static unsigned ut_log_close_calls;
 static BOOL ut_nested_api;
 static BOOL ut_init_succeeds;
@@ -147,6 +149,7 @@ void utm_ODTextDropFileWrite(tODDropFileWriter *writer, const char *format, ...)
 INT utm_ODWriteExitInfoPrimitive(FILE *file, INT count)
 { (void)file; (void)count; return(ut_primitive_write); }
 void utm_ODProcessExit(INT code) { (void)code; ++ut_process_exit_calls; }
+void utm_ODReserveSessionShutdown(void) { ++ut_reserve_shutdown_calls; }
 void utm_ODWaitDrain(tODMilliSec maximum) { (void)maximum; }
 tODResult utm_ODComCarrier(tPortHandle port, BOOL *carrier)
 { (void)port; *carrier = ut_carrier; ut_carrier = FALSE; return(kODRCSuccess); }
@@ -219,6 +222,7 @@ static void reset_exit(void)
    ut_time_step = 1;
    ut_process_exit_calls = ut_api_entry_calls = ut_api_exit_calls = 0;
    ut_before_exit_calls = ut_log_close_calls = 0;
+   ut_reserve_shutdown_calls = 0;
    ut_ra2_endian_calls = ut_extended_endian_calls = 0;
    ut_nested_api = FALSE;
    ut_init_succeeds = TRUE;
@@ -240,6 +244,7 @@ static void defers_nested_noexit_teardown(void)
    UT_ASSERT_EQ_INT(FALSE, bODPendingExitTermCall);
    UT_ASSERT_EQ_UINT(1, ut_api_entry_calls);
    UT_ASSERT_EQ_UINT(1, ut_api_exit_calls);
+   UT_ASSERT_EQ_UINT(0, ut_reserve_shutdown_calls);
 #ifdef ODPLAT_WIN32
    UT_ASSERT_EQ_UINT(1, ut_frame_request_calls);
 
@@ -300,6 +305,7 @@ static void resumes_teardown_after_a_completed_prologue(void)
    UT_ASSERT_EQ_INT(kODLifecycleTerminal, eODLifecycleState);
    UT_ASSERT_EQ_UINT(1, ut_api_entry_calls);
    UT_ASSERT_EQ_UINT(1, ut_api_exit_calls);
+   UT_ASSERT_EQ_UINT(1, ut_reserve_shutdown_calls);
 }
 
 static void resets_exit_state_without_terminating_process(void)
@@ -310,6 +316,7 @@ static void resets_exit_state_without_terminating_process(void)
    UT_ASSERT_EQ_UINT(1, ut_api_entry_calls);
    UT_ASSERT_EQ_UINT(1, ut_api_exit_calls);
    UT_ASSERT_EQ_UINT(0, ut_process_exit_calls);
+   UT_ASSERT_EQ_UINT(1, ut_reserve_shutdown_calls);
 }
 
 static void covers_entry_hooks_time_and_process_exit(void)

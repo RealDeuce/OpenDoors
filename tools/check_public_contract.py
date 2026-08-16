@@ -17,7 +17,8 @@ MANIFEST = ROOT / "tests" / "acceptance" / "public-contract.json"
 
 PUBLIC_TYPES = {
     "BYTE", "INT8", "WORD", "INT16", "DWORD", "INT32", "DWORD_PTR",
-    "INT", "UINT", "BOOL", "tODMilliSec", "tODEditTextFormat",
+    "INT", "UINT", "BOOL", "tODMilliSec", "tODReserveResult",
+    "tODEditTextFormat",
     "tODEditMenuResult", "tODEditOptions", "tODInputEventType",
     "tODInputEvent", "OD_COMPONENT", "OD_PERSONALITY_PROC", "tODControl",
 }

@@ -213,6 +213,7 @@ HEADERS= ${HEADERDIR}ODCom.h\
          ${HEADERDIR}ODKrnl.h\
          ${HEADERDIR}ODPlat.h\
          ${HEADERDIR}ODRes.h\
+         ${HEADERDIR}ODRsv.h\
          ${HEADERDIR}ODSafe.h\
          ${HEADERDIR}ODScrn.h\
          ${HEADERDIR}ODStat.h\
@@ -252,6 +253,7 @@ OBJECTS := ${OBJDIR}ODAuto${OBJFILE}\
          ${OBJDIR}ODPopup${OBJFILE}\
          ${OBJDIR}ODPrntf${OBJFILE}\
          ${OBJDIR}ODRA${OBJFILE}\
+         ${OBJDIR}ODRsv${OBJFILE}\
          ${OBJDIR}ODSafe${OBJFILE}\
          ${OBJDIR}ODScrn${OBJFILE}\
          ${OBJDIR}ODSpawn${OBJFILE}\

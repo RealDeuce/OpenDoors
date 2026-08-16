@@ -98,6 +98,22 @@ Intervals describe elapsed time, not a wall-clock timestamp. Do not store a
 calendar time in `tODMilliSec`, and do not add intervals without considering
 32-bit wraparound.
 
+### `tODReserveResult`
+
+```c
+typedef enum {
+    OD_RESERVE_ERROR = -1,
+    OD_RESERVE_PENDING = 0,
+    OD_RESERVE_ACQUIRED = 1
+} tODReserveResult;
+```
+
+`tODReserveResult` reports the state of a named filesystem reservation.
+`OD_RESERVE_ACQUIRED` means the caller owns the requested turn,
+`OD_RESERVE_PENDING` means the request remains queued, and
+`OD_RESERVE_ERROR` means synchronization failed or the call was invalid.
+See [`od_reserve_wait()`](api/od_reserve_wait.md).
+
 ## Input event types
 
 ### `tODInputEventType`

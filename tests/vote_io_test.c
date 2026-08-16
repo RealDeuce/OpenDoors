@@ -92,73 +92,17 @@ static void TestRecords(void)
 static void TestFiles(void)
 {
    static char szDataName[] = "VTIO.DAT";
-   static char szLockName[] = "VTIO.LCK";
-   static tVoteLockOwner Owner;
    static tVoteFile First;
-   static tVoteFile Second;
    FILE *pfFile;
-   FILE *pfLock;
-   static char szOwner[128];
-   size_t nOwnerLength;
    static unsigned char achWrongRecord[672];
 
    remove(szDataName);
-   remove(szLockName);
-   VoteLockOwnerInitialize(&Owner, "Node7");
-
-   CHECK(VoteFileOpen(&First, szDataName, szLockName, "a+b", &Owner,
-      0, NULL));
-   pfLock = fopen(szLockName, "rb");
-   CHECK(pfLock != NULL);
-   if(pfLock != NULL)
-   {
-      nOwnerLength = fread(szOwner, 1, sizeof(szOwner) - 1, pfLock);
-      fclose(pfLock);
-      szOwner[nOwnerLength] = '\0';
-      CHECK(strncmp(szOwner, "Node7 ", 6) == 0);
-#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
-      CHECK(strstr(szOwner, " PSP=") != NULL);
-#else
-      CHECK(strstr(szOwner, " PID=") != NULL);
-#endif
-      CHECK(strstr(szOwner, " TOKEN=") != NULL);
-   }
-   CHECK(!VoteFileOpen(&Second, szDataName, szLockName, "a+b", &Owner,
-      0, NULL));
-   CHECK(strstr(VoteFileError(&Second), "Node7") != NULL);
+   CHECK(VoteFileOpen(&First, szDataName, "VoteUsers", "a+b", 0));
    CHECK(VoteFileClose(&First));
-   CHECK(VoteFileOpen(&Second, szDataName, szLockName, "a+b", &Owner,
-      0, NULL));
-   CHECK(VoteFileClose(&Second));
 
-   CHECK(VoteFileOpen(&First, szDataName, szLockName, "a+b", &Owner,
-      0, NULL));
-   pfLock = fopen(szLockName, "wb");
-   CHECK(pfLock != NULL);
-   if(pfLock != NULL)
-   {
-      CHECK(fputs("Node8 PID=1 ODVOTELOCK=1 TOKEN=other", pfLock) >= 0);
-      fclose(pfLock);
-   }
-   CHECK(!VoteFileClose(&First));
-   pfLock = fopen(szLockName, "rb");
-   CHECK(pfLock != NULL);
-   if(pfLock != NULL)
-   {
-      fclose(pfLock);
-   }
-   remove(szLockName);
-
-   remove("VTFAIL.LCK");
-   CHECK(!VoteFileOpen(&First, "VTNONE/VTIO.DAT", "VTFAIL.LCK", "r+b",
-      &Owner, 0, NULL));
+   CHECK(!VoteFileOpen(&First, "VTNONE/VTIO.DAT", "VoteUsers", "r+b",
+      0));
    CHECK(strstr(VoteFileError(&First), "Unable to open") != NULL);
-   pfLock = fopen("VTFAIL.LCK", "rb");
-   CHECK(pfLock == NULL);
-   if(pfLock != NULL)
-   {
-      fclose(pfLock);
-   }
 
    memset(achWrongRecord, 0, sizeof(achWrongRecord));
    pfFile = fopen(szDataName, "w+b");
@@ -171,7 +115,6 @@ static void TestFiles(void)
    }
 
    remove(szDataName);
-   remove(szLockName);
 }
 
 int main(void)
