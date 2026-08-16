@@ -24,6 +24,17 @@ class IncludedImplementationTests(unittest.TestCase):
             generate_module.manifest_source(ROOT / "src" / "ODAuto.c"),
             "src/ODAuto.c")
 
+    def test_repository_source_line_marker_preserves_its_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "generated.c"
+            generate(
+                ROOT / "src" / "ODAuto.c", "ODWaitDiscard",
+                ROOT / "unit" / "cases" / "ODAuto" / "ODWaitDiscard.c",
+                output, "clang", ["-std=c99", "-D__unix__",
+                                   "-D_POSIX_C_SOURCE=200809L"])
+            self.assertIn('#line 1 "src/ODAuto.c"',
+                          output.read_text(encoding="latin-1"))
+
     def test_emits_an_unmodified_boolean_tree_for_llvm_coverage(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

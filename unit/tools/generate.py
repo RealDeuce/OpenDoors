@@ -400,7 +400,7 @@ def generate(source: Path, target_name: str, case: Path, output: Path,
     for original, replacement in early_alias_macros(
             macros, deferred_alias_names):
         lines.append(f"#define {original} {replacement}")
-    lines.append(f'#line 1 "{source.name}"')
+    lines.append(f'#line 1 "{manifest_source(source)}"')
     body_index = len(lines)
     lines.append(transformed)
     for original, unused in macros:
