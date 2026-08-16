@@ -3,10 +3,12 @@
 #ifdef _WIN32 /* OpenDoor.h has not yet supplied ODPLAT_WIN32. */
 #include <winsock2.h>
 #include <windows.h>
-#elif defined(__MSDOS__) || defined(MSDOS) || defined(__DOS__)
+#else
+#if defined(__MSDOS__) || defined(MSDOS) || defined(__DOS__)
 #include <dos.h>
 #else
 #include <unistd.h>
+#endif
 #endif
 
 #define OD_ACCEPTANCE_NO_LOCAL_CONFIG
@@ -79,10 +81,12 @@ static void PauseWithoutOpenDoors(unsigned seconds)
 {
 #ifdef ODPLAT_WIN32
    Sleep((DWORD)seconds * 1000UL);
-#elif defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+#else
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    delay(seconds * 1000U);
 #else
    sleep(seconds);
+#endif
 #endif
 }
 
@@ -816,8 +820,8 @@ int main(int argc, char **argv)
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
    OD_TEST_CHECK(od_set_port(0));
 #endif
-   od_control.baud = 38400;
-   od_control.od_connect_speed = 38400;
+   od_control.baud = 38400UL;
+   od_control.od_connect_speed = 38400UL;
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
 #ifndef OD_ACCEPTANCE_DOS_FOSSIL
    od_control.od_no_fossil = TRUE;
