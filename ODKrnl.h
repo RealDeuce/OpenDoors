@@ -105,18 +105,24 @@ void ODKrnlGetUIState(tODUIState *pState);
 
 #define OD_API_ENTRY()              ODSyncAPIEntry();
 #define OD_API_EXIT()               ODSyncAPIExit();
+/* Keep these as separate guards: Turbo C 2.01 miscompiles the combined
+ * Boolean expression in large-model optimized builds. */
 #define OD_RETURN_IF_SESSION_ENDED(value) do { \
-   /* Both operands are Boolean; evaluate both as one guard decision. */ \
-   if((eODLifecycleState >= kODLifecycleExitPending) \
-      | (!bODInitialized)) { \
+   if(eODLifecycleState >= kODLifecycleExitPending) { \
+      od_control.od_error = ERR_GENERALFAILURE; \
+      return(value); \
+   } \
+   if(!bODInitialized) { \
       od_control.od_error = ERR_GENERALFAILURE; \
       return(value); \
    } \
 } while(0)
 #define OD_RETURN_VOID_IF_SESSION_ENDED() do { \
-   /* Both operands are Boolean; evaluate both as one guard decision. */ \
-   if((eODLifecycleState >= kODLifecycleExitPending) \
-      | (!bODInitialized)) { \
+   if(eODLifecycleState >= kODLifecycleExitPending) { \
+      od_control.od_error = ERR_GENERALFAILURE; \
+      return; \
+   } \
+   if(!bODInitialized) { \
       od_control.od_error = ERR_GENERALFAILURE; \
       return; \
    } \

@@ -48,6 +48,12 @@ static void reset_fixture(void)
    eODLifecycleState = kODLifecycleActive;
 }
 
+static BOOL lifecycle_guard_allows_call(void)
+{
+   OD_RETURN_IF_SESSION_ENDED(FALSE);
+   return(TRUE);
+}
+
 static void returns_requested_components_and_initializes(void)
 {
    DWORD seconds = 0;
@@ -71,6 +77,24 @@ static void returns_requested_components_and_initializes(void)
    UT_ASSERT_EQ_UINT(3, ut_exit_calls);
 }
 
+static void accepts_active_session_with_dirty_registers(void)
+{
+   DWORD seconds = 0;
+   WORD milliseconds = 0;
+
+   reset_fixture();
+#ifdef __TURBOC__
+   /* Turbo C 2.01 must not let an unrelated high byte in DX affect the
+    * lifecycle guard generated at the start of the public entry point. */
+   ASM mov dx, 0xff00
+#endif
+   UT_ASSERT(lifecycle_guard_allows_call());
+   utt_od_get_time(&seconds, &milliseconds);
+   UT_ASSERT_EQ_UINT(12, seconds);
+   UT_ASSERT_EQ_UINT(345, milliseconds);
+   UT_ASSERT_EQ_UINT(1, ut_entry_calls);
+}
+
 static void rejects_missing_outputs_and_terminal_sessions(void)
 {
    DWORD seconds = 77;
@@ -92,5 +116,6 @@ static void rejects_missing_outputs_and_terminal_sessions(void)
 
 static const UTTestCase ut_cases[] = {
    {"components", returns_requested_components_and_initializes},
+   {"dirty-registers", accepts_active_session_with_dirty_registers},
    {"errors", rejects_missing_outputs_and_terminal_sessions}
 };

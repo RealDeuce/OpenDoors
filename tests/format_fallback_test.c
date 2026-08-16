@@ -26,6 +26,8 @@ int main(void)
    CHECK(strcmp(buffer, "test-0007") == 0);
    CHECK(Format(buffer, 5, "%s", "truncate") == 8);
    CHECK(strcmp(buffer, "trun") == 0);
+   CHECK(Format(buffer, sizeof(buffer), "%-4.3s", "abcdef") == 4);
+   CHECK(strcmp(buffer, "abc ") == 0);
    CHECK(Format(buffer, 0, "%.2f", 1.25) == 4);
    return(0);
 }

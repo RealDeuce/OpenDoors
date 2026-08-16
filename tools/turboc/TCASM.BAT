@@ -1,4 +1,5 @@
 @echo off
+set PATH=C:\TC\BIN
 echo.>>C:\TCBUILD.LOG
 echo ==== %1.C ====>>C:\TCBUILD.LOG
 echo Compiling %1.C through assembly

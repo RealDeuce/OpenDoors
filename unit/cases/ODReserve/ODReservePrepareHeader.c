@@ -54,7 +54,7 @@ int utm_memcmp(const void *left, const void *right, size_t size)
 BOOL utm_ODReserveTransfer(int file, long offset, BYTE *data,
    size_t size, BOOL write)
 {
-   static const BYTE magic[8] = {'O','D','R','S','Y','N','C','1'};
+   static BYTE magic[8] = {'O','D','R','S','Y','N','C','1'};
    size_t index;
 
    UT_ASSERT_EQ_INT(hODReserveFile, file);
@@ -65,6 +65,17 @@ BOOL utm_ODReserveTransfer(int file, long offset, BYTE *data,
    {
       UT_ASSERT(offset == 2L || offset == OD_RESERVE_HEADER_COMMIT);
       UT_ASSERT(size == OD_RESERVE_RECORD_SIZE - 2 || size == 1);
+      if(offset == 2L)
+      {
+         UT_ASSERT(data[0] == 'O');
+         UT_ASSERT(data[1] == 'D');
+         UT_ASSERT(data[2] == 'R');
+         UT_ASSERT(data[3] == 'S');
+         UT_ASSERT(data[4] == 'Y');
+         UT_ASSERT(data[5] == 'N');
+         UT_ASSERT(data[6] == 'C');
+         UT_ASSERT(data[7] == '1');
+      }
       return(TRUE);
    }
    UT_ASSERT_EQ_INT(1, (int)offset);

@@ -458,54 +458,56 @@ typedef trio_longlong_t trio_int64_t;
 # define NAN_UPPER "NAN"
 #endif
 
+/* C requires every enumerator value to be representable as int.  FLAGS_UPPER
+ * and later exceed that range when int is 16 bits, so flags are unsigned long
+ * macros rather than enumerators. */
+# define FLAGS_NEW                 0UL
+# define FLAGS_STICKY              1UL
+# define FLAGS_SPACE               (2UL * FLAGS_STICKY)
+# define FLAGS_SHOWSIGN            (2UL * FLAGS_SPACE)
+# define FLAGS_LEFTADJUST          (2UL * FLAGS_SHOWSIGN)
+# define FLAGS_ALTERNATIVE         (2UL * FLAGS_LEFTADJUST)
+# define FLAGS_SHORT               (2UL * FLAGS_ALTERNATIVE)
+# define FLAGS_SHORTSHORT          (2UL * FLAGS_SHORT)
+# define FLAGS_LONG                (2UL * FLAGS_SHORTSHORT)
+# define FLAGS_QUAD                (2UL * FLAGS_LONG)
+# define FLAGS_LONGDOUBLE          (2UL * FLAGS_QUAD)
+# define FLAGS_SIZE_T              (2UL * FLAGS_LONGDOUBLE)
+# define FLAGS_PTRDIFF_T           (2UL * FLAGS_SIZE_T)
+# define FLAGS_INTMAX_T            (2UL * FLAGS_PTRDIFF_T)
+# define FLAGS_NILPADDING          (2UL * FLAGS_INTMAX_T)
+# define FLAGS_UNSIGNED            (2UL * FLAGS_NILPADDING)
+# define FLAGS_UPPER               (2UL * FLAGS_UNSIGNED)
+# define FLAGS_WIDTH               (2UL * FLAGS_UPPER)
+# define FLAGS_WIDTH_PARAMETER     (2UL * FLAGS_WIDTH)
+# define FLAGS_PRECISION           (2UL * FLAGS_WIDTH_PARAMETER)
+# define FLAGS_PRECISION_PARAMETER (2UL * FLAGS_PRECISION)
+# define FLAGS_BASE                (2UL * FLAGS_PRECISION_PARAMETER)
+# define FLAGS_BASE_PARAMETER      (2UL * FLAGS_BASE)
+# define FLAGS_FLOAT_E             (2UL * FLAGS_BASE_PARAMETER)
+# define FLAGS_FLOAT_G             (2UL * FLAGS_FLOAT_E)
+# define FLAGS_QUOTE               (2UL * FLAGS_FLOAT_G)
+# define FLAGS_WIDECHAR            (2UL * FLAGS_QUOTE)
+# define FLAGS_IGNORE              (2UL * FLAGS_WIDECHAR)
+# define FLAGS_IGNORE_PARAMETER    (2UL * FLAGS_IGNORE)
+# define FLAGS_VARSIZE_PARAMETER   (2UL * FLAGS_IGNORE_PARAMETER)
+# define FLAGS_FIXED_SIZE          (2UL * FLAGS_VARSIZE_PARAMETER)
+# define FLAGS_LAST                FLAGS_FIXED_SIZE
+# define FLAGS_EXCLUDE             FLAGS_SHORT
+# define FLAGS_USER_DEFINED        FLAGS_IGNORE
+# define FLAGS_USER_DEFINED_PARAMETER FLAGS_IGNORE_PARAMETER
+# define FLAGS_ROUNDING            FLAGS_INTMAX_T
+# define FLAGS_ALL_VARSIZES        (FLAGS_LONG | FLAGS_QUAD | FLAGS_INTMAX_T \
+                                    | FLAGS_PTRDIFF_T | FLAGS_SIZE_T)
+# define FLAGS_ALL_SIZES           (FLAGS_ALL_VARSIZES | FLAGS_SHORTSHORT \
+                                    | FLAGS_SHORT)
+
 /* Various constants */
 enum {
   TYPE_PRINT = 1,
 #if TRIO_FEATURE_SCANF
   TYPE_SCAN  = 2,
 #endif
-
-  /* Flags. FLAGS_LAST must be less than ULONG_MAX */
-  FLAGS_NEW                 = 0,
-  FLAGS_STICKY              = 1,
-  FLAGS_SPACE               = 2 * FLAGS_STICKY,
-  FLAGS_SHOWSIGN            = 2 * FLAGS_SPACE,
-  FLAGS_LEFTADJUST          = 2 * FLAGS_SHOWSIGN,
-  FLAGS_ALTERNATIVE         = 2 * FLAGS_LEFTADJUST,
-  FLAGS_SHORT               = 2 * FLAGS_ALTERNATIVE,
-  FLAGS_SHORTSHORT          = 2 * FLAGS_SHORT,
-  FLAGS_LONG                = 2 * FLAGS_SHORTSHORT,
-  FLAGS_QUAD                = 2 * FLAGS_LONG,
-  FLAGS_LONGDOUBLE          = 2 * FLAGS_QUAD,
-  FLAGS_SIZE_T              = 2 * FLAGS_LONGDOUBLE,
-  FLAGS_PTRDIFF_T           = 2 * FLAGS_SIZE_T,
-  FLAGS_INTMAX_T            = 2 * FLAGS_PTRDIFF_T,
-  FLAGS_NILPADDING          = 2 * FLAGS_INTMAX_T,
-  FLAGS_UNSIGNED            = 2 * FLAGS_NILPADDING,
-  FLAGS_UPPER               = 2 * FLAGS_UNSIGNED,
-  FLAGS_WIDTH               = 2 * FLAGS_UPPER,
-  FLAGS_WIDTH_PARAMETER     = 2 * FLAGS_WIDTH,
-  FLAGS_PRECISION           = 2 * FLAGS_WIDTH_PARAMETER,
-  FLAGS_PRECISION_PARAMETER = 2 * FLAGS_PRECISION,
-  FLAGS_BASE                = 2 * FLAGS_PRECISION_PARAMETER,
-  FLAGS_BASE_PARAMETER      = 2 * FLAGS_BASE,
-  FLAGS_FLOAT_E             = 2 * FLAGS_BASE_PARAMETER,
-  FLAGS_FLOAT_G             = 2 * FLAGS_FLOAT_E,
-  FLAGS_QUOTE               = 2 * FLAGS_FLOAT_G,
-  FLAGS_WIDECHAR            = 2 * FLAGS_QUOTE,
-  FLAGS_IGNORE              = 2 * FLAGS_WIDECHAR,
-  FLAGS_IGNORE_PARAMETER    = 2 * FLAGS_IGNORE,
-  FLAGS_VARSIZE_PARAMETER   = 2 * FLAGS_IGNORE_PARAMETER,
-  FLAGS_FIXED_SIZE          = 2 * FLAGS_VARSIZE_PARAMETER,
-  FLAGS_LAST                = FLAGS_FIXED_SIZE,
-  /* Reused flags */
-  FLAGS_EXCLUDE             = FLAGS_SHORT,
-  FLAGS_USER_DEFINED        = FLAGS_IGNORE,
-  FLAGS_USER_DEFINED_PARAMETER = FLAGS_IGNORE_PARAMETER,
-  FLAGS_ROUNDING            = FLAGS_INTMAX_T,
-  /* Compounded flags */
-  FLAGS_ALL_VARSIZES        = FLAGS_LONG | FLAGS_QUAD | FLAGS_INTMAX_T | FLAGS_PTRDIFF_T | FLAGS_SIZE_T,
-  FLAGS_ALL_SIZES           = FLAGS_ALL_VARSIZES | FLAGS_SHORTSHORT | FLAGS_SHORT,
 
   NO_POSITION  = -1,
   NO_WIDTH     =  0,

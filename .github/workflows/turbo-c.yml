@@ -121,40 +121,10 @@ jobs:
 
       - name: Stage DOSBox build tree
         run: |
-          mkdir -p build/turboc/SRC/TRIO build/turboc/TC
+          mkdir -p build/turboc/TC
           cp -R "$HOME/.cache/opendoors/turbo-c-2.01"/* \
             build/turboc/TC/
-          for source in ./*.c ./*.h; do
-            destination="build/turboc/SRC/$(basename "$source")"
-            awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-              "$source" > "$destination"
-          done
-          for source in third_party/trio/*.c third_party/trio/*.h; do
-            destination="build/turboc/SRC/TRIO/$(basename "$source")"
-            awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-              "$source" > "$destination"
-          done
-          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-            ODSwap.asm > build/turboc/SRC/ODSWAP.ASM
-          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-            tests/link_smoke.c > build/turboc/SRC/LINKTEST.C
-          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-            tests/acceptance/public_surface_test.c > build/turboc/SRC/APITEST.C
-          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-            tests/acceptance/test_support.h > build/turboc/SRC/ATSUP.H
-          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-            tests/acceptance/transport_door.c > build/turboc/SRC/TRANSPRT.C
-          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-            tests/acceptance/modem_answer.c > build/turboc/SRC/MDMANS.C
-          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-            tests/acceptance/control-fields.inc > build/turboc/SRC/ATFLDS.I
-          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-            tests/vote_io_test.c > build/turboc/SRC/VOTETEST.C
-          for file in TCBUILD.BAT TCONE.BAT TCASM.BAT TCEX.BAT TCLIB.BAT \
-              TCVOTE.BAT TCACTEST.BAT TCUART.LNK TCFOSS.LNK; do
-            awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
-              "tools/turboc/$file" > "build/turboc/$file"
-          done
+          tools/turboc/stage build/turboc
 
       - name: Install DOSBox runtime
         run: |

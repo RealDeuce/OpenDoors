@@ -536,7 +536,9 @@ static BOOL ODReserveOpenRegistry(BOOL *pbCreated)
 /* Returns with the registry lock held only on success. */
 static BOOL ODReservePrepareHeader(BOOL bCreated)
 {
-   static const BYTE achMagic[8] =
+   /* Turbo C 2.01 misaddresses function-local initialized const byte arrays
+    * in optimized large-model builds. */
+   static BYTE achMagic[8] =
       {'O', 'D', 'R', 'S', 'Y', 'N', 'C', '1'};
    BYTE achHeader[OD_RESERVE_RECORD_SIZE];
    tODTimer RetryTimer;

@@ -36,11 +36,41 @@ static int SendByte(unsigned char value)
    return(0);
 }
 
+static int SendCommand(const char *command)
+{
+   unsigned int index;
+
+   for(index = 0; command[index] != '\0'; ++index)
+   {
+      if(!SendByte((unsigned char)command[index]))
+         return(0);
+   }
+   return(1);
+}
+
+static int WaitForOK(void)
+{
+   unsigned int attempt;
+   int saw_o = 0;
+
+   for(attempt = 0; attempt < 3000U; ++attempt)
+   {
+      while(inp(UART_LSR) & LSR_DR)
+      {
+         unsigned char value = (unsigned char)inp(UART_DATA);
+
+         if(saw_o && value == 'K')
+            return(1);
+         saw_o = value == 'O';
+      }
+      delay(1);
+   }
+   return(0);
+}
+
 int main(void)
 {
-   static const char command[] = "ATS0=1\r";
    FILE *ready;
-   unsigned int index;
    unsigned int attempt;
 
    outp(UART_IER, 0);
@@ -51,11 +81,13 @@ int main(void)
    outp(UART_FCR, 0x07);
    outp(UART_MCR, MCR_DTR | MCR_RTS | MCR_OUT2);
 
-   for(index = 0; command[index] != '\0'; ++index)
-   {
-      if(!SendByte((unsigned char)command[index]))
-         return(1);
-   }
+   delay(100);
+   while(inp(UART_LSR) & LSR_DR)
+      (void)inp(UART_DATA);
+   if(!SendCommand("AT\r") || !WaitForOK())
+      return(1);
+   if(!SendCommand("ATS0=1\r") || !WaitForOK())
+      return(1);
 
    ready = fopen("MODREADY.OK", "w");
    if(ready == NULL)

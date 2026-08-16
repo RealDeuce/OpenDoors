@@ -106,7 +106,9 @@ static int FinishScenario(const char *marker)
 
 static int RunInputScenario(void)
 {
-   static const unsigned char burst[] =
+   /* Turbo C 2.01 misaddresses function-local initialized const byte arrays
+    * in optimized large-model builds. */
+   static unsigned char burst[] =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-";
    tODInputEvent event;
    DWORD first_seconds;
@@ -505,12 +507,13 @@ static BOOL ScreenMatches(INT column, INT row, const char *text,
 
 static int RunEmulationScenario(void)
 {
-   static const char avatar_position[] = {0x16, 0x08, 9, 15, 'V', 0};
-   static const char avatar_attribute[] = {0x16, 0x01, 0x2e, 'C', 0};
-   static const char avatar_repeat[] = {0x19, 'R', 3, 0};
-   static const char avatar_insert[] = {0x16, 0x09, 'X', 0};
-   static const char avatar_delete[] = {0x16, 0x0e, 0};
-   static const char ra_values[] = {0x06, 'A', '|', 0x06, 'H', '|',
+   /* See the Turbo C note in RunInputScenario(). */
+   static char avatar_position[] = {0x16, 0x08, 9, 15, 'V', 0};
+   static char avatar_attribute[] = {0x16, 0x01, 0x2e, 'C', 0};
+   static char avatar_repeat[] = {0x19, 'R', 3, 0};
+   static char avatar_insert[] = {0x16, 0x09, 'X', 0};
+   static char avatar_delete[] = {0x16, 0x0e, 0};
+   static char ra_values[] = {0x06, 'A', '|', 0x06, 'H', '|',
       0x0b, 'A', 0};
 
    Marker("EMULATION-ANSI");
