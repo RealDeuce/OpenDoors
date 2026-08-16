@@ -339,13 +339,13 @@ jobs:
       - name: Run extended acceptance suite
         shell: pwsh
         run: |
-          $ctest = 'C:\msys64\${{ matrix.prefix }}\bin\ctest.exe'
+          $ctest = Join-Path $env:ProgramFiles 'CMake\bin\ctest.exe'
           if (-not (Test-Path -LiteralPath $ctest)) {
             throw "CTest was not found at $ctest"
           }
-          $toolDirectory = Split-Path -Parent $ctest
+          $runtimeDirectory = 'C:\msys64\${{ matrix.prefix }}\bin'
           $installBin = Join-Path $PWD 'build\install\bin'
-          $env:PATH = "$installBin;$toolDirectory;$env:PATH"
+          $env:PATH = "$installBin;$runtimeDirectory;$env:PATH"
           & $ctest `
             --test-dir build\acceptance `
             --output-on-failure `
