@@ -4,10 +4,10 @@
 #  Oct-2001 door32.sys/socket modifications by Rob Swindell (www.synchro.net}
 #
 #
-#         File: Win32.mak
+#         File: GNUmakefile
 #
-#  Description: Makefile used to build the Win32 OpenDoors libraries from
-#               the sources. Usage is described below.
+#  Description: GNU makefile used to build the OpenDoors libraries from the
+#               sources. Usage is described below.
 #
 #    Revisions: Date          Ver   Who  Change
 #               ---------------------------------------------------------------
@@ -19,9 +19,9 @@
 #
 ###############################################################################
 #
-# Command Line:   make -fWin32.mak
-#                     or
-#                 nmake /f Win32.mak
+# Command Line:   gmake
+#                     or, where GNU make is installed as make:
+#                 make
 #
 ###############################################################################
 #
