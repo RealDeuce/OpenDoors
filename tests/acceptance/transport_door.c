@@ -448,6 +448,7 @@ static int RunDisplayScenario(void)
 
    Marker("DISPLAY-HOTKEY-EARLY");
    OD_TEST_CHECK(od_get_key(TRUE) == 'A');
+   Marker("DISPLAY-HOTKEY-QUEUED");
    menu_choice = od_hotkey_menu("ODLONG.ASC", "Q", FALSE);
    OD_TEST_CHECK(menu_choice == 'Q');
 

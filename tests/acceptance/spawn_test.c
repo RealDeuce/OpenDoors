@@ -32,6 +32,12 @@ static int SetEnvironment(char *assignment)
 #endif
 }
 
+static void SpawnStage(const char *name)
+{
+   fprintf(stderr, "spawn acceptance stage: %s\n", name);
+   fflush(stderr);
+}
+
 int main(int argc, char **argv)
 {
    const char *child_args[9];
@@ -72,6 +78,7 @@ int main(int argc, char **argv)
    child_args[8] = NULL;
    child_environment[0] = "OD_ACCEPT_VALUE=environment value";
    child_environment[1] = NULL;
+   SpawnStage("explicit environment");
    result = od_spawnvpe(P_WAIT, argv[1], child_args, child_environment);
    if(result != 23)
       fprintf(stderr, "od_spawnvpe returned %d (errno %d)\n",
@@ -84,6 +91,7 @@ int main(int argc, char **argv)
 
    OD_TEST_CHECK(strlen(argv[1]) + 1 < sizeof(command));
    strcpy(command, argv[1]);
+   SpawnStage("empty command tail");
    OD_TEST_CHECK(od_spawn(command));
    OD_TEST_CHECK(FileExists("ODEMPTY.OK"));
    remove("ODEMPTY.OK");
@@ -91,6 +99,7 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(strlen(argv[1]) + sizeof(" --simple") < sizeof(command));
    strcpy(command, argv[1]);
    strcat(command, " --simple");
+   SpawnStage("simple command tail");
    OD_TEST_CHECK(od_spawn(command));
    file = fopen("ODSIMPLE.OK", "r");
    OD_TEST_CHECK(file != NULL);
@@ -100,6 +109,7 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(strlen(argv[1]) + sizeof(" --nonzero") < sizeof(command));
    strcpy(command, argv[1]);
    strcat(command, " --nonzero");
+   SpawnStage("nonzero command tail");
    OD_TEST_CHECK(od_spawn(command));
    OD_TEST_CHECK(FileExists("ODNZERO.OK"));
    remove("ODNZERO.OK");
@@ -107,6 +117,7 @@ int main(int argc, char **argv)
    child_args[0] = argv[1];
    child_args[1] = "--inherit";
    child_args[2] = NULL;
+   SpawnStage("inherited environment");
    result = od_spawnvpe(P_WAIT, argv[1], child_args, NULL);
    OD_TEST_CHECK(result == 31);
    OD_TEST_CHECK(FileExists("ODINHER.OK"));
@@ -152,6 +163,7 @@ int main(int argc, char **argv)
    child_args[0] = child_name;
    child_args[1] = "--path";
    child_args[2] = NULL;
+   SpawnStage("PATH search");
    result = od_spawnvpe(P_WAIT, child_name, child_args, NULL);
    OD_TEST_CHECK(result == 29);
    OD_TEST_CHECK(FileExists("ODPATH.OK"));
@@ -160,33 +172,40 @@ int main(int argc, char **argv)
    child_args[0] = argv[1];
    child_args[1] = "--nowait";
    child_args[2] = NULL;
+   SpawnStage("no-wait child");
    result = od_spawnvpe(P_NOWAIT, argv[1], child_args, NULL);
    OD_TEST_CHECK(result != -1);
    OD_TEST_CHECK(WaitForFile("ODNOWAIT.OK"));
    remove("ODNOWAIT.OK");
 
+   SpawnStage("missing command");
    OD_TEST_CHECK(!od_spawn("opendoors-acceptance-missing-program"));
 
    errno = 0;
+   SpawnStage("missing wait child");
    result = od_spawnvpe(P_WAIT, "opendoors-acceptance-missing-program",
       child_args, child_environment);
    OD_TEST_CHECK(result == -1);
+   SpawnStage("missing no-wait child");
    result = od_spawnvpe(P_NOWAIT, "opendoors-acceptance-missing-program",
       child_args, child_environment);
    OD_TEST_CHECK(result == -1);
 
 #ifdef ODPLAT_WIN32
    od_control.od_error = ERR_NONE;
+   SpawnStage("null argument vector");
    result = od_spawnvpe(P_WAIT, argv[1], NULL, NULL);
    OD_TEST_CHECK(result == -1);
    OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
    child_args[0] = NULL;
    od_control.od_error = ERR_NONE;
+   SpawnStage("null argv zero");
    result = od_spawnvpe(P_WAIT, argv[1], child_args, NULL);
    OD_TEST_CHECK(result == -1);
    OD_TEST_CHECK(od_control.od_error == ERR_PARAMETER);
 #endif
 
+   SpawnStage("exit");
    od_exit(0, FALSE);
    return(0);
 }

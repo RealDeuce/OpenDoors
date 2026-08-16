@@ -216,7 +216,9 @@ def drive_display(peer: socket.socket, timeout: int) -> bytearray:
     receive_until(peer, b"MENU-CONTENT", transcript, timeout)
     peer.sendall(b"2")
     receive_until(peer, b"DISPLAY-HOTKEY-EARLY", transcript, timeout)
-    peer.sendall(b"AQ")
+    peer.sendall(b"A")
+    receive_until(peer, b"DISPLAY-HOTKEY-QUEUED", transcript, timeout)
+    peer.sendall(b"Q")
     finish(peer, transcript, b"DISPLAY-DONE", timeout)
     for expected in (
         b"DISP-STRING-RRR-PRINTF-7",
