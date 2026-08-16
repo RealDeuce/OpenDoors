@@ -358,7 +358,7 @@ jobs:
           mkdir -p build/unit-turbo/TC build/unit-turbo/SRC/TRIO
           cp -R "$HOME/.cache/opendoors/turbo-c-2.01"/* \
             build/unit-turbo/TC/
-          for source in ./*.h; do
+          for source in include/*.h src/*.h; do
             destination="build/unit-turbo/SRC/$(basename "$source")"
             awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
               "$source" > "$destination"
