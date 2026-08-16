@@ -168,3 +168,4 @@ nav:
           - ODScrnSetAttribute: reference/personality/ODScrnSetAttribute.md
   - Development:
       - Threading and session ownership: development/threading.md
+      - V7 API design: development/v7-api-design.md
