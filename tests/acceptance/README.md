@@ -95,7 +95,6 @@ Win32 window operations. `acceptance.windows_thread_handoff` verifies that an
 application lock can serialize API calls and shutdown across different caller
 threads.
 
-Acceptance expectations describe the behavior of the current implementation.
-Problems exposed while characterizing that behavior are recorded in
-[`ISSUES.md`](../../ISSUES.md); the test suite does not introduce an unreviewed behavior change to
-make a preferred expectation pass.
+Acceptance expectations describe the behavior of the current implementation;
+the test suite does not introduce an unreviewed behavior change to make a
+preferred expectation pass.

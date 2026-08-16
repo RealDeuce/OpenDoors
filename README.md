@@ -92,8 +92,8 @@ every exported declaration and every `od_control` field, while its executables
 use only the installed headers and library interface. See
 [`tests/acceptance/README.md`](tests/acceptance/README.md) for standalone
 installed-package and extended socket-driven test commands. Behavioral and
-design problems discovered while characterizing the current implementation are
-tracked separately in [`ISSUES.md`](ISSUES.md).
+design problems discovered while characterizing the current implementation
+should be reported through the project issue tracker.
 
 Tests require a Python 3 interpreter. When `BUILD_TESTING` is not specified,
 CMake disables it automatically if Python 3 is unavailable, so Python is not
