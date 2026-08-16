@@ -9,6 +9,11 @@ on:
         required: false
         type: string
         default: ''
+      extended_acceptance:
+        description: Run the public UART and FOSSIL acceptance matrix
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -138,11 +143,13 @@ jobs:
           awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
             tests/acceptance/test_support.h > build/turboc/SRC/ATSUP.H
           awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
+            tests/acceptance/transport_door.c > build/turboc/SRC/TRANSPRT.C
+          awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
             tests/acceptance/control-fields.inc > build/turboc/SRC/ATFLDS.I
           awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
             tests/vote_io_test.c > build/turboc/SRC/VOTETEST.C
           for file in TCBUILD.BAT TCONE.BAT TCASM.BAT TCEX.BAT TCLIB.BAT \
-              TCVOTE.BAT; do
+              TCVOTE.BAT TCACTEST.BAT; do
             awk '{ sub(/\r$/, ""); printf "%s\r\n", $0 }' \
               "tools/turboc/$file" > "build/turboc/$file"
           done
@@ -190,6 +197,46 @@ jobs:
           test -s build/turboc/OUT/APITEST.EXE
           test -s build/turboc/OBJ/APIPASS.OK
 
+      - name: Restore X00 test-driver cache
+        if: inputs.extended_acceptance
+        id: x00-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/x00/x00150.zip
+          key: x00-1.50-4577e1ad1d89a652
+
+      - name: Download X00 test driver
+        if: inputs.extended_acceptance && steps.x00-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/x00"
+          curl --fail --location --retry 3 \
+            --output "$HOME/x00/x00150.zip" \
+            https://raw.githubusercontent.com/deadbeatz/mystic_a45/4df1f1fef349e2b192f6dbe2b29717bcd6742314/dosemu/drive_c/x00/x00150.zip
+
+      - name: Verify and stage X00 test driver
+        if: inputs.extended_acceptance
+        run: |
+          echo '4577e1ad1d89a65209ca3b2be9522191c4c25119c9de4938adb2dd4f5a819eab  '"$HOME/x00/x00150.zip" | sha256sum --check
+          unzip -t "$HOME/x00/x00150.zip"
+          unzip -p "$HOME/x00/x00150.zip" X00.SYS > build/turboc/OUT/X00.EXE
+
+      - name: Run Turbo C public transport acceptance
+        if: inputs.extended_acceptance
+        env:
+          SDL_AUDIODRIVER: dummy
+        run: |
+          for door in TCUART.EXE; do
+            timeout --signal=TERM --kill-after=5s 90s \
+              xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
+                "$(command -v dosbox)" "$PWD/build/turboc/OUT/$door"
+          done
+          for door in TCFOSS.EXE; do
+            timeout --signal=TERM --kill-after=5s 90s \
+              xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
+                --pre-command 'x00.exe E' \
+                "$(command -v dosbox)" "$PWD/build/turboc/OUT/$door"
+          done
+
       - name: Stage release SDK
         if: inputs.asset_version != ''
         env:
@@ -230,5 +277,9 @@ jobs:
             build/turboc/OUT/EX_*.EXE
             build/turboc/OUT/LINKTEST.EXE
             build/turboc/OUT/APITEST.EXE
+            build/turboc/OUT/TCUART.EXE
+            build/turboc/OUT/TCFOSS.EXE
+            build/turboc/OUT/dos-serial-*.log
+            build/turboc/OUT/ODFAIL.TXT
             build/turboc/OBJ/APIPASS.OK
           if-no-files-found: warn

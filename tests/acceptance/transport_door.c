@@ -10,7 +10,11 @@
 #endif
 
 #define OD_ACCEPTANCE_NO_LOCAL_CONFIG
+#ifdef __TURBOC__
+#include "ATSUP.H"
+#else
 #include "test_support.h"
+#endif
 
 #ifdef ODPLAT_DOS32
 #define OD_ACCEPTANCE_CALLBACK ODCALL

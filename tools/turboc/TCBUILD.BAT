@@ -97,6 +97,7 @@ call C:\TCEX.BAT EX_DIAG
 call C:\TCEX.BAT EX_HELLO
 call C:\TCEX.BAT EX_MUSIC
 call C:\TCVOTE.BAT
+call C:\TCACTEST.BAT
 if exist C:\TCFAIL.TXT goto failed
 echo.>>C:\TCBUILD.LOG
 echo ==== LINKTEST.C ====>>C:\TCBUILD.LOG

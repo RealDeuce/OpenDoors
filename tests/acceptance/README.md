@@ -70,11 +70,17 @@ the selected `od_com_method` differ.
 GitHub Actions runs the ordinary cases on pushes and pull requests. The
 extended matrix runs nightly when the default branch has advanced since the
 last successful scheduled run, or unconditionally on request, and is required
-for releases. Its DOS jobs run all eight scenarios through DOSBox over 16-bit
-direct UART and over both direct UART and FOSSIL with DOS/4GW and DOS/32A. The
-extended workflow also publishes a single Clang/Unix branch-coverage report.
-That report is directional and has no percentage or delta gate; Windows and
-DOS runtime results remain authoritative for their platform-specific paths.
+for releases. It mirrors the shipped SDK configurations: both architectures
+and all three library/runtime variants for MSVC, shared and static libraries
+for every MinGW SDK, shared and static libraries for both macOS release
+architectures and deployment targets, both Open Watcom and Turbo C 2.01
+16-bit libraries over direct UART and FOSSIL, and both Open Watcom 32-bit
+calling conventions over UART and FOSSIL with DOS/4GW and DOS/32A. Linux
+shared and static builds remain in the matrix as source-platform coverage even
+though no Linux binary SDK is shipped. The extended workflow also publishes a
+single Clang/Unix branch-coverage report. That report is directional and has
+no percentage or delta gate; Windows and DOS runtime results remain
+authoritative for their platform-specific paths.
 
 Interactions which would need private mocks are recorded separately in
 [`../COMPONENT_TEST_BACKLOG.md`](../COMPONENT_TEST_BACKLOG.md). Acceptance

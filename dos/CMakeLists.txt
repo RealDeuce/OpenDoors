@@ -268,6 +268,19 @@ target_compile_definitions(dos_acceptance_serial PRIVATE
     OPENDOORS_HAVE_VSNPRINTF=1)
 target_link_libraries(dos_acceptance_serial PRIVATE opendoors_dos)
 
+add_executable(dos_acceptance_fossil
+    "${OPENDOORS_ROOT}/tests/acceptance/transport_door.c")
+set_target_properties(dos_acceptance_fossil PROPERTIES OUTPUT_NAME odfossil)
+target_include_directories(dos_acceptance_fossil PRIVATE
+    "${OPENDOORS_ROOT}/tests/acceptance")
+target_compile_options(dos_acceptance_fossil PRIVATE -ml -zq -za99)
+if(OPENDOORS_WARNINGS_AS_ERRORS)
+    target_compile_options(dos_acceptance_fossil PRIVATE -we)
+endif()
+target_compile_definitions(dos_acceptance_fossil PRIVATE
+    OPENDOORS_HAVE_VSNPRINTF=1 OD_ACCEPTANCE_DOS_FOSSIL=1)
+target_link_libraries(dos_acceptance_fossil PRIVATE opendoors_dos)
+
 else()
 
 function(opendoors_configure_dos32_target target convention)

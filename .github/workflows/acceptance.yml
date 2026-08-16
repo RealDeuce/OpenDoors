@@ -46,15 +46,14 @@ jobs:
           printf '### Extended acceptance gate\n\n%s\n' "$reason" \
             >> "$GITHUB_STEP_SUMMARY"
 
-  unix:
-    name: ${{ matrix.os }} ${{ matrix.variant }}
+  linux:
+    name: Linux ${{ matrix.variant }}
     needs: changes
     if: needs.changes.outputs.run == 'true'
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
         variant: [Shared, Static]
 
     steps:
@@ -96,24 +95,105 @@ jobs:
           ctest
           --test-dir build/acceptance
           --output-on-failure
-          --output-junit acceptance-${{ matrix.os }}-${{ matrix.variant }}.xml
+          --output-junit acceptance-linux-${{ matrix.variant }}.xml
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: acceptance-${{ matrix.os }}-${{ matrix.variant }}
+          name: acceptance-linux-${{ matrix.variant }}
           path: |
             build/acceptance/acceptance-*.xml
             build/acceptance/Testing/Temporary/LastTest.log
 
-  windows:
-    name: Windows ${{ matrix.variant }}
+  macos:
+    name: macOS ${{ matrix.architecture }} ${{ matrix.variant }}
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            architecture: x86_64
+            deployment: '10.13'
+            variant: Shared
+          - runner: macos-15-intel
+            architecture: x86_64
+            deployment: '10.13'
+            variant: Static
+          - runner: macos-15
+            architecture: arm64
+            deployment: '11.0'
+            variant: Shared
+          - runner: macos-15
+            architecture: arm64
+            deployment: '11.0'
+            variant: Static
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and install selected library
+        run: |
+          shared=OFF
+          static=OFF
+          if [[ '${{ matrix.variant }}' == Shared ]]; then
+            shared=ON
+          else
+            static=ON
+          fi
+          cmake \
+            -S . \
+            -B build/library \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.architecture }} \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.deployment }} \
+            -DOPENDOORS_BUILD_SHARED=$shared \
+            -DOPENDOORS_BUILD_STATIC=$static \
+            -DOPENDOORS_BUILD_EXAMPLES=OFF \
+            -DOPENDOORS_WARNINGS_AS_ERRORS=ON
+          cmake --build build/library --parallel
+          cmake --install build/library --prefix "$RUNNER_TEMP/opendoors"
+
+      - name: Build installed public consumer
+        run: |
+          cmake \
+            -S tests/acceptance \
+            -B build/acceptance \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/opendoors" \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.architecture }} \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.deployment }} \
+            -DOPENDOORS_VARIANT=${{ matrix.variant }} \
+            -DOPENDOORS_ACCEPTANCE_EXTENDED=ON
+          cmake --build build/acceptance --parallel
+
+      - name: Run extended acceptance suite
+        run: >-
+          ctest
+          --test-dir build/acceptance
+          --output-on-failure
+          --output-junit acceptance-macos-${{ matrix.architecture }}-${{ matrix.variant }}.xml
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: acceptance-macos-${{ matrix.architecture }}-${{ matrix.variant }}
+          path: |
+            build/acceptance/acceptance-*.xml
+            build/acceptance/Testing/Temporary/LastTest.log
+
+  windows-msvc:
+    name: MSVC ${{ matrix.architecture }} ${{ matrix.variant }}
     needs: changes
     if: needs.changes.outputs.run == 'true'
     runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
+        architecture: [x86, x64]
+        variant: [Shared, Static, StaticMT]
         include:
           - variant: Shared
             shared: ON
@@ -137,10 +217,15 @@ jobs:
       - name: Build and install selected library
         shell: pwsh
         run: |
+          $cmakeArchitecture = if ('${{ matrix.architecture }}' -eq 'x86') {
+            'Win32'
+          } else {
+            'x64'
+          }
           cmake `
             -S . `
             -B build/library `
-            -A x64 `
+            -A $cmakeArchitecture `
             -DOPENDOORS_BUILD_SHARED=${{ matrix.shared }} `
             -DOPENDOORS_BUILD_STATIC=${{ matrix.static }} `
             -DOPENDOORS_BUILD_MSVC_STATIC_MT=${{ matrix.static_mt }} `
@@ -154,10 +239,15 @@ jobs:
       - name: Build installed public consumer
         shell: pwsh
         run: |
+          $cmakeArchitecture = if ('${{ matrix.architecture }}' -eq 'x86') {
+            'Win32'
+          } else {
+            'x64'
+          }
           cmake `
             -S tests/acceptance `
             -B build/acceptance `
-            -A x64 `
+            -A $cmakeArchitecture `
             "-DCMAKE_PREFIX_PATH=$env:RUNNER_TEMP/opendoors" `
             -DOPENDOORS_VARIANT=${{ matrix.variant }} `
             -DOPENDOORS_ACCEPTANCE_EXTENDED=ON `
@@ -172,18 +262,92 @@ jobs:
             --test-dir build/acceptance `
             -C Release `
             --output-on-failure `
-            --output-junit "acceptance-windows-${{ matrix.variant }}.xml"
+            --output-junit "acceptance-msvc-${{ matrix.architecture }}-${{ matrix.variant }}.xml"
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: acceptance-windows-${{ matrix.variant }}
+          name: acceptance-msvc-${{ matrix.architecture }}-${{ matrix.variant }}
+          path: |
+            build/acceptance/acceptance-*.xml
+            build/acceptance/Testing/Temporary/LastTest.log
+
+  windows-mingw:
+    name: ${{ matrix.msystem }} ${{ matrix.variant }}
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        msystem: [MINGW32, MINGW64, UCRT64]
+        variant: [Shared, Static]
+        include:
+          - variant: Shared
+            shared: ON
+            static: OFF
+          - variant: Static
+            shared: OFF
+            static: ON
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          pacboy: >-
+            cmake:p
+            ninja:p
+            toolchain:p
+
+      - name: Build and install selected library
+        shell: msys2 {0}
+        run: |
+          cmake \
+            -S . \
+            -B build/library \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DOPENDOORS_BUILD_SHARED=${{ matrix.shared }} \
+            -DOPENDOORS_BUILD_STATIC=${{ matrix.static }} \
+            -DOPENDOORS_BUILD_EXAMPLES=OFF \
+            -DOPENDOORS_WARNINGS_AS_ERRORS=ON
+          cmake --build build/library --parallel
+          cmake --install build/library --prefix "$PWD/build/install"
+
+      - name: Build installed public consumer
+        shell: msys2 {0}
+        run: |
+          cmake \
+            -S tests/acceptance \
+            -B build/acceptance \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/build/install" \
+            -DOPENDOORS_VARIANT=${{ matrix.variant }} \
+            -DOPENDOORS_ACCEPTANCE_EXTENDED=ON
+          cmake --build build/acceptance --parallel
+
+      - name: Run extended acceptance suite
+        shell: msys2 {0}
+        run: >-
+          ctest
+          --test-dir build/acceptance
+          --output-on-failure
+          --output-junit acceptance-${{ matrix.msystem }}-${{ matrix.variant }}.xml
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: acceptance-${{ matrix.msystem }}-${{ matrix.variant }}
           path: |
             build/acceptance/acceptance-*.xml
             build/acceptance/Testing/Temporary/LastTest.log
 
   dos16:
-    name: DOS 16-bit direct UART
+    name: Open Watcom DOS 16-bit UART and FOSSIL
     needs: changes
     if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-24.04
@@ -237,28 +401,62 @@ jobs:
             -D OPENDOORS_WARNINGS_AS_ERRORS=ON
           cmake --build build/dos
           test -s build/dos/odserial.exe
+          test -s build/dos/odfossil.exe
+
+      - name: Restore X00 test-driver cache
+        id: x00-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/x00/x00150.zip
+          key: x00-1.50-4577e1ad1d89a652
+
+      - name: Download X00 test driver
+        if: steps.x00-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/x00"
+          curl --fail --location --retry 3 \
+            --output "$HOME/x00/x00150.zip" \
+            https://raw.githubusercontent.com/deadbeatz/mystic_a45/4df1f1fef349e2b192f6dbe2b29717bcd6742314/dosemu/drive_c/x00/x00150.zip
+
+      - name: Verify and stage X00 test driver
+        run: |
+          echo '4577e1ad1d89a65209ca3b2be9522191c4c25119c9de4938adb2dd4f5a819eab  '"$HOME/x00/x00150.zip" | sha256sum --check
+          unzip -t "$HOME/x00/x00150.zip"
+          unzip -p "$HOME/x00/x00150.zip" X00.SYS > build/dos/X00.EXE
 
       - name: Install headless DOS runtime
         run: |
           sudo apt-get update
           sudo apt-get install --yes dosbox xvfb xauth
 
-      - name: Run all direct-UART acceptance scenarios
+      - name: Run all UART and FOSSIL acceptance scenarios
         env:
           SDL_AUDIODRIVER: dummy
         run: |
           timeout --signal=TERM --kill-after=5s 90s \
             xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
               "$(command -v dosbox)" "$PWD/build/dos/odserial.exe"
+          timeout --signal=TERM --kill-after=5s 90s \
+            xvfb-run -a python3 tests/acceptance/dos_serial_controller.py \
+              --pre-command 'x00.exe E' \
+              "$(command -v dosbox)" "$PWD/build/dos/odfossil.exe"
 
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: acceptance-dos16-uart
+          name: acceptance-dos16-openwatcom
           path: |
-            build/dos/dos-serial-odserial.log
+            build/dos/dos-serial-*.log
             build/dos/ODFAIL.TXT
           if-no-files-found: warn
+
+  dos16-turboc:
+    name: Turbo C DOS 16-bit UART and FOSSIL
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    uses: ./.github/workflows/turbo-c.yml
+    with:
+      extended_acceptance: true
 
   dos32:
     name: DOS 32-bit UART and FOSSIL
