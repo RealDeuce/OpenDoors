@@ -3,6 +3,7 @@
 
 #ifdef ODPLAT_WIN32
 static void ODPersonalityOpenDoors(BYTE operation) { (void)operation; }
+static void ODPersonalityOneRow(BYTE operation) { (void)operation; }
 static void ODPersonalityPCBoard(BYTE operation) { (void)operation; }
 static void ODPersonalityRemoteAccess(BYTE operation) { (void)operation; }
 static void ODPersonalityWildcat(BYTE operation) { (void)operation; }
@@ -19,6 +20,7 @@ BOOL utm_ODSyncPublicCallAllowed(void)
 
 #ifdef OD_PERSONALITY_SUPPORT
 void ODCALL pdef_opendoors(BYTE operation) { (void)operation; }
+void ODCALL pdef_od_onerow(BYTE operation) { (void)operation; }
 void ODCALL pdef_ra(BYTE operation) { (void)operation; }
 void ODCALL pdef_wildcat(BYTE operation) { (void)operation; }
 void ODCALL pdef_pcboard(BYTE operation) { (void)operation; }

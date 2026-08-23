@@ -70,6 +70,7 @@ od_spawnvpe
 od_split_cmd_line
 od_window_create
 od_window_remove
+pdef_od_onerow
 pdef_opendoors
 pdef_pcboard
 pdef_ra

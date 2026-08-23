@@ -12,7 +12,7 @@ BOOL od_add_personality(const char *pszName, BYTE btOutputTop,
 ## Description
 
 [`od_add_personality()`](od_add_personality.md) adds a personality to the set
-which can be selected by name. Personalities control the DOS local status line,
+which can be selected by name. Personalities control the text-mode local status line,
 the portion of the local display assigned to door output, and the handling of
 personality operations. They do not change the remote terminal protocol.
 
@@ -40,7 +40,7 @@ The current interface does not validate a null name, a null callback, or the
 order and range of the output rows. Supplying any of them incorrectly results
 in undefined behavior or an unusable local display.
 
-This function is supported by the DOS and DOS32 text-mode builds. Other builds
+This function is supported by DOS, DOS32, and Windows console builds. Other builds
 return [`FALSE`](../constants/general.md#false) and set
 [`od_control.od_error`](../control/runtime.md#od_error) to
 [`ERR_UNSUPPORTED`](../constants/errors.md#err_unsupported).
@@ -49,7 +49,8 @@ return [`FALSE`](../constants/general.md#false) and set
 
 The function returns [`TRUE`](../constants/general.md#true) when the
 personality has been registered. OpenDoors can hold twelve personalities,
-including its four built-in personalities. If the table is full, the function
+including its five built-in personalities. Seven slots remain available for
+custom personalities. If the table is full, the function
 returns [`FALSE`](../constants/general.md#false) and sets
 [`od_control.od_error`](../control/runtime.md#od_error) to
 [`ERR_LIMIT`](../constants/errors.md#err_limit).

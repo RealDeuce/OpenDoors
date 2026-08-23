@@ -12,6 +12,7 @@
 #ifdef ODPLAT_WIN32
 #define UT_CUSTOM_MOCK_ODPlatGetWindowsSubsystem
 #define UT_CUSTOM_MOCK_ODPersonalityOpenDoors
+#define UT_CUSTOM_MOCK_ODPersonalityOneRow
 #define UT_CUSTOM_MOCK_ODPersonalityPCBoard
 #define UT_CUSTOM_MOCK_ODPersonalityRemoteAccess
 #define UT_CUSTOM_MOCK_ODPersonalityWildcat
@@ -38,15 +39,20 @@ void utm_ODSyncAPIExit(void) { ++ut_exits; }
 static unsigned ut_status_calls;
 static BYTE ut_status_values[2];
 static unsigned ut_boundary_calls;
+static BYTE ut_expected_bottom = 23;
 static unsigned ut_standard_calls;
+static unsigned ut_onerow_calls;
 static unsigned ut_ra_calls;
 static BYTE ut_standard_operation;
+static BYTE ut_onerow_operation;
 static BYTE ut_ra_operation;
 #ifdef ODPLAT_WIN32
 static tODWindowsSubsystem ut_subsystem = kODWindowsSubsystemConsole;
 tODWindowsSubsystem utm_ODPlatGetWindowsSubsystem(void) { return(ut_subsystem); }
 static void ODPersonalityOpenDoors(BYTE operation)
 { ut_standard_operation = operation; ++ut_standard_calls; }
+static void ODPersonalityOneRow(BYTE operation)
+{ ut_onerow_operation = operation; ++ut_onerow_calls; }
 static void ODPersonalityRemoteAccess(BYTE operation)
 { ut_ra_operation = operation; ++ut_ra_calls; }
 static void ODPersonalityWildcat(BYTE operation)
@@ -103,7 +109,7 @@ void utm_ODScrnSetBoundary(BYTE left, BYTE top, BYTE right,
    UT_ASSERT_EQ_INT(1, left);
    UT_ASSERT_EQ_INT(1, top);
    UT_ASSERT_EQ_INT(80, right);
-   UT_ASSERT_EQ_INT(23, bottom);
+   UT_ASSERT_EQ_INT(ut_expected_bottom, bottom);
    ++ut_boundary_calls;
 }
 
@@ -111,6 +117,12 @@ void ODCALL pdef_opendoors(BYTE operation)
 {
    ut_standard_operation = operation;
    ++ut_standard_calls;
+}
+
+void ODCALL pdef_od_onerow(BYTE operation)
+{
+   ut_onerow_operation = operation;
+   ++ut_onerow_calls;
 }
 
 void ODCALL pdef_ra(BYTE operation)
@@ -136,9 +148,12 @@ static void reset_selector(void)
    ut_exits = 0;
    ut_status_calls = 0;
    ut_boundary_calls = 0;
+   ut_expected_bottom = 23;
    ut_standard_calls = 0;
+   ut_onerow_calls = 0;
    ut_ra_calls = 0;
    ut_standard_operation = 0;
+   ut_onerow_operation = 0;
    ut_ra_operation = 0;
    ut_init_succeeds = TRUE;
 }
@@ -213,6 +228,21 @@ static void deinitializes_old_and_initializes_later_match(void)
       pfCurrentPersonality);
 }
 
+static void selects_the_one_row_builtin(void)
+{
+   reset_selector();
+   ut_expected_bottom = 24;
+   UT_ASSERT(utt_od_set_personality("od_onerow"));
+   UT_ASSERT_EQ_UINT(2, ut_status_calls);
+   UT_ASSERT_EQ_UINT(1, ut_onerow_calls);
+   UT_ASSERT_EQ_INT(PEROP_INITIALIZE, ut_onerow_operation);
+   UT_ASSERT_EQ_INT(4, nCurrentPersonality);
+   UT_ASSERT_EQ_PTR(aPersonalityInfo[4].pfPersonalityFunction,
+      pfCurrentPersonality);
+   UT_ASSERT_EQ_INT(1, btOutputTop);
+   UT_ASSERT_EQ_INT(24, btOutputBottom);
+}
+
 #ifdef ODPLAT_WIN32
 static void rejects_gui_subsystem(void)
 {
@@ -229,6 +259,7 @@ static const UTTestCase ut_cases[] = {
    {"first selection", selects_first_personality_without_old_deinitialization},
    {"same selection", leaves_current_personality_unchanged_on_repeat},
    {"switch selection", deinitializes_old_and_initializes_later_match},
+   {"one-row selection", selects_the_one_row_builtin},
 #ifdef ODPLAT_WIN32
    {"GUI subsystem", rejects_gui_subsystem},
 #endif

@@ -1,6 +1,7 @@
 #define UT_CUSTOM_MOCK_ODSyncPublicCallAllowed
 #ifdef ODPLAT_WIN32
 static void ODPersonalityOpenDoors(BYTE operation) { (void)operation; }
+static void ODPersonalityOneRow(BYTE operation) { (void)operation; }
 static void ODPersonalityPCBoard(BYTE operation) { (void)operation; }
 static void ODPersonalityRemoteAccess(BYTE operation) { (void)operation; }
 static void ODPersonalityWildcat(BYTE operation) { (void)operation; }
@@ -41,6 +42,7 @@ static unsigned ut_upper_calls;
 #endif
 
 void ODCALL pdef_opendoors(BYTE operation) { (void)operation; }
+void ODCALL pdef_od_onerow(BYTE operation) { (void)operation; }
 void ODCALL pdef_ra(BYTE operation) { (void)operation; }
 void ODCALL pdef_wildcat(BYTE operation) { (void)operation; }
 void ODCALL pdef_pcboard(BYTE operation) { (void)operation; }
@@ -84,14 +86,14 @@ static void stores_uppercase_truncated_metadata(void)
 {
    const char name[] = "abcdefghijklmnopqrstuvwxyz123456789";
    UT_ASSERT(utt_od_add_personality(name, 3, 22, ut_personality));
-   UT_ASSERT_EQ_INT(5, nPersonalities);
+   UT_ASSERT_EQ_INT(6, nPersonalities);
    UT_ASSERT_EQ_INT(0, strcmp("ABCDEFGHIJKLMNOPQRSTUVWXYZ123456",
-      aPersonalityInfo[4].szName));
-   UT_ASSERT_EQ_INT('\0', aPersonalityInfo[4].szName[32]);
-   UT_ASSERT_EQ_INT(3, aPersonalityInfo[4].nStatusTopLine);
-   UT_ASSERT_EQ_INT(22, aPersonalityInfo[4].nStatusBottomLine);
+      aPersonalityInfo[5].szName));
+   UT_ASSERT_EQ_INT('\0', aPersonalityInfo[5].szName[32]);
+   UT_ASSERT_EQ_INT(3, aPersonalityInfo[5].nStatusTopLine);
+   UT_ASSERT_EQ_INT(22, aPersonalityInfo[5].nStatusBottomLine);
    UT_ASSERT_EQ_PTR(ut_personality,
-      aPersonalityInfo[4].pfPersonalityFunction);
+      aPersonalityInfo[5].pfPersonalityFunction);
    UT_ASSERT_EQ_UINT(1, ut_copy_calls);
    UT_ASSERT_EQ_UINT(1, ut_upper_calls);
 }
@@ -99,7 +101,7 @@ static void stores_uppercase_truncated_metadata(void)
 static void rejects_the_thirteenth_personality(void)
 {
    unsigned index;
-   for(index = 4; index < MAX_PERSONALITIES; ++index)
+   for(index = 5; index < MAX_PERSONALITIES; ++index)
       UT_ASSERT(utt_od_add_personality("extra", 1, 23, ut_personality));
    UT_ASSERT_EQ_INT(MAX_PERSONALITIES, nPersonalities);
    UT_ASSERT(!utt_od_add_personality("overflow", 1, 23,

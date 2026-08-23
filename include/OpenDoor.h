@@ -600,6 +600,7 @@ typedef void(ODFAR OD_COMPONENT)(void);
 
 /* Built-in personality defintion functions. */
 ODAPIDEF void ODCALL pdef_opendoors(BYTE btOperation);
+ODAPIDEF void ODCALL pdef_od_onerow(BYTE btOperation);
 ODAPIDEF void ODCALL pdef_pcboard(BYTE btOperation);
 ODAPIDEF void ODCALL pdef_ra(BYTE btOperation);
 ODAPIDEF void ODCALL pdef_wildcat(BYTE btOperation);
@@ -618,6 +619,7 @@ typedef void(ODFAR OD_PERSONALITY_PROC)(BYTE);
 
 /* Personality identifiers. */
 #define PER_OPENDOORS         (void *)pdef_opendoors
+#define PER_OD_ONEROW         (void *)pdef_od_onerow
 #define PER_PCBOARD           (void *)pdef_pcboard
 #define PER_RA                (void *)pdef_ra
 #define PER_WILDCAT           (void *)pdef_wildcat

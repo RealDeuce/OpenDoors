@@ -77,6 +77,11 @@ static void ODPersonalityOpenDoors(BYTE btOperation)
    pdef_opendoors(btOperation);
 }
 
+static void ODPersonalityOneRow(BYTE btOperation)
+{
+   pdef_od_onerow(btOperation);
+}
+
 static void ODPersonalityRemoteAccess(BYTE btOperation)
 {
    pdef_ra(btOperation);
@@ -100,17 +105,19 @@ static tPersonalityInfo aPersonalityInfo[MAX_PERSONALITIES]=
    {"STANDARD", 1, 23, ODPersonalityOpenDoors},
    {"REMOTEACCESS", 1, 23, ODPersonalityRemoteAccess},
    {"WILDCAT", 1, 23, ODPersonalityWildcat},
-   {"PCBOARD", 1, 23, ODPersonalityPCBoard}
+   {"PCBOARD", 1, 23, ODPersonalityPCBoard},
+   {"OD_ONEROW", 1, 24, ODPersonalityOneRow}
 #else
    {"STANDARD", 1, 23, pdef_opendoors},
    {"REMOTEACCESS", 1, 23, pdef_ra},
    {"WILDCAT", 1, 23, pdef_wildcat},
-   {"PCBOARD", 1, 23, pdef_pcboard}
+   {"PCBOARD", 1, 23, pdef_pcboard},
+   {"OD_ONEROW", 1, 24, pdef_od_onerow}
 #endif
 };
 
 /* Private variables. */
-static INT nPersonalities = 4;
+static INT nPersonalities = 5;
 static INT nCurrentPersonality = 255;
 #endif
 
@@ -121,6 +128,8 @@ OD_PERSONALITY_CALLBACK *ODMultiResolvePersonality(
    if(pfPersonality == NULL) return(ODPersonalityOpenDoors);
    if(pfPersonality == (OD_PERSONALITY_PROC *)pdef_opendoors)
       return(ODPersonalityOpenDoors);
+   if(pfPersonality == (OD_PERSONALITY_PROC *)pdef_od_onerow)
+      return(ODPersonalityOneRow);
    if(pfPersonality == (OD_PERSONALITY_PROC *)pdef_ra)
       return(ODPersonalityRemoteAccess);
    if(pfPersonality == (OD_PERSONALITY_PROC *)pdef_wildcat)

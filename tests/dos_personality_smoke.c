@@ -91,9 +91,12 @@ int main(void)
    ODStatForceStatusUpdate();
    CHECK(nUpdateCount >= 1);
 
-   CHECK(od_set_personality("STANDARD"));
+   CHECK(od_set_personality("OD_ONEROW"));
    CHECK(nDeinitializeCount == 1);
    CHECK(od_control.od_num_keys == nInitialKeyCount);
+   CHECK(od_control.key_status[6] == 0x4200);
+   CHECK(od_control.key_status[7] == 0x4300);
+   CHECK(od_control.key_status[8] == 0x4400);
 
    od_control.od_noexit = TRUE;
    od_exit(0, FALSE);

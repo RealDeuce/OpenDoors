@@ -10,11 +10,12 @@ BOOL od_set_personality(const char *pszName);
 
 ## Description
 
-[`od_set_personality()`](od_set_personality.md) selects the DOS local-interface
+[`od_set_personality()`](od_set_personality.md) selects the text-mode local-interface
 personality identified by `pszName`. Names are compared without regard to case
 and only the first 32 characters are significant.
 
-The built-in names are `STANDARD`, `REMOTEACCESS`, `WILDCAT`, and `PCBOARD`.
+The built-in names are `STANDARD`, `OD_ONEROW`, `REMOTEACCESS`, `WILDCAT`, and
+`PCBOARD`.
 Additional names may be installed before initialization with
 [`od_add_personality()`](od_add_personality.md).
 
@@ -38,7 +39,7 @@ Personalities affect only the local operator display and keys. They do not
 change the remote user's terminal mode or the contents sent to the remote
 connection.
 
-This function is supported by the DOS and DOS32 text-mode builds. Other builds
+This function is supported by DOS, DOS32, and Windows console builds. Other builds
 return [`FALSE`](../constants/general.md#false) and set
 [`od_control.od_error`](../control/runtime.md#od_error) to
 [`ERR_UNSUPPORTED`](../constants/errors.md#err_unsupported).

@@ -1,7 +1,7 @@
 # Components and personalities
 
 OpenDoors packages three optional subsystems as component initializer pointers
-and provides four built-in DOS local-interface personalities. Select components
+and provides five built-in DOS and Windows-console local-interface personalities. Select components
 and the default personality before [`od_init()`](../api/od_init.md) or any call
 which triggers automatic initialization.
 
@@ -125,6 +125,17 @@ Selects the standard OpenDoors personality implemented by
 `pdef_opendoors()`. It supplies the standard local status presentation and
 operator key behavior. The standard personality uses the same personality SDK
 contract as the alternatives.
+
+### `PER_OD_ONEROW`
+
+Selects the compact Standard-style personality implemented by
+`pdef_od_onerow()`. It reserves only row 25 for the local status display, so
+ordinary door output can use rows 1 through 24. The normal row shows caller
+identity, time remaining, ANSI/Avatar and sysop-next indicators, the node, and
+the F8/F9 help hint; it omits security and connection speed. F8 and F9 display
+[`od_help_text`](../control/customization.md#od_help_text) and
+[`od_help_text2`](../control/customization.md#od_help_text2), respectively.
+F10 hides the status row and F1 restores the normal row.
 
 ### `PER_PCBOARD`
 

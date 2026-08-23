@@ -1277,6 +1277,12 @@
       "platforms": ["unix", "windows", "dos16", "dos32"]
     },
     {
+      "source": "src/ODStand.c",
+      "function": "pdef_od_onerow",
+      "case": "unit/cases/ODStand/pdef_od_onerow.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
       "source": "src/ODPCB.c",
       "function": "pdef_pcboard",
       "case": "unit/cases/ODPCB/pdef_pcboard.c",
@@ -2167,6 +2173,11 @@
     {
       "source": "src/ODMulti.c", "function": "ODPersonalityOpenDoors",
       "case": "unit/cases/ODMulti/ODPersonalityOpenDoors.c",
+      "platforms": ["windows"]
+    },
+    {
+      "source": "src/ODMulti.c", "function": "ODPersonalityOneRow",
+      "case": "unit/cases/ODMulti/ODPersonalityOneRow.c",
       "platforms": ["windows"]
     },
     {

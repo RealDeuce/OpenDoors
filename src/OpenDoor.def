@@ -159,3 +159,5 @@ EXPORTS
    od_reserve_wait_until=_od_reserve_wait_until@8 @153
    _od_reserve_end@0=_od_reserve_end@0 @154
    od_reserve_end=_od_reserve_end@0 @155
+   _pdef_od_onerow@4=_pdef_od_onerow@4 @156
+   pdef_od_onerow=_pdef_od_onerow@4 @157

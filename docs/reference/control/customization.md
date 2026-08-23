@@ -490,10 +490,10 @@ replace a non-`NULL` value supplied by the application.
 void (*od_control.od_default_personality)(BYTE operation);
 ```
 
-On DOS and DOS32, this field selects the status-line personality used when the
+On DOS, DOS32, and Windows console builds, this field selects the status-line personality used when the
 multiple-personality component is absent or does not select a requested
 personality. It may point to an application-supplied personality procedure or
-to one of the built-in procedures named by [`PER_OPENDOORS`](../constants/components.md#per_opendoors), [`PER_PCBOARD`](../constants/components.md#per_pcboard),
+to one of the built-in procedures named by [`PER_OPENDOORS`](../constants/components.md#per_opendoors), [`PER_OD_ONEROW`](../constants/components.md#per_od_onerow), [`PER_PCBOARD`](../constants/components.md#per_pcboard),
 [`PER_RA`](../constants/components.md#per_ra), and [`PER_WILDCAT`](../constants/components.md#per_wildcat).
 
 The pointer is initially `NULL`, which selects the standard OpenDoors
@@ -1098,7 +1098,7 @@ WORD od_control.key_keyboardoff;
 
 This field selects the key which toggles
 [`od_user_keyboard_on`](runtime.md#od_user_keyboard_on), thereby enabling or
-disabling input from the remote caller. All four built-in personalities use
+disabling input from the remote caller. All five built-in personalities use
 Alt-K (`0x2500`). Local sysop keys remain active; to disable local keyboard
 processing, use the appropriate [`od_disable`](#od_disable) flag.
 
@@ -1571,11 +1571,12 @@ char *od_control.od_help_text;
 ```
 
 The standard DOS and DOS32 personality displays this string on row 24 of its
-help status screen. The 80-column default is
+help status screen. OD_ONEROW displays it on row 25 when F8 is pressed. The
+80-column default is
 `"  Alt: [C]hat [H]angup [L]ockout [J]Dos [K]eyboard-Off [D]rop to BBS            "`.
 Replacement text should occupy exactly 80 screen columns; shorter text can
 leave prior contents visible and longer text can wrap into the following row.
-Other built-in personalities do not use this field.
+PCBoard, RemoteAccess, and Wildcat do not use this field.
 
 ### `od_help_text2`
 
@@ -1584,11 +1585,12 @@ char *od_control.od_help_text2;
 ```
 
 The standard DOS and DOS32 personality displays this string on row 25 of its
-help status screen. It defaults to the library's `OD_VER_STATUSLINE` text:
+help status screen. OD_ONEROW displays it there when F9 is pressed. It defaults
+to the library's `OD_VER_STATUSLINE` text:
 `"  OpenDoors 6.30 - (C) Copyright 1991-2001 by Brian Pirie                      "`.
 Replacement text must fit the 80-column row; output beyond its final cell can
-wrap and scroll the local screen. Other built-in personalities do not use this
-field.
+wrap and scroll the local screen. PCBoard, RemoteAccess, and Wildcat do not use
+this field.
 
 ### `od_inactivity_timeout`
 

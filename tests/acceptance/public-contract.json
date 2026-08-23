@@ -3699,6 +3699,19 @@
     },
     {
       "kind": "constant",
+      "name": "PER_OD_ONEROW",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "surface.constants"
+      ]
+    },
+    {
+      "kind": "constant",
       "name": "PER_OPENDOORS",
       "platforms": [
         "windows",
@@ -8885,6 +8898,20 @@
       "evidence": [
         "symbols.exports",
         "terminal.screen"
+      ]
+    },
+    {
+      "kind": "function",
+      "name": "pdef_od_onerow",
+      "platforms": [
+        "windows",
+        "unix",
+        "dos16",
+        "dos32"
+      ],
+      "evidence": [
+        "symbols.exports",
+        "personalities.builtin"
       ]
     },
     {

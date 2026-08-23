@@ -175,6 +175,8 @@ int main(void)
    OD_TEST_CHECK(strstr(log_contents, "acceptance log record") != NULL);
    pdef_opendoors(PEROP_INITIALIZE);
    pdef_opendoors(PEROP_DEINITIALIZE);
+   pdef_od_onerow(PEROP_INITIALIZE);
+   pdef_od_onerow(PEROP_DEINITIALIZE);
    pdef_pcboard(PEROP_INITIALIZE);
    pdef_pcboard(PEROP_DEINITIALIZE);
    pdef_ra(PEROP_INITIALIZE);

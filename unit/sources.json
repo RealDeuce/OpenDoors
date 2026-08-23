@@ -31,7 +31,7 @@
     },
     {"path": "src/ODList.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
     {"path": "src/ODLog.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
-    {"path": "src/ODMulti.c", "platforms": ["unix", "windows", "dos16", "dos32"], "function_platforms": {"ODPersonalityOpenDoors": ["windows"], "ODPersonalityPCBoard": ["windows"], "ODPersonalityRemoteAccess": ["windows"], "ODPersonalityWildcat": ["windows"]}},
+    {"path": "src/ODMulti.c", "platforms": ["unix", "windows", "dos16", "dos32"], "function_platforms": {"ODPersonalityOpenDoors": ["windows"], "ODPersonalityOneRow": ["windows"], "ODPersonalityPCBoard": ["windows"], "ODPersonalityRemoteAccess": ["windows"], "ODPersonalityWildcat": ["windows"]}},
     {"path": "src/ODPlat.c", "platforms": ["unix", "windows", "dos16", "dos32"], "function_platforms": {"ODPlatGetWindowsSubsystem": ["windows"], "ODPlatYield": ["dos16"], "odthread_wrapper": ["windows"], "ODThreadCreate": ["windows"], "ODThreadWaitForExit": ["windows"], "ODThreadSleep": ["windows"], "ODSemaphoreAlloc": ["windows"], "ODSemaphoreFree": ["windows"], "ODSemaphoreUp": ["windows"], "ODSemaphoreDown": ["windows"], "OD32BIOSClock": ["dos32"], "DOSToCTime": ["windows", "dos16", "dos32"], "ODDOSReadSessionClock": ["dos16", "dos32"], "ODDirDOSFindFirst": ["dos16", "dos32"], "ODDirDOSFindNext": ["dos16", "dos32"], "ODDirWinMatchesAttributes": ["windows"]}},
     {"path": "src/ODPCB.c", "platforms": ["unix", "windows", "dos16", "dos32"]},
     {"path": "src/ODPopup.c", "platforms": ["unix", "windows", "dos16", "dos32"]},

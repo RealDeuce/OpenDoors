@@ -3533,7 +3533,7 @@
           "test": null
         },
         {
-          "name": "ODPersonalityRemoteAccess",
+          "name": "ODPersonalityOneRow",
           "signature_line": 78,
           "body_line": 81,
           "end_line": 83,
@@ -3543,7 +3543,7 @@
           "test": null
         },
         {
-          "name": "ODPersonalityWildcat",
+          "name": "ODPersonalityRemoteAccess",
           "signature_line": 83,
           "body_line": 86,
           "end_line": 88,
@@ -3553,7 +3553,7 @@
           "test": null
         },
         {
-          "name": "ODPersonalityPCBoard",
+          "name": "ODPersonalityWildcat",
           "signature_line": 88,
           "body_line": 91,
           "end_line": 93,
@@ -3563,10 +3563,20 @@
           "test": null
         },
         {
+          "name": "ODPersonalityPCBoard",
+          "signature_line": 93,
+          "body_line": 96,
+          "end_line": 98,
+          "platforms": [
+            "windows"
+          ],
+          "test": null
+        },
+        {
           "name": "ODMultiResolvePersonality",
-          "signature_line": 114,
-          "body_line": 119,
-          "end_line": 132,
+          "signature_line": 121,
+          "body_line": 126,
+          "end_line": 141,
           "platforms": [
             "unix",
             "windows",
@@ -3577,9 +3587,9 @@
         },
         {
           "name": "ODMPSEnable",
-          "signature_line": 132,
-          "body_line": 146,
-          "end_line": 149,
+          "signature_line": 141,
+          "body_line": 155,
+          "end_line": 158,
           "platforms": [
             "unix",
             "windows",
@@ -3590,9 +3600,9 @@
         },
         {
           "name": "od_set_personality",
-          "signature_line": 149,
-          "body_line": 162,
-          "end_line": 251,
+          "signature_line": 158,
+          "body_line": 171,
+          "end_line": 260,
           "platforms": [
             "unix",
             "windows",
@@ -3603,9 +3613,9 @@
         },
         {
           "name": "od_add_personality",
-          "signature_line": 251,
-          "body_line": 274,
-          "end_line": 320,
+          "signature_line": 260,
+          "body_line": 283,
+          "end_line": 329,
           "platforms": [
             "unix",
             "windows",
@@ -5744,6 +5754,19 @@
           "signature_line": 1,
           "body_line": 61,
           "end_line": 232,
+          "platforms": [
+            "unix",
+            "windows",
+            "dos16",
+            "dos32"
+          ],
+          "test": null
+        },
+        {
+          "name": "pdef_od_onerow",
+          "signature_line": 232,
+          "body_line": 246,
+          "end_line": 360,
           "platforms": [
             "unix",
             "windows",

@@ -2,8 +2,8 @@
 
 The DOS and Windows-console versions of OpenDoors can replace their local status display and sysop
 function keys as a unit. Each such unit is called a *personality*. OpenDoors
-includes Standard, PCBoard, RemoteAccess, and Wildcat personalities; a door may
-also supply its own.
+includes Standard, OD_ONEROW, PCBoard, RemoteAccess, and Wildcat personalities;
+a door may also supply its own.
 
 Personality support is local to the DOS or Windows console. Output produced through the
 personality screen functions is never sent to the caller's remote terminal.
@@ -85,11 +85,15 @@ Current public declarations are in [`ODStat.h`](../reference/personality/index.m
 
 The OpenDoors Multiple Personality System allows  the DOS version of OpenDoors to support multiple sysop function key / status line "personalities". Most commonly, you will use this feature in conjunction with the "Personality" setting in the OpenDoors configuration file, to allow the sysop to choose one of the built-in personalities that most closely mimics the BBS software they are using. OpenDoors includes the following personalities:
 
-### Configuration Keyword         Manifest Constant
+| Configuration keyword | Manifest constant |
+| --- | --- |
+| `STANDARD` | [`PER_OPENDOORS`](../reference/constants/components.md#per_opendoors) |
+| `OD_ONEROW` | [`PER_OD_ONEROW`](../reference/constants/components.md#per_od_onerow) |
+| `PCBOARD` | [`PER_PCBOARD`](../reference/constants/components.md#per_pcboard) |
+| `REMOTEACCESS` | [`PER_RA`](../reference/constants/components.md#per_ra) |
+| `WILDCAT` | [`PER_WILDCAT`](../reference/constants/components.md#per_wildcat) |
 
-Standard                      PER_OPENDOORS PCBoard                       PER_PCBOARD RemoteAccess                  PER_RA Wildcat                       PER_WILDCAT
-
-The PCBoard, RemoteAccess and Wildcat personalities mimic the status lines and function keys used by the BBS packages with those names. The Standard personality, which is the personality used by default, is a trimmed down version of the status lines provided by OpenDoors 4.10 and earlier.
+The PCBoard, RemoteAccess and Wildcat personalities mimic the status lines and function keys used by the BBS packages with those names. The Standard personality, which is the personality used by default, is a trimmed down version of the status lines provided by OpenDoors 4.10 and earlier. OD_ONEROW is a compact Standard-style personality which reserves only row 25, leaving rows 1 through 24 for door output. Its normal row omits security and connection speed. F8 and F9 show its first and second help text, respectively; F10 hides the status row, and F1 restores the normal row.
 
 In addition to using the personalities supplied with OpenDoors, you can create your own personalities. This simply involves writing a function which OpenDoors will call to setup the sysop function keys and to display the status line.
 
