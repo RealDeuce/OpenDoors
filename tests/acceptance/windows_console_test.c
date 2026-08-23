@@ -243,7 +243,7 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(od_control.key_status[7] == 0x4300);
    OD_TEST_CHECK(od_control.key_status[8] == 0x4400);
    origin.X = 0;
-   origin.Y = 24;
+   origin.Y = od_control.user_screen_length;
    OD_TEST_CHECK(ReadConsoleOutputCharacterA(output, statusRow,
       sizeof(statusRow), origin, &statusRead));
    OD_TEST_CHECK(statusRead == sizeof(statusRow));
