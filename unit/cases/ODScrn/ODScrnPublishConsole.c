@@ -22,6 +22,7 @@ static INT ut_expected_height;
 static INT ut_expected_cursor_column;
 static INT ut_expected_cursor_row;
 static BOOL ut_check_cells;
+static BOOL ut_expect_blank_fixed_screen_overflow;
 
 void *utm_memcpy(void *destination, const void *source, size_t size)
 {
@@ -71,6 +72,8 @@ BOOL utm_ODConsoleWrite(const BYTE *cells, INT width, INT height,
       UT_ASSERT_EQ_INT(ut_local_composition ? 'P' : 'R', cells[6]);
       UT_ASSERT_EQ_INT('P', cells[18]);
    }
+   if(ut_expect_blank_fixed_screen_overflow)
+      UT_ASSERT_EQ_INT(' ', cells[(height - 1) * width * 2]);
    UT_ASSERT_EQ_INT(ut_expected_cursor_column, cursor_column);
    UT_ASSERT_EQ_INT(ut_expected_cursor_row, cursor_row);
    UT_ASSERT(cursor_on);
@@ -90,6 +93,7 @@ static void reset_fixture(void)
    ut_actual_width = ut_actual_height = 0;
    ut_expected_width = 3; ut_expected_height = 4;
    ut_expected_cursor_column = 1; ut_expected_cursor_row = 2;
+   ut_expect_blank_fixed_screen_overflow = FALSE;
    od_control.user_screenwidth = 3; od_control.user_screen_length = 2;
    btOutputTop = 2; btOutputBottom = 24;
    bSessionScreenAvailable = TRUE;
@@ -108,6 +112,23 @@ static void composes_the_fixed_local_screen_without_a_session_buffer(void)
    ut_expected_cursor_column = 2; ut_expected_cursor_row = 3;
    UT_ASSERT(utt_ODScrnPublishConsole());
    UT_ASSERT_EQ_UINT(4, ut_personality_rows);
+   UT_ASSERT_EQ_UINT(1, ut_free_calls);
+}
+
+static void leaves_rows_beyond_the_fixed_local_screen_blank(void)
+{
+   reset_fixture();
+   bSessionScreenAvailable = FALSE;
+   btOutputTop = 1; btOutputBottom = 23;
+   btCursorColumn = 1; btCursorRow = 1;
+   od_control.user_screen_length = 24;
+   ut_actual_height = 26;
+   ut_expected_height = 26;
+   ut_expected_cursor_row = 1;
+   ut_check_cells = FALSE;
+   ut_expect_blank_fixed_screen_overflow = TRUE;
+   UT_ASSERT(utt_ODScrnPublishConsole());
+   UT_ASSERT_EQ_UINT(25, ut_personality_rows);
    UT_ASSERT_EQ_UINT(1, ut_free_calls);
 }
 
@@ -171,6 +192,8 @@ static const UTTestCase ut_cases[] = {
    {"composition", composes_remote_and_personality_rows},
    {"local composition",
       composes_the_fixed_local_screen_without_a_session_buffer},
+   {"local fixed-screen overflow",
+      leaves_rows_beyond_the_fixed_local_screen_blank},
    {"failures", reports_allocation_and_write_failures},
    {"dimension boundaries", covers_console_dimension_boundaries}
 };

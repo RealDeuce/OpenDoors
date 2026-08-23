@@ -157,8 +157,15 @@ int main(int argc, char **argv)
    COORD origin;
    char cells[8192];
    char screenMarker[40];
+   char statusRow[80];
+   char extraRow[80];
    DWORD cellCount;
    DWORD cellsRead;
+   DWORD statusRead;
+   DWORD extraRead;
+   DWORD index;
+   BOOL statusNonblank;
+   BOOL extraBlank;
 
    od_parse_cmd_line(argc, argv);
    ODTestConfigureLocal();
@@ -191,10 +198,6 @@ int main(int argc, char **argv)
    OD_TEST_CHECK(kernelExecCalls == 1);
 
    OD_TEST_CHECK(FindWindowA("ODFrame", NULL) == NULL);
-   OD_TEST_CHECK(od_add_personality("TEST", 1, 23, ODTestPersonality));
-   OD_TEST_CHECK(od_set_personality("TEST"));
-   OD_TEST_CHECK(personalityCalls == 2);
-   OD_TEST_CHECK(personalityOperation == STATUS_NORMAL);
    output = CreateFileA("CONOUT$", GENERIC_READ | GENERIC_WRITE,
       FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
    OD_TEST_CHECK(!od_control.od_silent_mode);
@@ -214,6 +217,31 @@ int main(int argc, char **argv)
     * and compose correctly across the actual buffer it reports. */
    OD_TEST_CHECK(info.dwSize.X >= 100);
    OD_TEST_CHECK(info.dwSize.Y >= 32);
+   origin.X = 0;
+   origin.Y = 24;
+   OD_TEST_CHECK(ReadConsoleOutputCharacterA(output, statusRow,
+      sizeof(statusRow), origin, &statusRead));
+   origin.Y = info.dwSize.Y - 1;
+   OD_TEST_CHECK(ReadConsoleOutputCharacterA(output, extraRow,
+      sizeof(extraRow), origin, &extraRead));
+   OD_TEST_CHECK(statusRead == sizeof(statusRow));
+   OD_TEST_CHECK(extraRead == sizeof(extraRow));
+   statusNonblank = FALSE;
+   extraBlank = TRUE;
+   for(index = 0; index < sizeof(statusRow); ++index)
+   {
+      if(statusRow[index] != ' ')
+         statusNonblank = TRUE;
+      if(extraRow[index] != ' ')
+         extraBlank = FALSE;
+   }
+   OD_TEST_CHECK(statusNonblank);
+   OD_TEST_CHECK(extraBlank);
+
+   OD_TEST_CHECK(od_add_personality("TEST", 1, 23, ODTestPersonality));
+   OD_TEST_CHECK(od_set_personality("TEST"));
+   OD_TEST_CHECK(personalityCalls == 2);
+   OD_TEST_CHECK(personalityOperation == STATUS_NORMAL);
    GetSystemTimeAsFileTime(&marker);
    sprintf(screenMarker, "SCREEN-%08lx%08lx",
       (unsigned long)marker.dwHighDateTime,

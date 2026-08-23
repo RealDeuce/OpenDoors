@@ -2972,22 +2972,22 @@ static BOOL ODScrnPublishConsole(void)
          pDestination[nColumn * 2] = ' ';
          pDestination[nColumn * 2 + 1] = 0x07;
       }
-      if(!bSessionScreenAvailable && nRow < OD_SCREEN_HEIGHT)
+      if(!bSessionScreenAvailable)
       {
          /* Local mode uses the same fixed 80x25 buffer as DOS. */
-         ODScrnConsoleCopyPersonalityRow(pDestination, nWidth, nRow);
+         if(nRow < OD_SCREEN_HEIGHT)
+            ODScrnConsoleCopyPersonalityRow(pDestination, nWidth, nRow);
       }
       else if(nRow < nTopRows)
          ODScrnConsoleCopyPersonalityRow(pDestination, nWidth, nRow);
-      else if(nRow < nTopRows + nRemoteHeight
-         && bSessionScreenAvailable)
+      else if(nRow < nTopRows + nRemoteHeight)
       {
          nColumn = nWidth < SessionScreen.nWidth
             ? nWidth : SessionScreen.nWidth;
          pSource = ODSessionScreenCell(0, nRow - nTopRows);
          memcpy(pDestination, pSource, (size_t)nColumn * 2U);
       }
-      else if(nRow >= nTopRows + nRemoteHeight)
+      else
       {
          INT nPersonalityRow = btOutputBottom
             + nRow - nTopRows - nRemoteHeight;
