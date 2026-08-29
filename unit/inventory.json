@@ -871,7 +871,7 @@
           "name": "ODComSendByte",
           "signature_line": 3089,
           "body_line": 3103,
-          "end_line": 3316,
+          "end_line": 3341,
           "platforms": [
             "unix",
             "windows",
@@ -882,9 +882,9 @@
         },
         {
           "name": "ODComGetBuffer",
-          "signature_line": 3316,
-          "body_line": 3339,
-          "end_line": 3550,
+          "signature_line": 3341,
+          "body_line": 3364,
+          "end_line": 3575,
           "platforms": [
             "unix",
             "windows",
@@ -895,9 +895,9 @@
         },
         {
           "name": "ODComSendBuffer",
-          "signature_line": 3550,
-          "body_line": 3568,
-          "end_line": 3899,
+          "signature_line": 3575,
+          "body_line": 3593,
+          "end_line": 3954,
           "platforms": [
             "unix",
             "windows",

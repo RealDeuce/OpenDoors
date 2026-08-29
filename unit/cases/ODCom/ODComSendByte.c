@@ -153,9 +153,10 @@ static BOOL WINAPI ut_door_write(const BYTE *buffer, DWORD size)
 #else
 #define UT_CUSTOM_MOCK_od_sleep
 #endif
-static int ut_ready_result;
-static short ut_ready_events;
-static int ut_send_results[3];
+static int ut_ready_results[4];
+static short ut_ready_events[4];
+static unsigned ut_ready_calls;
+static int ut_send_results[4];
 static unsigned ut_send_calls;
 static int ut_socket_error;
 #ifdef ODPLAT_WIN32
@@ -165,8 +166,8 @@ int PASCAL utm_select(int count, fd_set FAR *read_set,
 {
    UT_ASSERT_EQ_INT(46, count); UT_ASSERT_NULL(read_set);
    UT_ASSERT_NOT_NULL(write_set); UT_ASSERT_NULL(error_set);
-   UT_ASSERT_NOT_NULL(timeout);
-   return(ut_ready_result);
+   UT_ASSERT_NOT_NULL(timeout); UT_ASSERT(ut_ready_calls < 4);
+   return(ut_ready_results[ut_ready_calls++]);
 }
 int PASCAL utm_send(SOCKET socket_handle, const char FAR *buffer,
    int size, int flags)
@@ -174,9 +175,9 @@ int PASCAL utm_send(SOCKET socket_handle, const char FAR *buffer,
 int utm_poll(struct pollfd *descriptors, nfds_t count, int timeout)
 {
    UT_ASSERT_NOT_NULL(descriptors); UT_ASSERT_EQ_UINT(1, count);
-   UT_ASSERT_EQ_INT(1000, timeout);
-   descriptors[0].revents = ut_ready_events;
-   return(ut_ready_result);
+   UT_ASSERT_EQ_INT(1000, timeout); UT_ASSERT(ut_ready_calls < 4);
+   descriptors[0].revents = ut_ready_events[ut_ready_calls];
+   return(ut_ready_results[ut_ready_calls++]);
 }
 ssize_t utm_send(int socket_handle, const void *buffer, size_t size, int flags)
 #endif
@@ -245,10 +246,13 @@ static void reset_send(void)
    ut_port.pfDoorWrite = ut_door_write; ut_door_result = TRUE; ut_door_calls = 0;
 #endif
 #ifdef INCLUDE_SOCKET_COM
-   ut_port.socket = 45; ut_ready_result = 1; ut_ready_events = POLLOUT;
+   ut_port.socket = 45; ut_ready_calls = 0;
    ut_send_calls = 0; ut_socket_error = 0;
    errno = 0;
-   for(index = 0; index < 3; ++index) ut_send_results[index] = 1;
+   for(index = 0; index < 4; ++index) {
+      ut_ready_results[index] = 1; ut_ready_events[index] = POLLOUT;
+      ut_send_results[index] = 1;
+   }
 #endif
 #ifdef INCLUDE_STDIO_COM
    ut_stdio_select_calls = 0; ut_fwrite_calls = 0; ut_fwrite_result = 1;
@@ -330,14 +334,16 @@ static void reports_door32_write_outcomes(void)
 #ifdef INCLUDE_SOCKET_COM
 static void reports_socket_readiness_send_retry_and_failure(void)
 {
-   reset_send(); ut_port.Method = kComMethodSocket; ut_ready_result = 0;
+   reset_send(); ut_port.Method = kComMethodSocket; ut_ready_results[0] = 0;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure,
+      utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
+   reset_send(); ut_port.Method = kComMethodSocket; ut_ready_results[0] = -1;
+   ut_socket_error = 1; errno = 1;
    UT_ASSERT_EQ_INT(kODRCGeneralFailure,
       utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
 #ifndef ODPLAT_WIN32
-   reset_send(); ut_port.Method = kComMethodSocket; ut_ready_result = -1;
-   UT_ASSERT_EQ_INT(kODRCGeneralFailure,
-      utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
-   reset_send(); ut_port.Method = kComMethodSocket; ut_ready_events = POLLHUP;
+   reset_send(); ut_port.Method = kComMethodSocket;
+   ut_ready_events[0] = POLLHUP;
    UT_ASSERT_EQ_INT(kODRCGeneralFailure,
       utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
 #endif
@@ -359,6 +365,30 @@ static void reports_socket_readiness_send_retry_and_failure(void)
 #endif
    UT_ASSERT_EQ_INT(kODRCGeneralFailure,
       utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
+   reset_send(); ut_port.Method = kComMethodSocket;
+   ut_send_results[0] = 0;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure,
+      utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
+   reset_send(); ut_port.Method = kComMethodSocket;
+   ut_ready_results[0] = -1; ut_ready_results[1] = 1;
+#ifdef ODPLAT_WIN32
+   ut_socket_error = WSAEINTR;
+#else
+   errno = EINTR;
+#endif
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
+   UT_ASSERT_EQ_UINT(2, ut_ready_calls); UT_ASSERT_EQ_UINT(1, ut_send_calls);
+   reset_send(); ut_port.Method = kComMethodSocket;
+   ut_send_results[0] = SOCKET_ERROR; ut_send_results[1] = 1;
+#ifdef ODPLAT_WIN32
+   ut_socket_error = WSAEINTR;
+#else
+   errno = EINTR;
+#endif
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
+   UT_ASSERT_EQ_UINT(2, ut_ready_calls); UT_ASSERT_EQ_UINT(2, ut_send_calls);
 }
 #endif
 

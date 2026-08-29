@@ -3227,43 +3227,68 @@ keep_going:
       case kComMethodSocket:
 		{
 			int		send_ret;
+			int     socket_error;
 #ifdef ODPLAT_WIN32
 			fd_set	socket_set;
 			struct	timeval tv;
-
-			FD_ZERO(&socket_set);
-			FD_SET(pPortInfo->socket,&socket_set);
-
-			tv.tv_sec=1;
-			tv.tv_usec=0;
-
-			if(select(pPortInfo->socket+1,NULL,&socket_set,NULL,&tv) != 1)
-				return(kODRCGeneralFailure);
+			int     select_ret;
 #else
 			int i;
 			struct pollfd pfd = {0};
-			pfd.fd = pPortInfo->socket;
-			pfd.events = POLLOUT | POLLHUP;
-			i = poll(&pfd, 1, 1000);
+#endif
+
+			for(;;) {
+#ifdef ODPLAT_WIN32
+			for(;;) {
+				FD_ZERO(&socket_set);
+				FD_SET(pPortInfo->socket,&socket_set);
+
+				tv.tv_sec=1;
+				tv.tv_usec=0;
+
+				select_ret=select(pPortInfo->socket+1,NULL,&socket_set,NULL,&tv);
+				if(select_ret == SOCKET_ERROR
+				   && WSAGetLastError() == WSAEINTR)
+					continue;
+				if(select_ret != 1)
+					return(kODRCGeneralFailure);
+				break;
+			}
+#else
+			do {
+				pfd.fd = pPortInfo->socket;
+				pfd.events = POLLOUT | POLLHUP;
+				i = poll(&pfd, 1, 1000);
+			} while(i == -1 && errno == EINTR);
 			if (i == 0)
 				return (kODRCGeneralFailure);
 			else if (i == -1 || !(pfd.revents & POLLOUT))
 				return (kODRCGeneralFailure);
 #endif
 
-			do {
-				send_ret = send(pPortInfo->socket, (char*)&btToSend, 1, 0);
-				if (send_ret != 1)
-#ifdef OD_THREAD_SUPPORT
-					ODThreadSleep(50);
+			send_ret = send(pPortInfo->socket, (char*)&btToSend, 1, 0);
+			if(send_ret == 1)
+				break;
+			if(send_ret == 0)
+				return(kODRCGeneralFailure);
+
+			socket_error = WSAGetLastError();
+#ifdef ODPLAT_WIN32
+			if(socket_error == WSAEINTR)
 #else
-					od_sleep(50);
+			if(socket_error == EINTR)
 #endif
-			} while ((send_ret == SOCKET_ERROR) && (WSAGetLastError() == WSAEWOULDBLOCK));
-
-			if (send_ret == SOCKET_ERROR)
-				return (kODRCGeneralFailure);
-
+				continue;
+			if(socket_error == WSAEWOULDBLOCK) {
+#ifdef OD_THREAD_SUPPORT
+				ODThreadSleep(50);
+#else
+				od_sleep(50);
+#endif
+				continue;
+			}
+			return(kODRCGeneralFailure);
+			}
 			break;
 		}
 #endif /* INCLUDE_SOCKET_COM */
@@ -3796,48 +3821,78 @@ try_again:
       case kComMethodSocket:
 		{
 			int     send_ret;
+			int     socket_error;
+			int     nSent = 0;
 #ifdef ODPLAT_WIN32
 			fd_set	socket_set;
 			struct	timeval tv;
-
-			FD_ZERO(&socket_set);
-			FD_SET(pPortInfo->socket,&socket_set);
-
-			tv.tv_sec=1;
-			tv.tv_usec=0;
-
-			if(select(pPortInfo->socket+1,NULL,&socket_set,NULL,&tv) != 1) {
-            if (od_control.od_cp437_to_utf8_out) free(buf);
-				return(kODRCGeneralFailure);
-         }
+			int     select_ret;
 #else
 			int i;
 			struct pollfd pfd = {0};
-			pfd.fd = pPortInfo->socket;
-			pfd.events = POLLOUT | POLLHUP;
-			i = poll(&pfd, 1, 1000);
-			if (i != 1 || !(pfd.revents & POLLOUT)) {
-            if (od_control.od_cp437_to_utf8_out) free(buf);
-				return (kODRCGeneralFailure);
-         }
 #endif
 
-			do {
-				send_ret = send(pPortInfo->socket, (char*)buf, nSize, 0);
-				if (send_ret != SOCKET_ERROR)
+			while(nSent < nSize) {
+#ifdef ODPLAT_WIN32
+				for(;;) {
+					FD_ZERO(&socket_set);
+					FD_SET(pPortInfo->socket,&socket_set);
+
+					tv.tv_sec=1;
+					tv.tv_usec=0;
+
+					select_ret=select(pPortInfo->socket+1,NULL,
+					   &socket_set,NULL,&tv);
+					if(select_ret == SOCKET_ERROR
+					   && WSAGetLastError() == WSAEINTR)
+						continue;
+					if(select_ret != 1) {
+						if(od_control.od_cp437_to_utf8_out) free(buf);
+						return(kODRCGeneralFailure);
+					}
 					break;
+				}
+#else
+				do {
+					pfd.fd = pPortInfo->socket;
+					pfd.events = POLLOUT | POLLHUP;
+					i = poll(&pfd, 1, 1000);
+				} while(i == -1 && errno == EINTR);
+				if(i != 1 || !(pfd.revents & POLLOUT)) {
+					if(od_control.od_cp437_to_utf8_out) free(buf);
+					return(kODRCGeneralFailure);
+				}
+#endif
+
+				send_ret = send(pPortInfo->socket, (char*)buf + nSent,
+				   nSize - nSent, 0);
+				if(send_ret > 0) {
+					nSent += send_ret;
+					continue;
+				}
+				if(send_ret == 0) {
+					if(od_control.od_cp437_to_utf8_out) free(buf);
+					return(kODRCGeneralFailure);
+				}
+
+				socket_error = WSAGetLastError();
+#ifdef ODPLAT_WIN32
+				if(socket_error == WSAEINTR)
+#else
+				if(socket_error == EINTR)
+#endif
+					continue;
+				if(socket_error != WSAEWOULDBLOCK) {
+					if(od_control.od_cp437_to_utf8_out) free(buf);
+					return(kODRCGeneralFailure);
+				}
 #ifdef OD_THREAD_SUPPORT
 				ODThreadSleep(25);
 #else
 				od_sleep(25);
 #endif
-			} while (WSAGetLastError() == WSAEWOULDBLOCK);
-
-			if (send_ret != nSize) {
-            if (od_control.od_cp437_to_utf8_out) free(buf);
-				return (kODRCGeneralFailure);
-         }
-      break;
+			}
+			break;
 		}
 #endif /* INCLUDE_SOCKET_COM */
 
