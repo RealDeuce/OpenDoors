@@ -176,37 +176,18 @@ jobs:
         architecture: [x86, x64]
     steps:
       - uses: actions/checkout@v7
-      - name: Select LLVM with x86 profiling runtime
-        if: matrix.architecture == 'x86'
+      - name: Detect LLVM profiling support
+        id: llvm-profile
         shell: pwsh
         run: |
-          $vswhere = Join-Path ${env:ProgramFiles(x86)} `
-            'Microsoft Visual Studio\Installer\vswhere.exe'
-          $installation = & $vswhere -latest -products '*' `
-            -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang `
-            -property installationPath
-          if (-not $installation) {
-            throw 'Visual Studio LLVM installation was not found.'
+          $arguments = @('-print-file-name=clang_rt.profile.lib')
+          if ('${{ matrix.architecture }}' -eq 'x86') {
+            $arguments = @('-m32') + $arguments
           }
-
-          $llvmRoot = Join-Path $installation 'VC\Tools\Llvm'
-          $llvmBin = $null
-          $clangCandidates = Get-ChildItem $llvmRoot -Filter clang.exe -File -Recurse |
-            Where-Object { $_.FullName -match '\\x64\\bin\\clang\.exe$' }
-          foreach ($clang in $clangCandidates) {
-            $runtime = (& $clang.FullName -m32 `
-              -print-file-name=clang_rt.profile.lib | Select-Object -Last 1).Trim()
-            if ((Test-Path -LiteralPath $runtime) -and
-                (Test-Path -LiteralPath (Join-Path $clang.DirectoryName 'llvm-cov.exe')) -and
-                (Test-Path -LiteralPath (Join-Path $clang.DirectoryName 'llvm-profdata.exe'))) {
-              $llvmBin = $clang.DirectoryName
-              break
-            }
-          }
-          if (-not $llvmBin) {
-            throw 'No Visual Studio LLVM toolchain has the x86 profiling runtime.'
-          }
-          $llvmBin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $runtime = (& clang @arguments | Select-Object -Last 1).Trim()
+          $available = Test-Path -LiteralPath $runtime
+          "available=$($available.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          Write-Host "LLVM profile runtime: $runtime (available: $available)"
       - name: Show LLVM tools
         shell: pwsh
         run: |
@@ -227,7 +208,7 @@ jobs:
           --selection build/unit-selection.json `
           --cc clang `
           --clang clang `
-          --coverage `
+          ${{ steps.llvm-profile.outputs.available == 'true' && '--coverage' || '' }} `
           ${{ inputs.allow_proposed_coverage_waivers && '--allow-proposed-coverage-waivers' || '' }} `
           --build build/unit-windows-${{ matrix.architecture }}
       - name: Upload detailed coverage records

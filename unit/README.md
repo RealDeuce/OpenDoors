@@ -106,7 +106,8 @@ the selected cases, it runs every isolated executable synchronously from one
 `cmd.exe` process and retains a separate output, failure marker, and portable
 coverage report for each case. Omit `--wine` on a native Windows runner.
 LLVM line and MC/DC coverage is executed for Windows targets only on a native
-Windows host; cross-host MinGW/Wine runs retain the portable coverage oracle.
+Windows host with the target profiling runtime installed. Targets without that
+runtime, and cross-host MinGW/Wine runs, retain the portable coverage oracle.
 `--windows-architecture` also applies to test-only DLL fixtures, so an x86
 isolated executable never accidentally loads an x64 `DOOR32.DLL` or vice
 versa. Cross-host MinGW uses the default GNU Windows ABI; native Windows Clang
