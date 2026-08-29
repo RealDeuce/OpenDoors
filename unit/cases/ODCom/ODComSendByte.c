@@ -334,6 +334,11 @@ static void reports_door32_write_outcomes(void)
 #ifdef INCLUDE_SOCKET_COM
 static void reports_socket_readiness_send_retry_and_failure(void)
 {
+   reset_send(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   UT_ASSERT_EQ_INT(kODRCSafeFailure,
+      utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
+   UT_ASSERT_EQ_UINT(1, ut_buffer_calls);
    reset_send(); ut_port.Method = kComMethodSocket; ut_ready_results[0] = 0;
    UT_ASSERT_EQ_INT(kODRCGeneralFailure,
       utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));

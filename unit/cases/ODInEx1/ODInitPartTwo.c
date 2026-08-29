@@ -596,6 +596,7 @@ static void reset_part_two_fixture(void)
    nInitialRemaining = 0;
    bPromptForUserName = FALSE;
    bSysopNameSet = FALSE;
+   bTelnetSocket = FALSE;
    od_control.user_screenwidth = 80;
    od_control.user_screen_length = 23;
    szForcedSysopName[0] = '\0';
@@ -644,6 +645,12 @@ static void initializes_defaults_and_a_serial_session(void)
    UT_ASSERT_EQ_INT(TRUE, od_control.od_always_clear);
    UT_ASSERT_EQ_INT(TRUE, od_control.od_clear_on_exit);
    UT_ASSERT_EQ_INT(TRUE, od_control.od_no_ra_codes);
+   UT_ASSERT(strncmp("\r\n", od_control.od_before_shell, 2) == 0);
+   UT_ASSERT(strstr(od_control.od_after_shell, "\r\n")
+      == od_control.od_after_shell);
+   UT_ASSERT(strstr(od_control.od_before_chat, "\r\n")
+      == od_control.od_before_chat);
+   UT_ASSERT(strstr(od_control.od_no_response, "\r\n") != NULL);
    UT_ASSERT(strcmp("Sysop", od_control.sysop_name) == 0);
    UT_ASSERT(strcmp("~+++~  AT&D0|  ATO|", od_control.od_disable_dtr) == 0);
    UT_ASSERT_EQ_INT(60, nInitialRemaining);
@@ -809,6 +816,18 @@ static void exercises_serial_configuration_matrix(void)
    };
    static const INT triggers[] = {1, 8, 14, 3};
    unsigned index;
+
+   reset_part_two_fixture();
+   od_control.od_use_socket = TRUE;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(1, ut_preferred_calls);
+   UT_ASSERT_EQ_INT(kComMethodSocket, ut_preferred_method);
+
+   reset_part_two_fixture();
+   od_control.od_use_socket = TRUE; bTelnetSocket = TRUE;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(1, ut_preferred_calls);
+   UT_ASSERT_EQ_INT(kComMethodTelnetSocket, ut_preferred_method);
 
    for(index = 0; index < DIM(flows); ++index)
    {

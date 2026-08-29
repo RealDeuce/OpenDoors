@@ -154,7 +154,8 @@ DWORD WINAPI utm_WaitForSingleObject(HANDLE object, DWORD timeout)
 #endif
 static int ut_ready_result;
 static short ut_ready_events;
-static int ut_recv_results[3];
+static int ut_recv_results[16];
+static BYTE ut_recv_bytes[16];
 static unsigned ut_recv_calls;
 static int ut_socket_error;
 static unsigned ut_semaphore_calls, ut_sleep_calls;
@@ -184,9 +185,9 @@ ssize_t utm_recv(int socket_handle, void *buffer, size_t size, int flags)
 {
    int result;
    UT_ASSERT_EQ_INT(45, socket_handle); UT_ASSERT_EQ_UINT(1, size);
-   UT_ASSERT_EQ_INT(0, flags); UT_ASSERT(ut_recv_calls < 3);
+   UT_ASSERT_EQ_INT(0, flags); UT_ASSERT(ut_recv_calls < 16);
    result = ut_recv_results[ut_recv_calls++];
-   if(result == 1) *(BYTE *)buffer = 0x5c;
+   if(result == 1) *(BYTE *)buffer = ut_recv_bytes[ut_recv_calls - 1];
    return(result);
 }
 #ifdef OD_THREAD_SUPPORT
@@ -253,7 +254,9 @@ static void reset_get(void)
    ut_recv_calls = 0; ut_socket_error = 0; ut_semaphore_calls = 0;
    ut_sleep_calls = 0;
    errno = 0;
-   for(index = 0; index < 3; ++index) ut_recv_results[index] = 1;
+   for(index = 0; index < 16; ++index) {
+      ut_recv_results[index] = 1; ut_recv_bytes[index] = 0x5c;
+   }
 #endif
 #ifdef INCLUDE_STDIO_COM
    ut_stdio_select_calls = 0; ut_stdio_read_result = 1;
@@ -399,6 +402,148 @@ static void reports_socket_readiness_receive_and_retry_outcomes(void)
    UT_ASSERT_EQ_INT(kODRCGeneralFailure,
       utt_ODComGetByte(ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
 }
+
+static void filters_telnet_negotiation_before_returning_data(void)
+{
+   char value = 0;
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_recv_bytes[0] = 0xff;
+   ut_recv_bytes[1] = 0xfb;
+   ut_recv_bytes[2] = 1;
+   ut_recv_bytes[3] = 'A';
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODComGetByte(ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT('A', (BYTE)value);
+   UT_ASSERT_EQ_UINT(4, ut_recv_calls);
+}
+
+static void decodes_telnet_data_and_preserves_stream_state(void)
+{
+   char value = 0;
+   unsigned index;
+   static const BYTE negotiation_commands[4] = {251, 252, 253, 254};
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_recv_bytes[0] = 'A';
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT('A', (BYTE)value);
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_recv_bytes[0] = 0xff; ut_recv_bytes[1] = 0xff;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT(0xff, (BYTE)value);
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_recv_bytes[0] = '\r'; ut_recv_bytes[1] = '\n';
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT('\r', (BYTE)value);
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_recv_bytes[0] = '\r'; ut_recv_bytes[1] = 0;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT('\r', (BYTE)value);
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_recv_bytes[0] = '\r'; ut_recv_bytes[1] = 'B';
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT('\r', (BYTE)value);
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, FALSE));
+   UT_ASSERT_EQ_INT('B', (BYTE)value);
+   UT_ASSERT_EQ_UINT(2, ut_recv_calls);
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_recv_bytes[0] = 0xff; ut_recv_bytes[1] = 241;
+   ut_recv_bytes[2] = 'C';
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT('C', (BYTE)value);
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_recv_bytes[0] = 0xff; ut_recv_bytes[1] = 250;
+   ut_recv_bytes[2] = 1; ut_recv_bytes[3] = 'x';
+   ut_recv_bytes[4] = 0xff; ut_recv_bytes[5] = 0xff;
+   ut_recv_bytes[6] = 'y'; ut_recv_bytes[7] = 0xff;
+   ut_recv_bytes[8] = 240; ut_recv_bytes[9] = 'D';
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT('D', (BYTE)value);
+   UT_ASSERT_EQ_UINT(10, ut_recv_calls);
+
+   for(index = 0; index < 4; ++index)
+   {
+      reset_get(); ut_port.Method = kComMethodSocket;
+      ut_port.bTelnetSocket = TRUE;
+      ut_recv_bytes[0] = 0xff;
+      ut_recv_bytes[1] = negotiation_commands[index];
+      ut_recv_bytes[2] = 1; ut_recv_bytes[3] = 'E';
+      UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+         ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+      UT_ASSERT_EQ_INT('E', (BYTE)value);
+   }
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_port.TelnetInputState = (tTelnetInputState)99;
+   ut_recv_bytes[0] = 'x'; ut_recv_bytes[1] = 'F';
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT('F', (BYTE)value);
+}
+
+static void retains_or_discards_incomplete_telnet_sequences(void)
+{
+   char value = 0;
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_recv_bytes[0] = 0xff;
+   ut_recv_results[1] = SOCKET_ERROR;
+   ut_socket_error = WSAEWOULDBLOCK; errno = WSAEWOULDBLOCK;
+   UT_ASSERT_EQ_INT(kODRCNothingWaiting, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, FALSE));
+   UT_ASSERT_EQ_INT(kTelnetInputIAC, ut_port.TelnetInputState);
+   ut_recv_results[2] = 1; ut_recv_bytes[2] = 0xff;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, FALSE));
+   UT_ASSERT_EQ_INT(0xff, (BYTE)value);
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_recv_bytes[0] = 0xff; ut_recv_results[1] = 0;
+   UT_ASSERT_EQ_INT(kODRCNothingWaiting, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT(kTelnetInputData, ut_port.TelnetInputState);
+   UT_ASSERT_EQ_INT(FALSE, ut_port.bTelnetInputReplay);
+
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_recv_bytes[0] = '\r'; ut_recv_results[1] = SOCKET_ERROR;
+   ut_socket_error = 1; errno = 1;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT(kTelnetInputData, ut_port.TelnetInputState);
+
+#ifndef ODPLAT_WIN32
+   reset_get(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_ready_result = -1;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComGetByte(
+      ODPTR2HANDLE(&ut_port, tPortInfo), &value, FALSE));
+   UT_ASSERT_EQ_INT(kTelnetInputData, ut_port.TelnetInputState);
+#endif
+}
 #endif
 
 #ifdef INCLUDE_STDIO_COM
@@ -449,6 +594,9 @@ static const UTTestCase ut_cases[] = {
 #endif
 #ifdef INCLUDE_SOCKET_COM
    {"socket", reports_socket_readiness_receive_and_retry_outcomes},
+   {"Telnet negotiation", filters_telnet_negotiation_before_returning_data},
+   {"Telnet data", decodes_telnet_data_and_preserves_stream_state},
+   {"Telnet incomplete", retains_or_discards_incomplete_telnet_sequences},
 #endif
 #ifdef INCLUDE_STDIO_COM
    {"stdio", reports_stdio_select_and_read_outcomes},

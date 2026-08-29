@@ -125,22 +125,22 @@
 
 #ifdef ODPLAT_DOS
 #define OD_VER_SIGNON      "[OpenDoors 6.30/DOS - " \
-                           "(C) Copyright 1991-2001 by Brian Pirie]\n\r"
+                           "(C) Copyright 1991-2001 by Brian Pirie]\r\n"
 #define OD_VER_FULLNAME    "OpenDoors 6.30/DOS"
 #endif /* ODPLAT_DOS */
 #ifdef ODPLAT_DOS32
 #define OD_VER_SIGNON      "[OpenDoors 6.30/DOS32 - " \
-                           "(C) Copyright 1991-2001 by Brian Pirie]\n\r"
+                           "(C) Copyright 1991-2001 by Brian Pirie]\r\n"
 #define OD_VER_FULLNAME    "OpenDoors 6.30/DOS32"
 #endif /* ODPLAT_DOS32 */
 #ifdef ODPLAT_WIN32
 #define OD_VER_SIGNON      "[OpenDoors 6.30/Win32 - " \
-                           "(C) Copyright 1991-2001 by Brian Pirie]\n\r"
+                           "(C) Copyright 1991-2001 by Brian Pirie]\r\n"
 #define OD_VER_FULLNAME    "OpenDoors 6.30/Win32"
 #endif /* ODPLAT_WIN32 */
 #ifdef ODPLAT_NIX
 #define OD_VER_SIGNON      "[OpenDoors 6.30/*nix - " \
-                           "(C) Copyright 1991-2001 by Brian Pirie]\n\r"
+                           "(C) Copyright 1991-2001 by Brian Pirie]\r\n"
 #define OD_VER_FULLNAME    "OpenDoors 6.30/*nix"
 #endif /* ODPLAT_NIX */
 

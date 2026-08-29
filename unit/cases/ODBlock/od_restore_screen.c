@@ -95,13 +95,13 @@ void ODCALL utm_od_disp(const char *buffer, INT size, BOOL local_echo)
 {
    UT_ASSERT_EQ_INT(2, size);
    UT_ASSERT_EQ_INT(FALSE, local_echo);
-   UT_ASSERT(buffer[0] == '\n' && buffer[1] == '\r');
+   UT_ASSERT(buffer[0] == '\r' && buffer[1] == '\n');
    ut_mock_called(MOCK_DISP);
 }
 
 void ODCALL utm_od_disp_str(const char *text)
 {
-   UT_ASSERT(text[0] == '\n' && text[1] == '\r' && text[2] == '\0');
+   UT_ASSERT(text[0] == '\r' && text[1] == '\n' && text[2] == '\0');
    ut_mock_called(MOCK_DISP_STR);
 }
 

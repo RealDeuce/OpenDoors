@@ -252,7 +252,11 @@ char ODCALL utm_od_get_key(BOOL wait)
 }
 void ODCALL utm_od_disp_str(const char *text)
 {
-   (void)text;
+   if((text[0] == '\r' || text[0] == '\n')
+      && (text[1] == '\r' || text[1] == '\n') && text[2] == '\0')
+   {
+      UT_ASSERT(text[0] == '\r' && text[1] == '\n');
+   }
    ++ut_display_calls;
 }
 void ODCALL utm_od_set_attrib(INT attribute)

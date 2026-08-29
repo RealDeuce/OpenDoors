@@ -1011,7 +1011,7 @@ ODAPIDEF BOOL ODCALL od_restore_screen(void *pBuffer)
             }
             else
             {
-               od_disp_str("\n\r");
+               od_disp_str("\r\n");
             }
          }
          else if(chLast==80)
@@ -1022,12 +1022,12 @@ ODAPIDEF BOOL ODCALL od_restore_screen(void *pBuffer)
             bLastColumnWritten=TRUE;
             if(od_control.baud!=0 && od_control.user_screenwidth>80)
             {
-               od_disp("\n\r",2,FALSE);
+               od_disp("\r\n",2,FALSE);
             }
          }
          else
          {
-            od_disp_str("\n\r");
+            od_disp_str("\r\n");
          }
       }
    }

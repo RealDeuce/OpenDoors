@@ -634,6 +634,7 @@ static void reset_init_fixture(void)
    bODExitRequestedDuringInitialization = FALSE;
    bIsCallbackActive = FALSE;
    bCalledFromConfig = FALSE;
+   bTelnetSocket = FALSE;
    bParsedCmdLine = FALSE;
    bSystemNameSet = FALSE;
    bSysopNameSet = FALSE;
@@ -1263,6 +1264,7 @@ static void reads_door32_and_switch_variants(void)
          UT_ASSERT_EQ_INT(TRUE, od_control.od_force_local);
       if(communication[index] == 2)
          UT_ASSERT_EQ_INT(TRUE, od_control.od_use_socket);
+      UT_ASSERT_EQ_INT(communication[index] == 2, bTelnetSocket);
    }
 
    for(index = 0; index < DIM(terminals); ++index)

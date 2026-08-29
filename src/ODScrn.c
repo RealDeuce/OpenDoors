@@ -3738,7 +3738,7 @@ BOOL ODSessionScreenRestore(const void *pBuffer, DWORD dwBufferSize)
             if(nRow == (INT)dwCursorRow)
                break;
             if(nLastColumn != nCurrentWidth)
-               od_disp_str("\n\r");
+               od_disp_str("\r\n");
             pRow += (size_t)nCurrentWidth * 2U;
          }
       }

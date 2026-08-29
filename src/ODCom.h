@@ -92,7 +92,9 @@ typedef enum
    kComMethodWin32,
    kComMethodDoor32,
 	kComMethodSocket,
-	kComMethodStdIO
+	kComMethodStdIO,
+   /* Internal selector: stored as kComMethodSocket with Telnet framing. */
+   kComMethodTelnetSocket
 } tComMethod;
 
 /* Serial I/O event types. */

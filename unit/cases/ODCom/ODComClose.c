@@ -174,6 +174,9 @@ static void reset_close(void)
 #ifdef INCLUDE_SOCKET_COM
    ut_port.socket = 45;
    ut_port.old_delay = 1;
+   ut_port.TelnetInputState = kTelnetInputSubnegotiation;
+   ut_port.bTelnetInputReplay = TRUE;
+   ut_port.btTelnetInputReplay = 0xa5;
 #endif
 #ifdef INCLUDE_STDIO_COM
    ut_isatty_result = 0;
@@ -188,6 +191,11 @@ static void leaves_a_clients_handle_open(void)
    UT_ASSERT_EQ_INT(kODRCSuccess,
       utt_ODComClose(ODPTR2HANDLE(&ut_port, tPortInfo)));
    UT_ASSERT_EQ_INT(FALSE, ut_port.bIsOpen);
+#ifdef INCLUDE_SOCKET_COM
+   UT_ASSERT_EQ_INT(kTelnetInputData, ut_port.TelnetInputState);
+   UT_ASSERT_EQ_INT(FALSE, ut_port.bTelnetInputReplay);
+   UT_ASSERT_EQ_INT(0, ut_port.btTelnetInputReplay);
+#endif
 }
 
 #ifdef INCLUDE_FOSSIL_COM
@@ -245,6 +253,9 @@ static void restores_and_closes_a_socket(void)
    reset_close(); ut_port.Method = kComMethodSocket;
    utt_ODComClose(ODPTR2HANDLE(&ut_port, tPortInfo));
    UT_ASSERT_EQ_INT(FALSE, ut_port.bIsOpen);
+   UT_ASSERT_EQ_INT(kTelnetInputData, ut_port.TelnetInputState);
+   UT_ASSERT_EQ_INT(FALSE, ut_port.bTelnetInputReplay);
+   UT_ASSERT_EQ_INT(0, ut_port.btTelnetInputReplay);
 }
 #endif
 

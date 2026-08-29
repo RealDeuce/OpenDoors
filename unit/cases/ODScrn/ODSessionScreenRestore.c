@@ -86,8 +86,8 @@ void ODCALL utm_od_putch(char value)
 void ODCALL utm_od_disp_str(const char *text)
 {
    ++ut_disp_calls;
-   UT_ASSERT_EQ_INT('\n', text[0]);
-   UT_ASSERT_EQ_INT('\r', text[1]);
+   UT_ASSERT_EQ_INT('\r', text[0]);
+   UT_ASSERT_EQ_INT('\n', text[1]);
    UT_ASSERT_EQ_INT('\0', text[2]);
 }
 

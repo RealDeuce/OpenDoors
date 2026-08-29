@@ -1474,7 +1474,7 @@ static void ODKrnlChatMode(void)
                od_disp_str(szODWorkString);
 
                /* Move to the next line. */               
-               od_disp_str("\n\r");
+               od_disp_str("\r\n");
 
                /* Redisplay the word on the next line. */
                od_disp_str(szCurrentWord);
@@ -1488,7 +1488,7 @@ static void ODKrnlChatMode(void)
             else
             {
                /* Move to the next line. */
-               od_disp_str("\n\r");
+               od_disp_str("\r\n");
 
                /* Update the current column number. */
                btCurrentColumn = 0;
@@ -1521,7 +1521,7 @@ static void ODKrnlChatMode(void)
       else if(chKeyPressed == 13)
       {
          /* Send carriage return / line feed sequence. */
-         od_disp_str("\n\r");
+         od_disp_str("\r\n");
 
          /* Reset the current word contents. */
          btWordLength = 0;

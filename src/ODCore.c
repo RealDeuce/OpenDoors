@@ -391,7 +391,7 @@ ODAPIDEF void ODCALL od_input_str(char *pszInput,
          pszInput[nPosition] = '\0';
 
          /* Display CR-LF sequence. */
-         od_disp_str("\n\r");
+         od_disp_str("\r\n");
 
          /* Exit the function. */
          OD_API_EXIT();
@@ -789,7 +789,7 @@ ODAPIDEF void ODCALL od_page(void)
    {
       od_repeat('-',77);
    }
-   od_disp_str("]\n\r ");
+   od_disp_str("]\r\n ");
    od_input_str(od_control.user_reasonforchat,77,32,255);
 
    /* If the user did not abort sysop paging by entering a blank reason */
@@ -843,7 +843,7 @@ ODAPIDEF void ODCALL od_page(void)
       if(od_control.od_okaytopage == PAGE_DISABLE || bFailed)
       {
          /* Indicate this to user. */
-         od_disp_str("\n\r");
+         od_disp_str("\r\n");
          od_disp_str(od_control.od_no_sysop);
          od_disp_str(od_control.od_press_key);
          od_get_answer("\x0d\x0a");
@@ -928,7 +928,7 @@ ODAPIDEF void ODCALL od_page(void)
       od_disp_str(od_control.od_no_response);
       od_disp_str(od_control.od_press_key);
       od_get_answer("\x0d\x0a");
-      od_disp_str("\n\r\n\r");
+      od_disp_str("\r\n\r\n");
    }
 
 cleanup:

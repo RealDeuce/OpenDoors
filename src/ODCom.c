@@ -160,6 +160,26 @@ struct termios sio_tio_default;				/* Initial term settings */
 	static WSADATA WSAData;		/* WinSock data */
 #endif
 
+#ifdef INCLUDE_SOCKET_COM
+#define TELNET_SE       240
+#define TELNET_SB       250
+#define TELNET_WILL     251
+#define TELNET_WONT     252
+#define TELNET_DO       253
+#define TELNET_DONT     254
+#define TELNET_IAC      255
+
+typedef enum
+{
+   kTelnetInputData,
+   kTelnetInputIAC,
+   kTelnetInputNegotiation,
+   kTelnetInputSubnegotiation,
+   kTelnetInputSubnegotiationIAC,
+   kTelnetInputCR
+} tTelnetInputState;
+#endif
+
 /* ========================================================================= */
 /* Serial port object structure.                                             */
 /* ========================================================================= */
@@ -207,6 +227,10 @@ typedef struct
 #ifdef INCLUDE_SOCKET_COM
 	SOCKET	socket;
 	int	old_delay;
+   BOOL bTelnetSocket;
+   tTelnetInputState TelnetInputState;
+   BOOL bTelnetInputReplay;
+   BYTE btTelnetInputReplay;
 #endif
 #ifdef ODPLAT_DOS32
    tOD32FossilBuffer FossilBuffer;
@@ -804,6 +828,12 @@ tODResult ODComAlloc(tPortHandle *phPort)
    pPortInfo->btFIFOSetting = FIFO_ENABLE | FIFO_TRIGGER_8;
    pPortInfo->Method = kComMethodUnspecified;
    pPortInfo->pfIdleCallback = NULL;
+#ifdef INCLUDE_SOCKET_COM
+   pPortInfo->bTelnetSocket = FALSE;
+   pPortInfo->TelnetInputState = kTelnetInputData;
+   pPortInfo->bTelnetInputReplay = FALSE;
+   pPortInfo->btTelnetInputReplay = 0;
+#endif
 #ifdef ODPLAT_DOS32
    memset(&pPortInfo->FossilBuffer, 0, sizeof(pPortInfo->FossilBuffer));
 #endif
@@ -1218,7 +1248,16 @@ tODResult ODComSetPreferredMethod(tPortHandle hPort, tComMethod Method)
 
    VERIFY_CALL(!pPortInfo->bIsOpen);
 
+#ifdef INCLUDE_SOCKET_COM
+   pPortInfo->bTelnetSocket = (Method == kComMethodTelnetSocket);
+   pPortInfo->TelnetInputState = kTelnetInputData;
+   pPortInfo->bTelnetInputReplay = FALSE;
+   pPortInfo->btTelnetInputReplay = 0;
+   pPortInfo->Method = pPortInfo->bTelnetSocket
+      ? kComMethodSocket : Method;
+#else
    pPortInfo->Method = Method;
+#endif
 
    /* Return with success. */
    return(kODRCSuccess);
@@ -1888,6 +1927,10 @@ tODResult ODComOpenFromExistingHandle(tPortHandle hPort,
       delay=FALSE;
       setsockopt(pPortInfo->socket, IPPROTO_TCP, TCP_NODELAY, (void*)&delay, sizeof(delay));
 
+      pPortInfo->TelnetInputState = kTelnetInputData;
+      pPortInfo->bTelnetInputReplay = FALSE;
+      pPortInfo->btTelnetInputReplay = 0;
+
       pPortInfo->bIsOpen = TRUE;
 
       return(kODRCSuccess);
@@ -1944,6 +1987,12 @@ tODResult ODComClose(tPortHandle hPort)
    VERIFY_CALL(pPortInfo != NULL);
 
    VERIFY_CALL(pPortInfo->bIsOpen);
+
+#ifdef INCLUDE_SOCKET_COM
+   pPortInfo->TelnetInputState = kTelnetInputData;
+   pPortInfo->bTelnetInputReplay = FALSE;
+   pPortInfo->btTelnetInputReplay = 0;
+#endif
 
    /* If we are using the client's handle, then we should not close it. */
    if(pPortInfo->bUsingClientsHandle)
@@ -2902,57 +2951,174 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
       case kComMethodSocket:
       {
          int recv_ret;
+         BYTE btReceived;
 #ifdef ODPLAT_WIN32
          fd_set   socket_set;
          struct   timeval tv;
          int      select_ret;
-
-         FD_ZERO(&socket_set);
-         FD_SET(pPortInfo->socket,&socket_set);
-
-         tv.tv_sec=0;
-         tv.tv_usec=100;
-
-         select_ret = select(pPortInfo->socket+1, &socket_set, NULL, NULL, bWait ? NULL : &tv);
-         if (select_ret == SOCKET_ERROR) {
-            return (kODRCGeneralFailure);
-         }
-         if (select_ret == 0)
-            return (kODRCNothingWaiting);
 #else
          int i;
          tODMilliSec wait = ODMaxMSToWait;
+         struct pollfd pfd = {0};
          if (wait == OD_NO_TIMEOUT || wait > 200)
             wait = 200;
-         struct pollfd pfd = {0};
-         pfd.fd = pPortInfo->socket;
-         pfd.events = POLLIN | POLLHUP;
-         i = poll(&pfd, 1, bWait ? -1 : wait);
-         if (i == 0)
-            return (kODRCNothingWaiting);
-         else if (i == -1 || !(pfd.revents & POLLIN)) {
-            return (kODRCGeneralFailure);
-         }
 #endif
 
-         for(;;) {
-            recv_ret = recv(pPortInfo->socket, pbtNext, 1, 0);
-            if(recv_ret != SOCKET_ERROR)
-               break;
-            if (WSAGetLastError() != WSAEWOULDBLOCK) {
-               return (kODRCGeneralFailure);
+         for(;;)
+         {
+            if(pPortInfo->bTelnetSocket
+               && pPortInfo->bTelnetInputReplay)
+            {
+               btReceived = pPortInfo->btTelnetInputReplay;
+               pPortInfo->bTelnetInputReplay = FALSE;
             }
-            if(!bWait)
-               return(kODRCNothingWaiting);
-#ifdef OD_THREAD_SUPPORT
-            ODThreadSleep(50);
+            else
+            {
+#ifdef ODPLAT_WIN32
+               FD_ZERO(&socket_set);
+               FD_SET(pPortInfo->socket,&socket_set);
+               tv.tv_sec=0;
+               tv.tv_usec=100;
+               select_ret = select(pPortInfo->socket+1, &socket_set, NULL,
+                  NULL, bWait ? NULL : &tv);
+               if(select_ret == SOCKET_ERROR)
+               {
+                  if(pPortInfo->bTelnetSocket)
+                  {
+                     pPortInfo->TelnetInputState = kTelnetInputData;
+                     pPortInfo->bTelnetInputReplay = FALSE;
+                  }
+                  return(kODRCGeneralFailure);
+               }
+               if(select_ret == 0)
+                  return(kODRCNothingWaiting);
 #else
-            od_sleep(50);
+               pfd.fd = pPortInfo->socket;
+               pfd.events = POLLIN | POLLHUP;
+               i = poll(&pfd, 1, bWait ? -1 : wait);
+               if(i == 0)
+                  return(kODRCNothingWaiting);
+               if(i == -1 || !(pfd.revents & POLLIN))
+               {
+                  if(pPortInfo->bTelnetSocket)
+                  {
+                     pPortInfo->TelnetInputState = kTelnetInputData;
+                     pPortInfo->bTelnetInputReplay = FALSE;
+                  }
+                  return(kODRCGeneralFailure);
+               }
 #endif
-         }
 
-         if (recv_ret == 0)
-             return (kODRCNothingWaiting);
+               for(;;)
+               {
+                  recv_ret = recv(pPortInfo->socket,
+                     pPortInfo->bTelnetSocket ? (char *)&btReceived : pbtNext,
+                     1, 0);
+                  if(recv_ret != SOCKET_ERROR)
+                     break;
+                  if(WSAGetLastError() != WSAEWOULDBLOCK)
+                  {
+                     if(pPortInfo->bTelnetSocket)
+                     {
+                        pPortInfo->TelnetInputState = kTelnetInputData;
+                        pPortInfo->bTelnetInputReplay = FALSE;
+                     }
+                     return(kODRCGeneralFailure);
+                  }
+                  if(!bWait)
+                     return(kODRCNothingWaiting);
+#ifdef OD_THREAD_SUPPORT
+                  ODThreadSleep(50);
+#else
+                  od_sleep(50);
+#endif
+               }
+
+               if(recv_ret == 0)
+               {
+                  if(pPortInfo->bTelnetSocket)
+                  {
+                     pPortInfo->TelnetInputState = kTelnetInputData;
+                     pPortInfo->bTelnetInputReplay = FALSE;
+                  }
+                  return(kODRCNothingWaiting);
+               }
+            }
+
+            if(!pPortInfo->bTelnetSocket)
+               break;
+
+            switch(pPortInfo->TelnetInputState)
+            {
+               case kTelnetInputData:
+                  if(btReceived == TELNET_IAC)
+                  {
+                     pPortInfo->TelnetInputState = kTelnetInputIAC;
+                     continue;
+                  }
+                  if(btReceived == '\r')
+                  {
+                     pPortInfo->TelnetInputState = kTelnetInputCR;
+                     continue;
+                  }
+                  *pbtNext = (char)btReceived;
+                  return(kODRCSuccess);
+
+               case kTelnetInputIAC:
+                  if(btReceived == TELNET_IAC)
+                  {
+                     pPortInfo->TelnetInputState = kTelnetInputData;
+                     *pbtNext = (char)TELNET_IAC;
+                     return(kODRCSuccess);
+                  }
+                  if(btReceived == TELNET_WILL || btReceived == TELNET_WONT
+                     || btReceived == TELNET_DO || btReceived == TELNET_DONT)
+                  {
+                     pPortInfo->TelnetInputState = kTelnetInputNegotiation;
+                  }
+                  else if(btReceived == TELNET_SB)
+                  {
+                     pPortInfo->TelnetInputState
+                        = kTelnetInputSubnegotiation;
+                  }
+                  else
+                  {
+                     pPortInfo->TelnetInputState = kTelnetInputData;
+                  }
+                  continue;
+
+               case kTelnetInputNegotiation:
+                  pPortInfo->TelnetInputState = kTelnetInputData;
+                  continue;
+
+               case kTelnetInputSubnegotiation:
+                  if(btReceived == TELNET_IAC)
+                  {
+                     pPortInfo->TelnetInputState
+                        = kTelnetInputSubnegotiationIAC;
+                  }
+                  continue;
+
+               case kTelnetInputSubnegotiationIAC:
+                  pPortInfo->TelnetInputState = btReceived == TELNET_SE
+                     ? kTelnetInputData : kTelnetInputSubnegotiation;
+                  continue;
+
+               case kTelnetInputCR:
+                  pPortInfo->TelnetInputState = kTelnetInputData;
+                  *pbtNext = '\r';
+                  if(btReceived != '\n' && btReceived != '\0')
+                  {
+                     pPortInfo->bTelnetInputReplay = TRUE;
+                     pPortInfo->btTelnetInputReplay = btReceived;
+                  }
+                  return(kODRCSuccess);
+
+               default:
+                  pPortInfo->TelnetInputState = kTelnetInputData;
+                  continue;
+            }
+         }
 
          break;
       }
@@ -3108,7 +3274,11 @@ tODResult ODComSendByte(tPortHandle hPort, BYTE btToSend)
 
    VERIFY_CALL(pPortInfo->bIsOpen);
 
-   if (od_control.od_cp437_to_utf8_out) {
+   if (od_control.od_cp437_to_utf8_out
+#ifdef INCLUDE_SOCKET_COM
+      || (pPortInfo->Method == kComMethodSocket && pPortInfo->bTelnetSocket)
+#endif
+      ) {
       return ODComSendBuffer(hPort, &btToSend, 1);
    }
 
@@ -3524,6 +3694,20 @@ tODResult ODComGetBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize,
 #ifdef INCLUDE_SOCKET_COM
       case kComMethodSocket:
 		{
+			if(pPortInfo->bTelnetSocket)
+			{
+				for(*pnBytesRead = 0; *pnBytesRead < nSize;
+				   ++*pnBytesRead)
+				{
+					if(ODComGetByte(hPort,
+					   (char *)(pbtBuffer + *pnBytesRead), FALSE)
+					   != kODRCSuccess)
+					{
+						break;
+					}
+				}
+				break;
+			}
 #ifdef ODPLAT_WIN32
 			fd_set	socket_set;
 			struct	timeval tv;
@@ -3593,6 +3777,10 @@ tODResult ODComSendBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize)
 {
    tPortInfo *pPortInfo = ODHANDLE2PTR(hPort, tPortInfo);
    BYTE *buf = pbtBuffer;
+   BYTE *pConvertedBuffer = NULL;
+#ifdef INCLUDE_SOCKET_COM
+   BYTE *pTelnetBuffer = NULL;
+#endif
 
    ASSERT(!ODSyncAPILevelActive());
    VERIFY_CALL(pPortInfo != NULL);
@@ -3612,7 +3800,75 @@ tODResult ODComSendBuffer(tPortHandle hPort, BYTE *pbtBuffer, int nSize)
       buf = ODComCP437ToUnicode(pbtBuffer, &nSize);
       if (buf == NULL)
          return kODRCGeneralFailure;
+      pConvertedBuffer = buf;
    }
+
+#ifdef INCLUDE_SOCKET_COM
+   if(pPortInfo->Method == kComMethodSocket && pPortInfo->bTelnetSocket)
+   {
+      size_t nInput;
+      size_t nOutputSize = 0;
+      size_t nOutput = 0;
+
+      for(nInput = 0; nInput < (size_t)nSize; ++nInput)
+      {
+         size_t nIncrement = 1;
+         if(buf[nInput] == TELNET_IAC)
+         {
+            nIncrement = 2;
+         }
+         else if(buf[nInput] == '\r')
+         {
+            nIncrement = 2;
+            if(nInput + 1 < (size_t)nSize && buf[nInput + 1] == '\n')
+               ++nInput;
+         }
+         if(!ODSizeAdd(nOutputSize, nIncrement, &nOutputSize)
+            || nOutputSize > INT_MAX)
+         {
+            od_control.od_error = ERR_LIMIT;
+            if(pConvertedBuffer != NULL) free(pConvertedBuffer);
+            return(kODRCGeneralFailure);
+         }
+      }
+
+      pTelnetBuffer = malloc(nOutputSize);
+      if(pTelnetBuffer == NULL)
+      {
+         od_control.od_error = ERR_MEMORY;
+         if(pConvertedBuffer != NULL) free(pConvertedBuffer);
+         return(kODRCGeneralFailure);
+      }
+
+      for(nInput = 0; nInput < (size_t)nSize; ++nInput)
+      {
+         if(buf[nInput] == TELNET_IAC)
+         {
+            pTelnetBuffer[nOutput++] = TELNET_IAC;
+            pTelnetBuffer[nOutput++] = TELNET_IAC;
+         }
+         else if(buf[nInput] == '\r')
+         {
+            pTelnetBuffer[nOutput++] = '\r';
+            if(nInput + 1 < (size_t)nSize && buf[nInput + 1] == '\n')
+            {
+               pTelnetBuffer[nOutput++] = '\n';
+               ++nInput;
+            }
+            else
+            {
+               pTelnetBuffer[nOutput++] = '\0';
+            }
+         }
+         else
+         {
+            pTelnetBuffer[nOutput++] = buf[nInput];
+         }
+      }
+      buf = pTelnetBuffer;
+      nSize = (int)nOutputSize;
+   }
+#endif
 
    switch(pPortInfo->Method)
    {
@@ -3799,7 +4055,7 @@ try_again:
             NULL) || dwBytesWritten != (DWORD)nSize)
          {
             ClearCommError(pPortInfo->hCommDev, &dwErrors, NULL);
-            if (od_control.od_cp437_to_utf8_out) free(buf);
+            if(pConvertedBuffer != NULL) free(pConvertedBuffer);
             return(kODRCGeneralFailure);
          }
          break;
@@ -3811,7 +4067,7 @@ try_again:
          ASSERT(pPortInfo->pfDoorWrite != NULL);
          if(!(*pPortInfo->pfDoorWrite)(buf, nSize))
          {
-            if (od_control.od_cp437_to_utf8_out) free(buf);
+            if(pConvertedBuffer != NULL) free(pConvertedBuffer);
             return(kODRCGeneralFailure);
          }
          break;
@@ -3847,7 +4103,8 @@ try_again:
 					   && WSAGetLastError() == WSAEINTR)
 						continue;
 					if(select_ret != 1) {
-						if(od_control.od_cp437_to_utf8_out) free(buf);
+						if(pTelnetBuffer != NULL) free(pTelnetBuffer);
+						if(pConvertedBuffer != NULL) free(pConvertedBuffer);
 						return(kODRCGeneralFailure);
 					}
 					break;
@@ -3859,7 +4116,8 @@ try_again:
 					i = poll(&pfd, 1, 1000);
 				} while(i == -1 && errno == EINTR);
 				if(i != 1 || !(pfd.revents & POLLOUT)) {
-					if(od_control.od_cp437_to_utf8_out) free(buf);
+					if(pTelnetBuffer != NULL) free(pTelnetBuffer);
+					if(pConvertedBuffer != NULL) free(pConvertedBuffer);
 					return(kODRCGeneralFailure);
 				}
 #endif
@@ -3871,7 +4129,8 @@ try_again:
 					continue;
 				}
 				if(send_ret == 0) {
-					if(od_control.od_cp437_to_utf8_out) free(buf);
+					if(pTelnetBuffer != NULL) free(pTelnetBuffer);
+					if(pConvertedBuffer != NULL) free(pConvertedBuffer);
 					return(kODRCGeneralFailure);
 				}
 
@@ -3883,7 +4142,8 @@ try_again:
 #endif
 					continue;
 				if(socket_error != WSAEWOULDBLOCK) {
-					if(od_control.od_cp437_to_utf8_out) free(buf);
+					if(pTelnetBuffer != NULL) free(pTelnetBuffer);
+					if(pConvertedBuffer != NULL) free(pConvertedBuffer);
 					return(kODRCGeneralFailure);
 				}
 #ifdef OD_THREAD_SUPPORT
@@ -3916,14 +4176,14 @@ try_again:
 				if(retval!=1) {
 					if(retval==0) {
 						if(++loopcount>10) {
-                     if (od_control.od_cp437_to_utf8_out) free(buf);
+                     if(pConvertedBuffer != NULL) free(pConvertedBuffer);
 							return(kODRCGeneralFailure);
                   }
 						continue;
 					}
 					if(retval==-1 && errno==EINTR)
 						continue;
-               if (od_control.od_cp437_to_utf8_out) free(buf);
+               if(pConvertedBuffer != NULL) free(pConvertedBuffer);
 					return(kODRCGeneralFailure);
 				}
 
@@ -3949,6 +4209,9 @@ try_again:
    }
 
    /* Return with success. */
-   if (od_control.od_cp437_to_utf8_out) free(buf);
+#ifdef INCLUDE_SOCKET_COM
+   if(pTelnetBuffer != NULL) free(pTelnetBuffer);
+#endif
+   if(pConvertedBuffer != NULL) free(pConvertedBuffer);
    return(kODRCSuccess);
 }

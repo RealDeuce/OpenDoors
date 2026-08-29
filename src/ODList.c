@@ -275,7 +275,7 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
          /* If so, display the line in comment color. */
          od_set_attrib(od_control.od_list_title_col);
          od_disp_str(szLine);
-         od_disp_str("\n\r");
+         od_disp_str("\r\n");
          ++btLineCount;
       }
 
@@ -359,11 +359,11 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
                if(strlen(pszCurrent) <= 56)
                {
                   od_disp_str(pszCurrent);
-                  od_disp_str("\n\r");
+                  od_disp_str("\r\n");
                }
                else
                {
-                  od_printf("%-56.56s\n\r", pszCurrent);
+                  od_printf("%-56.56s\r\n", pszCurrent);
                }
                ++btLineCount;
             }
@@ -388,7 +388,7 @@ ODAPIDEF BOOL ODCALL od_list_files(char *pszFileSpec)
             od_disp_str(od_control.od_offline);
             od_set_attrib(od_control.od_list_comment_col);
 
-            od_printf("%-56.56s\n\r", ODListGetRemainingWords(szLine));
+            od_printf("%-56.56s\r\n", ODListGetRemainingWords(szLine));
             ++btLineCount;
          }
       }

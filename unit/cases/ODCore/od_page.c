@@ -102,6 +102,11 @@ void ODCALL utm_od_set_attrib(INT attribute)
 void ODCALL utm_od_disp_str(const char *text)
 {
    ++ut_display_calls;
+   if((text[0] == '\r' || text[0] == '\n')
+      && (text[1] == '\r' || text[1] == '\n') && text[2] == '\0')
+   {
+      UT_ASSERT(text[0] == '\r' && text[1] == '\n');
+   }
    if(text == ut_no_sysop) ++ut_denied_calls;
    if(text == ut_paging) ++ut_paging_calls;
    if(text == ut_no_response) ++ut_no_response_calls;

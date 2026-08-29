@@ -125,6 +125,7 @@ static BOOL ODFramingIsEightBit(const char *pszFraming);
 /* Private variables. */
 static BYTE btRAStatusToSet = 0;
 static BOOL bUserEightBit = FALSE;
+static BOOL bTelnetSocket = FALSE;
 #ifndef ODPLAT_WIN32
 static BOOL bPreset = TRUE;
 #endif /* !ODPLAT_WIN32 */
@@ -466,6 +467,8 @@ ODAPIDEF void ODCALL od_init(void)
       /* If OpenDoors has already been initialized, then return without */
       /* doing anything.                                                */
       if(bODInitialized) return;
+
+      bTelnetSocket = FALSE;
 
       Result = ODSyncSessionInitialize();
       if(Result != kODRCSuccess)
@@ -1520,6 +1523,7 @@ finished:
 					break;
 				case 2: /* telnet */
 					od_control.od_use_socket = TRUE;
+					bTelnetSocket = TRUE;
 					break;
 			 }
 			 /* Read line 2: Comm or Socket handle. */
@@ -2265,24 +2269,24 @@ static void ODInitPartTwo(void)
    if(od_control.od_chat_color2 == 0) od_control.od_chat_color2 = 0x0f;
 
    /* Set default messages and prompts. */
-   od_control.od_before_shell = "\n\rPlease wait a moment...\n\r";
-   od_control.od_after_shell = "\n\r...Thanks for waiting\n\r\n\r";
+   od_control.od_before_shell = "\r\nPlease wait a moment...\r\n";
+   od_control.od_after_shell = "\r\n...Thanks for waiting\r\n\r\n";
    od_control.od_help_text = "  Alt: [C]hat [H]angup [L]ockout [J]Dos [K]eyboard-Off [D]rop to BBS            ";
-   od_control.od_before_chat = "\n\rThe system operator has placed you in chat mode to talk with you:\n\r\n\r";
-   od_control.od_after_chat = "\n\rChat mode ended.\n\r\n\r";
-   od_control.od_inactivity_timeout = "\n\rMaximum user inactivity time has elapsed, please call again.\n\r\n\r";
-   od_control.od_inactivity_warning = "\n\rWARNING: Inactivity timeout in 10 seconds, press a key now to remain online.\n\r\n\r";
-   od_control.od_time_warning = "\n\rWARNING: You only have %d minute(s) remaining for this session.\n\r\n\r";
+   od_control.od_before_chat = "\r\nThe system operator has placed you in chat mode to talk with you:\r\n\r\n";
+   od_control.od_after_chat = "\r\nChat mode ended.\r\n\r\n";
+   od_control.od_inactivity_timeout = "\r\nMaximum user inactivity time has elapsed, please call again.\r\n\r\n";
+   od_control.od_inactivity_warning = "\r\nWARNING: Inactivity timeout in 10 seconds, press a key now to remain online.\r\n\r\n";
+   od_control.od_time_warning = "\r\nWARNING: You only have %d minute(s) remaining for this session.\r\n\r\n";
    od_control.od_time_left = "%4d mins  ";
    od_control.od_sysop_next = "[SN] ";
    od_control.od_no_keyboard = "[Keyboard]";
    od_control.od_want_chat = "[Want-Chat]";
-   od_control.od_no_time = "\n\rSorry, you have used up all of your time for this session.\n\r\n\r";
-   od_control.od_no_sysop = "\n\rSorry, the system operator is not available at this time.\n\r";
+   od_control.od_no_time = "\r\nSorry, you have used up all of your time for this session.\r\n\r\n";
+   od_control.od_no_sysop = "\r\nSorry, the system operator is not available at this time.\r\n";
    od_control.od_press_key = "Press [Enter] to continue";
-   od_control.od_chat_reason = "               Why would you like to chat? (Blank line to cancel)\n\r";
-   od_control.od_paging = "\n\rPaging system operator for chat";
-   od_control.od_no_response = " No response.\n\r\n\r";
+   od_control.od_chat_reason = "               Why would you like to chat? (Blank line to cancel)\r\n";
+   od_control.od_paging = "\r\nPaging system operator for chat";
+   od_control.od_no_response = " No response.\r\n\r\n";
    od_control.od_status_line[0] = "                                                                     [Node:     ";
    od_control.od_status_line[1] = "%s of %s at %lu BPS";
    od_control.od_status_line[2] = "Security:        Time:                                               [F9]=Help ";
@@ -2394,7 +2398,8 @@ malloc_error:
       /* Set socket I/O method, if specified by user. */
       if(od_control.od_use_socket)
       {
-         ODComSetPreferredMethod(hSerialPort, kComMethodSocket);
+         ODComSetPreferredMethod(hSerialPort, bTelnetSocket
+            ? kComMethodTelnetSocket : kComMethodSocket);
       }
 
 #if defined ODPLAT_WIN32 || defined ODPLAT_NIX

@@ -3,6 +3,10 @@ static BYTE ut_converted[4] = {0xc2, 0xa3, 0x41, 0};
 static unsigned ut_convert_calls;
 static unsigned ut_free_calls;
 static BOOL ut_convert_fails;
+static BYTE ut_telnet_buffer[64];
+static BOOL ut_malloc_fails;
+static BOOL ut_size_add_fails;
+static BOOL ut_size_add_exceeds_int;
 
 #ifdef ODPLAT_NIX
 static int ut_errno;
@@ -12,6 +16,8 @@ static int ut_errno;
 
 #define UT_CUSTOM_MOCK_ODComCP437ToUnicode
 #define UT_CUSTOM_MOCK_ODComCallIdleFunction
+#define UT_CUSTOM_MOCK_ODSizeAdd
+#define UT_CUSTOM_MOCK_malloc
 #define UT_CUSTOM_MOCK_free
 BYTE *utm_ODComCP437ToUnicode(BYTE *buffer, int *size)
 {
@@ -22,7 +28,20 @@ BYTE *utm_ODComCP437ToUnicode(BYTE *buffer, int *size)
 }
 void utm_free(void *memory)
 {
-   UT_ASSERT_EQ_PTR(ut_converted, memory); ++ut_free_calls;
+   UT_ASSERT(memory == ut_converted || memory == ut_telnet_buffer);
+   ++ut_free_calls;
+}
+void *utm_malloc(size_t size)
+{
+   UT_ASSERT(size > 0); UT_ASSERT(size <= sizeof(ut_telnet_buffer));
+   return ut_malloc_fails ? NULL : ut_telnet_buffer;
+}
+int utm_ODSizeAdd(size_t left, size_t right, size_t *result)
+{
+   UT_ASSERT_NOT_NULL(result);
+   if(ut_size_add_fails) return(FALSE);
+   *result = ut_size_add_exceeds_int ? (size_t)INT_MAX + 1U : left + right;
+   return(TRUE);
 }
 
 static unsigned ut_idle_calls;
@@ -150,6 +169,7 @@ static unsigned ut_ready_calls;
 static int ut_send_results[5];
 static const BYTE *ut_send_buffers[5];
 static size_t ut_send_sizes[5];
+static BYTE ut_send_data[5][16];
 static unsigned ut_send_calls;
 static int ut_socket_error;
 static unsigned ut_sleep_calls;
@@ -177,11 +197,16 @@ int utm_poll(struct pollfd *descriptors, nfds_t count, int timeout)
 ssize_t utm_send(int socket_handle, const void *buffer, size_t size, int flags)
 #endif
 {
+   size_t copy_size;
    UT_ASSERT_EQ_INT(45, socket_handle); UT_ASSERT_NOT_NULL(buffer);
    UT_ASSERT(size > 0); UT_ASSERT_EQ_INT(0, flags);
    UT_ASSERT(ut_send_calls < 5);
    ut_send_buffers[ut_send_calls] = (const BYTE *)buffer;
    ut_send_sizes[ut_send_calls] = (size_t)size;
+   copy_size = (size_t)size;
+   if(copy_size > sizeof(ut_send_data[ut_send_calls]))
+      copy_size = sizeof(ut_send_data[ut_send_calls]);
+   memcpy(ut_send_data[ut_send_calls], buffer, copy_size);
    return(ut_send_results[ut_send_calls++]);
 }
 #ifdef OD_THREAD_SUPPORT
@@ -223,6 +248,11 @@ static void reset_send_buffer(void)
    ut_port.btPort = 2; ut_port.pfIdleCallback = ut_idle;
    od_control.od_cp437_to_utf8_out = FALSE;
    ut_convert_calls = ut_free_calls = 0; ut_convert_fails = FALSE;
+   ut_malloc_fails = FALSE; ut_size_add_fails = FALSE;
+   ut_size_add_exceeds_int = FALSE;
+   ut_converted[0] = 0xc2; ut_converted[1] = 0xa3;
+   ut_converted[2] = 0x41; ut_converted[3] = 0;
+   memset(ut_telnet_buffer, 0, sizeof(ut_telnet_buffer));
    ut_idle_calls = 0;
 #ifdef ODPLAT_DOS32
    ut_block_calls = ut_byte_calls = 0;
@@ -250,6 +280,7 @@ static void reset_send_buffer(void)
       ut_ready_results[index] = 1; ut_ready_events[index] = POLLOUT;
       ut_send_results[index] = 2; ut_send_buffers[index] = NULL;
       ut_send_sizes[index] = 0;
+      memset(ut_send_data[index], 0, sizeof(ut_send_data[index]));
    }
 #endif
 #ifdef INCLUDE_STDIO_COM
@@ -469,6 +500,100 @@ static void reports_socket_readiness_retry_and_short_write(void)
       ODPTR2HANDLE(&ut_port, tPortInfo), data, 2));
    UT_ASSERT_EQ_UINT(1, ut_free_calls);
 }
+
+static void frames_telnet_socket_data(void)
+{
+   BYTE data[8] = {0x41, 0xff, 0xff, '\n', '\r', '\r', '\n', '\r'};
+   BYTE partial[2] = {0xff, 0x41};
+   static const BYTE expected[12] = {
+      0x41, 0xff, 0xff, 0xff, 0xff, '\n', '\r', 0, '\r', '\n', '\r', 0
+   };
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_send_results[0] = 12;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 8));
+   UT_ASSERT_EQ_UINT(12, ut_send_sizes[0]);
+   UT_ASSERT(memcmp(expected, ut_send_data[0], sizeof(expected)) == 0);
+   UT_ASSERT_EQ_UINT(1, ut_free_calls);
+
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   ut_send_results[0] = 1; ut_send_results[1] = 2;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), partial, 2));
+   UT_ASSERT_EQ_UINT(2, ut_send_calls);
+   UT_ASSERT_EQ_UINT(3, ut_send_sizes[0]);
+   UT_ASSERT_EQ_UINT(2, ut_send_sizes[1]);
+   UT_ASSERT_EQ_INT(0xff, ut_send_data[0][0]);
+   UT_ASSERT_EQ_INT(0xff, ut_send_data[0][1]);
+   UT_ASSERT_EQ_INT(0x41, ut_send_data[0][2]);
+   UT_ASSERT_EQ_INT(0xff, ut_send_data[1][0]);
+   UT_ASSERT_EQ_INT(0x41, ut_send_data[1][1]);
+
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; od_control.od_cp437_to_utf8_out = TRUE;
+   ut_converted[0] = 0xff; ut_converted[1] = '\r'; ut_converted[2] = '\n';
+   ut_send_results[0] = 4;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 1));
+   UT_ASSERT_EQ_UINT(4, ut_send_sizes[0]);
+   UT_ASSERT_EQ_INT(0xff, ut_send_data[0][0]);
+   UT_ASSERT_EQ_INT(0xff, ut_send_data[0][1]);
+   UT_ASSERT_EQ_INT('\r', ut_send_data[0][2]);
+   UT_ASSERT_EQ_INT('\n', ut_send_data[0][3]);
+   UT_ASSERT_EQ_UINT(2, ut_free_calls);
+
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_malloc_fails = TRUE;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 1));
+   UT_ASSERT_EQ_INT(ERR_MEMORY, od_control.od_error);
+
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_malloc_fails = TRUE;
+   od_control.od_cp437_to_utf8_out = TRUE;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 1));
+   UT_ASSERT_EQ_UINT(1, ut_free_calls);
+
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_size_add_fails = TRUE;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 1));
+   UT_ASSERT_EQ_INT(ERR_LIMIT, od_control.od_error);
+
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_size_add_fails = TRUE;
+   od_control.od_cp437_to_utf8_out = TRUE;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 1));
+   UT_ASSERT_EQ_UINT(1, ut_free_calls);
+
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_size_add_exceeds_int = TRUE;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 1));
+   UT_ASSERT_EQ_INT(ERR_LIMIT, od_control.od_error);
+
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_ready_results[0] = 0;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 1));
+   UT_ASSERT_EQ_UINT(1, ut_free_calls);
+
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_send_results[0] = 0;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 1));
+   UT_ASSERT_EQ_UINT(1, ut_free_calls);
+
+   reset_send_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_send_results[0] = SOCKET_ERROR;
+   ut_socket_error = 1; errno = 1;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 1));
+   UT_ASSERT_EQ_UINT(1, ut_free_calls);
+}
 #endif
 
 #ifdef INCLUDE_STDIO_COM
@@ -537,6 +662,7 @@ static const UTTestCase ut_cases[] = {
 #endif
 #ifdef INCLUDE_SOCKET_COM
    {"socket", reports_socket_readiness_retry_and_short_write},
+   {"Telnet socket framing", frames_telnet_socket_data},
 #endif
 #ifdef INCLUDE_STDIO_COM
    {"stdio", reports_stdio_timeout_error_retry_and_partial_writes},

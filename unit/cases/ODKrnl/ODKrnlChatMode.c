@@ -72,7 +72,7 @@ void ODCALL utm_od_disp_str(const char *text)
       ++ut_before_calls;
    else if(text == szBackspaceWithDelete)
       ++ut_backspace_calls;
-   else if(strcmp(text, "\n\r") == 0)
+   else if(strcmp(text, "\r\n") == 0)
       ++ut_newline_calls;
    else {
       for(index = 0; text[index] == '\b'; ++index) { }

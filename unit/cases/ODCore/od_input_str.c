@@ -113,7 +113,7 @@ static void filters_edits_limits_and_terminates_on_line_feed(void)
    UT_ASSERT(ut_echoed[0] == 'A' && ut_echoed[1] == 'B'
       && ut_echoed[2] == 'C');
    UT_ASSERT_EQ_UINT(2, ut_disp_calls);
-   UT_ASSERT(ut_last_display[0] == '\n' && ut_last_display[1] == '\r'
+   UT_ASSERT(ut_last_display[0] == '\r' && ut_last_display[1] == '\n'
       && ut_last_display[2] == '\0');
    UT_ASSERT_EQ_UINT(1, ut_entries);
    UT_ASSERT_EQ_UINT(1, ut_exits);

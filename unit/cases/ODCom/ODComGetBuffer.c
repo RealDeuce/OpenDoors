@@ -126,7 +126,7 @@ ssize_t utm_recv(int socket_handle, void *buffer, size_t size, int flags)
 }
 #endif
 
-#ifdef INCLUDE_STDIO_COM
+#if defined(INCLUDE_STDIO_COM) || defined(INCLUDE_SOCKET_COM)
 #define UT_CUSTOM_MOCK_ODComGetByte
 static tODResult ut_byte_results[4];
 static unsigned ut_byte_calls;
@@ -167,7 +167,7 @@ static void reset_buffer(void)
    ut_port.socket = 45; ut_ready_result = 1; ut_ready_events = POLLIN;
    ut_recv_result = 2;
 #endif
-#ifdef INCLUDE_STDIO_COM
+#if defined(INCLUDE_STDIO_COM) || defined(INCLUDE_SOCKET_COM)
    ut_byte_calls = 0;
    for(index = 0; index < 4; ++index) ut_byte_results[index] = kODRCSuccess;
 #endif
@@ -278,6 +278,23 @@ static void reports_socket_readiness_and_receive_count(void)
       ODPTR2HANDLE(&ut_port, tPortInfo), buffer, 3, &count));
    UT_ASSERT_EQ_INT(2, count); UT_ASSERT_EQ_INT(0x63, buffer[0]);
 }
+
+static void receives_telnet_data_through_the_byte_decoder(void)
+{
+   BYTE buffer[3] = {0}; int count = -1;
+   reset_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE; ut_byte_results[2] = kODRCNothingWaiting;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), buffer, 3, &count));
+   UT_ASSERT_EQ_INT(2, count); UT_ASSERT_EQ_UINT(3, ut_byte_calls);
+   UT_ASSERT_EQ_INT(0x70, buffer[0]); UT_ASSERT_EQ_INT(0x71, buffer[1]);
+
+   reset_buffer(); ut_port.Method = kComMethodSocket;
+   ut_port.bTelnetSocket = TRUE;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComGetBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), buffer, 3, &count));
+   UT_ASSERT_EQ_INT(3, count); UT_ASSERT_EQ_UINT(3, ut_byte_calls);
+}
 #endif
 
 #ifdef INCLUDE_STDIO_COM
@@ -319,6 +336,7 @@ static const UTTestCase ut_cases[] = {
 #endif
 #ifdef INCLUDE_SOCKET_COM
    {"socket", reports_socket_readiness_and_receive_count},
+   {"Telnet socket", receives_telnet_data_through_the_byte_decoder},
 #endif
 #ifdef INCLUDE_STDIO_COM
    {"stdio", receives_stdio_bytes_until_full_or_unavailable},

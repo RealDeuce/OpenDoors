@@ -90,6 +90,12 @@ static void initializes_every_generic_port_setting(void)
    UT_ASSERT_EQ_INT(FIFO_ENABLE | FIFO_TRIGGER_8, port->btFIFOSetting);
    UT_ASSERT_EQ_INT(kComMethodUnspecified, port->Method);
    UT_ASSERT_NULL(port->pfIdleCallback);
+#ifdef INCLUDE_SOCKET_COM
+   UT_ASSERT_EQ_INT(FALSE, port->bTelnetSocket);
+   UT_ASSERT_EQ_INT(kTelnetInputData, port->TelnetInputState);
+   UT_ASSERT_EQ_INT(FALSE, port->bTelnetInputReplay);
+   UT_ASSERT_EQ_INT(0, port->btTelnetInputReplay);
+#endif
    UT_ASSERT_EQ_UINT(1, ut_set_port_calls);
 #ifdef ODPLAT_WIN32
    UT_ASSERT_EQ_UINT(1, ut_wsa_startup_calls);

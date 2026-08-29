@@ -59,11 +59,17 @@ static void adopts_a_socket_and_disables_nagle(void)
 {
    reset_existing_handle();
    ut_port.Method = kComMethodSocket;
+   ut_port.TelnetInputState = kTelnetInputSubnegotiation;
+   ut_port.bTelnetInputReplay = TRUE;
+   ut_port.btTelnetInputReplay = 0xa5;
    UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComOpenFromExistingHandle(
       ODPTR2HANDLE(&ut_port, tPortInfo), (DWORD_PTR)42));
    UT_ASSERT_EQ_INT(42, ut_port.socket);
    UT_ASSERT_EQ_INT(7, ut_port.old_delay);
    UT_ASSERT_EQ_INT(TRUE, ut_port.bIsOpen);
+   UT_ASSERT_EQ_INT(kTelnetInputData, ut_port.TelnetInputState);
+   UT_ASSERT_EQ_INT(FALSE, ut_port.bTelnetInputReplay);
+   UT_ASSERT_EQ_INT(0, ut_port.btTelnetInputReplay);
    UT_ASSERT_EQ_UINT(1, ut_get_option_calls);
    UT_ASSERT_EQ_UINT(1, ut_set_option_calls);
 }
