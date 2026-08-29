@@ -191,7 +191,9 @@ jobs:
 
           $llvmRoot = Join-Path $installation 'VC\Tools\Llvm'
           $llvmBin = $null
-          foreach ($clang in Get-ChildItem $llvmRoot -Filter clang.exe -File -Recurse) {
+          $clangCandidates = Get-ChildItem $llvmRoot -Filter clang.exe -File -Recurse |
+            Where-Object { $_.FullName -match '\\x64\\bin\\clang\.exe$' }
+          foreach ($clang in $clangCandidates) {
             $runtime = (& $clang.FullName -m32 `
               -print-file-name=clang_rt.profile.lib | Select-Object -Last 1).Trim()
             if ((Test-Path -LiteralPath $runtime) -and
