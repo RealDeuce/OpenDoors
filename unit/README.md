@@ -66,7 +66,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 unit/tools/run.py --coverage
 ```
 
 CI executes the Unix suite on Ubuntu and macOS. The macOS jobs use
-the current Homebrew LLVM toolchain so native execution and LLVM MC/DC
+the current Homebrew LLVM toolchain so native execution and LLVM line/MC/DC
 reporting are both available.
 
 On a non-Windows host with working 32- and 64-bit Wine installations, MinGW
@@ -105,6 +105,8 @@ The runner gives MinGW outputs their required `.exe` suffix. After compiling
 the selected cases, it runs every isolated executable synchronously from one
 `cmd.exe` process and retains a separate output, failure marker, and portable
 coverage report for each case. Omit `--wine` on a native Windows runner.
+LLVM line and MC/DC coverage is executed for Windows targets only on a native
+Windows host; cross-host MinGW/Wine runs retain the portable coverage oracle.
 `--windows-architecture` also applies to test-only DLL fixtures, so an x86
 isolated executable never accidentally loads an x64 `DOOR32.DLL` or vice
 versa. Cross-host MinGW uses the default GNU Windows ABI; native Windows Clang
@@ -218,8 +220,10 @@ function must never reach the real dependency directly.
 ## Coverage contract
 
 Every applicable configuration requires function execution, both outcomes of
-every branch, and MC/DC for every compound decision. LLVM 19's coverage JSON
-is the independent C coverage oracle on host-compatible Unix builds. That
+every branch, and MC/DC for every compound decision. Host-compatible LLVM
+builds additionally require every executable production source line. LLVM
+19's coverage JSON is the independent C coverage oracle on Unix and native
+Windows builds. That
 LLVM copy retains the framework's function-local static-state
 registration but leaves production Boolean expressions unmodified. If LLVM
 declines to emit an MC/DC record for a supported source decision, the missing
@@ -227,6 +231,9 @@ record is itself a gated coverage result. Recompiling a Windows- or
 DOS-modeled translation unit as host Unix would select different preprocessor
 branches, so cross-target runs use
 portable instrumentation executed by the actual target compiler instead.
+Preprocessor directives, brace-only lines, and standalone `break;` statements
+are not independent executable-line obligations; their controlling behavior
+remains covered by the branch and MC/DC gates.
 Modern Unix and Windows production code is compiled under the
 repository's C99 contract; DOS analysis and every Turbo-compiled case remain
 C89-compatible. MC/DC is gated on every target. Complete multiple-condition

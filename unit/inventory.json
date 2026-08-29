@@ -3929,7 +3929,7 @@
           "name": "ODDirRead",
           "signature_line": 1263,
           "body_line": 1288,
-          "end_line": 1436,
+          "end_line": 1438,
           "platforms": [
             "unix",
             "windows",
@@ -3940,9 +3940,9 @@
         },
         {
           "name": "ODDirClose",
-          "signature_line": 1436,
-          "body_line": 1450,
-          "end_line": 1466,
+          "signature_line": 1438,
+          "body_line": 1452,
+          "end_line": 1468,
           "platforms": [
             "unix",
             "windows",
@@ -3953,9 +3953,9 @@
         },
         {
           "name": "DOSToCTime",
-          "signature_line": 1466,
-          "body_line": 1482,
-          "end_line": 1509,
+          "signature_line": 1468,
+          "body_line": 1484,
+          "end_line": 1511,
           "platforms": [
             "windows",
             "dos16",
@@ -3965,9 +3965,9 @@
         },
         {
           "name": "ODDirDOSFindFirst",
-          "signature_line": 1509,
-          "body_line": 1534,
-          "end_line": 1580,
+          "signature_line": 1511,
+          "body_line": 1536,
+          "end_line": 1582,
           "platforms": [
             "dos16",
             "dos32"
@@ -3976,9 +3976,9 @@
         },
         {
           "name": "ODDirDOSFindNext",
-          "signature_line": 1580,
-          "body_line": 1596,
-          "end_line": 1633,
+          "signature_line": 1582,
+          "body_line": 1598,
+          "end_line": 1635,
           "platforms": [
             "dos16",
             "dos32"
@@ -3987,9 +3987,9 @@
         },
         {
           "name": "ODDirWinMatchesAttributes",
-          "signature_line": 1633,
-          "body_line": 1652,
-          "end_line": 1682,
+          "signature_line": 1635,
+          "body_line": 1654,
+          "end_line": 1684,
           "platforms": [
             "windows"
           ],
@@ -3997,9 +3997,9 @@
         },
         {
           "name": "ODDirChangeCurrent",
-          "signature_line": 1682,
-          "body_line": 1696,
-          "end_line": 1722,
+          "signature_line": 1684,
+          "body_line": 1698,
+          "end_line": 1724,
           "platforms": [
             "unix",
             "windows",
@@ -4010,9 +4010,9 @@
         },
         {
           "name": "ODDirGetCurrent",
-          "signature_line": 1722,
-          "body_line": 1739,
-          "end_line": 1774,
+          "signature_line": 1724,
+          "body_line": 1741,
+          "end_line": 1776,
           "platforms": [
             "unix",
             "windows",
@@ -4023,9 +4023,9 @@
         },
         {
           "name": "ODFileDelete",
-          "signature_line": 1774,
-          "body_line": 1791,
-          "end_line": 1832,
+          "signature_line": 1776,
+          "body_line": 1793,
+          "end_line": 1834,
           "platforms": [
             "unix",
             "windows",
@@ -4036,9 +4036,9 @@
         },
         {
           "name": "ODFileAccessMode",
-          "signature_line": 1832,
-          "body_line": 1851,
-          "end_line": 1930,
+          "signature_line": 1834,
+          "body_line": 1853,
+          "end_line": 1932,
           "platforms": [
             "unix",
             "windows",

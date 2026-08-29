@@ -104,9 +104,11 @@ def unit_test_label(source: str, function: str) -> str:
     return Path(source).stem + "-" + function
 
 
-def llvm_coverage_supported(platform: str) -> bool:
-    """Return whether this platform receives the host LLVM coverage run."""
-    return platform == "unix"
+def llvm_coverage_supported(platform: str,
+                            native_windows: bool = os.name == "nt") -> bool:
+    """Return whether this host can execute the target's LLVM coverage run."""
+    return ((platform == "unix" and not native_windows) or
+            (platform == "windows" and native_windows))
 
 
 def native_test_arguments(executable: Path, report: Path,
@@ -132,6 +134,26 @@ def windows_batch(executables: list[tuple[str, str]]) -> str:
         ])
     lines.extend([
         'ECHO DONE>"%~dp0UTDONE.OK"',
+        "EXIT /B 0",
+    ])
+    return "\r\n".join(lines) + "\r\n"
+
+
+def windows_llvm_batch(executables: list[tuple[str, str]]) -> str:
+    """Run instrumented Windows units with one profile file per executable."""
+    lines = ["@ECHO OFF"]
+    for index, (executable, profile) in enumerate(executables):
+        stem = Path(executable).stem
+        prefix = "%~dp0"
+        lines.extend([
+            f'SET "LLVM_PROFILE_FILE={prefix}{profile}"',
+            f'"{prefix}{executable}" >"{prefix}{stem}.OUT" 2>&1',
+            f"IF NOT ERRORLEVEL 1 GOTO OK{index}",
+            f'ECHO FAIL>"{prefix}{stem}.BAD"',
+            f":OK{index}",
+        ])
+    lines.extend([
+        'ECHO DONE>"%~dp0UTLLVM.OK"',
         "EXIT /B 0",
     ])
     return "\r\n".join(lines) + "\r\n"
@@ -360,6 +382,35 @@ def map_llvm_record_lines(records: list, generated_lines: list[str],
     return result
 
 
+def llvm_line_coverage(show: str, generated_lines: list[str],
+                       source: str,
+                       source_lines: list[str] | None = None
+                       ) -> tuple[list[int], list[int]]:
+    """Map LLVM's executable line counts back to the production source."""
+    coverage: dict[int, bool] = {}
+    for text in show.splitlines():
+        match = re.match(r"^\s*([0-9]+)\|([^|]*)\|", text)
+        if match is None:
+            continue
+        count = match.group(2).strip()
+        if not count:
+            continue
+        mapped = original_source_line(
+            generated_lines, int(match.group(1)), source)
+        if mapped is None:
+            continue
+        if source_lines is not None and mapped <= len(source_lines):
+            source_text = source_lines[mapped - 1].strip()
+            if (source_text.startswith("#") or
+                    re.fullmatch(r"[{}]+", source_text) or
+                    source_text == "break;"):
+                continue
+        coverage[mapped] = coverage.get(mapped, False) or count != "0"
+    covered = sorted(line for line, executed in coverage.items() if executed)
+    missed = sorted(line for line, executed in coverage.items() if not executed)
+    return covered, missed
+
+
 def command(arguments: list[str], environment: dict[str, str] | None = None,
             cwd: Path = ROOT) -> None:
     print("+", " ".join(arguments), flush=True)
@@ -539,6 +590,16 @@ def llvm_coverage(executable: Path, profile: Path, source: str, function: str,
             f"coverage contains {len(matches)} definitions for utt_{function}")
     record = matches[0]
     generated_lines = generated.read_text(encoding="latin-1").splitlines()
+    source_path = ROOT / source
+    source_lines = (source_path.read_text(encoding="latin-1").splitlines()
+                    if source_path.is_file() else None)
+    show = subprocess.run(
+        ["llvm-cov", "show", str(executable), f"-instr-profile={merged}",
+         f"-name=utt_{function}", "-show-line-counts", "-show-mcdc",
+         "-use-color=0"], cwd=ROOT, check=True,
+        stdout=subprocess.PIPE, text=True).stdout
+    covered_lines, all_missed_lines = llvm_line_coverage(
+        show, generated_lines, source, source_lines)
     waivers = load_coverage_waivers(allow_proposed)
 
     def disposition(kind: str, line: int,
@@ -592,10 +653,21 @@ def llvm_coverage(executable: Path, profile: Path, source: str, function: str,
     proposed_mcdc = [decision for decision in all_missed_mcdc
                      if disposition("mcdc", decision[0],
                                     len(decision[-1]))[1]]
+    missed_lines = [line for line in all_missed_lines
+                    if not any(disposition("line", line))]
+    waived_lines = [line for line in all_missed_lines
+                     if disposition("line", line)[0]]
+    proposed_lines = [line for line in all_missed_lines
+                       if disposition("line", line)[1]]
     result = {
         "version": 1,
         "function": function,
         "executions": record["count"],
+        "lines": len(covered_lines) + len(all_missed_lines),
+        "covered_lines": covered_lines,
+        "missed_lines": missed_lines,
+        "waived_lines": waived_lines,
+        "proposed_waiver_lines": proposed_lines,
         "branches": len(record["branches"]) * 2,
         "missed_branches": missed,
         "waived_branches": waived_branches,
@@ -609,10 +681,6 @@ def llvm_coverage(executable: Path, profile: Path, source: str, function: str,
         "proposed_waiver_missing_mcdc_records": absent_mcdc_proposed,
     }
     output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    show = subprocess.run(
-        ["llvm-cov", "show", str(executable), f"-instr-profile={merged}",
-         f"-name=utt_{function}", "-show-mcdc"], cwd=ROOT, check=True,
-        stdout=subprocess.PIPE, text=True).stdout
     mcc_path = output.with_suffix(".mcc.txt")
     summary = [
         "OpenDoors multiple-condition coverage report",
@@ -636,6 +704,10 @@ def llvm_coverage(executable: Path, profile: Path, source: str, function: str,
     mcc_path.write_text("\n".join(summary), encoding="utf-8")
     if record["count"] == 0:
         raise RuntimeError(f"utt_{function} did not execute")
+    if missed_lines:
+        raise RuntimeError(
+            f"utt_{function} missed {len(missed_lines)} lines: " +
+            ", ".join(str(line) for line in missed_lines))
     if missed:
         raise RuntimeError(
             f"utt_{function} missed {len(missed)} branch decisions")
@@ -826,6 +898,7 @@ def main() -> int:
     failures = []
     dos_runs = []
     windows_runs = []
+    windows_llvm_runs = []
     dos_stems = set()
     for test in tests:
         configuration = test["configuration"]
@@ -951,21 +1024,22 @@ def main() -> int:
                 "failure": args.build / (stem + ".BAD"),
                 "output": args.build / (stem + ".OUT"),
             })
-            continue
-        native_ran = run_step(
-            failures, stem + " native test",
-            lambda: command(native_test_arguments(
-                executable, native_report, args.wine)))
-        if native_ran or native_report.is_file():
-            run_step(
-                failures, stem + " portable coverage",
-                lambda: native_coverage(
-                    native_report, generated.with_suffix(".model.json"),
-                    args.platform,
-                    args.build / (stem + ".native-coverage.json"),
-                    args.allow_proposed_coverage_waivers))
+        else:
+            native_ran = run_step(
+                failures, stem + " native test",
+                lambda: command(native_test_arguments(
+                    executable, native_report, args.wine)))
+            if native_ran or native_report.is_file():
+                run_step(
+                    failures, stem + " portable coverage",
+                    lambda: native_coverage(
+                        native_report, generated.with_suffix(".model.json"),
+                        args.platform,
+                        args.build / (stem + ".native-coverage.json"),
+                        args.allow_proposed_coverage_waivers))
         if args.coverage and llvm_coverage_supported(args.platform):
-            coverage_executable = args.build / (stem + "-coverage")
+            coverage_executable = args.build / (
+                stem + "-coverage" + executable_suffix(args.platform))
             raw = args.build / (stem + ".profraw")
             coverage_compiled = run_step(
                 failures, stem + " LLVM compile",
@@ -974,6 +1048,20 @@ def main() -> int:
                     "-fcoverage-mapping", "-fcoverage-mcdc", str(FRAMEWORK),
                     str(llvm_generated), "-o", str(coverage_executable)]))
             if not coverage_compiled:
+                continue
+            if args.platform == "windows":
+                windows_llvm_runs.append({
+                    "label": label,
+                    "test": test,
+                    "generated": llvm_generated,
+                    "executable": coverage_executable,
+                    "profile": raw,
+                    "failure": args.build / (
+                        coverage_executable.stem + ".BAD"),
+                    "output": args.build / (
+                        coverage_executable.stem + ".OUT"),
+                    "coverage": args.build / (stem + ".coverage.json"),
+                })
                 continue
             environment = os.environ.copy()
             environment["LLVM_PROFILE_FILE"] = str(raw)
@@ -1029,6 +1117,45 @@ def main() -> int:
                     args.platform,
                     args.build / (record["executable"].stem +
                                   ".native-coverage.json"),
+                    args.allow_proposed_coverage_waivers))
+    if windows_llvm_runs:
+        done = args.build / "UTLLVM.OK"
+        done.unlink(missing_ok=True)
+        for record in windows_llvm_runs:
+            record["profile"].unlink(missing_ok=True)
+            record["failure"].unlink(missing_ok=True)
+            record["output"].unlink(missing_ok=True)
+        batch = args.build / "UTLLVM.CMD"
+        batch.write_bytes(windows_llvm_batch([
+            (record["executable"].name, record["profile"].name)
+            for record in windows_llvm_runs
+        ]).encode("ascii"))
+        batch_ran = run_step(
+            failures, "Windows LLVM unit batch",
+            lambda: command(windows_batch_arguments(batch, args.wine)))
+        if batch_ran and not done.is_file():
+            failures.append(
+                "Windows LLVM unit batch: UTLLVM.OK was not produced")
+        for record in windows_llvm_runs:
+            label = record["label"]
+            if (record["failure"].is_file() and
+                    record["failure"].stat().st_size != 0):
+                detail = ""
+                if record["output"].is_file():
+                    detail = record["output"].read_text(
+                        encoding="ascii", errors="replace").strip()
+                suffix = f": {detail}" if detail else ""
+                failures.append(
+                    f"{label} Windows LLVM test returned failure{suffix}")
+            if not record["profile"].is_file():
+                failures.append(f"{label} Windows LLVM profile is missing")
+                continue
+            run_step(
+                failures, label + " LLVM coverage",
+                lambda record=record: llvm_coverage(
+                    record["executable"], record["profile"],
+                    record["test"]["source"], record["test"]["function"],
+                    args.platform, record["generated"], record["coverage"],
                     args.allow_proposed_coverage_waivers))
     if dos_runs:
         if args.dosbox is None:

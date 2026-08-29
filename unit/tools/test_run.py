@@ -6,6 +6,7 @@ import unittest
 from contextlib import redirect_stderr
 from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -24,7 +25,7 @@ from run import (analyzer_platform_flags, coverage_disposition,
                  run_step, selected_tests, selection_owners,
                  watcom_ast_compatibility_flags,
                  watcom_environment, watcom_target_flags,
-                 windows_batch, windows_batch_arguments,
+                 windows_batch, windows_batch_arguments, windows_llvm_batch,
                  windows_fixture_arguments)  # noqa: E402
 
 
@@ -194,6 +195,68 @@ class CoverageWaiverTests(unittest.TestCase):
         self.assertEqual(map_llvm_record_lines(
             records, generated, "sample.c"),
             [[40, 3, 2, 20, 1, 1, [True, True]]])
+
+    def test_maps_llvm_line_counts_and_identifies_uncovered_source_lines(self):
+        generated = [
+            '/* support */', '#line 40 "sample.c"',
+            'covered();', 'missed();', 'break;', '/* comment */',
+            '#line 90 "sample.c"', 'also_covered();', '#ifdef FEATURE', '}',
+        ]
+        show = """\
+utt_sample:
+    3|      2|covered();
+    4|      0|missed();
+    5|      0|break;
+    6|       |/* comment */
+    8|   1.00k|also_covered();
+    9|      0|#ifdef FEATURE
+   10|      0|}
+"""
+        source_lines = ([""] * 39 + ["covered();", "missed();",
+                        "break;", "/* comment */"] + [""] * 46 +
+                        ["also_covered();", "#ifdef FEATURE", "}"])
+        self.assertEqual(
+            run_module.llvm_line_coverage(
+                show, generated, "sample.c", source_lines),
+            ([40, 90], [41]))
+
+    def test_llvm_coverage_reports_and_rejects_an_uncovered_line(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            executable = directory / "sample-coverage"
+            profile = directory / "sample.profraw"
+            generated = directory / "sample-llvm.c"
+            output = directory / "sample.coverage.json"
+            generated.write_text(
+                '/* support */\n#line 40 "sample.c"\n'
+                'covered();\nmissed();\n', encoding="latin-1")
+            generated.with_suffix(".model.json").write_text(json.dumps({
+                "source": "sample.c", "function": "sample",
+                "decisions": [], "branches": [],
+            }), encoding="utf-8")
+            document = {"data": [{"functions": [{
+                "name": "utt_sample", "count": 1,
+                "branches": [], "mcdc_records": [],
+            }]}]}
+
+            def completed(arguments, **unused):
+                stdout = (json.dumps(document) if "export" in arguments
+                          else "utt_sample:\n  3|  1|covered();\n"
+                               "  4|  0|missed();\n")
+                return subprocess.CompletedProcess(arguments, 0, stdout)
+
+            with patch.object(run_module, "command"), patch.object(
+                    run_module.subprocess, "run", side_effect=completed):
+                with self.assertRaisesRegex(RuntimeError,
+                                             "missed 1 lines: 41"):
+                    run_module.llvm_coverage(
+                        executable, profile, "sample.c", "sample", "unix",
+                        generated, output)
+
+            result = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(result["lines"], 2)
+            self.assertEqual(result["covered_lines"], [40])
+            self.assertEqual(result["missed_lines"], [41])
 
     def test_discards_llvm_records_from_other_files(self):
         generated = [
@@ -431,9 +494,11 @@ class WindowsASTCompatibilityTests(unittest.TestCase):
             "clang", Path("door32.c"), Path("DOOR32.DLL"))
         self.assertNotIn("-Wl,--kill-at", arguments)
 
-    def test_llvm_execution_is_limited_to_host_compatible_platforms(self):
-        self.assertTrue(llvm_coverage_supported("unix"))
-        self.assertFalse(llvm_coverage_supported("windows"))
+    def test_llvm_execution_includes_native_modern_platforms(self):
+        self.assertTrue(llvm_coverage_supported("unix", False))
+        self.assertFalse(llvm_coverage_supported("unix", True))
+        self.assertTrue(llvm_coverage_supported("windows", True))
+        self.assertFalse(llvm_coverage_supported("windows", False))
         self.assertFalse(llvm_coverage_supported("dos16"))
         self.assertFalse(llvm_coverage_supported("dos32"))
 
@@ -495,6 +560,25 @@ class WindowsASTCompatibilityTests(unittest.TestCase):
         self.assertIn('ECHO DONE>"%~dp0UTDONE.OK"\r\n', text)
         self.assertTrue(text.endswith(
             'ECHO DONE>"%~dp0UTDONE.OK"\r\nEXIT /B 0\r\n'))
+
+    def test_llvm_batch_assigns_a_distinct_profile_to_each_executable(self):
+        text = windows_llvm_batch([
+            ("ODAuto-od_autodetect-coverage.exe",
+             "ODAuto-od_autodetect.profraw"),
+            ("ODCom-ODComGetByte-coverage.exe",
+             "ODCom-ODComGetByte.profraw"),
+        ])
+        self.assertIn(
+            'SET "LLVM_PROFILE_FILE=%~dp0ODAuto-od_autodetect.profraw"\r\n',
+            text)
+        self.assertIn(
+            '"%~dp0ODAuto-od_autodetect-coverage.exe" '
+            '>"%~dp0ODAuto-od_autodetect-coverage.OUT" 2>&1\r\n', text)
+        self.assertIn(
+            'SET "LLVM_PROFILE_FILE=%~dp0ODCom-ODComGetByte.profraw"\r\n',
+            text)
+        self.assertTrue(text.endswith(
+            'ECHO DONE>"%~dp0UTLLVM.OK"\r\nEXIT /B 0\r\n'))
 
     def test_wine_runs_one_cmd_batch_through_the_default_z_drive(self):
         batch = Path("/tmp/unit windows/UTRUN.CMD")

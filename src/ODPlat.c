@@ -1431,8 +1431,10 @@ tODResult ODDirRead(tODDirHandle hDir, tODDirEntry *pDirEntry)
    }
 #endif
 
+#ifndef ODPLAT_NIX
    /* Return with success. */
    return(kODRCSuccess);
+#endif
 }
 
 

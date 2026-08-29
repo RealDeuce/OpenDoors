@@ -167,6 +167,11 @@ class WaiverProposalTests(unittest.TestCase):
         self.assertEqual(validate_proposal(
             1, self.proposal, self.expected, self.root), [])
 
+    def test_accepts_a_line_coverage_proposal(self):
+        self.proposal["kinds"] = ["line"]
+        self.assertEqual(validate_proposal(
+            1, self.proposal, self.expected, self.root), [])
+
     def test_rejects_approved_status_in_proposal_file(self):
         self.proposal["status"] = "approved"
         self.assertIn("status must be proposed", "\n".join(

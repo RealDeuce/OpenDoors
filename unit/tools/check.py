@@ -273,7 +273,7 @@ def validate_proposal(index: int, proposal: dict[str, object],
             problems.append(
                 f"{prefix} names invalid platforms: {', '.join(sorted(invalid))}")
     kinds = proposal["kinds"]
-    valid_kinds = {"branch", "mcdc", "assembly-branch"}
+    valid_kinds = {"line", "branch", "mcdc", "assembly-branch"}
     if not isinstance(kinds, list) or not kinds or set(kinds) - valid_kinds:
         problems.append(f"{prefix} has invalid kinds")
     start = proposal["start_line"]
@@ -394,7 +394,8 @@ def validate(allow_incomplete: bool) -> list[str]:
             problems.append(f"coverage waiver {index} names unknown function")
         elif waiver["platform"] not in expected[key]:
             problems.append(f"coverage waiver {index} names invalid platform")
-        if waiver["kind"] not in {"branch", "mcdc", "assembly-branch"}:
+        if waiver["kind"] not in {
+                "line", "branch", "mcdc", "assembly-branch"}:
             problems.append(f"coverage waiver {index} has invalid kind")
         if waiver["start_line"] > waiver["end_line"]:
             problems.append(f"coverage waiver {index} has reversed line range")
