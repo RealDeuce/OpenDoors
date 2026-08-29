@@ -369,6 +369,15 @@ static void reports_socket_readiness_receive_and_retry_outcomes(void)
 #endif
    UT_ASSERT_EQ_INT(kODRCGeneralFailure,
       utt_ODComGetByte(ODPTR2HANDLE(&ut_port, tPortInfo), &value, FALSE));
+#ifdef ODPLAT_WIN32
+   reset_get(); ut_port.Method = kComMethodSocket; ut_ready_result = -1;
+   ut_port.bTelnetSocket = TRUE;
+   ut_port.TelnetInputState = kTelnetInputIAC;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure,
+      utt_ODComGetByte(ODPTR2HANDLE(&ut_port, tPortInfo), &value, FALSE));
+   UT_ASSERT_EQ_INT(kTelnetInputData, ut_port.TelnetInputState);
+   UT_ASSERT_EQ_INT(FALSE, ut_port.bTelnetInputReplay);
+#endif
 #ifndef ODPLAT_WIN32
    reset_get(); ut_port.Method = kComMethodSocket;
    ut_ready_events = POLLHUP;

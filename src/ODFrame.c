@@ -1929,8 +1929,6 @@ INT_PTR CALLBACK ODFrameMessageDlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
          /* Indicate that this message has not been processed. */
          return(FALSE);
    }
-
-   return(TRUE);
 }
 
 
