@@ -749,7 +749,7 @@ jobs:
         with:
           subject-path: dist/*
 
-      - name: Create or update draft release
+      - name: Create or update release
         if: needs.validate.outputs.tagged == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -773,8 +773,9 @@ jobs:
               --title "$title" \
               --notes-file release/RELEASE_NOTES.md
             gh release upload "$tag" dist/* --clobber
+            gh release edit "$tag" --draft=false
           else
-            options=(--verify-tag --draft --title "$title" \
+            options=(--verify-tag --title "$title" \
               --notes-file release/RELEASE_NOTES.md)
             if [[ "$prerelease" == true ]]; then
               options+=(--prerelease)
