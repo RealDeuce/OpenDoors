@@ -94,9 +94,25 @@ static void handles_a_non_socket_native_handle(void)
 #endif
 }
 
+#ifdef ODPLAT_NIX
+static void adopts_a_posix_descriptor(void)
+{
+   reset_existing_handle();
+   ut_port.Method = kComMethodStdIO;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComOpenFromExistingHandle(
+      ODPTR2HANDLE(&ut_port, tPortInfo), (DWORD_PTR)44));
+   UT_ASSERT_EQ_INT(44, ut_port.socket);
+   UT_ASSERT_EQ_INT(TRUE, ut_port.bUsingClientsHandle);
+   UT_ASSERT_EQ_INT(TRUE, ut_port.bIsOpen);
+}
+#endif
+
 static const UTTestCase ut_cases[] = {
 #ifdef INCLUDE_SOCKET_COM
    {"socket", adopts_a_socket_and_disables_nagle},
 #endif
-   {"native handle", handles_a_non_socket_native_handle}
+   {"native handle", handles_a_non_socket_native_handle},
+#ifdef ODPLAT_NIX
+   {"POSIX descriptor", adopts_a_posix_descriptor}
+#endif
 };

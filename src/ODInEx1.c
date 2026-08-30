@@ -89,6 +89,7 @@
 #include "OpenDoor.h"
 #ifdef ODPLAT_NIX
 #include <locale.h>
+#include <limits.h>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -317,6 +318,13 @@ char *szOriginalDir = NULL;
 BYTE btDoorSYSLock = 0;
 time_t nStartupUnixTime;
 INT16 nInitialRemaining;
+BOOL bBBSDevSession;
+BOOL bBBSDevDeadlineSet;
+time_t nBBSDevDeadline;
+INT nBBSDevComMethod;
+BOOL bBBSDevOpenHandleSet;
+char *pszBBSDevStorage;
+char *pszBBSDevUserID;
 BOOL bSysopNameSet = FALSE;
 char szForcedSysopName[40];
 BOOL bSystemNameSet = FALSE;
@@ -409,6 +417,72 @@ ODAPIDEF BOOL ODCALL od_get_user_8bit(void)
 }
 
 /* ----------------------------------------------------------------------------
+ * od_get_user_id()
+ *
+ * Returns the opaque BBSDEV user key or a deterministic legacy identifier.
+ * Legacy identifiers are <number>:<name>, with an empty number component
+ * when the selected format does not supply one. The handle is used when the
+ * real-name field is empty.
+ */
+ODAPIDEF const char * ODCALL od_get_user_id(void)
+{
+   static char szUserID[48];
+   const char *pszName;
+   BOOL bHasNumber = FALSE;
+   unsigned nPosition = 0;
+
+   szUserID[0] = '\0';
+   if(!ODSyncPublicCallAllowed())
+      return(szUserID);
+   if(od_control.od_info_type == BBSDEVDRP)
+      return(pszBBSDevUserID == NULL ? szUserID : pszBBSDevUserID);
+
+   switch(od_control.od_info_type)
+   {
+      case EXITINFO:
+      case RA1EXITINFO:
+      case CHAINTXT:
+      case SFDOORSDAT:
+      case DOORSYS_GAP:
+      case QBBS275EXITINFO:
+      case DOORSYS_WILDCAT:
+      case RA2EXITINFO:
+      case TRIBBSSYS:
+      case DOOR32SYS:
+         bHasNumber = TRUE;
+         break;
+      case CUSTOM:
+         bHasNumber = od_control.user_num != 0;
+         break;
+      default:
+         break;
+   }
+
+   pszName = od_control.user_name[0] != '\0'
+      ? od_control.user_name : od_control.user_handle;
+   if(!bHasNumber && pszName[0] == '\0')
+      return(szUserID);
+   if(bHasNumber)
+   {
+      char achReverse[5];
+      unsigned nDigits = 0;
+      unsigned nValue = od_control.user_num;
+      do
+      {
+         achReverse[nDigits++] = (char)('0' + nValue % 10);
+         nValue /= 10;
+      } while(nValue != 0);
+      while(nDigits != 0)
+         szUserID[nPosition++] = achReverse[--nDigits];
+   }
+   szUserID[nPosition++] = ':';
+   while(*pszName != '\0')
+      szUserID[nPosition++] = *pszName++;
+   szUserID[nPosition] = '\0';
+   return(szUserID);
+}
+
+/* ----------------------------------------------------------------------------
  * od_set_user_8bit()
  *
  * Records whether the caller's connection supports eight-bit character data.
@@ -421,6 +495,906 @@ ODAPIDEF BOOL ODCALL od_set_user_8bit(BOOL bEightBit)
    bUserEightBit = bEightBit ? TRUE : FALSE;
    return(TRUE);
 }
+
+/* ----------------------------------------------------------------------------
+ * ODBBSDevLanguageTagValid()                       *** PRIVATE FUNCTION ***
+ *
+ * Validates the RFC 5646 Language-Tag grammar, including grandfathered and
+ * private-use tags and the uniqueness requirements for variants/extensions.
+ */
+static BOOL ODBBSDevLanguageTagValid(const char *pszLanguage)
+{
+   static const char * const apszGrandfathered[] = {
+      "art-lojban", "cel-gaulish", "en-GB-oed", "i-ami", "i-bnn",
+      "i-default", "i-enochian", "i-hak", "i-klingon", "i-lux",
+      "i-mingo", "i-navajo", "i-pwn", "i-tao", "i-tay", "i-tsu",
+      "no-bok", "no-nyn", "sgn-BE-FR", "sgn-BE-NL", "sgn-CH-DE",
+      "zh-guoyu", "zh-hakka", "zh-min", "zh-min-nan", "zh-xiang"
+   };
+   size_t nPosition = 0;
+   size_t nVariantStart = 0;
+   unsigned nExtlangs = 0;
+   unsigned nIndex;
+   BOOL bFirst = TRUE;
+   BOOL bExtlangOpen = FALSE;
+   BOOL bScriptOpen = TRUE;
+   BOOL bRegionOpen = TRUE;
+   BOOL bHaveVariant = FALSE;
+   BOOL bPrivateUse = FALSE;
+   BOOL bPrivateValue = FALSE;
+   BOOL bExtension = FALSE;
+   BOOL bExtensionValue = FALSE;
+   BYTE abSingletonSeen[36] = {0};
+
+   if(pszLanguage == NULL || pszLanguage[0] == '\0')
+      return(FALSE);
+   for(nIndex = 0; nIndex < DIM(apszGrandfathered); ++nIndex)
+   {
+      if(stricmp(pszLanguage, apszGrandfathered[nIndex]) == 0)
+         return(TRUE);
+   }
+
+   while(pszLanguage[nPosition] != '\0')
+   {
+      size_t nStart = nPosition;
+      size_t nLength = 0;
+      BOOL bAlpha = TRUE;
+      BOOL bDigit = TRUE;
+
+      while(pszLanguage[nPosition] != '\0'
+         && pszLanguage[nPosition] != '-')
+      {
+         char current = pszLanguage[nPosition++];
+         if((current >= 'A' && current <= 'Z')
+            || (current >= 'a' && current <= 'z'))
+         {
+            bDigit = FALSE;
+         }
+         else if(current >= '0' && current <= '9')
+            bAlpha = FALSE;
+         else
+            return(FALSE);
+         if(++nLength > 8)
+            return(FALSE);
+      }
+      if(nLength == 0)
+         return(FALSE);
+      if(pszLanguage[nPosition] == '-')
+      {
+         ++nPosition;
+         if(pszLanguage[nPosition] == '\0')
+            return(FALSE);
+      }
+
+      if(bFirst)
+      {
+         bFirst = FALSE;
+         if(nLength == 1
+            && (pszLanguage[nStart] == 'x' || pszLanguage[nStart] == 'X'))
+         {
+            bPrivateUse = TRUE;
+            continue;
+         }
+         if(!bAlpha || nLength < 2)
+            return(FALSE);
+         bExtlangOpen = nLength <= 3;
+         continue;
+      }
+
+      if(bPrivateUse)
+      {
+         bPrivateValue = TRUE;
+         continue;
+      }
+
+      if(bExtension)
+      {
+         if(nLength >= 2)
+         {
+            bExtensionValue = TRUE;
+            continue;
+         }
+         if(!bExtensionValue)
+            return(FALSE);
+         bExtension = FALSE;
+      }
+
+      if(bExtlangOpen)
+      {
+         if(nExtlangs < 3 && nLength == 3 && bAlpha)
+         {
+            ++nExtlangs;
+            continue;
+         }
+         bExtlangOpen = FALSE;
+      }
+
+      if(bScriptOpen)
+      {
+         bScriptOpen = FALSE;
+         if(nLength == 4 && bAlpha)
+            continue;
+      }
+      if(bRegionOpen)
+      {
+         BOOL bRegion = FALSE;
+         bRegionOpen = FALSE;
+         if(nLength == 2 && bAlpha)
+            bRegion = TRUE;
+         if(nLength == 3 && bDigit)
+            bRegion = TRUE;
+         if(bRegion)
+            continue;
+      }
+
+      {
+         BOOL bVariant = nLength >= 5;
+         if(nLength == 4 && pszLanguage[nStart] <= '9')
+         {
+            bVariant = TRUE;
+         }
+         if(bVariant)
+         {
+            if(bHaveVariant)
+            {
+               size_t nPrevious = nVariantStart;
+               while(nPrevious < nStart)
+               {
+                  size_t nPreviousLength = 0;
+                  size_t nCompare;
+                  BOOL bSame = TRUE;
+                  while(pszLanguage[nPrevious + nPreviousLength] != '-')
+                  {
+                     ++nPreviousLength;
+                  }
+                  if(nPreviousLength == nLength)
+                  {
+                     for(nCompare = 0; nCompare < nLength; ++nCompare)
+                     {
+                        if((((unsigned char)pszLanguage[nPrevious + nCompare])
+                           & 0xdf)
+                           != (((unsigned char)pszLanguage[nStart + nCompare])
+                           & 0xdf))
+                        {
+                           bSame = FALSE;
+                           break;
+                        }
+                     }
+                     if(bSame)
+                        return(FALSE);
+                  }
+                  nPrevious += nPreviousLength + 1;
+               }
+            }
+            else
+            {
+               bHaveVariant = TRUE;
+               nVariantStart = nStart;
+            }
+            continue;
+         }
+      }
+
+      if(nLength == 1)
+      {
+         char chSingleton = pszLanguage[nStart];
+         unsigned nSingleton;
+         if(chSingleton == 'x' || chSingleton == 'X')
+         {
+            bPrivateUse = TRUE;
+            bPrivateValue = FALSE;
+            continue;
+         }
+         if(chSingleton <= '9')
+            nSingleton = (unsigned)(chSingleton - '0');
+         else
+         {
+            chSingleton = (char)(chSingleton & 0xdf);
+            nSingleton = (unsigned)(chSingleton - 'A') + 10;
+         }
+         if(abSingletonSeen[nSingleton])
+            return(FALSE);
+         abSingletonSeen[nSingleton] = TRUE;
+         bExtension = TRUE;
+         bExtensionValue = FALSE;
+         continue;
+      }
+      return(FALSE);
+   }
+
+   if(bPrivateUse && !bPrivateValue)
+      return(FALSE);
+   if(bExtension && !bExtensionValue)
+      return(FALSE);
+   return(TRUE);
+}
+
+/* ----------------------------------------------------------------------------
+ * ODBBSDevCopyText()                                *** PRIVATE FUNCTION ***
+ *
+ * Copies UTF-8 display text into a fixed legacy field without leaving a
+ * partial multibyte character at the end of the destination.
+ */
+static void ODBBSDevCopyText(char *pszDestination, size_t nDestination,
+   const char *pszSource)
+{
+   size_t nCopy = 0;
+
+   if(nDestination == 0)
+      return;
+   while(pszSource[nCopy] != '\0' && nCopy + 1 < nDestination)
+   {
+      pszDestination[nCopy] = pszSource[nCopy];
+      ++nCopy;
+   }
+   if(pszSource[nCopy] != '\0'
+      && ((unsigned char)pszSource[nCopy] & 0xc0) == 0x80)
+   {
+      while(nCopy != 0
+         && ((unsigned char)pszSource[nCopy] & 0xc0) == 0x80)
+      {
+         --nCopy;
+      }
+   }
+   pszDestination[nCopy] = '\0';
+}
+
+/* ----------------------------------------------------------------------------
+ * ODBBSDevAbsolutePath()                            *** PRIVATE FUNCTION ***
+ */
+static BOOL ODBBSDevAbsolutePath(const char *pszPath)
+{
+   if(pszPath == NULL)
+      return(FALSE);
+   if(pszPath[0] == '\0')
+      return(FALSE);
+#ifdef ODPLAT_NIX
+   return(pszPath[0] == '/');
+#else
+   if((pszPath[0] >= 'A' && pszPath[0] <= 'Z')
+      || (pszPath[0] >= 'a' && pszPath[0] <= 'z'))
+   {
+      if(pszPath[1] == ':')
+      {
+         if(pszPath[2] == '\\')
+            return(TRUE);
+         if(pszPath[2] == '/')
+            return(TRUE);
+      }
+   }
+   if(pszPath[0] == '\\' || pszPath[0] == '/')
+   {
+      if(pszPath[1] == '\\')
+         return(TRUE);
+      if(pszPath[1] == '/')
+         return(TRUE);
+   }
+   return(FALSE);
+#endif
+}
+
+#define BBSDEV_REJECT() do { bValid = FALSE; goto finished; } while(0)
+
+/* ----------------------------------------------------------------------------
+ * ODInitReadBBSDevDropFile()                         *** PRIVATE FUNCTION ***
+ *
+ * Reads and validates the version 1 core of BBSDEV.DRP, then maps the fields
+ * represented by the legacy OpenDoors control structure. Newer version 1
+ * minor revisions may append fields, which are ignored.
+ */
+BOOL ODInitReadBBSDevDropFile(const char *pszPath)
+{
+   FILE *pfFile = NULL;
+   char *pszFile = NULL;
+   char *apszLine[19];
+   size_t nCapacity = 512;
+   size_t nSize = 0;
+   size_t nIndex;
+   unsigned nLines = 0;
+   int ch;
+   BOOL bValid = TRUE;
+   BOOL bVersionZero;
+   DWORD dwWidth = 0;
+   DWORD dwHeight = 0;
+   DWORD_PTR dwNativeValue = 0;
+   DWORD_PTR dwNativeMaximum = (DWORD_PTR)-1;
+   int nMode = kComMethodUnspecified;
+   BOOL bLocal = FALSE;
+   BOOL bHasNativeValue = FALSE;
+   BOOL bNamedSysop = FALSE;
+   BOOL bNamedCoSysop = FALSE;
+
+   if(pszBBSDevStorage != NULL)
+   {
+      free(pszBBSDevStorage);
+      pszBBSDevStorage = NULL;
+      pszBBSDevUserID = NULL;
+   }
+
+   if(!ODBBSDevAbsolutePath(pszPath))
+      return(FALSE);
+#ifdef ODPLAT_NIX
+   dwNativeMaximum = (DWORD_PTR)INT_MAX;
+#endif
+
+   pfFile = fopen(pszPath, "rb");
+   if(pfFile == NULL)
+      return(FALSE);
+   pszFile = (char *)malloc(nCapacity);
+   if(pszFile == NULL)
+      BBSDEV_REJECT();
+
+   while((ch = fgetc(pfFile)) != EOF)
+   {
+      if(ch == 0)
+         BBSDEV_REJECT();
+      if(nSize + 1 >= nCapacity)
+      {
+         char *pszLarger;
+         size_t nLarger;
+         if(nCapacity >= 4096)
+            BBSDEV_REJECT();
+         nLarger = nCapacity * 2;
+         pszLarger = (char *)realloc(pszFile, nLarger);
+         if(pszLarger == NULL)
+            BBSDEV_REJECT();
+         pszFile = pszLarger;
+         nCapacity = nLarger;
+      }
+      pszFile[nSize++] = (char)ch;
+   }
+   if(ferror(pfFile) || nSize == 0 || pszFile[nSize - 1] != '\n')
+      BBSDEV_REJECT();
+   pszFile[nSize] = '\0';
+
+   if(nSize >= 3)
+   {
+      if((unsigned char)pszFile[0] == 0xef)
+      {
+         if((unsigned char)pszFile[1] == 0xbb)
+         {
+            if((unsigned char)pszFile[2] == 0xbf)
+               BBSDEV_REJECT();
+         }
+      }
+   }
+
+   apszLine[0] = pszFile;
+   for(nIndex = 0; nIndex < nSize; ++nIndex)
+   {
+      if(pszFile[nIndex] == '\r')
+      {
+         if(pszFile[nIndex + 1] != '\n')
+            BBSDEV_REJECT();
+      }
+      else if(pszFile[nIndex] == '\n')
+      {
+         if(nIndex != 0 && pszFile[nIndex - 1] == '\r')
+            pszFile[nIndex - 1] = '\0';
+         else
+            pszFile[nIndex] = '\0';
+         ++nLines;
+         if(nLines < 19)
+            apszLine[nLines] = pszFile + nIndex + 1;
+      }
+   }
+   if(nLines < 19)
+      BBSDEV_REJECT();
+
+   /* Validate UTF-8, prohibited controls, and field-edge whitespace. */
+   for(nIndex = 0; nIndex < 19; ++nIndex)
+   {
+      const unsigned char *p = (const unsigned char *)apszLine[nIndex];
+      DWORD dwFirst = 0;
+      DWORD dwLast = 0;
+      BOOL bFirst = TRUE;
+      while(*p != '\0')
+      {
+         DWORD dwCode;
+         unsigned nTrail;
+         if(*p < 0x80)
+         {
+            dwCode = *p++;
+            nTrail = 0;
+         }
+         else if(*p >= 0xc2 && *p <= 0xdf)
+         {
+            dwCode = *p++ & 0x1f;
+            nTrail = 1;
+         }
+         else if(*p >= 0xe0 && *p <= 0xef)
+         {
+            unsigned char lead = *p;
+            if(p[1] == '\0' || p[2] == '\0'
+               || (p[1] & 0xc0) != 0x80 || (p[2] & 0xc0) != 0x80
+               || (lead == 0xe0 && p[1] < 0xa0)
+               || (lead == 0xed && p[1] >= 0xa0))
+            {
+               BBSDEV_REJECT();
+            }
+            dwCode = *p++ & 0x0f;
+            nTrail = 2;
+         }
+         else if(*p >= 0xf0 && *p <= 0xf4)
+         {
+            unsigned char lead = *p;
+            if(p[1] == '\0' || p[2] == '\0' || p[3] == '\0'
+               || (p[1] & 0xc0) != 0x80 || (p[2] & 0xc0) != 0x80
+               || (p[3] & 0xc0) != 0x80
+               || (lead == 0xf0 && p[1] < 0x90)
+               || (lead == 0xf4 && p[1] >= 0x90))
+            {
+               BBSDEV_REJECT();
+            }
+            dwCode = *p++ & 0x07;
+            nTrail = 3;
+         }
+         else
+         {
+            BBSDEV_REJECT();
+         }
+         while(nTrail-- != 0)
+         {
+            if((*p & 0xc0) != 0x80)
+               BBSDEV_REJECT();
+            dwCode = (dwCode << 6) | (*p++ & 0x3f);
+         }
+         if(dwCode < 0x20 || (dwCode >= 0x7f && dwCode <= 0x9f))
+            BBSDEV_REJECT();
+         if(bFirst)
+         {
+            dwFirst = dwCode;
+            bFirst = FALSE;
+         }
+         dwLast = dwCode;
+      }
+      if(!bFirst && (dwFirst == 0x20 || dwFirst == 0xa0
+         || dwFirst == 0x1680 || (dwFirst >= 0x2000 && dwFirst <= 0x200a)
+         || dwFirst == 0x2028 || dwFirst == 0x2029 || dwFirst == 0x202f
+         || dwFirst == 0x205f || dwFirst == 0x3000
+         || dwLast == 0x20 || dwLast == 0xa0 || dwLast == 0x1680
+         || (dwLast >= 0x2000 && dwLast <= 0x200a)
+         || dwLast == 0x2028 || dwLast == 0x2029 || dwLast == 0x202f
+         || dwLast == 0x205f || dwLast == 0x3000))
+      {
+         BBSDEV_REJECT();
+      }
+   }
+
+   /* Version 1 accepts later minor revisions and their appended lines. */
+   if(apszLine[0][0] != '1') BBSDEV_REJECT();
+   if(apszLine[0][1] != '.') BBSDEV_REJECT();
+   if(apszLine[0][2] == '\0') BBSDEV_REJECT();
+   if(apszLine[0][2] == '0' && apszLine[0][3] != '\0') BBSDEV_REJECT();
+   for(nIndex = 2; apszLine[0][nIndex] != '\0'; ++nIndex)
+   {
+      if(apszLine[0][nIndex] < '0') BBSDEV_REJECT();
+      if(apszLine[0][nIndex] > '9') BBSDEV_REJECT();
+   }
+   bVersionZero = strcmp(apszLine[0], "1.0") == 0;
+   if(bVersionZero && nLines != 19)
+      BBSDEV_REJECT();
+
+   /* Required text fields. */
+   if(apszLine[3][0] == '\0' || apszLine[4][0] == '\0'
+      || apszLine[11][0] == '\0' || apszLine[12][0] == '\0'
+      || apszLine[13][0] == '\0' || apszLine[14][0] == '\0'
+      || apszLine[15][0] == '\0')
+   {
+      BBSDEV_REJECT();
+   }
+
+   /* Width and height are positive 16-bit decimal values. */
+   for(nIndex = 0; apszLine[5][nIndex] != '\0'; ++nIndex)
+   {
+      if(apszLine[5][nIndex] < '0') BBSDEV_REJECT();
+      if(apszLine[5][nIndex] > '9') BBSDEV_REJECT();
+      dwWidth = dwWidth * 10 + (apszLine[5][nIndex] - '0');
+      if(dwWidth > 65535L)
+         BBSDEV_REJECT();
+   }
+   for(nIndex = 0; apszLine[6][nIndex] != '\0'; ++nIndex)
+   {
+      if(apszLine[6][nIndex] < '0') BBSDEV_REJECT();
+      if(apszLine[6][nIndex] > '9') BBSDEV_REJECT();
+      dwHeight = dwHeight * 10 + (apszLine[6][nIndex] - '0');
+      if(dwHeight > 65535L)
+         BBSDEV_REJECT();
+   }
+   if(dwWidth == 0 || dwHeight == 0 || apszLine[5][0] == '0'
+      || apszLine[6][0] == '0')
+   {
+      BBSDEV_REJECT();
+   }
+   if(!((apszLine[7][0] == 'Y' || apszLine[7][0] == 'N')
+      && apszLine[7][1] == '\0'
+      && (apszLine[8][0] == 'Y' || apszLine[8][0] == 'N')
+      && apszLine[8][1] == '\0'
+      && (apszLine[18][0] == 'Y' || apszLine[18][0] == 'N')
+      && apszLine[18][1] == '\0'))
+   {
+      BBSDEV_REJECT();
+   }
+
+   /* CTerm revision: one or more canonical unsigned decimal components. */
+   if(apszLine[9][0] != '\0')
+   {
+      BOOL bComponentStart = TRUE;
+      for(nIndex = 0; apszLine[9][nIndex] != '\0'; ++nIndex)
+      {
+         char current = apszLine[9][nIndex];
+         if(current == '.')
+         {
+            if(bComponentStart)
+               BBSDEV_REJECT();
+            bComponentStart = TRUE;
+         }
+         else if(current < '0')
+            BBSDEV_REJECT();
+         else if(current > '9')
+            BBSDEV_REJECT();
+         else if(bComponentStart && current == '0'
+            && apszLine[9][nIndex + 1] != '\0'
+            && apszLine[9][nIndex + 1] != '.')
+         {
+            BBSDEV_REJECT();
+         }
+         else
+            bComponentStart = FALSE;
+      }
+      if(bComponentStart)
+         BBSDEV_REJECT();
+   }
+
+   /* Restricted RFC 3339 UTC deadline and valid Gregorian calendar date. */
+   if(apszLine[10][0] != '\0')
+   {
+      static const BYTE abDigitPosition[20] = {
+         1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0
+      };
+      INT nYear, nMonth, nDay, nHour, nMinute, nSecond, nMonthDays;
+      INT nCalendarYear, nCalendarMonth;
+      long nDays = 0;
+      double dDeadline;
+      BOOL bLeapYear = FALSE;
+      if(apszLine[10][20] != '\0' || apszLine[10][4] != '-'
+         || apszLine[10][7] != '-' || apszLine[10][10] != 'T'
+         || apszLine[10][13] != ':' || apszLine[10][16] != ':'
+         || apszLine[10][19] != 'Z')
+      {
+         BBSDEV_REJECT();
+      }
+      for(nIndex = 0; nIndex < 20; ++nIndex)
+      {
+         if(abDigitPosition[nIndex])
+         {
+            if(apszLine[10][nIndex] < '0') BBSDEV_REJECT();
+            if(apszLine[10][nIndex] > '9') BBSDEV_REJECT();
+         }
+      }
+      nYear = (apszLine[10][0] - '0') * 1000
+         + (apszLine[10][1] - '0') * 100
+         + (apszLine[10][2] - '0') * 10 + apszLine[10][3] - '0';
+      nMonth = (apszLine[10][5] - '0') * 10 + apszLine[10][6] - '0';
+      nDay = (apszLine[10][8] - '0') * 10 + apszLine[10][9] - '0';
+      nHour = (apszLine[10][11] - '0') * 10 + apszLine[10][12] - '0';
+      nMinute = (apszLine[10][14] - '0') * 10 + apszLine[10][15] - '0';
+      nSecond = (apszLine[10][17] - '0') * 10 + apszLine[10][18] - '0';
+      if(nMonth < 1 || nMonth > 12)
+         BBSDEV_REJECT();
+      if(nYear % 4 == 0)
+      {
+         if(nYear % 100 != 0)
+            bLeapYear = TRUE;
+         else if(nYear % 400 == 0)
+            bLeapYear = TRUE;
+      }
+      nMonthDays = 31;
+      if(nMonth == 2)
+      {
+         nMonthDays = bLeapYear ? 29 : 28;
+      }
+      else if(nMonth == 4) nMonthDays = 30;
+      else if(nMonth == 6) nMonthDays = 30;
+      else if(nMonth == 9) nMonthDays = 30;
+      else if(nMonth == 11) nMonthDays = 30;
+      if(nDay < 1 || nDay > nMonthDays || nHour > 23
+         || nMinute > 59 || nSecond > 59)
+      {
+         BBSDEV_REJECT();
+      }
+      if(nYear >= 1970)
+      {
+         static const BYTE abMonthDays[12] = {
+            31,28,31,30,31,30,31,31,30,31,30,31
+         };
+         nCalendarYear = nYear - 1;
+         nDays = (long)(nYear - 1970) * 365L;
+         nDays += nCalendarYear / 4 - 1969 / 4;
+         nDays -= nCalendarYear / 100 - 1969 / 100;
+         nDays += nCalendarYear / 400 - 1969 / 400;
+         for(nCalendarMonth = 1; nCalendarMonth < nMonth;
+            ++nCalendarMonth)
+         {
+            nDays += abMonthDays[nCalendarMonth - 1];
+            if(nCalendarMonth == 2 && bLeapYear)
+               ++nDays;
+         }
+         nDays += nDay - 1;
+         dDeadline = (double)nDays * 86400.0 + nHour * 3600.0
+            + nMinute * 60.0 + nSecond;
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+         if(dDeadline > 2147483647.0)
+            dDeadline = 2147483647.0;
+#endif
+         nBBSDevDeadline = (time_t)dDeadline;
+      }
+      else
+         nBBSDevDeadline = (time_t)0;
+      bBBSDevDeadlineSet = TRUE;
+   }
+   else
+   {
+      bBBSDevDeadlineSet = FALSE;
+   }
+
+   /* OpenDoors can faithfully represent IBM437 and UTF-8 terminal data. */
+   if(stricmp(apszLine[11], "IBM437") != 0
+      && stricmp(apszLine[11], "UTF-8") != 0)
+   {
+      BBSDEV_REJECT();
+   }
+
+   if(!ODBBSDevLanguageTagValid(apszLine[12]))
+      BBSDEV_REJECT();
+
+   /* Access and node values are named roles or canonical uint64 strings. */
+   if(strcmp(apszLine[16], "sysop") == 0)
+      bNamedSysop = TRUE;
+   else if(strcmp(apszLine[16], "cosysop") == 0)
+      bNamedCoSysop = TRUE;
+   else
+   {
+      size_t nDigits = 0;
+      while(apszLine[16][nDigits] >= '0')
+      {
+         if(apszLine[16][nDigits] > '9') break;
+         ++nDigits;
+      }
+      if(apszLine[16][nDigits] != '\0') BBSDEV_REJECT();
+      if(nDigits == 0) BBSDEV_REJECT();
+      if(nDigits > 1)
+         if(apszLine[16][0] == '0') BBSDEV_REJECT();
+      if(nDigits > 20) BBSDEV_REJECT();
+      if(nDigits == 20)
+         if(strcmp(apszLine[16], "18446744073709551615") > 0)
+            BBSDEV_REJECT();
+   }
+   {
+      size_t nDigits = 0;
+      while(apszLine[17][nDigits] >= '0')
+      {
+         if(apszLine[17][nDigits] > '9') break;
+         ++nDigits;
+      }
+      if(apszLine[17][nDigits] != '\0') BBSDEV_REJECT();
+      if(nDigits == 0) BBSDEV_REJECT();
+      if(nDigits > 1)
+         if(apszLine[17][0] == '0') BBSDEV_REJECT();
+      if(nDigits > 20) BBSDEV_REJECT();
+      if(nDigits == 20)
+         if(strcmp(apszLine[17], "18446744073709551615") > 0)
+            BBSDEV_REJECT();
+   }
+
+   /* Communications type and platform support. */
+   if(strcmp(apszLine[1], "local") == 0)
+   {
+      if(apszLine[2][0] != '\0')
+         BBSDEV_REJECT();
+      bLocal = TRUE;
+#ifdef ODPLAT_NIX
+      nMode = kComMethodStdIO;
+#endif
+   }
+   else if(strcmp(apszLine[1], "stdio") == 0)
+   {
+      if(apszLine[2][0] != '\0')
+         BBSDEV_REJECT();
+#ifdef ODPLAT_NIX
+      nMode = kComMethodStdIO;
+#else
+      BBSDEV_REJECT();
+#endif
+   }
+   else if(strcmp(apszLine[1], "socket") == 0
+      || strcmp(apszLine[1], "serial") == 0
+      || strcmp(apszLine[1], "winserial") == 0)
+   {
+      for(nIndex = 0; apszLine[2][nIndex] != '\0'; ++nIndex)
+      {
+         unsigned nDigit;
+         if(apszLine[2][nIndex] < '0') BBSDEV_REJECT();
+         if(apszLine[2][nIndex] > '9') BBSDEV_REJECT();
+         if(nIndex == 0 && apszLine[2][0] == '0'
+            && apszLine[2][1] != '\0') BBSDEV_REJECT();
+         nDigit = (unsigned)(apszLine[2][nIndex] - '0');
+         if(dwNativeValue > (dwNativeMaximum - nDigit) / 10)
+            BBSDEV_REJECT();
+         dwNativeValue = dwNativeValue * 10 + nDigit;
+      }
+      if(nIndex == 0)
+         BBSDEV_REJECT();
+      bHasNativeValue = TRUE;
+      if(strcmp(apszLine[1], "socket") == 0)
+      {
+#if defined(ODPLAT_NIX) || defined(ODPLAT_WIN32)
+         nMode = kComMethodSocket;
+#else
+         BBSDEV_REJECT();
+#endif
+      }
+      else if(strcmp(apszLine[1], "serial") == 0)
+      {
+#ifdef ODPLAT_NIX
+         nMode = kComMethodStdIO;
+#else
+         BBSDEV_REJECT();
+#endif
+      }
+      else
+      {
+#ifdef ODPLAT_WIN32
+         nMode = kComMethodWin32;
+#else
+         BBSDEV_REJECT();
+#endif
+      }
+   }
+   else if(strcmp(apszLine[1], "uart") == 0)
+   {
+      unsigned nAddress = 0;
+      unsigned nIRQ;
+      if(apszLine[2][0] == '\0') BBSDEV_REJECT();
+      if(apszLine[2][4] != ',') BBSDEV_REJECT();
+      if(apszLine[2][5] < '0') BBSDEV_REJECT();
+      if(apszLine[2][5] > '9') BBSDEV_REJECT();
+      if(apszLine[2][6] != '\0')
+      {
+         if(apszLine[2][6] < '0') BBSDEV_REJECT();
+         if(apszLine[2][6] > '9') BBSDEV_REJECT();
+         if(apszLine[2][7] != '\0') BBSDEV_REJECT();
+      }
+      for(nIndex = 0; nIndex < 4; ++nIndex)
+      {
+         char current = apszLine[2][nIndex];
+         unsigned digit;
+         if(current >= '0' && current <= '9')
+            digit = current - '0';
+         else if(current >= 'A' && current <= 'F')
+            digit = current - 'A' + 10;
+         else
+            BBSDEV_REJECT();
+         nAddress = nAddress * 16 + digit;
+      }
+      nIRQ = (unsigned)(apszLine[2][5] - '0');
+      if(apszLine[2][6] != '\0')
+         nIRQ = nIRQ * 10 + (unsigned)(apszLine[2][6] - '0');
+      if(nIRQ > 15)
+         BBSDEV_REJECT();
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+      od_control.od_com_address = (INT16)nAddress;
+      od_control.od_com_irq = (BYTE)nIRQ;
+      nMode = kComMethodUART;
+#else
+      BBSDEV_REJECT();
+#endif
+   }
+   else if(strcmp(apszLine[1], "fossil") == 0)
+   {
+      unsigned nPort = 0;
+      for(nIndex = 0; apszLine[2][nIndex] != '\0'; ++nIndex)
+      {
+         if(apszLine[2][nIndex] < '0') BBSDEV_REJECT();
+         if(apszLine[2][nIndex] > '9') BBSDEV_REJECT();
+         if(nIndex == 0 && apszLine[2][0] == '0'
+            && apszLine[2][1] != '\0') BBSDEV_REJECT();
+         nPort = nPort * 10 + (unsigned)(apszLine[2][nIndex] - '0');
+         if(nPort > 254)
+            BBSDEV_REJECT();
+      }
+      if(nIndex == 0)
+         BBSDEV_REJECT();
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+      od_control.port = (INT16)nPort;
+      nMode = kComMethodFOSSIL;
+#else
+      BBSDEV_REJECT();
+#endif
+   }
+   else
+      BBSDEV_REJECT();
+
+   ODBBSDevCopyText(od_control.user_name, sizeof(od_control.user_name),
+      apszLine[3]);
+   ODBBSDevCopyText(od_control.user_handle, sizeof(od_control.user_handle),
+      apszLine[3]);
+   ODBBSDevCopyText(od_control.system_name, sizeof(od_control.system_name),
+      apszLine[14]);
+   ODBBSDevCopyText(od_control.sysop_name, sizeof(od_control.sysop_name),
+      apszLine[15]);
+   od_control.user_screenwidth = (BYTE)(dwWidth > 255 ? 255 : dwWidth);
+   od_control.user_screen_length = (WORD)dwHeight;
+   od_control.user_ansi = apszLine[7][0] == 'Y';
+   od_control.user_rip = apszLine[8][0] == 'Y';
+   od_control.user_timelimit = bBBSDevDeadlineSet ? 32767 : 0;
+   od_control.od_silent_mode = apszLine[18][0] == 'N'
+      ? TRUE : od_control.od_silent_mode;
+   od_control.od_force_local = bLocal;
+   od_control.od_use_socket = nMode == kComMethodSocket;
+   od_control.od_open_handle = dwNativeValue;
+   bBBSDevOpenHandleSet = bHasNativeValue;
+   nBBSDevComMethod = nMode;
+   bIsSysop = bNamedSysop;
+   bIsCoSysop = bNamedCoSysop;
+   if(!bNamedSysop && !bNamedCoSysop)
+   {
+      DWORD dwAccess = 0;
+      for(nIndex = 0; apszLine[16][nIndex] != '\0' && dwAccess < 65535L;
+         ++nIndex)
+      {
+         dwAccess = dwAccess * 10 + (apszLine[16][nIndex] - '0');
+         if(dwAccess > 65535L) dwAccess = 65535L;
+      }
+      od_control.user_security = (WORD)dwAccess;
+   }
+   {
+      DWORD dwNode = 0;
+      for(nIndex = 0; apszLine[17][nIndex] != '\0' && dwNode < 65535L;
+         ++nIndex)
+      {
+         dwNode = dwNode * 10 + (apszLine[17][nIndex] - '0');
+         if(dwNode > 65535L) dwNode = 65535L;
+      }
+      od_control.od_node = (WORD)dwNode;
+   }
+   od_control.od_cp437_to_utf8_out = stricmp(apszLine[11], "UTF-8") == 0;
+   od_set_user_8bit(TRUE);
+#ifdef ODPLAT_NIX
+   od_control.baud = 1L;
+#else
+   od_control.baud = bLocal ? 0L : 1L;
+#endif
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   if(nMode == kComMethodUART)
+      od_control.od_no_fossil = TRUE;
+   if(nMode == kComMethodUART || nMode == kComMethodFOSSIL)
+      od_control.od_disable |= DIS_BPS_SETTING;
+#elif defined(ODPLAT_NIX)
+   if(nMode == kComMethodStdIO && bHasNativeValue)
+      od_control.od_disable |= DIS_BPS_SETTING;
+#endif
+   od_control.od_info_type = BBSDEVDRP;
+   bBBSDevSession = TRUE;
+   pszBBSDevStorage = pszFile;
+   pszBBSDevUserID = apszLine[4];
+   pszFile = NULL;
+
+finished:
+   fclose(pfFile);
+   if(pszFile != NULL)
+      free(pszFile);
+   if(!bValid)
+   {
+      bBBSDevSession = FALSE;
+      bBBSDevDeadlineSet = FALSE;
+      bBBSDevOpenHandleSet = FALSE;
+      nBBSDevComMethod = kComMethodUnspecified;
+   }
+   return(bValid);
+}
+
+#undef BBSDEV_REJECT
 
 /* ----------------------------------------------------------------------------
  * od_init()
@@ -469,6 +1443,10 @@ ODAPIDEF void ODCALL od_init(void)
       if(bODInitialized) return;
 
       bTelnetSocket = FALSE;
+      bBBSDevSession = FALSE;
+      bBBSDevDeadlineSet = FALSE;
+      bBBSDevOpenHandleSet = FALSE;
+      nBBSDevComMethod = kComMethodUnspecified;
 
       Result = ODSyncSessionInitialize();
       if(Result != kODRCSuccess)
@@ -647,6 +1625,17 @@ malloc_error:
    if(od_control.od_disable & DIS_INFOFILE)
    {
       od_control.od_info_type = NO_DOOR_FILE;
+   }
+
+   /* BBSDEV.DRP uses an explicit full path supplied by the launcher. */
+   else if((pointer = getenv("BBSDEV_DRP")) != NULL)
+   {
+      if(!ODInitReadBBSDevDropFile(pointer))
+      {
+         ODInitError("Unable to read or validate BBSDEV.DRP.");
+         exit(od_control.od_errorlevel[1]);
+      }
+      od_control.od_info_type = BBSDEVDRP;
    }
 
    /* Otherwise, if the local mode override has been explicitly asked for, */
@@ -2396,7 +3385,12 @@ malloc_error:
       }
 
       /* Set socket I/O method, if specified by user. */
-      if(od_control.od_use_socket)
+      if(bBBSDevSession && nBBSDevComMethod != kComMethodUnspecified)
+      {
+         ODComSetPreferredMethod(hSerialPort,
+            (tComMethod)nBBSDevComMethod);
+      }
+      else if(od_control.od_use_socket)
       {
          ODComSetPreferredMethod(hSerialPort, bTelnetSocket
             ? kComMethodTelnetSocket : kComMethodSocket);
@@ -2404,7 +3398,7 @@ malloc_error:
 
 #if defined ODPLAT_WIN32 || defined ODPLAT_NIX
       /* Check whether a handle has been provided by the caller. */
-      if(od_control.od_open_handle != 0)
+      if(od_control.od_open_handle != 0 || bBBSDevOpenHandleSet)
       {
          if(ODComOpenFromExistingHandle(hSerialPort, od_control.od_open_handle)
             != kODRCSuccess)
@@ -2444,12 +3438,16 @@ malloc_error:
          /* port address in serial port object.                             */
          if(od_control.od_com_address != 0)
          {
-            ODComSetPortAddress(hSerialPort, od_control.od_com_address);
+            ODComSetPortAddress(hSerialPort,
+               bBBSDevSession && nBBSDevComMethod == kComMethodUART
+               ? (int)(WORD)od_control.od_com_address
+               : od_control.od_com_address);
          }
 
          /* If serial port IRQ line number has been explicitly set, then */
          /* set user's setting in serial port object.                    */
-         if(od_control.od_com_irq >= 1 && od_control.od_com_irq < 15)
+         if((bBBSDevSession && nBBSDevComMethod == kComMethodUART)
+            || (od_control.od_com_irq >= 1 && od_control.od_com_irq < 15))
          {
             ODComSetIRQ(hSerialPort, od_control.od_com_irq);
          }
@@ -2629,6 +3627,35 @@ malloc_error:
       bODInitialized = FALSE;
       ODInitError("Unable to start the OpenDoors kernel.");
       return;
+   }
+
+   if(bBBSDevSession)
+   {
+      if(bBBSDevDeadlineSet)
+      {
+         time_t nCurrentTime = time(NULL);
+         double dSecondsRemaining = difftime(nBBSDevDeadline, nCurrentTime);
+         INT nMinutesRemaining;
+
+         od_control.od_disable &= ~DIS_TIMEOUT;
+         if(dSecondsRemaining <= 0.0)
+         {
+            nMinutesRemaining = 0;
+            nNextTimeDeductTime = nCurrentTime;
+         }
+         else
+         {
+            double dMinutesRemaining = (dSecondsRemaining + 59.0) / 60.0;
+            nMinutesRemaining = dMinutesRemaining > 32767.0
+               ? 32767 : (INT)dMinutesRemaining;
+            nNextTimeDeductTime = nBBSDevDeadline
+               - (time_t)(nMinutesRemaining - 1) * 60L;
+         }
+         od_control.user_timelimit = nMinutesRemaining;
+         nInitialRemaining = (INT16)nMinutesRemaining;
+      }
+      else
+         od_control.od_disable |= DIS_TIMEOUT;
    }
 
 #ifdef ODPLAT_NIX

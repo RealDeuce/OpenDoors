@@ -66,6 +66,7 @@ static int ut_socket_result;
 static int ut_socket_count;
 static int ut_stdio_result;
 static int ut_stdio_count;
+static int ut_stdio_descriptor;
 
 int utm_ioctl(int descriptor, unsigned long request, ...)
 {
@@ -76,12 +77,12 @@ int utm_ioctl(int descriptor, unsigned long request, ...)
    va_end(arguments);
    UT_ASSERT((unsigned long)FIONREAD == request);
    UT_ASSERT_NOT_NULL(value);
-   if(descriptor == 45)
+   if(descriptor == 45 && ut_stdio_descriptor != 45)
    {
       *value = ut_socket_count;
       return(ut_socket_result);
    }
-   UT_ASSERT_EQ_INT(0, descriptor);
+   UT_ASSERT_EQ_INT(ut_stdio_descriptor, descriptor);
    *value = ut_stdio_count;
    return(ut_stdio_result);
 }
@@ -117,6 +118,7 @@ static void reset_inbound(void)
    ut_socket_count = 0;
    ut_stdio_result = 0;
    ut_stdio_count = 0;
+   ut_stdio_descriptor = STDIN_FILENO;
 #endif
 }
 
@@ -248,6 +250,14 @@ static void reports_stdio_count_and_maps_failure_to_empty(void)
    UT_ASSERT_EQ_INT(kODRCSuccess,
       utt_ODComInbound(ODPTR2HANDLE(&ut_port, tPortInfo), &waiting));
    UT_ASSERT_EQ_INT(0, waiting);
+   waiting = 99;
+   ut_port.bUsingClientsHandle = TRUE;
+   ut_stdio_descriptor = ut_port.socket = 45;
+   ut_stdio_result = 0;
+   ut_stdio_count = 25;
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODComInbound(ODPTR2HANDLE(&ut_port, tPortInfo), &waiting));
+   UT_ASSERT_EQ_INT(25, waiting);
 }
 #endif
 

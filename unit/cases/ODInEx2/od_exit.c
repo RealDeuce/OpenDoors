@@ -208,6 +208,7 @@ static void reset_exit(void)
    bODExitRequestedDuringInitialization = FALSE;
    bODPendingExitNoExit = FALSE;
    bPreOrExit = FALSE; szOriginalDir = NULL; dwFileBPS = 0;
+   pszBBSDevStorage = NULL; pszBBSDevUserID = NULL;
    nInitialRemaining = 30; nStartupUnixTime = 0;
    memset(&ut_ra2_record, 0, sizeof(ut_ra2_record));
    memset(&ut_exitinfo_record, 0, sizeof(ut_exitinfo_record));
@@ -310,13 +311,18 @@ static void resumes_teardown_after_a_completed_prologue(void)
 
 static void resets_exit_state_without_terminating_process(void)
 {
+   char bbsdev_storage;
    reset_exit();
+   pszBBSDevStorage = &bbsdev_storage;
+   pszBBSDevUserID = &bbsdev_storage;
    utt_od_exit(7, FALSE);
    UT_ASSERT_EQ_INT(FALSE, bODInitialized);
    UT_ASSERT_EQ_UINT(1, ut_api_entry_calls);
    UT_ASSERT_EQ_UINT(1, ut_api_exit_calls);
    UT_ASSERT_EQ_UINT(0, ut_process_exit_calls);
    UT_ASSERT_EQ_UINT(1, ut_reserve_shutdown_calls);
+   UT_ASSERT_NULL(pszBBSDevStorage);
+   UT_ASSERT_NULL(pszBBSDevUserID);
 }
 
 static void covers_entry_hooks_time_and_process_exit(void)

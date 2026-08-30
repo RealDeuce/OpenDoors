@@ -222,16 +222,27 @@ void ODCALL utm_od_sleep(tODMilliSec delay)
 #ifdef INCLUDE_STDIO_COM
 #define UT_CUSTOM_MOCK_select
 #define UT_CUSTOM_MOCK_fwrite
+#define UT_CUSTOM_MOCK_write
 static int ut_select_results[14];
 static unsigned ut_select_calls;
 static size_t ut_fwrite_results[4];
 static unsigned ut_fwrite_calls;
+static ssize_t ut_write_results[4];
+static unsigned ut_write_calls;
+static int ut_stdio_descriptor;
 int utm_select(int count, fd_set *read_set, fd_set *write_set,
    fd_set *error_set, struct timeval *timeout)
 {
-   UT_ASSERT_EQ_INT(STDOUT_FILENO + 1, count); UT_ASSERT_NULL(read_set);
+   UT_ASSERT_EQ_INT(ut_stdio_descriptor + 1, count); UT_ASSERT_NULL(read_set);
    UT_ASSERT_NOT_NULL(write_set); UT_ASSERT_NULL(error_set);
    UT_ASSERT_NOT_NULL(timeout); return(ut_select_results[ut_select_calls++]);
+}
+ssize_t utm_write(int descriptor, const void *buffer, size_t size)
+{
+   UT_ASSERT_EQ_INT(ut_stdio_descriptor, descriptor);
+   UT_ASSERT_NOT_NULL(buffer);
+   UT_ASSERT(size > 0);
+   return ut_write_results[ut_write_calls++];
 }
 size_t utm_fwrite(const void *buffer, size_t size, size_t count, FILE *stream)
 {
@@ -285,8 +296,10 @@ static void reset_send_buffer(void)
 #endif
 #ifdef INCLUDE_STDIO_COM
    ut_select_calls = ut_fwrite_calls = 0;
+   ut_write_calls = 0; ut_stdio_descriptor = STDOUT_FILENO;
    for(index = 0; index < 14; ++index) ut_select_results[index] = 1;
    for(index = 0; index < 4; ++index) ut_fwrite_results[index] = 2;
+   for(index = 0; index < 4; ++index) ut_write_results[index] = 2;
 #endif
 }
 
@@ -633,6 +646,33 @@ static void reports_stdio_timeout_error_retry_and_partial_writes(void)
    UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComSendBuffer(
       ODPTR2HANDLE(&ut_port, tPortInfo), data, 2));
    UT_ASSERT_EQ_UINT(1, ut_free_calls);
+   reset_send_buffer(); ut_port.Method = kComMethodStdIO;
+   ut_port.bUsingClientsHandle = TRUE; ut_stdio_descriptor = ut_port.socket = 45;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 2));
+   UT_ASSERT_EQ_UINT(1, ut_write_calls);
+   UT_ASSERT_EQ_UINT(0, ut_fwrite_calls);
+   reset_send_buffer(); ut_port.Method = kComMethodStdIO;
+   ut_fwrite_results[0] = 0;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 2));
+   reset_send_buffer(); ut_port.Method = kComMethodStdIO;
+   od_control.od_cp437_to_utf8_out = TRUE; ut_fwrite_results[0] = 0;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 2));
+   UT_ASSERT_EQ_UINT(1, ut_free_calls);
+   reset_send_buffer(); ut_port.Method = kComMethodStdIO;
+   ut_port.bUsingClientsHandle = TRUE; ut_stdio_descriptor = ut_port.socket = 45;
+   ut_write_results[0] = -1;
+   UT_ASSERT_EQ_INT(kODRCGeneralFailure, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 2));
+   UT_ASSERT_EQ_UINT(1, ut_write_calls);
+   reset_send_buffer(); ut_port.Method = kComMethodStdIO;
+   ut_port.bUsingClientsHandle = TRUE; ut_stdio_descriptor = ut_port.socket = 45;
+   ut_write_results[0] = 1; ut_write_results[1] = 1;
+   UT_ASSERT_EQ_INT(kODRCSuccess, utt_ODComSendBuffer(
+      ODPTR2HANDLE(&ut_port, tPortInfo), data, 2));
+   UT_ASSERT_EQ_UINT(2, ut_write_calls);
 }
 #endif
 

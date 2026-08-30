@@ -9,6 +9,7 @@
 #define UT_CUSTOM_MOCK_ODInQueueAlloc
 #define UT_CUSTOM_MOCK_ODInitError
 #define UT_CUSTOM_MOCK_ODInitPartTwo
+#define UT_CUSTOM_MOCK_ODInitReadBBSDevDropFile
 #define UT_CUSTOM_MOCK_ODInitReadExitInfo
 #define UT_CUSTOM_MOCK_ODInitReadSFDoorsDAT
 #define UT_CUSTOM_MOCK_ODMakeFilename
@@ -93,8 +94,11 @@ static BOOL ut_sfdoors_result;
 static const char *ut_error_text;
 static const char *ut_task_value;
 static const char *ut_sbbs_node_value;
+static const char *ut_bbsdev_path_value;
 static const char *ut_locale_value;
 static BOOL ut_exitinfo_succeeds;
+static BOOL ut_bbsdev_succeeds;
+static unsigned ut_bbsdev_calls;
 static unsigned ut_set_user_8bit_calls;
 static BOOL ut_set_user_8bit_value;
 static BOOL ut_no_file_forces_local;
@@ -385,10 +389,19 @@ void *utm_malloc(size_t size)
 
 char *utm_getenv(const char *name)
 {
+   if(utm_strcmp(name, "BBSDEV_DRP") == 0)
+      return (char *)ut_bbsdev_path_value;
    if(utm_strcmp(name, "TASK") == 0)
       return (char *)ut_task_value;
    UT_ASSERT(utm_strcmp(name, "SBBSNNUM") == 0);
    return (char *)ut_sbbs_node_value;
+}
+
+BOOL utm_ODInitReadBBSDevDropFile(const char *path)
+{
+   ++ut_bbsdev_calls;
+   UT_ASSERT_EQ_PTR(ut_bbsdev_path_value, path);
+   return ut_bbsdev_succeeds;
 }
 
 tODResult utm_ODInQueueAlloc(tODInQueueHandle *queue, INT size)
@@ -619,8 +632,11 @@ static void reset_init_fixture(void)
    ut_error_text = NULL;
    ut_task_value = NULL;
    ut_sbbs_node_value = NULL;
+   ut_bbsdev_path_value = NULL;
    ut_locale_value = "C";
    ut_exitinfo_succeeds = TRUE;
+   ut_bbsdev_succeeds = TRUE;
+   ut_bbsdev_calls = 0;
    ut_set_user_8bit_calls = 0;
    ut_set_user_8bit_value = FALSE;
    ut_no_file_forces_local = FALSE;
@@ -935,6 +951,24 @@ static void handles_disabled_drop_files(void)
    utt_od_init();
    UT_ASSERT_EQ_INT(NO_DOOR_FILE, od_control.od_info_type);
    UT_ASSERT_EQ_UINT(1, ut_part_two_calls);
+}
+
+static void reads_bbsdev_environment_path(void)
+{
+   reset_init_fixture();
+   od_control.od_force_local = FALSE;
+   ut_bbsdev_path_value = "/srv/bbs/node 7/BBSDEV.DRP";
+   utt_od_init();
+   UT_ASSERT_EQ_UINT(1, ut_bbsdev_calls);
+   UT_ASSERT_EQ_INT(14, od_control.od_info_type);
+   UT_ASSERT_EQ_UINT(0, ut_read_count);
+
+   reset_init_fixture();
+   od_control.od_force_local = FALSE;
+   ut_bbsdev_path_value = "/srv/bbs/node 7/BBSDEV.DRP";
+   ut_bbsdev_succeeds = FALSE;
+   run_expecting_fatal_exit();
+   UT_ASSERT_EQ_UINT(1, ut_bbsdev_calls);
 }
 #endif
 
@@ -1632,6 +1666,7 @@ static const UTTestCase ut_cases[] = {
    {"custom and forced local", handles_custom_and_forced_local_inputs},
    {"configuration resume", resumes_after_configuration_callback},
    {"disabled drop files", handles_disabled_drop_files},
+   {"BBSDEV discovery", reads_bbsdev_environment_path},
 #endif
 #if UT_TURBO_SHARD == 0 || UT_TURBO_SHARD == 2
    {"DORINFO", reads_dorinfo_and_each_required_line_failure},

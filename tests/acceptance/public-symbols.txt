@@ -25,6 +25,7 @@ od_get_input_until
 od_get_key
 od_get_time
 od_get_user_8bit
+od_get_user_id
 od_gettext
 od_hotkey_menu
 od_init

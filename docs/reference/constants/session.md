@@ -98,6 +98,22 @@ describe local operation or an inherited socket/handle session. Confirm
 [`od_open_handle`](../control/connection.md#od_open_handle) rather than treating
 the connection number as a DOS COM port.
 
+### `BBSDEVDRP`
+
+The selected file is a version 1 `BBSDEV.DRP` record. OpenDoors discovers it
+from the absolute path in the `BBSDEV_DRP` environment variable, validates the
+UTF-8 record, and treats the file as read-only. See the
+[BBSDEV.DRP specification](https://github.com/RealDeuce/bbsdev.drp).
+
+The format's alias is copied to both `user_name` and `user_handle`. Its opaque
+user key is available through [`od_get_user_id()`](../api/od_get_user_id.md).
+OpenDoors accepts the `IBM437` and `UTF-8` terminal encodings it can represent
+faithfully; other registered character sets are rejected as unsupported.
+The communication type determines whether the session is local or uses an
+inherited raw socket, standard-I/O descriptor, serial descriptor, Windows
+serial handle, UART, or FOSSIL connection when that method is supported on the
+current platform.
+
 ### `NO_DOOR_FILE`
 
 No door-information file was selected. This is the expected result in an

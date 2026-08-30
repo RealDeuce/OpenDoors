@@ -59,6 +59,8 @@
 #define UT_CUSTOM_MOCK_strcpy
 #define UT_CUSTOM_MOCK_strlen
 #define UT_CUSTOM_MOCK_tcgetattr
+#define UT_CUSTOM_MOCK_time
+#define UT_CUSTOM_MOCK_difftime
 
 static int ut_port_token;
 static tPortHandle ut_port = (tPortHandle)&ut_port_token;
@@ -102,6 +104,19 @@ static const char *ut_error_text;
 static jmp_buf ut_exit_target;
 static BOOL ut_exit_expected;
 static BOOL ut_refresh_result;
+static time_t ut_now;
+
+time_t utm_time(time_t *result)
+{
+   if(result != NULL)
+      *result = ut_now;
+   return ut_now;
+}
+
+double utm_difftime(time_t later, time_t earlier)
+{
+   return (double)(later - earlier);
+}
 
 #ifdef ODPLAT_NIX
 static int ut_isatty_result;
@@ -594,6 +609,13 @@ static void reset_part_two_fixture(void)
    nForcedPort = -1;
    dwForcedBPS = 1;
    nInitialRemaining = 0;
+   nNextTimeDeductTime = 0;
+   bBBSDevSession = FALSE;
+   bBBSDevDeadlineSet = FALSE;
+   nBBSDevDeadline = 0;
+   nBBSDevComMethod = kComMethodUnspecified;
+   bBBSDevOpenHandleSet = FALSE;
+   ut_now = 100;
    bPromptForUserName = FALSE;
    bSysopNameSet = FALSE;
    bTelnetSocket = FALSE;
@@ -719,6 +741,42 @@ static void preserves_configured_defaults_and_caps_session_time(void)
    UT_ASSERT(strcmp("CUSTOM.LOG", od_control.od_logfile_name) == 0);
 }
 
+static void initializes_bbsdev_time_limit(void)
+{
+   reset_part_two_fixture();
+   bBBSDevSession = TRUE;
+   bBBSDevDeadlineSet = TRUE;
+   nBBSDevDeadline = 221;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_INT(3, od_control.user_timelimit);
+   UT_ASSERT_EQ_INT(3, nInitialRemaining);
+   UT_ASSERT_EQ_INT((time_t)101, nNextTimeDeductTime);
+   UT_ASSERT(!(od_control.od_disable & DIS_TIMEOUT));
+
+   reset_part_two_fixture();
+   bBBSDevSession = TRUE;
+   bBBSDevDeadlineSet = TRUE;
+   nBBSDevDeadline = 99;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_INT(0, od_control.user_timelimit);
+   UT_ASSERT_EQ_INT((time_t)100, nNextTimeDeductTime);
+
+   reset_part_two_fixture();
+   bBBSDevSession = TRUE;
+   bBBSDevDeadlineSet = TRUE;
+   nBBSDevDeadline = 4000000;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_INT(32767, od_control.user_timelimit);
+   UT_ASSERT_EQ_INT((time_t)2034040, nNextTimeDeductTime);
+
+   reset_part_two_fixture();
+   bBBSDevSession = TRUE;
+   od_control.od_disable = DIS_TIMEOUT | DIS_NAME_PROMPT;
+   utt_ODInitPartTwo();
+   UT_ASSERT(od_control.od_disable & DIS_TIMEOUT);
+   UT_ASSERT(od_control.od_disable & DIS_NAME_PROMPT);
+}
+
 static void exercises_maximum_time_decision_boundaries(void)
 {
    reset_part_two_fixture();
@@ -828,6 +886,45 @@ static void exercises_serial_configuration_matrix(void)
    utt_ODInitPartTwo();
    UT_ASSERT_EQ_UINT(1, ut_preferred_calls);
    UT_ASSERT_EQ_INT(kComMethodTelnetSocket, ut_preferred_method);
+
+   reset_part_two_fixture();
+   bBBSDevSession = TRUE;
+   nBBSDevComMethod = kComMethodStdIO;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(1, ut_preferred_calls);
+   UT_ASSERT_EQ_INT(kComMethodStdIO, ut_preferred_method);
+
+   reset_part_two_fixture();
+   bBBSDevSession = TRUE;
+   nBBSDevComMethod = kComMethodUnspecified;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(0, ut_preferred_calls);
+
+#if defined(ODPLAT_NIX) || defined(ODPLAT_WIN32)
+   reset_part_two_fixture();
+   bBBSDevOpenHandleSet = TRUE;
+   od_control.od_open_handle = 0;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_UINT(1, ut_existing_calls);
+#endif
+
+   reset_part_two_fixture();
+   bBBSDevSession = TRUE;
+   nBBSDevComMethod = kComMethodUART;
+   od_control.od_com_address = -1;
+   od_control.od_com_irq = 0;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_INT(65535, ut_address);
+   UT_ASSERT_EQ_UINT(1, ut_preferred_calls);
+   UT_ASSERT_EQ_INT(0, ut_irq);
+
+   reset_part_two_fixture();
+   bBBSDevSession = TRUE;
+   nBBSDevComMethod = kComMethodStdIO;
+   od_control.od_com_address = 1016;
+   od_control.od_com_irq = 0;
+   utt_ODInitPartTwo();
+   UT_ASSERT_EQ_INT(1016, ut_address);
 
    for(index = 0; index < DIM(flows); ++index)
    {
@@ -1155,6 +1252,7 @@ static void exercises_dos_local_prompt_and_personality_paths(void)
 static const UTTestCase ut_cases[] = {
    {"defaults", initializes_defaults_and_a_serial_session},
    {"configured values", preserves_configured_defaults_and_caps_session_time},
+   {"BBSDEV time", initializes_bbsdev_time_limit},
    {"maximum-time boundaries", exercises_maximum_time_decision_boundaries},
    {"RIP and log callback", clears_rip_and_invokes_the_log_component},
    {"forced local and BPS", exercises_forced_local_name_and_bps_decisions},

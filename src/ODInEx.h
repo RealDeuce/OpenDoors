@@ -445,6 +445,13 @@ extern char *szOriginalDir;
 extern BYTE btDoorSYSLock;
 extern time_t nStartupUnixTime;
 extern INT16 nInitialRemaining;
+extern BOOL bBBSDevSession;
+extern BOOL bBBSDevDeadlineSet;
+extern time_t nBBSDevDeadline;
+extern INT nBBSDevComMethod;
+extern BOOL bBBSDevOpenHandleSet;
+extern char *pszBBSDevStorage;
+extern char *pszBBSDevUserID;
 extern BOOL bSysopNameSet;
 extern char szForcedSysopName[40];
 extern BOOL bSystemNameSet;
@@ -461,6 +468,8 @@ extern BOOL bPreOrExit;
 extern BOOL bRAStatus;
 extern BOOL bPromptForUserName;
 extern BOOL bParsedCmdLine;
+
+BOOL ODInitReadBBSDevDropFile(const char *pszPath);
 extern WORD wPreSetInfo;
 #ifdef ODPLAT_WIN32
 extern tODThreadHandle hFrameThread;

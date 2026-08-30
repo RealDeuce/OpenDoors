@@ -49,6 +49,12 @@ different working directory should accept the information path from the BBS
 launch command or configuration rather than assuming that the BBS directory is
 current.
 
+If the `BBSDEV_DRP` environment variable is set while door-information reading
+is enabled, its value is interpreted as the absolute path of a version 1
+`BBSDEV.DRP` file. This explicit handoff takes precedence over the ordinary
+drop-file search. OpenDoors rejects a malformed record or an unsupported
+communication method instead of falling back. The input file is read-only.
+
 The bit flags in
 [`od_control.od_disable`](../control/customization.md#od_disable) can suppress
 selected initialization and runtime activities. For example,
@@ -130,5 +136,5 @@ static void door(void)
 ## See also
 
 [`od_parse_cmd_line()`](od_parse_cmd_line.md), [`od_kernel()`](od_kernel.md),
-[`od_exit()`](od_exit.md), [Session
+[`od_get_user_id()`](od_get_user_id.md), [`od_exit()`](od_exit.md), [Session
 lifecycle](../../guides/session-lifecycle.md)

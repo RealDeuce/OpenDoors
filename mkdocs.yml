@@ -129,6 +129,7 @@ nav:
           - od_reserve_wait_until: reference/api/od_reserve_wait_until.md
           - od_reserve_end: reference/api/od_reserve_end.md
           - od_get_user_8bit: reference/api/od_get_user_8bit.md
+          - od_get_user_id: reference/api/od_get_user_id.md
           - od_control_get: reference/api/od_control_get.md
   - Data reference:
       - Types and callbacks: reference/types.md

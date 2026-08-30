@@ -201,17 +201,29 @@ void ODCALL utm_od_sleep(tODMilliSec delay) { UT_ASSERT(delay == 50); }
 #ifdef INCLUDE_STDIO_COM
 #define UT_CUSTOM_MOCK_select
 #define UT_CUSTOM_MOCK_fwrite
+#define UT_CUSTOM_MOCK_write
 static int ut_stdio_select_results[12];
 static unsigned ut_stdio_select_calls;
 static unsigned ut_fwrite_calls;
 static size_t ut_fwrite_result;
+static ssize_t ut_write_result;
+static unsigned ut_write_calls;
+static int ut_stdio_descriptor;
 int utm_select(int count, fd_set *read_set, fd_set *write_set,
    fd_set *error_set, struct timeval *timeout)
 {
-   UT_ASSERT_EQ_INT(STDOUT_FILENO + 1, count); UT_ASSERT_NULL(read_set);
+   UT_ASSERT_EQ_INT(ut_stdio_descriptor + 1, count); UT_ASSERT_NULL(read_set);
    UT_ASSERT_NOT_NULL(write_set); UT_ASSERT_NULL(error_set);
    UT_ASSERT_NOT_NULL(timeout);
    return(ut_stdio_select_results[ut_stdio_select_calls++]);
+}
+ssize_t utm_write(int descriptor, const void *buffer, size_t size)
+{
+   UT_ASSERT_EQ_INT(ut_stdio_descriptor, descriptor);
+   UT_ASSERT_EQ_INT(0xa5, *(const BYTE *)buffer);
+   UT_ASSERT_EQ_UINT(1, size);
+   ++ut_write_calls;
+   return ut_write_result;
 }
 size_t utm_fwrite(const void *buffer, size_t size, size_t count, FILE *stream)
 {
@@ -256,6 +268,8 @@ static void reset_send(void)
 #endif
 #ifdef INCLUDE_STDIO_COM
    ut_stdio_select_calls = 0; ut_fwrite_calls = 0; ut_fwrite_result = 1;
+   ut_write_calls = 0; ut_write_result = 1;
+   ut_stdio_descriptor = STDOUT_FILENO;
    for(index = 0; index < 12; ++index) ut_stdio_select_results[index] = 1;
 #endif
 }
@@ -427,6 +441,12 @@ static void reports_stdio_select_and_write_outcomes(void)
    errno = EINTR;
    UT_ASSERT_EQ_INT(kODRCSuccess,
       utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
+   reset_send(); ut_port.Method = kComMethodStdIO;
+   ut_port.bUsingClientsHandle = TRUE; ut_stdio_descriptor = ut_port.socket = 45;
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODComSendByte(ODPTR2HANDLE(&ut_port, tPortInfo), 0xa5));
+   UT_ASSERT_EQ_UINT(1, ut_write_calls);
+   UT_ASSERT_EQ_UINT(0, ut_fwrite_calls);
 }
 #endif
 

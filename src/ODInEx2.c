@@ -898,6 +898,12 @@ ODAPIDEF void ODCALL od_exit(INT nErrorLevel, BOOL bTermCall)
    {
       free(apszDropFileInfo[btCount]);
    }
+   if(pszBBSDevStorage != NULL)
+   {
+      free(pszBBSDevStorage);
+      pszBBSDevStorage = NULL;
+      pszBBSDevUserID = NULL;
+   }
 
    /* If logfile system is active. */
    if(pfLogClose != NULL)

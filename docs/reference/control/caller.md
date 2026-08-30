@@ -442,6 +442,9 @@ char od_control.user_handle[36];
 
 This variable contains the user's alias or handle name, if any. If the user does not have an alias or handle, this variable will be blank. Door-information formats which supply it include `CHAIN.TXT`, RA 1.00 and later extended `EXITINFO.BBS`, and Wildcat-style `DOOR.SYS`.
 
+For `BBSDEV.DRP`, this field contains the caller alias and is identical to
+`user_name`.
+
 During a Unix forced-local login, OpenDoors replaces this field with the login
 name from the current user's account record. If that record or its login name
 is unavailable, the existing field is retained. OpenDoors reads the handle for
@@ -585,6 +588,11 @@ Forced-local initialization uses the configured sysop name as its initial
 caller name. On Unix, OpenDoors replaces that value with the GECOS name from
 the current user's account record when one is available. If the account record
 or its GECOS string is unavailable, the existing caller name is retained.
+
+For `BBSDEV.DRP`, the format supplies an alias rather than a real-name field;
+OpenDoors stores that alias here as well as in `user_handle`. Use
+[`od_get_user_id()`](../api/od_get_user_id.md) when the door needs a stable
+caller identity rather than display text.
 
 In most cases, a door should not change this value because a user's name does
 not normally change and some BBS formats write the modified value back when

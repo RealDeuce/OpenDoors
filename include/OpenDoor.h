@@ -510,6 +510,7 @@ typedef struct
 #define RA2EXITINFO           11                    /* RA 2.00+ EXITINFO.BBS */
 #define TRIBBSSYS             12                               /* TRIBBS.SYS */
 #define DOOR32SYS             13                               /* DOOR32.SYS */
+#define BBSDEVDRP             14                               /* BBSDEV.DRP */
 #define NO_DOOR_FILE          100      /* No door information file was found */
 
 /* Error type (od_control.od_error). */
@@ -1083,6 +1084,7 @@ od_control;
  *    od_reserve_wait_until() - Waits until a session-time deadline
  *    od_reserve_end()        - Leaves the current reservation queue
  *    od_get_user_8bit()      - Reports eight-bit caller data support
+ *    od_get_user_id()        - Returns a stable caller identifier
  *    od_set_user_8bit()      - Records eight-bit caller data support
  *    od_control_get()        - Returns a pointer to the od_control structure.
  */
@@ -1113,6 +1115,7 @@ ODAPIDEF void ODCALL   od_get_cursor(INT *pnRow, INT *pnColumn);
 ODAPIDEF void ODCALL   od_get_time(DWORD *pdwSeconds,
                           WORD *pwMilliseconds);
 ODAPIDEF BOOL ODCALL   od_get_user_8bit(void);
+ODAPIDEF const char * ODCALL od_get_user_id(void);
 ODAPIDEF BOOL ODCALL   od_get_input(tODInputEvent *pInputEvent,
                           tODMilliSec TimeToWait, WORD wFlags);
 ODAPIDEF BOOL ODCALL   od_get_input_until(tODInputEvent *pInputEvent,

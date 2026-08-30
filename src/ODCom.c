@@ -1937,6 +1937,16 @@ tODResult ODComOpenFromExistingHandle(tPortHandle hPort,
    }
 #endif /* INCLUDE_SOCKET_COM */
 
+#ifdef ODPLAT_NIX
+   if(pPortInfo->Method == kComMethodStdIO)
+   {
+      pPortInfo->socket = (int)dwExistingHandle;
+      pPortInfo->bUsingClientsHandle = TRUE;
+      pPortInfo->bIsOpen = TRUE;
+      return(kODRCSuccess);
+   }
+#endif
+
 #ifdef INCLUDE_WIN32_COM
 
    /* Store handle to the Win32 handle to the serial port. */
@@ -2762,7 +2772,9 @@ tODResult ODComInbound(tPortHandle hPort, int *pnInboundWaiting)
 
 #ifdef INCLUDE_STDIO_COM
       case kComMethodStdIO:
-			if(ioctl(0,FIONREAD,pnInboundWaiting) == -1)
+			if(ioctl(pPortInfo->bUsingClientsHandle
+			   ? pPortInfo->socket : STDIN_FILENO,
+			   FIONREAD,pnInboundWaiting) == -1)
 				*pnInboundWaiting = 0;
 			break;
 #endif
@@ -3131,10 +3143,12 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 			struct	timeval tv;
 			int		select_ret=-1;
 			int		recv_ret;
+			int		descriptor = pPortInfo->bUsingClientsHandle
+			   ? pPortInfo->socket : STDIN_FILENO;
 
 			while(select_ret==-1) {
 				FD_ZERO(&socket_set);
-				FD_SET(STDIN_FILENO,&socket_set);
+				FD_SET(descriptor,&socket_set);
 
 				tODMilliSec wait = ODMaxMSToWait;
 				if (wait == OD_NO_TIMEOUT || wait > 200)
@@ -3142,7 +3156,8 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 				tv.tv_sec=0;
 				tv.tv_usec=wait * 1000;
 
-				select_ret = select(STDIN_FILENO+1, &socket_set, NULL, NULL, bWait ? NULL : &tv);
+				select_ret = select(descriptor+1, &socket_set, NULL, NULL,
+				   bWait ? NULL : &tv);
 				if (select_ret == -1) {
 					if(errno==EINTR)
 						continue;
@@ -3152,7 +3167,7 @@ tODResult ODComGetByte(tPortHandle hPort, char *pbtNext, BOOL bWait)
 					return (kODRCNothingWaiting);
 			}
 
-			recv_ret = read(STDIN_FILENO, pbtNext, 1);
+			recv_ret = read(descriptor, pbtNext, 1);
 			if(recv_ret == 1)
 				break;
 			return (kODRCGeneralFailure);
@@ -3470,15 +3485,17 @@ keep_going:
 		struct  timeval tv;
 		int             retval=-1;
 		int	loopcount=0;
+		int descriptor = pPortInfo->bUsingClientsHandle
+		   ? pPortInfo->socket : STDOUT_FILENO;
 
 		while(retval==-1 && loopcount < 10) {
 			FD_ZERO(&fdset);
-			FD_SET(STDOUT_FILENO,&fdset);
+			FD_SET(descriptor,&fdset);
 
 			tv.tv_sec=1;
 			tv.tv_usec=0;
 
-			retval=select(STDOUT_FILENO+1,NULL,&fdset,NULL,&tv);
+			retval=select(descriptor+1,NULL,&fdset,NULL,&tv);
 			if(retval!=1) {
 				if(retval==0)  {
 					retval=-1;
@@ -3494,7 +3511,9 @@ keep_going:
 	    if(retval != 1)
 		   return(kODRCGeneralFailure);
 
-	    if(fwrite(&btToSend,1,1,stdout)!=1)
+	    if((pPortInfo->bUsingClientsHandle
+	       ? write(descriptor, &btToSend, 1)
+	       : (ssize_t)fwrite(&btToSend,1,1,stdout)) != 1)
 		   return(kODRCGeneralFailure);
 		break;
 		}
@@ -4164,15 +4183,17 @@ try_again:
 			struct  timeval tv;
 			int     retval;
 			int	loopcount=0;
+			int descriptor = pPortInfo->bUsingClientsHandle
+			   ? pPortInfo->socket : STDOUT_FILENO;
 
 			while(pos<nSize) {
 				FD_ZERO(&fdset);
-				FD_SET(STDOUT_FILENO,&fdset);
+				FD_SET(descriptor,&fdset);
 
 				tv.tv_sec=1;
 				tv.tv_usec=0;
 
-				retval=select(STDOUT_FILENO+1,NULL,&fdset,NULL,&tv);
+				retval=select(descriptor+1,NULL,&fdset,NULL,&tv);
 				if(retval!=1) {
 					if(retval==0) {
 						if(++loopcount>10) {
@@ -4187,7 +4208,13 @@ try_again:
 					return(kODRCGeneralFailure);
 				}
 
-				retval=fwrite(buf+pos,1,nSize-pos,stdout);
+				retval=pPortInfo->bUsingClientsHandle
+				   ? (int)write(descriptor, buf+pos, nSize-pos)
+				   : (int)fwrite(buf+pos,1,nSize-pos,stdout);
+				if(retval <= 0) {
+               if(pConvertedBuffer != NULL) free(pConvertedBuffer);
+					return(kODRCGeneralFailure);
+            }
 				if(retval!=nSize-pos) {
 #ifdef OD_THREAD_SUPPORT
 					ODThreadSleep(1);

@@ -1624,6 +1624,30 @@
     },
     {
       "source": "src/ODInEx1.c",
+      "function": "od_get_user_id",
+      "case": "unit/cases/ODInEx1/od_get_user_id.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "src/ODInEx1.c",
+      "function": "ODBBSDevLanguageTagValid",
+      "case": "unit/cases/ODInEx1/LangTag.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "src/ODInEx1.c",
+      "function": "ODBBSDevCopyText",
+      "case": "unit/cases/ODInEx1/CopyText.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "src/ODInEx1.c",
+      "function": "ODBBSDevAbsolutePath",
+      "case": "unit/cases/ODInEx1/Path.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
+    },
+    {
+      "source": "src/ODInEx1.c",
       "function": "ODFramingIsEightBit",
       "case": "unit/cases/ODInEx1/ODFramingIsEightBit.c",
       "platforms": ["unix", "windows", "dos16", "dos32"]
@@ -1669,6 +1693,12 @@
       "function": "ODInitLoginDlgProc",
       "case": "unit/cases/ODInEx1/ODInitLoginDlgProc.c",
       "platforms": ["windows"]
+    },
+    {
+      "source": "src/ODInEx1.c",
+      "function": "ODInitReadBBSDevDropFile",
+      "case": "unit/cases/ODInEx1/BBSDev.c",
+      "platforms": ["unix", "windows", "dos16", "dos32"]
     },
     {
       "source": "src/ODInEx1.c",

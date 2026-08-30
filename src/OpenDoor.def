@@ -161,3 +161,5 @@ EXPORTS
    od_reserve_end=_od_reserve_end@0 @155
    _pdef_od_onerow@4=_pdef_od_onerow@4 @156
    pdef_od_onerow=_pdef_od_onerow@4 @157
+   _od_get_user_id@0=_od_get_user_id@0 @158
+   od_get_user_id=_od_get_user_id@0 @159

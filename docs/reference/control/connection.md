@@ -61,12 +61,24 @@ caller and system fields were obtained:
 | [`DOORSYS_WILDCAT`](../constants/session.md#doorsys_wildcat) | Wildcat-style `DOOR.SYS` |
 | [`TRIBBSSYS`](../constants/session.md#tribbssys) | `TRIBBS.SYS` |
 | [`DOOR32SYS`](../constants/session.md#door32sys) | `DOOR32.SYS` |
+| [`BBSDEVDRP`](../constants/session.md#bbsdevdrp) | `BBSDEV.DRP` from `BBSDEV_DRP` |
 | [`CUSTOM`](../constants/session.md#custom) | Application/configuration-defined record |
 | [`NO_DOOR_FILE`](../constants/session.md#no_door_file) | No door-information file is in use |
 
 The uninitialized value is zero, which is numerically equal to [`DORINFO1`](../constants/session.md#dorinfo1) but
 does not mean that such a file has been found. The field must not be inspected
 as a result until initialization is complete.
+
+When `BBSDEV_DRP` is set and door-information reading is enabled, its value
+must be the full absolute native path of a `BBSDEV.DRP` file. OpenDoors uses
+that file directly instead of the ordinary filename search. An invalid file,
+unsupported communication type, relative path, or communication type not
+available on the current platform is a fatal initialization error; OpenDoors
+does not silently fall back to another drop file.
+
+The `socket` communication type is an inherited raw byte-stream socket, not a
+Telnet socket. `stdio` and POSIX `serial` use the inherited descriptor named by
+the record. The file is never rewritten during [`od_exit()`](../api/od_exit.md).
 
 OpenDoors writes this member while selecting and parsing the input format and
 reads it later for status presentation and for format-specific updates in

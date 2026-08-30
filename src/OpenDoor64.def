@@ -86,3 +86,4 @@ EXPORTS
    od_reserve_wait_until @79
    od_reserve_end @80
    pdef_od_onerow @81
+   od_get_user_id @82

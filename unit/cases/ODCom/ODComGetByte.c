@@ -210,17 +210,18 @@ void ODCALL utm_od_sleep(tODMilliSec delay)
 static int ut_stdio_select[3];
 static unsigned ut_stdio_select_calls;
 static int ut_stdio_read_result;
+static int ut_stdio_descriptor;
 int utm_select(int count, fd_set *read_set, fd_set *write_set,
    fd_set *error_set, struct timeval *timeout)
 {
-   UT_ASSERT_EQ_INT(STDIN_FILENO + 1, count); UT_ASSERT_NOT_NULL(read_set);
+   UT_ASSERT_EQ_INT(ut_stdio_descriptor + 1, count); UT_ASSERT_NOT_NULL(read_set);
    UT_ASSERT_NULL(write_set); UT_ASSERT_NULL(error_set);
    UT_ASSERT(timeout == NULL || timeout->tv_usec <= 200000);
    return(ut_stdio_select[ut_stdio_select_calls++]);
 }
 ssize_t utm_read(int descriptor, void *buffer, size_t size)
 {
-   UT_ASSERT_EQ_INT(STDIN_FILENO, descriptor); UT_ASSERT_EQ_UINT(1, size);
+   UT_ASSERT_EQ_INT(ut_stdio_descriptor, descriptor); UT_ASSERT_EQ_UINT(1, size);
    if(ut_stdio_read_result == 1) *(BYTE *)buffer = 0x5d;
    return(ut_stdio_read_result);
 }
@@ -260,6 +261,7 @@ static void reset_get(void)
 #endif
 #ifdef INCLUDE_STDIO_COM
    ut_stdio_select_calls = 0; ut_stdio_read_result = 1;
+   ut_stdio_descriptor = STDIN_FILENO;
    for(index = 0; index < 3; ++index) ut_stdio_select[index] = 1;
    ODMaxMSToWait = OD_NO_TIMEOUT;
 #endif
@@ -577,6 +579,11 @@ static void reports_stdio_select_and_read_outcomes(void)
    reset_get(); ut_port.Method = kComMethodStdIO; ut_stdio_read_result = 0;
    UT_ASSERT_EQ_INT(kODRCGeneralFailure,
       utt_ODComGetByte(ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   reset_get(); ut_port.Method = kComMethodStdIO;
+   ut_port.bUsingClientsHandle = TRUE; ut_stdio_descriptor = ut_port.socket = 45;
+   UT_ASSERT_EQ_INT(kODRCSuccess,
+      utt_ODComGetByte(ODPTR2HANDLE(&ut_port, tPortInfo), &value, TRUE));
+   UT_ASSERT_EQ_INT(0x5d, (BYTE)value);
 }
 #endif
 
