@@ -71,6 +71,17 @@ The `OpenDoors::Shared` and `OpenDoors::Static` CMake targets are available
 both from `add_subdirectory()` and from the installed package when their
 corresponding variants were built.
 
+Installs also provide pkg-config metadata under the conventional
+`${libdir}/pkgconfig` directory. `opendoors.pc` selects the shared library when
+it is available and otherwise selects the static library. Explicit
+`opendoors-shared.pc`, `opendoors-static.pc`, and MSVC-only
+`opendoors-static-mt.pc` files are installed with their corresponding library
+variants. For example:
+
+```sh
+cc mydoor.c -o mydoor $(pkg-config --cflags --libs opendoors)
+```
+
 ## Testing
 
 The test automation has four distinct layers:

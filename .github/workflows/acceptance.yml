@@ -326,6 +326,11 @@ jobs:
       - name: Build installed public consumer
         shell: msys2 {0}
         run: |
+          package=opendoors-${{ matrix.variant == 'Shared' && 'shared' || 'static' }}
+          export PKG_CONFIG_PATH="$PWD/build/install/lib/pkgconfig"
+          test "$(pkg-config --modversion "$package")" = "$(head -n 1 VERSION)"
+          gcc tests/link_smoke.c -o build/pkg-config-smoke \
+            $(pkg-config --cflags --libs "$package")
           cmake \
             -S tests/acceptance \
             -B build/acceptance \

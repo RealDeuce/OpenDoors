@@ -56,6 +56,76 @@ write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/OpenDoorsConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY SameMinorVersion)
+
+if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
+    set(OPENDOORS_PC_PREFIX "${CMAKE_INSTALL_PREFIX}")
+    set(OPENDOORS_PC_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+else()
+    file(RELATIVE_PATH OPENDOORS_PC_PREFIX_FROM_PCFILEDIR
+        "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/pkgconfig"
+        "${CMAKE_INSTALL_PREFIX}")
+    set(OPENDOORS_PC_PREFIX
+        "\${pcfiledir}/${OPENDOORS_PC_PREFIX_FROM_PCFILEDIR}")
+    set(OPENDOORS_PC_LIBDIR "\${prefix}/${CMAKE_INSTALL_LIBDIR}")
+endif()
+if(IS_ABSOLUTE "${CMAKE_INSTALL_INCLUDEDIR}")
+    set(OPENDOORS_PC_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}")
+else()
+    set(OPENDOORS_PC_INCLUDEDIR
+        "\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
+endif()
+
+function(opendoors_configure_pc filename name description libs cflags)
+    set(OPENDOORS_PC_NAME "${name}")
+    set(OPENDOORS_PC_DESCRIPTION "${description}")
+    set(OPENDOORS_PC_LIBS "-L\${libdir} ${libs}")
+    set(OPENDOORS_PC_CFLAGS "-I\${includedir}")
+    if(cflags)
+        string(APPEND OPENDOORS_PC_CFLAGS " ${cflags}")
+    endif()
+    configure_file(cmake/opendoors.pc.in "${filename}" @ONLY)
+    set(OPENDOORS_PC_FILES ${OPENDOORS_PC_FILES}
+        "${CMAKE_CURRENT_BINARY_DIR}/${filename}" PARENT_SCOPE)
+endfunction()
+
+if(WIN32)
+    set(OPENDOORS_PC_SHARED_LIBS "-lODoorW")
+    set(OPENDOORS_PC_STATIC_LIBS
+        "-lODoors-static -lws2_32 -luser32 -lgdi32 -ladvapi32 -lshell32 -luuid -lcomctl32")
+    set(OPENDOORS_PC_STATIC_MT_LIBS
+        "-lODoors-static-mt -lws2_32 -luser32 -lgdi32 -ladvapi32 -lshell32 -luuid -lcomctl32")
+    set(OPENDOORS_PC_STATIC_CFLAGS "-DOD_WIN32_STATIC")
+else()
+    set(OPENDOORS_PC_SHARED_LIBS "-lODoors")
+    set(OPENDOORS_PC_STATIC_LIBS "-lODoors")
+    set(OPENDOORS_PC_STATIC_MT_LIBS "-lODoors")
+    set(OPENDOORS_PC_STATIC_CFLAGS "")
+endif()
+
+set(OPENDOORS_PC_FILES)
+if(OPENDOORS_BUILD_SHARED)
+    opendoors_configure_pc(opendoors.pc OpenDoors
+        "OpenDoors shared library" "${OPENDOORS_PC_SHARED_LIBS}" "")
+    opendoors_configure_pc(opendoors-shared.pc OpenDoors-Shared
+        "OpenDoors shared library" "${OPENDOORS_PC_SHARED_LIBS}" "")
+else()
+    opendoors_configure_pc(opendoors.pc OpenDoors
+        "OpenDoors static library" "${OPENDOORS_PC_STATIC_LIBS}"
+        "${OPENDOORS_PC_STATIC_CFLAGS}")
+endif()
+if(OPENDOORS_BUILD_STATIC)
+    opendoors_configure_pc(opendoors-static.pc OpenDoors-Static
+        "OpenDoors static library" "${OPENDOORS_PC_STATIC_LIBS}"
+        "${OPENDOORS_PC_STATIC_CFLAGS}")
+endif()
+if(OPENDOORS_BUILD_MSVC_STATIC_MT)
+    opendoors_configure_pc(opendoors-static-mt.pc OpenDoors-StaticMT
+        "OpenDoors static library using the MSVC static runtime"
+        "${OPENDOORS_PC_STATIC_MT_LIBS}" "${OPENDOORS_PC_STATIC_CFLAGS}")
+endif()
+install(FILES ${OPENDOORS_PC_FILES}
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/OpenDoorsConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/OpenDoorsConfigVersion.cmake"

@@ -14,6 +14,25 @@ set_target_properties(opendoors_vote_io_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 add_test(NAME vote_io COMMAND opendoors_vote_io_test)
 
+if((UNIX OR MINGW) AND NOT IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
+    find_program(OPENDOORS_PKG_CONFIG_EXECUTABLE pkg-config)
+    if(OPENDOORS_PKG_CONFIG_EXECUTABLE)
+        add_test(NAME pkg_config_install
+            COMMAND "${CMAKE_COMMAND}"
+                "-DOPENDOORS_BINARY_DIR=${CMAKE_BINARY_DIR}"
+                "-DOPENDOORS_C_COMPILER=${CMAKE_C_COMPILER}"
+                "-DOPENDOORS_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}"
+                "-DOPENDOORS_PKG_CONFIG=${OPENDOORS_PKG_CONFIG_EXECUTABLE}"
+                "-DOPENDOORS_SHARED=${OPENDOORS_BUILD_SHARED}"
+                "-DOPENDOORS_SOURCE=${CMAKE_CURRENT_SOURCE_DIR}/link_smoke.c"
+                "-DOPENDOORS_STATIC=${OPENDOORS_BUILD_STATIC}"
+                "-DOPENDOORS_STATIC_MT=${OPENDOORS_BUILD_MSVC_STATIC_MT}"
+                "-DOPENDOORS_TEST_CONFIG=$<CONFIG>"
+                "-DOPENDOORS_VERSION=${PROJECT_VERSION}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/pkg_config_install_test.cmake")
+    endif()
+endif()
+
 if(OPENDOORS_BUILD_STATIC)
     foreach(name IN ITEMS
         safety command_line_values exitinfo_traffic draw_box_bounds
