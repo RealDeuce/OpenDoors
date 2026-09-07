@@ -24,6 +24,7 @@ CTYPE_APIS = {
     "tolower", "toupper",
 }
 HEADER_MACRO_APIS = CTYPE_APIS | {
+    "ferror",
     "fprintf",
     "memchr", "memcmp", "memcpy", "memmove", "memset",
     "localtime", "mktime", "printf",
@@ -39,6 +40,7 @@ POSIX_HEADER_APIS = {
 }
 
 HEADER_MOCK_DECLARATIONS = {
+    "ferror": "int utm_ferror(FILE *);",
     "isalnum": "int utm_isalnum(int);",
     "isalpha": "int utm_isalpha(int);",
     "isblank": "int utm_isblank(int);",
@@ -120,10 +122,10 @@ def explicit_mock_names(case_text: str,
                         flags: list[str] | None = None) -> set[str]:
     """Return modern-header APIs a case explicitly requires intercepted."""
     flags = flags or []
+    result = set(CUSTOM_MOCK.findall(case_text)) & HEADER_MACRO_APIS
     if any(flag.startswith(("-D__WATCOMC__", "-D__TURBOC__"))
            for flag in flags):
-        return set()
-    result = set(CUSTOM_MOCK.findall(case_text)) & HEADER_MACRO_APIS
+        return result & {"ferror"}
     if any(flag.startswith("-D__unix__") for flag in flags):
         result -= ODSTR_COMPATIBILITY_APIS
     else:
@@ -135,7 +137,7 @@ def late_mock_names(names: set[str], flags: list[str]) -> set[str]:
     """Return dependencies whose aliases must follow modern CRT headers."""
     if any(flag.startswith(("-D__WATCOMC__", "-D__TURBOC__"))
            for flag in flags):
-        return set()
+        return names & {"ferror"}
     result = names & HEADER_MACRO_APIS
     if any(flag.startswith("-D__unix__") for flag in flags):
         result -= ODSTR_COMPATIBILITY_APIS

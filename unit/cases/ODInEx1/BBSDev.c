@@ -640,13 +640,16 @@ static void accepts_modes(void)
    UT_ASSERT_EQ_INT(kComMethodUART, nBBSDevComMethod);
    UT_ASSERT_EQ_INT(0x03f8, od_control.od_com_address);
    UT_ASSERT_EQ_INT(4, od_control.od_com_irq);
+   set_core("uart", "03F8,15", "");
+   UT_ASSERT(parse());
+   UT_ASSERT_EQ_INT(15, od_control.od_com_irq);
    set_core("fossil", "0", "");
    UT_ASSERT(parse());
    UT_ASSERT_EQ_INT(kComMethodFOSSIL, nBBSDevComMethod);
 #endif
 }
 
-static void rejects_modes(void)
+static void rejects_socket_modes(void)
 {
    set_core("unknown", "1", "");
    UT_ASSERT(!parse());
@@ -659,11 +662,23 @@ static void rejects_modes(void)
    set_core("socket", "/", "");
    UT_ASSERT(!parse());
    set_core("socket", "0", "");
+#if defined(ODPLAT_NIX) || defined(ODPLAT_WIN32)
    UT_ASSERT(parse());
+#else
+   UT_ASSERT(!parse());
+#endif
    set_core("socket", "2147483647", "");
+#if defined(ODPLAT_NIX) || defined(ODPLAT_WIN32)
    UT_ASSERT(parse());
+#else
+   UT_ASSERT(!parse());
+#endif
    set_core("socket", "18446744073709551616", "");
    UT_ASSERT(!parse());
+}
+
+static void rejects_uart_modes(void)
+{
    set_core("uart", "03f8,4", "");
    UT_ASSERT(!parse());
    set_core("uart", "", "");
@@ -684,10 +699,12 @@ static void rejects_modes(void)
    UT_ASSERT(!parse());
    set_core("uart", "/3F8,4", "");
    UT_ASSERT(!parse());
-   set_core("uart", "03F8,15", "");
-   UT_ASSERT(!parse());
    set_core("uart", "03F8,16", "");
    UT_ASSERT(!parse());
+}
+
+static void rejects_fossil_modes(void)
+{
    set_core("fossil", "255", "");
    UT_ASSERT(!parse());
    set_core("fossil", "", "");
@@ -698,10 +715,16 @@ static void rejects_modes(void)
    UT_ASSERT(!parse());
    set_core("fossil", "01", "");
    UT_ASSERT(!parse());
+}
+
+static void rejects_platform_modes(void)
+{
    set_core("stdio", "x", "");
    UT_ASSERT(!parse());
 
 #ifndef ODPLAT_NIX
+   set_core("stdio", "", "");
+   UT_ASSERT(!parse());
    set_core("serial", "9", "");
    UT_ASSERT(!parse());
 #endif
@@ -728,5 +751,8 @@ static const UTTestCase ut_cases[] = {
    {"tokens and numbers", validates_tokens_and_numbers},
    {"UTF-8", validates_utf8},
    {"modes", accepts_modes},
-   {"bad modes", rejects_modes}
+   {"bad socket modes", rejects_socket_modes},
+   {"bad UART modes", rejects_uart_modes},
+   {"bad FOSSIL modes", rejects_fossil_modes},
+   {"unsupported platform modes", rejects_platform_modes}
 };

@@ -47,7 +47,7 @@ static void rejects_malformed_tags(void)
 {
    static const char * const invalid[] = {
       "", "-en", "en-", "en--US", "abcdefghi", "en-abcdefghi",
-      "en_Us", "en-{", "en-\xc3\xa9", "q", "12", "e1", "en-12",
+      "en_Us", "en-/", "en-{", "en-\xc3\xa9", "q", "12", "e1", "en-12",
       "x", "en-a", "en-a-b-foo", "en-x", "en-abc1",
       "zh-aaa-bbb-ccc-ddd", "sl-rozaj-ROZAJ",
       "en-a-foo-A-bar"

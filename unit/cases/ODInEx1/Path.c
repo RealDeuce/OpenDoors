@@ -13,6 +13,7 @@ static void validates_paths(void)
    UT_ASSERT(utt_ODBBSDevAbsolutePath("\\/server/BBSDEV.DRP"));
    UT_ASSERT(!utt_ODBBSDevAbsolutePath("C:BBSDEV.DRP"));
    UT_ASSERT(!utt_ODBBSDevAbsolutePath("1:\\BBSDEV.DRP"));
+   UT_ASSERT(!utt_ODBBSDevAbsolutePath("{:\\BBSDEV.DRP"));
    UT_ASSERT(!utt_ODBBSDevAbsolutePath("/BBSDEV.DRP"));
    UT_ASSERT(!utt_ODBBSDevAbsolutePath("BBSDEV.DRP"));
 #endif

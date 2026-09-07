@@ -152,6 +152,7 @@ jobs:
           --platform "${{ matrix.platform }}"
           --selection build/unit-selection.json
           --coverage
+          --native-flag=-Wno-unused-but-set-global
           ${{ inputs.allow_proposed_coverage_waivers && '--allow-proposed-coverage-waivers' || '' }}
           --build "build/unit-macos-${{ matrix.platform }}"
       - name: Upload detailed coverage records

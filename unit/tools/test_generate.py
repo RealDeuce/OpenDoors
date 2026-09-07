@@ -126,7 +126,8 @@ class MockDeclarationTests(unittest.TestCase):
                          set(HEADER_MOCK_DECLARATIONS))
 
     def test_explicit_case_mocks_force_header_macro_interception(self):
-        case = ("#define UT_CUSTOM_MOCK_memcpy\n"
+        case = ("#define UT_CUSTOM_MOCK_ferror\n"
+                "#define UT_CUSTOM_MOCK_memcpy\n"
                 "#define UT_CUSTOM_MOCK_vfprintf\n"
                 "#define UT_CUSTOM_MOCK_sscanf\n"
                 "#define UT_CUSTOM_MOCK_sigemptyset\n"
@@ -138,7 +139,7 @@ class MockDeclarationTests(unittest.TestCase):
                 "#define UT_CUSTOM_MOCK_strncpy\n"
                 "#define UT_CUSTOM_MOCK_time\n")
         self.assertEqual(explicit_mock_names(case, ["-D__unix__"]),
-                         {"memcpy", "mktime", "printf", "sigemptyset",
+                         {"ferror", "memcpy", "mktime", "printf", "sigemptyset",
                           "sscanf", "vfprintf",
                           "strcat", "strcpy", "strncat", "strncpy",
                           "time"})
@@ -165,6 +166,13 @@ class MockDeclarationTests(unittest.TestCase):
             case, ["-D__WATCOMC__=1300", "-D__386__"]), set())
         self.assertEqual(explicit_mock_names(
             case, ["-D__TURBOC__=0x0201", "-D__LARGE__"]), set())
+
+    def test_dos_intercepts_explicit_ferror_header_macro(self):
+        case = "#define UT_CUSTOM_MOCK_ferror\n"
+        for compiler in ("-D__WATCOMC__=1300", "-D__TURBOC__=0x0201"):
+            flags = [compiler]
+            self.assertEqual(explicit_mock_names(case, flags), {"ferror"})
+            self.assertEqual(late_mock_names({"ferror"}, flags), {"ferror"})
 
     def test_declares_errno_accessors_before_runtime_headers_use_them(self):
         self.assertEqual(early_mock_declarations(
