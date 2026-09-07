@@ -15,9 +15,9 @@ contract first.
 Use test-driven development for behavior changes and defect fixes. Add or
 update the smallest affected unit test before editing production code, run it,
 and verify that it fails for the intended missing or incorrect behavior. Only
-then change the production implementation and rerun that same test to verify
-it passes, followed by the complete selector-reported suite. Do not combine
-the red-test and production changes before observing the expected failure.
+then change the production implementation and rerun that same targeted test to
+verify it passes. Do not combine the red-test and production changes before
+observing the expected failure.
 Record the red-test command and failure reason in the change handoff. A pure
 refactor or documentation-only change may have no meaningful new red test;
 run the existing affected tests before and after it and state why the red
@@ -27,16 +27,21 @@ New functions require isolated unit tests on every applicable platform.
 Renamed or removed functions require regenerating `unit/inventory.json` and
 updating test ownership. Adding or removing a first-party library source in
 either CMake build manifest also requires updating `unit/sources.json`; the
-strict checker requires the manifests to agree exactly. Header changes require
-running every source suite reported by the unit selector. If a preprocessor
+strict checker requires the manifests to agree exactly. For header changes,
+use the selector to choose targeted representative owner tests locally and
+leave the full affected cross-platform expansion to CI. If a preprocessor
 variant applies only to some registered platforms, scope its named
 configuration with the `platforms` field while leaving at least one runnable
 configuration for every owner platform. Test and mock code compiled by a DOS
 toolchain must remain C89-compatible and respect 16-bit segment and stack
 limits.
 
-Before submitting a production change, run the selector against the working
-tree and execute the suites it reports. At minimum, also run:
+Before pushing a production change, run targeted tests for the changed
+functions and behavior on the locally available applicable platforms and
+toolchains. Use the selector to identify affected owners, but do not duplicate
+the complete cross-platform CI suite locally solely as a prerequisite to
+pushing. After pushing, ensure CI runs the full suite and monitor that run to
+completion before reporting the change as green. At minimum, also run locally:
 
 ```
 PYTHONDONTWRITEBYTECODE=1 python3 unit/tools/inventory.py --check
