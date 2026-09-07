@@ -53,11 +53,18 @@ static void combines_legacy_fields(void)
 
 static void omits_unavailable_number(void)
 {
+   static const BYTE unnumbered[] = {
+      DORINFO1, CALLINFO, DOORSYS_DRWY, NO_DOOR_FILE
+   };
+   unsigned index;
    reset_user_id();
-   od_control.od_info_type = DORINFO1;
    od_control.user_num = 42;
    strcpy(od_control.user_name, "Jane Doe");
-   UT_ASSERT(strcmp(":Jane Doe", utt_od_get_user_id()) == 0);
+   for(index = 0; index < DIM(unnumbered); ++index)
+   {
+      od_control.od_info_type = unnumbered[index];
+      UT_ASSERT(strcmp(":Jane Doe", utt_od_get_user_id()) == 0);
+   }
 
    od_control.user_name[0] = '\0';
    strcpy(od_control.user_handle, "Jane");

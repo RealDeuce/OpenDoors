@@ -426,14 +426,9 @@ ODAPIDEF BOOL ODCALL od_get_user_8bit(void)
  */
 ODAPIDEF const char * ODCALL od_get_user_id(void)
 {
-   static const BYTE abNumberedFormats[] = {
-      EXITINFO, RA1EXITINFO, CHAINTXT, SFDOORSDAT, DOORSYS_GAP,
-      QBBS275EXITINFO, DOORSYS_WILDCAT, RA2EXITINFO, TRIBBSSYS, DOOR32SYS
-   };
    static char szUserID[48];
    const char *pszName;
    BOOL bHasNumber = FALSE;
-   unsigned nFormat;
    unsigned nPosition = 0;
 
    szUserID[0] = '\0';
@@ -446,17 +441,11 @@ ODAPIDEF const char * ODCALL od_get_user_id(void)
    {
       bHasNumber = od_control.user_num != 0;
    }
-   else
-   {
-      for(nFormat = 0; nFormat < DIM(abNumberedFormats); ++nFormat)
-      {
-         if(od_control.od_info_type == abNumberedFormats[nFormat])
-         {
-            bHasNumber = TRUE;
-            break;
-         }
-      }
-   }
+   else if(od_control.od_info_type >= EXITINFO
+      && od_control.od_info_type <= DOOR32SYS
+      && od_control.od_info_type != CALLINFO
+      && od_control.od_info_type != DOORSYS_DRWY)
+      bHasNumber = TRUE;
 
    pszName = od_control.user_name[0] != '\0'
       ? od_control.user_name : od_control.user_handle;
@@ -905,26 +894,26 @@ BOOL ODInitReadBBSDevDropFile(const char *pszPath)
          else if(*p >= 0xe0 && *p <= 0xef)
          {
             unsigned char lead = *p;
-            if(p[1] == '\0') BBSDEV_REJECT();
-            if(p[2] == '\0') BBSDEV_REJECT();
-            if((p[1] & 0xc0) != 0x80) BBSDEV_REJECT();
-            if((p[2] & 0xc0) != 0x80) BBSDEV_REJECT();
-            if(lead == 0xe0 && p[1] < 0xa0) BBSDEV_REJECT();
-            if(lead == 0xed && p[1] >= 0xa0) BBSDEV_REJECT();
+            if(p[1] == '\0' || p[2] == '\0'
+               || (p[1] & 0xc0) != 0x80 || (p[2] & 0xc0) != 0x80)
+               BBSDEV_REJECT();
+            if((lead == 0xe0 && p[1] < 0xa0)
+               || (lead == 0xed && p[1] >= 0xa0))
+               BBSDEV_REJECT();
             dwCode = *p++ & 0x0f;
             nTrail = 2;
          }
          else if(*p >= 0xf0 && *p <= 0xf4)
          {
             unsigned char lead = *p;
-            if(p[1] == '\0') BBSDEV_REJECT();
-            if(p[2] == '\0') BBSDEV_REJECT();
-            if(p[3] == '\0') BBSDEV_REJECT();
-            if((p[1] & 0xc0) != 0x80) BBSDEV_REJECT();
-            if((p[2] & 0xc0) != 0x80) BBSDEV_REJECT();
-            if((p[3] & 0xc0) != 0x80) BBSDEV_REJECT();
-            if(lead == 0xf0 && p[1] < 0x90) BBSDEV_REJECT();
-            if(lead == 0xf4 && p[1] >= 0x90) BBSDEV_REJECT();
+            if(p[1] == '\0' || p[2] == '\0' || p[3] == '\0')
+               BBSDEV_REJECT();
+            if((p[1] & 0xc0) != 0x80 || (p[2] & 0xc0) != 0x80
+               || (p[3] & 0xc0) != 0x80)
+               BBSDEV_REJECT();
+            if((lead == 0xf0 && p[1] < 0x90)
+               || (lead == 0xf4 && p[1] >= 0x90))
+               BBSDEV_REJECT();
             dwCode = *p++ & 0x07;
             nTrail = 3;
          }
@@ -949,24 +938,18 @@ BOOL ODInitReadBBSDevDropFile(const char *pszPath)
       }
       if(!bFirst)
       {
-         if(dwFirst == 0x20) BBSDEV_REJECT();
-         if(dwFirst == 0xa0) BBSDEV_REJECT();
-         if(dwFirst == 0x1680) BBSDEV_REJECT();
-         if(dwFirst >= 0x2000 && dwFirst <= 0x200a) BBSDEV_REJECT();
-         if(dwFirst == 0x2028) BBSDEV_REJECT();
-         if(dwFirst == 0x2029) BBSDEV_REJECT();
-         if(dwFirst == 0x202f) BBSDEV_REJECT();
-         if(dwFirst == 0x205f) BBSDEV_REJECT();
-         if(dwFirst == 0x3000) BBSDEV_REJECT();
-         if(dwLast == 0x20) BBSDEV_REJECT();
-         if(dwLast == 0xa0) BBSDEV_REJECT();
-         if(dwLast == 0x1680) BBSDEV_REJECT();
-         if(dwLast >= 0x2000 && dwLast <= 0x200a) BBSDEV_REJECT();
-         if(dwLast == 0x2028) BBSDEV_REJECT();
-         if(dwLast == 0x2029) BBSDEV_REJECT();
-         if(dwLast == 0x202f) BBSDEV_REJECT();
-         if(dwLast == 0x205f) BBSDEV_REJECT();
-         if(dwLast == 0x3000) BBSDEV_REJECT();
+         if(dwFirst == 0x20 || dwFirst == 0xa0 || dwFirst == 0x1680
+            || (dwFirst >= 0x2000 && dwFirst <= 0x200a))
+            BBSDEV_REJECT();
+         if(dwFirst == 0x2028 || dwFirst == 0x2029 || dwFirst == 0x202f
+            || dwFirst == 0x205f || dwFirst == 0x3000)
+            BBSDEV_REJECT();
+         if(dwLast == 0x20 || dwLast == 0xa0 || dwLast == 0x1680
+            || (dwLast >= 0x2000 && dwLast <= 0x200a))
+            BBSDEV_REJECT();
+         if(dwLast == 0x2028 || dwLast == 0x2029 || dwLast == 0x202f
+            || dwLast == 0x205f || dwLast == 0x3000)
+            BBSDEV_REJECT();
       }
    }
 
@@ -985,13 +968,12 @@ BOOL ODInitReadBBSDevDropFile(const char *pszPath)
       BBSDEV_REJECT();
 
    /* Required text fields. */
-   if(apszLine[3][0] == '\0') BBSDEV_REJECT();
-   if(apszLine[4][0] == '\0') BBSDEV_REJECT();
-   if(apszLine[11][0] == '\0') BBSDEV_REJECT();
-   if(apszLine[12][0] == '\0') BBSDEV_REJECT();
-   if(apszLine[13][0] == '\0') BBSDEV_REJECT();
-   if(apszLine[14][0] == '\0') BBSDEV_REJECT();
-   if(apszLine[15][0] == '\0') BBSDEV_REJECT();
+   if(apszLine[3][0] == '\0' || apszLine[4][0] == '\0'
+      || apszLine[11][0] == '\0' || apszLine[12][0] == '\0')
+      BBSDEV_REJECT();
+   if(apszLine[13][0] == '\0' || apszLine[14][0] == '\0'
+      || apszLine[15][0] == '\0')
+      BBSDEV_REJECT();
 
    /* Width and height are positive 16-bit decimal values. */
    for(nIndex = 0; apszLine[5][nIndex] != '\0'; ++nIndex)
@@ -1015,12 +997,12 @@ BOOL ODInitReadBBSDevDropFile(const char *pszPath)
    {
       BBSDEV_REJECT();
    }
-   if(apszLine[7][0] != 'Y' && apszLine[7][0] != 'N') BBSDEV_REJECT();
-   if(apszLine[7][1] != '\0') BBSDEV_REJECT();
-   if(apszLine[8][0] != 'Y' && apszLine[8][0] != 'N') BBSDEV_REJECT();
-   if(apszLine[8][1] != '\0') BBSDEV_REJECT();
-   if(apszLine[18][0] != 'Y' && apszLine[18][0] != 'N') BBSDEV_REJECT();
-   if(apszLine[18][1] != '\0') BBSDEV_REJECT();
+   if((apszLine[7][0] != 'Y' && apszLine[7][0] != 'N')
+      || apszLine[7][1] != '\0') BBSDEV_REJECT();
+   if((apszLine[8][0] != 'Y' && apszLine[8][0] != 'N')
+      || apszLine[8][1] != '\0') BBSDEV_REJECT();
+   if((apszLine[18][0] != 'Y' && apszLine[18][0] != 'N')
+      || apszLine[18][1] != '\0') BBSDEV_REJECT();
 
    /* CTerm revision: one or more canonical unsigned decimal components. */
    if(apszLine[9][0] != '\0')
@@ -1063,13 +1045,12 @@ BOOL ODInitReadBBSDevDropFile(const char *pszPath)
       long nDays = 0;
       double dDeadline;
       BOOL bLeapYear = FALSE;
-      if(apszLine[10][20] != '\0') BBSDEV_REJECT();
-      if(apszLine[10][4] != '-') BBSDEV_REJECT();
-      if(apszLine[10][7] != '-') BBSDEV_REJECT();
-      if(apszLine[10][10] != 'T') BBSDEV_REJECT();
-      if(apszLine[10][13] != ':') BBSDEV_REJECT();
-      if(apszLine[10][16] != ':') BBSDEV_REJECT();
-      if(apszLine[10][19] != 'Z') BBSDEV_REJECT();
+      if(apszLine[10][20] != '\0' || apszLine[10][4] != '-'
+         || apszLine[10][7] != '-' || apszLine[10][10] != 'T')
+         BBSDEV_REJECT();
+      if(apszLine[10][13] != ':' || apszLine[10][16] != ':'
+         || apszLine[10][19] != 'Z')
+         BBSDEV_REJECT();
       for(nIndex = 0; nIndex < 20; ++nIndex)
       {
          if(abDigitPosition[nIndex])
