@@ -1094,7 +1094,7 @@ BOOL ODInitReadBBSDevDropFile(const char *pszPath)
       }
       if(nYear >= 1970)
       {
-         static const BYTE abMonthDays[12] = {
+         const BYTE abMonthDays[12] = {
             31,28,31,30,31,30,31,31,30,31,30,31
          };
          nCalendarYear = nYear - 1;

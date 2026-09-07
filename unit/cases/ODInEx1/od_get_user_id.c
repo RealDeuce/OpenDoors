@@ -26,7 +26,7 @@ static void returns_bbsdev_key(void)
 
 static void combines_legacy_fields(void)
 {
-   static const BYTE numbered[] = {
+   const BYTE numbered[] = {
       EXITINFO, RA1EXITINFO, CHAINTXT, SFDOORSDAT, DOORSYS_GAP,
       QBBS275EXITINFO, DOORSYS_WILDCAT, RA2EXITINFO, TRIBBSSYS, DOOR32SYS
    };
@@ -53,7 +53,7 @@ static void combines_legacy_fields(void)
 
 static void omits_unavailable_number(void)
 {
-   static const BYTE unnumbered[] = {
+   const BYTE unnumbered[] = {
       DORINFO1, CALLINFO, DOORSYS_DRWY, NO_DOOR_FILE
    };
    unsigned index;
