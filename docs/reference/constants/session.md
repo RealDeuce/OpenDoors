@@ -105,8 +105,10 @@ from the absolute path in the `BBSDEV_DRP` environment variable, validates the
 UTF-8 record, and treats the file as read-only. See the
 [BBSDEV.DRP specification](https://github.com/RealDeuce/bbsdev.drp).
 
-The format's alias is copied to both `user_name` and `user_handle`. Its opaque
-user key is available through [`od_get_user_id()`](../api/od_get_user_id.md).
+The format's alias is copied to both
+[`od_control.user_name`](../control/caller.md#user_name) and
+[`od_control.user_handle`](../control/caller.md#user_handle). Its opaque user
+key is available through [`od_get_user_id()`](../api/od_get_user_id.md).
 OpenDoors accepts the `IBM437` and `UTF-8` terminal encodings it can represent
 faithfully; other registered character sets are rejected as unsupported.
 The communication type determines whether the session is local or uses an
