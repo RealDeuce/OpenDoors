@@ -437,15 +437,17 @@ ODAPIDEF const char * ODCALL od_get_user_id(void)
    if(od_control.od_info_type == BBSDEVDRP)
       return(pszBBSDevUserID == NULL ? szUserID : pszBBSDevUserID);
 
+   bHasNumber = TRUE;
+   if(od_control.od_info_type < EXITINFO)
+      bHasNumber = FALSE;
+   if(od_control.od_info_type > DOOR32SYS)
+      bHasNumber = FALSE;
+   if(od_control.od_info_type == CALLINFO)
+      bHasNumber = FALSE;
+   if(od_control.od_info_type == DOORSYS_DRWY)
+      bHasNumber = FALSE;
    if(od_control.od_info_type == CUSTOM)
-   {
       bHasNumber = od_control.user_num != 0;
-   }
-   else if(od_control.od_info_type >= EXITINFO
-      && od_control.od_info_type <= DOOR32SYS
-      && od_control.od_info_type != CALLINFO
-      && od_control.od_info_type != DOORSYS_DRWY)
-      bHasNumber = TRUE;
 
    pszName = od_control.user_name[0] != '\0'
       ? od_control.user_name : od_control.user_handle;
@@ -1037,13 +1039,10 @@ BOOL ODInitReadBBSDevDropFile(const char *pszPath)
    /* Restricted RFC 3339 UTC deadline and valid Gregorian calendar date. */
    if(apszLine[10][0] != '\0')
    {
-      static const BYTE abDigitPosition[20] = {
-         1,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0
-      };
       INT nYear, nMonth, nDay, nHour, nMinute, nSecond, nMonthDays;
       INT nCalendarYear, nCalendarMonth;
       long nDays = 0;
-      double dDeadline;
+      long nSecondOfDay;
       BOOL bLeapYear = FALSE;
       if(apszLine[10][20] != '\0' || apszLine[10][4] != '-'
          || apszLine[10][7] != '-' || apszLine[10][10] != 'T')
@@ -1053,11 +1052,14 @@ BOOL ODInitReadBBSDevDropFile(const char *pszPath)
          BBSDEV_REJECT();
       for(nIndex = 0; nIndex < 20; ++nIndex)
       {
-         if(abDigitPosition[nIndex])
-         {
-            if(apszLine[10][nIndex] < '0') BBSDEV_REJECT();
-            if(apszLine[10][nIndex] > '9') BBSDEV_REJECT();
-         }
+         if(nIndex == 4) continue;
+         if(nIndex == 7) continue;
+         if(nIndex == 10) continue;
+         if(nIndex == 13) continue;
+         if(nIndex == 16) continue;
+         if(nIndex == 19) continue;
+         if(apszLine[10][nIndex] < '0') BBSDEV_REJECT();
+         if(apszLine[10][nIndex] > '9') BBSDEV_REJECT();
       }
       nYear = (apszLine[10][0] - '0') * 1000
          + (apszLine[10][1] - '0') * 100
@@ -1108,13 +1110,17 @@ BOOL ODInitReadBBSDevDropFile(const char *pszPath)
                ++nDays;
          }
          nDays += nDay - 1;
-         dDeadline = (double)nDays * 86400.0 + nHour * 3600.0
-            + nMinute * 60.0 + nSecond;
+         nSecondOfDay = (long)nHour * 3600L
+            + (long)nMinute * 60L + nSecond;
 #if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
-         if(dDeadline > 2147483647.0)
-            dDeadline = 2147483647.0;
+         if(nDays > (2147483647L - nSecondOfDay) / 86400L)
+            nBBSDevDeadline = (time_t)2147483647L;
+         else
+            nBBSDevDeadline = (time_t)(nDays * 86400L + nSecondOfDay);
+#else
+         nBBSDevDeadline = (time_t)nDays * (time_t)86400
+            + (time_t)nSecondOfDay;
 #endif
-         nBBSDevDeadline = (time_t)dDeadline;
       }
       else
          nBBSDevDeadline = (time_t)0;

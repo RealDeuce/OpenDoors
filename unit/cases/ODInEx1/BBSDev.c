@@ -526,7 +526,13 @@ static void validates_deadlines(void)
    accept_field(10, "2030-09-30T00:00:00Z");
    accept_field(10, "2030-11-30T00:00:00Z");
    accept_field(10, "2039-01-01T00:00:00Z");
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   UT_ASSERT(nBBSDevDeadline == (time_t)2147483647L);
+#endif
    accept_field(10, "9999-12-31T23:59:59Z");
+#if defined(ODPLAT_DOS) || defined(ODPLAT_DOS32)
+   UT_ASSERT(nBBSDevDeadline == (time_t)2147483647L);
+#endif
 }
 
 static void validates_tokens_and_numbers(void)
