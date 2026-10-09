@@ -37,9 +37,10 @@ format normally retain their initialization value.
 - [Runtime state and policy](runtime.md)
 - [Customization and callbacks](customization.md)
 
-The header requests byte alignment for supported Turbo C versions, MSVC, and
-the Open Watcom DOS32 target. Other compilers use the layout produced by their
-normal ABI because [`OpenDoor.h`](../api/index.md) does not apply a universal packed attribute.
+The header requests byte alignment for supported Turbo C versions, Microsoft C
+for DOS, all Windows targets, and the Open Watcom DOS16 and DOS32 targets.
+Other compilers use the layout produced by their normal ABI because
+[`OpenDoor.h`](../api/index.md) does not apply a universal packed attribute.
 Do not calculate offsets from this documentation or copy offsets from a
 different compiler, platform, or architecture; bind the current header or use
 a deliberately maintained foreign-function definition for the exact build.
@@ -68,7 +69,7 @@ flow at OpenDoors API boundaries.
 
 The structure is deliberately exposed for source and binary compatibility.
 Applications must nevertheless use the declaration supplied by the installed
-header. The header requests byte packing only for the compiler families which
-the library explicitly supports that way, and the Win32-only tail fields are
-absent on other platforms. Do not copy offsets from a different compiler,
-architecture, or OpenDoors build.
+header. The header requests byte packing on Windows and for supported DOS
+compiler families, and the Win32-only tail fields are absent on other
+platforms. Do not copy offsets from a different compiler, architecture, or
+OpenDoors build.

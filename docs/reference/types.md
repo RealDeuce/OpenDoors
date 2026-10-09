@@ -311,12 +311,13 @@ pointer.
 
 `tODControl` is the type of the exported [`od_control`](control/index.md)
 object returned by [`od_control_get()`](api/od_control_get.md). [`OpenDoor.h`](api/index.md)
-requests byte alignment for supported Turbo C versions, MSVC, and DOS32, then
-restores the compiler's previous packing after the declaration. It does not
-apply a universal packed attribute on every target. The resulting layout is
-part of the ABI for that specific library build, and many members also contain
-native pointers and callbacks; an instance is not portable between compilers,
-processes, architectures, or library versions.
+requests byte alignment for supported Turbo C versions, Microsoft C for DOS,
+all Windows targets, and 16- or 32-bit Watcom DOS, then restores the compiler's
+previous packing after the declaration. It does not apply a universal packed
+attribute on every target. The resulting layout is part of the ABI for that
+specific library build, and many members also contain native pointers and
+callbacks; an instance is not portable between compilers, processes,
+architectures, or library versions.
 
 Applications may read and write documented members at the documented phase of
 the session. A private copy does not replace the exported control object, and

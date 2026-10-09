@@ -150,12 +150,11 @@ files and network protocols, write a defined byte order, and version records
 whose representation may change.
 
 The public [`tODControl`](../reference/types.md#todcontrol) layout is produced
-by [`OpenDoor.h`](../reference/api/index.md) for the selected compiler; MSVC receives explicit byte packing,
-while the header does not apply a universal packed attribute to every Windows
-compiler. Include the header rather than reproducing the layout. An application
-built with a different ABI or architecture must use the matching OpenDoors
-library, and no packing rule makes pointers or Windows handles interchangeable
-between 32-bit and 64-bit processes.
+by [`OpenDoor.h`](../reference/api/index.md), which applies byte packing on all
+Windows targets. Include the header rather than reproducing the layout. An
+application built with a different ABI or architecture must use the matching
+OpenDoors library, and no packing rule makes pointers or Windows handles
+interchangeable between 32-bit and 64-bit processes.
 
 ## Communication handles and Door32 sessions
 

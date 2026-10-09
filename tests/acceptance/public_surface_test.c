@@ -61,6 +61,9 @@ int main(void)
    OD_TEST_CHECK(sizeof(DWORD) == 4);
    OD_TEST_CHECK(sizeof(INT32) == 4);
    OD_TEST_CHECK(sizeof(tODMilliSec) == sizeof(DWORD));
+#if defined(ODPLAT_DOS) || defined(ODPLAT_WIN32)
+   OD_TEST_CHECK(offsetof(tODControl, od_com_rx_buf) == 73);
+#endif
    OD_TEST_CHECK(OD_RESERVE_ERROR == -1);
    OD_TEST_CHECK(OD_RESERVE_PENDING == 0);
    OD_TEST_CHECK(OD_RESERVE_ACQUIRED == 1);

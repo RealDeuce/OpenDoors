@@ -673,10 +673,11 @@ typedef void(ODFAR OD_PERSONALITY_PROC)(BYTE);
 #pragma option -a-
 #endif /* __TURBOC__ >= 0x295 */
 #endif /* __TURBOC__ */
-#ifdef _MSC_VER
+#if defined(_WIN32) || defined(_MSC_VER)
 #pragma pack(1)
-#endif /* _MSC_VER */
-#ifdef ODPLAT_DOS32
+#endif /* _WIN32 || _MSC_VER */
+#if defined(ODPLAT_DOS32) || \
+   (defined(ODPLAT_DOS) && defined(__WATCOMC__))
 #pragma pack( __push, 1 )
 #endif
 
@@ -973,10 +974,11 @@ typedef struct
 } tODControl;
 
 /* Restore original structure alignment, if possible. */
-#ifdef _MSC_VER
+#if defined(_WIN32) || defined(_MSC_VER)
 #pragma pack()
-#endif /* _MSC_VER */
-#ifdef ODPLAT_DOS32
+#endif /* _WIN32 || _MSC_VER */
+#if defined(ODPLAT_DOS32) || \
+   (defined(ODPLAT_DOS) && defined(__WATCOMC__))
 #pragma pack( __pop )
 #endif
 
